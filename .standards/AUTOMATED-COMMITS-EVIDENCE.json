@@ -1,0 +1,647 @@
+{
+  "reviewed": "2026-10-05",
+  "scope": "Four local source repositories and explicitly approved read-only Yuki/Rufus runtime roots",
+  "production_committers": 5,
+  "generated_forms": 9,
+  "coverage_notes": [
+    "All tracked shell/Python/JS/TS sources, extensionless shebang scripts and workflow",
+    "YAML were inspected for Git/commit call candidates in the four local repositories.",
+    "Counts: Configs 63, Playground 422, Yuki 86, Rufus 89 sources. Five production",
+    "committers were found, with nine generated message forms listed above.",
+    "With explicit read-only approval, inspected Yuki and Rufus runtime script,",
+    "bin, skill and local-bin roots plus each live canon's scripts on 2026-10-05:",
+    "188 Yuki sources and 229 Rufus sources, excluding dependency caches, environments,",
+    "credential/config files and tool symlinks. No read errors. All Git/commit candidate",
+    "scripts match the reviewed local source hashes, including both sync scripts and",
+    "Yuki's HQ idle-push script. The latter's exact live subject is",
+    "`asia daily brief (auto)`; SHA256:",
+    "`9616918ae1be53dcfce2988acef75082d2ab206e5dad9b68c2cccabd254ba8c2`.",
+    "No additional owned production committer was found in these roots. The Yuki",
+    "git-freshness symlink targets the checked read-only canon reporter; tool binaries",
+    "and dependency sources receive no automation exception. This is a dated source",
+    "inventory, not a guarantee about other directories or future runtime changes.",
+    "Unlisted or changed automation needs source review and an inventory update before",
+    "an exception is granted. No broad runtime-script exemption is inferred.",
+    "",
+    "Test-fixture committers are not production exceptions: Configs",
+    "`test-biggie-configs.sh`, `test-catchup.sh`, `test-credential-sweep.sh`,",
+    "`test-git-freshness-gate.sh`, `test-model-preferences.py`; Playground",
+    "`tests/test_library.py`; Yuki `test-biggie-hq-idle-push.sh`,",
+    "`test-canon-git-safety.py`, `test-canon-source-check.sh`,",
+    "`test-git-freshness-report.sh`, `test-sync-canon-committed-ahead.sh`,",
+    "`test-sync-canon-message.sh`; Rufus `test-canon-git-safety.py`,",
+    "`test-git-freshness.sh`, `test-sync-canon-divergence.sh`,",
+    "`test-sync-canon-message.sh`. Bare test filenames above live in each repo's",
+    "`scripts/`; their arbitrary fixture subjects stay confined to isolated test repos.",
+    "Other candidates inspect Git objects/refs, install hooks, or mention commits in",
+    "guidance and do not create commits. No automation was executed for this inventory."
+  ],
+  "local_source_inventory": {
+    "biggie-configs": {
+      "scanned_sources": 63,
+      "candidates": [
+        "machines/airbook/claude/hooks/closeout-reminder.sh",
+        "machines/m4-mini/claude/hooks/closeout-reminder.sh",
+        "scripts/audit.sh",
+        "scripts/biggie-configs.sh",
+        "scripts/credential-sweep.sh",
+        "scripts/git-freshness-gate.sh",
+        "scripts/install-hooks.sh",
+        "scripts/test-biggie-configs.sh",
+        "scripts/test-catchup.sh",
+        "scripts/test-credential-sweep.sh",
+        "scripts/test-git-freshness-gate.sh",
+        "scripts/test-model-preferences.py"
+      ]
+    },
+    "biggie-playground": {
+      "scanned_sources": 422,
+      "candidates": [
+        "biggie-playground.py",
+        "references/machina/artifacts/loops/metric-optimizer-loop/metadata.yaml",
+        "tests/test_library.py"
+      ]
+    },
+    "yuki-canon": {
+      "scanned_sources": 86,
+      "candidates": [
+        "runtime/scripts/biggie-hq-idle-push.sh",
+        "scripts/git-freshness-report.sh",
+        "scripts/lib/git-freshness.sh",
+        "scripts/pull-canon.sh",
+        "scripts/scan-secrets.sh",
+        "scripts/sync-canon.sh",
+        "scripts/test-biggie-hq-idle-push.sh",
+        "scripts/test-canon-git-safety.py",
+        "scripts/test-canon-source-check.sh",
+        "scripts/test-git-freshness-report.sh",
+        "scripts/test-sync-canon-committed-ahead.sh",
+        "scripts/test-sync-canon-message.sh"
+      ]
+    },
+    "rufus-canon": {
+      "scanned_sources": 89,
+      "candidates": [
+        "scripts/lib/git-freshness.sh",
+        "scripts/scan-secrets.sh",
+        "scripts/sync-canon.sh",
+        "scripts/sync-down.sh",
+        "scripts/test-canon-git-safety.py",
+        "scripts/test-git-freshness.sh",
+        "scripts/test-sync-canon-divergence.sh",
+        "scripts/test-sync-canon-message.sh"
+      ]
+    }
+  },
+  "runtime_inventories": {
+    "yuki": {
+      "user": "Hermes",
+      "host": "macmini.lan",
+      "roots": [
+        {
+          "path": "/Users/Hermes/.hermes/scripts",
+          "exists": true,
+          "scanned_sources": 24
+        },
+        {
+          "path": "/Users/Hermes/.hermes/bin",
+          "exists": true,
+          "scanned_sources": 13
+        },
+        {
+          "path": "/Users/Hermes/.hermes/skills",
+          "exists": true,
+          "scanned_sources": 97
+        },
+        {
+          "path": "/Users/Hermes/.local/bin",
+          "exists": true,
+          "scanned_sources": 5
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts",
+          "exists": true,
+          "scanned_sources": 49
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/rufus-canon/scripts",
+          "exists": false,
+          "scanned_sources": 0
+        }
+      ],
+      "candidates": [
+        {
+          "path": "/Users/Hermes/.hermes/scripts/biggie-hq-idle-push.sh",
+          "sha256": "9616918ae1be53dcfce2988acef75082d2ab206e5dad9b68c2cccabd254ba8c2",
+          "commit_word_lines": [
+            58,
+            62,
+            71,
+            89,
+            106
+          ],
+          "literal_message_forms": [
+            {
+              "line": 62,
+              "subject": "asia daily brief (auto)"
+            }
+          ]
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/test-canon-source-check.sh",
+          "sha256": "ca8c83d4b6f4e10a039a4a0f37d642ebdf99c051bb46a4efae194d3bb3780998",
+          "commit_word_lines": [
+            22,
+            37,
+            63,
+            66
+          ],
+          "literal_message_forms": [
+            {
+              "line": 22,
+              "subject": "seed canon source test"
+            },
+            {
+              "line": 37,
+              "subject": "remote advance"
+            },
+            {
+              "line": 63,
+              "subject": "local unpublished work"
+            }
+          ]
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/test-biggie-hq-idle-push.sh",
+          "sha256": "989771695a5e6c3992b3d29eb2347937fbbe30148fb40f93ad06c470fb3bbb68",
+          "commit_word_lines": [
+            27,
+            44,
+            54,
+            57,
+            61,
+            66,
+            78,
+            86,
+            89,
+            98,
+            118,
+            158
+          ],
+          "literal_message_forms": [
+            {
+              "line": 118,
+              "subject": "credential fixture"
+            }
+          ]
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/scan-secrets.sh",
+          "sha256": "8180d06a79adb557faec7b47137a74a209bf4caeb5d8708e8b247d442b980e69",
+          "commit_word_lines": [
+            2,
+            52,
+            54
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/sync-canon.sh",
+          "sha256": "4fd8b1a9180175d6fc518afc04d4b016ded759084c98d5a3d32396b965000c1d",
+          "commit_word_lines": [
+            71,
+            74,
+            75,
+            334,
+            356,
+            365,
+            372,
+            386,
+            408,
+            411,
+            452
+          ],
+          "literal_message_forms": [
+            {
+              "line": 386,
+              "subject": "Record Yuki canon sync status"
+            }
+          ]
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/test-git-freshness-report.sh",
+          "sha256": "562dc23fde4b63d3446f3b6e65dcf5ac451e05b521ec43580e8bf17701ee2191",
+          "commit_word_lines": [
+            39,
+            60,
+            71,
+            85,
+            88,
+            99,
+            101,
+            111
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/test-sync-canon-committed-ahead.sh",
+          "sha256": "6e8fd2e6cf0a55552afa98ae59dcd18d94536252bd9cbddfb18eaf4798698db9",
+          "commit_word_lines": [
+            26,
+            37
+          ],
+          "literal_message_forms": [
+            {
+              "line": 26,
+              "subject": "prepare isolated sync fixture"
+            },
+            {
+              "line": 37,
+              "subject": "committed payload awaiting sync"
+            }
+          ]
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/test-canon-git-safety.py",
+          "sha256": "a966827726823f85d6f21a27d682b3bd219f7e87d994cbd9ce6eb156a14690e3",
+          "commit_word_lines": [
+            44,
+            151,
+            170
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/test-sync-canon-message.sh",
+          "sha256": "4e2fbc34fd1af8242713f4404247dfdebb6d1941689034c45f00e7b0ffde1427",
+          "commit_word_lines": [
+            25,
+            32,
+            33,
+            42,
+            50,
+            51,
+            59,
+            65,
+            73,
+            90,
+            118,
+            162,
+            182,
+            183,
+            192,
+            211,
+            212,
+            287,
+            298,
+            300
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/pull-canon.sh",
+          "sha256": "20f948f1e7bdc3a5ecbe3de89b8f35c26f38d1119bbf4091ee631b3ec9476953",
+          "commit_word_lines": [
+            72,
+            74
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/git-freshness-report.sh",
+          "sha256": "c5027713628f94a82632ffcd742651c7987540e763a0e364f8c4bdff5cadc2d3",
+          "commit_word_lines": [
+            11
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/lib/git-freshness.sh",
+          "sha256": "40fc293ebf7354fc8871413897afc0efdb2a3f8b8c78daa78dd11b7355c18b65",
+          "commit_word_lines": [
+            31,
+            51,
+            52
+          ],
+          "literal_message_forms": []
+        }
+      ],
+      "errors": [],
+      "skipped_links": [
+        {
+          "path": "/Users/Hermes/.hermes/bin/git-freshness-report",
+          "target": "/Users/Hermes/.hermes/canon/yuki-canon/scripts/git-freshness-report.sh"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/yarnpkg",
+          "target": "/usr/local/lib/node_modules/corepack/dist/yarnpkg.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/agent-browser",
+          "target": "/Users/Hermes/.npm-global/lib/node_modules/agent-browser/bin/agent-browser-darwin-arm64"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/b2v4",
+          "target": "/Users/Hermes/.local/pipx/venvs/b2/bin/b2v4"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/b2v3",
+          "target": "/Users/Hermes/.local/pipx/venvs/b2/bin/b2v3"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/manimce",
+          "target": "/Users/Hermes/.local/share/uv/tools/manim/bin/manimce"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/b2",
+          "target": "/Users/Hermes/.local/pipx/venvs/b2/bin/b2"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/browser-act",
+          "target": "/Users/Hermes/.local/share/uv/tools/browser-act-cli/bin/browser-act"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/mlx_whisper",
+          "target": "/Users/Hermes/.local/share/uv/tools/mlx-whisper/bin/mlx_whisper"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/claude",
+          "target": "/Users/Hermes/.local/share/claude/versions/2.1.280"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/codex",
+          "target": "/Users/Hermes/.npm-global/lib/node_modules/@openai/codex/bin/codex.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/pnpm",
+          "target": "/usr/local/lib/node_modules/corepack/dist/pnpm.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/pnpx",
+          "target": "/usr/local/lib/node_modules/corepack/dist/pnpx.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/python3.11",
+          "target": "/Users/Hermes/.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/bin/python3.11"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/rg",
+          "target": "/opt/homebrew/Cellar/ripgrep/15.1.0/bin/rg"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/agent",
+          "target": "/Users/Hermes/.grok/downloads/grok-1.0.41-macos-aarch64"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/manim",
+          "target": "/Users/Hermes/.local/share/uv/tools/manim/bin/manim"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/yarn",
+          "target": "/usr/local/lib/node_modules/corepack/dist/yarn.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/grok",
+          "target": "/Users/Hermes/.grok/downloads/grok-1.0.41-macos-aarch64"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/skillspector",
+          "target": "/Users/Hermes/.local/share/skillspector-venv/bin/skillspector"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/browse",
+          "target": "/Users/Hermes/.npm-global/lib/node_modules/browse/bin/run.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/hermes",
+          "target": "/Users/Hermes/.hermes/hermes-agent/venv/bin/hermes"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/node",
+          "target": "/Users/Hermes/.local/node-v22.23.2/bin/node"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/corepack",
+          "target": "/Users/Hermes/.local/node-v22.23.2/lib/node_modules/corepack/dist/corepack.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/npx",
+          "target": "/Users/Hermes/.local/node-v22.23.2/lib/node_modules/npm/bin/npx-cli.js"
+        },
+        {
+          "path": "/Users/Hermes/.local/bin/npm",
+          "target": "/Users/Hermes/.local/node-v22.23.2/lib/node_modules/npm/bin/npm-cli.js"
+        }
+      ]
+    },
+    "rufus": {
+      "user": "root",
+      "host": "srv849179",
+      "roots": [
+        {
+          "path": "/root/.hermes/scripts",
+          "exists": true,
+          "scanned_sources": 14
+        },
+        {
+          "path": "/root/.hermes/bin",
+          "exists": true,
+          "scanned_sources": 12
+        },
+        {
+          "path": "/root/.hermes/skills",
+          "exists": true,
+          "scanned_sources": 153
+        },
+        {
+          "path": "/root/.local/bin",
+          "exists": true,
+          "scanned_sources": 2
+        },
+        {
+          "path": "/root/.hermes/canon/yuki-canon/scripts",
+          "exists": false,
+          "scanned_sources": 0
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts",
+          "exists": true,
+          "scanned_sources": 48
+        }
+      ],
+      "candidates": [
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/scan-secrets.sh",
+          "sha256": "8cdd140f10e170f683f5ef3e975c6cfc41f9d3b08828129826f84f2f3aa3fd98",
+          "commit_word_lines": [
+            38,
+            40
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/sync-canon.sh",
+          "sha256": "278e664daffbb085d59102f28235eb445274c6d4dd091feeaad643575a38b09f",
+          "commit_word_lines": [
+            64,
+            67,
+            68,
+            234,
+            243,
+            250,
+            255,
+            265,
+            285,
+            288,
+            319
+          ],
+          "literal_message_forms": [
+            {
+              "line": 265,
+              "subject": "Record Rufus canon sync status"
+            }
+          ]
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/sync-down.sh",
+          "sha256": "1362593c7af28bbc074c0044ea8c893b186f42f546b721559c06f51a62613886",
+          "commit_word_lines": [
+            80,
+            82
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/test-sync-canon-divergence.sh",
+          "sha256": "3b8e3d1c3d3f780f9bfc731325c562c5d851b35b7429aa78b35448dcd1df26e2",
+          "commit_word_lines": [
+            19,
+            31,
+            32
+          ],
+          "literal_message_forms": [
+            {
+              "line": 19,
+              "subject": "prepare isolated sync fixture"
+            },
+            {
+              "line": 31,
+              "subject": "local divergence"
+            },
+            {
+              "line": 32,
+              "subject": "remote divergence"
+            }
+          ]
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/test-sync-canon-message.sh",
+          "sha256": "3275d8cef94aad54d52c6238d65a4e0f5452b47bf02121f0045c26296494f1c0",
+          "commit_word_lines": [
+            25,
+            32,
+            33,
+            42,
+            50,
+            51,
+            59,
+            65,
+            73,
+            90,
+            118,
+            160,
+            180,
+            181,
+            190,
+            209,
+            210,
+            270,
+            272
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/test-git-freshness.sh",
+          "sha256": "db4ba02010c1d2289792af8e9fbd30d52d6beb56a083fb9da4d76dfe27db3ca0",
+          "commit_word_lines": [
+            15,
+            29,
+            33,
+            55,
+            60,
+            75,
+            79,
+            82
+          ],
+          "literal_message_forms": [
+            {
+              "line": 15,
+              "subject": "base"
+            },
+            {
+              "line": 29,
+              "subject": "local advance"
+            },
+            {
+              "line": 33,
+              "subject": "remote advance"
+            },
+            {
+              "line": 75,
+              "subject": "refresh fixture"
+            },
+            {
+              "line": 79,
+              "subject": "local unpublished work"
+            }
+          ]
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/test-canon-git-safety.py",
+          "sha256": "728c977b09d716fc6876b3aee93e528614a43aacc29f97c8cd3e1f0b29e83e05",
+          "commit_word_lines": [
+            41,
+            190
+          ],
+          "literal_message_forms": []
+        },
+        {
+          "path": "/root/.hermes/canon/rufus-canon/scripts/lib/git-freshness.sh",
+          "sha256": "e0f1bc47f8179520b5612b1a4913f6ff49649b74b3399dc56351c6afcbc0e407",
+          "commit_word_lines": [
+            39,
+            40
+          ],
+          "literal_message_forms": []
+        }
+      ],
+      "errors": [],
+      "skipped_links": [
+        {
+          "path": "/root/.hermes/bin/browser-act",
+          "target": "/root/.hermes/bin/uv-tools/browser-act-cli/bin/browser-act"
+        },
+        {
+          "path": "/root/.local/bin/claude",
+          "target": "/root/.local/share/claude/versions/2.1.280"
+        },
+        {
+          "path": "/root/.local/bin/python3.11",
+          "target": "/root/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/bin/python3.11"
+        },
+        {
+          "path": "/root/.local/bin/hermes",
+          "target": "/usr/local/lib/hermes-agent/venv/bin/hermes"
+        },
+        {
+          "path": "/root/.local/bin/skillspector",
+          "target": "/root/.local/share/skillspector-venv/bin/skillspector"
+        },
+        {
+          "path": "/root/.local/bin/browser-act",
+          "target": "/root/.hermes/bin/uv-tools/browser-act-cli/bin/browser-act"
+        }
+      ]
+    }
+  }
+}
