@@ -6,6 +6,9 @@ or an approved implementation plan. [The PRD](prd.md) remains the product author
 
 ## Scope confirmed with the owner
 
+- Next.js + TypeScript on Node.js is the agreed framework direction following
+  the compatibility review. Authentication must be resolved before the hosting
+  discussion resumes; hosting remains undecided.
 - Base is the default EVM network; Ethereum mainnet must also be available.
   Prefer low total cost and fast delivery when recommending eligible routes;
   compare current quotes rather than claiming one network is always cheapest.
@@ -58,7 +61,7 @@ the reason and the required validation. No provider is provisioned by this list.
 | UI components | shadcn/ui as a starting point | Component source is owned in the application and can be adapted for phone check-in and wallet states. Accessibility and actual device behavior still need testing. [shadcn/ui](https://ui.shadcn.com/docs) |
 | Managed hosting | Render web service, background worker, and paid PostgreSQL as one candidate | Documented support covers all three runtime needs. Co-locate services. Paid Postgres provides point-in-time recovery; run an actual restore test. Compare with the owner's existing infrastructure before purchasing. [Web](https://render.com/docs/deploy-nextjs-app), [workers](https://render.com/docs/background-workers), [recovery](https://render.com/docs/postgresql-backups) |
 | Existing-server alternative | Same Node/container layout on an owner-selected existing host | Potentially avoids a new compute bill but requires capacity, isolation, backups, patching, monitoring, and recovery checks. No server has been inspected and no capacity or cost saving is established. Remote inspection needs its own authorization. |
-| Authentication | Better Auth does not meet standalone Telegram login requirements as proposed | Better Auth requires email on each user; Telegram supplies none. Do not invent an email or require Google to make Telegram work. See the compatibility review below before selecting a replacement. |
+| Authentication | Recommend openid-client for provider login and PostgreSQL-backed application sessions | Source-verified protocol fit for Telegram without email or UserInfo, and Google OIDC. Session lifecycle and explicit account linking require application work; live proof remains outstanding. See the authentication resolution below. |
 | EVM wallets | Wagmi + viem for Rabby on Base and Ethereum | Candidate typed EVM connection layer. Verify Rabby discovery, chain switching, signatures, transactions, and mobile returns. [Wagmi](https://wagmi.sh/react/getting-started) |
 | Solana wallet | Phantom through its documented provider or Solana Wallet Adapter | Choose the smallest supported integration after desktop/mobile signature and funding checks. A connector does not supply a cross-chain escrow adapter. [Phantom](https://docs.phantom.com/solana/integrating-phantom) |
 | NEAR wallet | Evaluate HOT Connect before defaulting to Wallet Selector | The Wallet Selector repository recommends exploring HOT Connect while remaining supported during transition. Confirm the owner's wallet, testnet support, signature format, mobile return, and integration boundaries before adopting. [NEAR Wallet Selector](https://github.com/near/wallet-selector) |
@@ -121,13 +124,62 @@ Its [maintainers](https://github.com/nextauthjs/next-auth) now recommend Better 
 for new projects except specific feature gaps. Do not silently replace one
 unproven auth recommendation with another.
 
+### Authentication resolution: documented protocol fit
+
+Recommended on October 29, 2026: `openid-client` v6 for Telegram and Google
+OpenID Connect (OIDC), with revocable application sessions in PostgreSQL.
+OIDC is the protocol for verifying an identity supplied by another service.
+This is a recommendation for owner review, not approval to install dependencies
+or build authentication. Next.js remains the accepted framework direction.
+
+Evidence was checked against the published [v6.8.8 release](https://github.com/panva/openid-client/releases/tag/v6.8.8)
+and its [source](https://github.com/panva/openid-client/blob/v6.8.8/src/index.ts),
+not only a development branch. This is a research baseline, not a dependency pin
+or an advisory audit. The `authorizationCodeGrant` implementation does not call
+`fetchUserInfo` or require an email. `tokens.claims()` returns validated ID-token
+claims; UserInfo is a separate optional operation. The upstream
+[OIDC example](https://github.com/panva/openid-client/blob/v6.8.8/examples/oidc.ts)
+includes UserInfo and token logging as later steps: neither should be copied
+into the Telegram integration or application logging.
+
+| Requirement | Concrete treatment and evidence |
+| --- | --- |
+| Telegram without email | Request `openid profile`, use the verified issuer and subject as identity, and allow email to be null. Telegram's [live discovery metadata](https://oauth.telegram.org/.well-known/openid-configuration) publishes code flow, S256 PKCE, token endpoint authentication, and signing keys; it has no UserInfo endpoint or email scope. |
+| No UserInfo request | Complete the code exchange, validate the ID token, and read `tokens.claims()`. Do not call `fetchUserInfo`. This uses the library's normal API rather than a fake endpoint or provider patch. |
+| Signature verification | Explicitly enable [enableNonRepudiationChecks](https://github.com/panva/openid-client/blob/v6.8.8/docs/functions/enableNonRepudiationChecks.md). The library otherwise permits relying on the direct TLS token response; our proposal requires cryptographic signature checking against the provider's published keys. Require ID token, issuer, audience, expiry and nonce validation, plus state and S256 PKCE. |
+| Telegram token authentication | Use the documented `ClientSecretBasic` method, matching [Telegram's login guide](https://core.telegram.org/bots/telegram-login). Keep secrets and code exchange server-side. Use provider-specific registered callback URLs and fixed provider configurations. |
+| Google | Use the same library with Google's issuer and its own credentials/callback. [Google documents](https://developers.google.com/identity/openid-connect/openid-connect) code exchange and identity from the ID token. Email, if requested, is profile data rather than the identity primary key. |
+| Sessions | Showup must implement opaque random session tokens in Secure, HttpOnly, SameSite cookies, hashed server-side session records, expiration, rotation on login, and logout/revocation. The library does not supply this layer. All protected operations resolve the session server-side. |
+| Explicit linking | Store provider identities with a unique `(issuer, subject)` key mapped to a Showup user. Linking requires an authenticated session and a fresh successful login to the second provider; bind the one-use attempt to that session and linking intent. Never merge by matching email, username, or display name. Reject identities already owned by another user; account merging needs a separate policy. |
+| Wallet ownership | Wallet proof remains a separate nonce/signature flow. A Telegram or Google session cannot establish wallet ownership or authorize a payout destination change by itself. |
+
+This resolves the known library mismatches at the documentation/source level.
+It is not a turnkey auth suite: session lifecycle, linking, login-attempt storage,
+rate limits, safe redirects, and authorization remain application responsibilities.
+The tradeoff is explicit application work instead of another hosted identity
+provider or compatibility patches. Better Auth and the inspected Auth.js default
+configuration remain unsuitable as previously proposed. No provider account,
+credential, dependency installation, login, or transaction was used in this review.
+
+Before claiming operational readiness, the approved implementation must prove:
+
+- Telegram-only signup with null email, Google signup, returning login and session restore.
+- Reject missing/invalid signatures, wrong issuer/audience, expired tokens,
+  wrong state/nonce/PKCE, replayed callbacks, and cross-provider callback confusion.
+- Logout and expiration revoke access; linking requires the initiating session,
+  handles conflicting ownership and concurrent attempts, and does not merge by email.
+- Login cancellation and actual phone/browser redirects recover without losing intent.
+
+A live proof requires registered Telegram and Google applications and allowed
+callback URLs. Provider selection does not require a hosting vendor yet, but
+successful live login has not been established by these read-only checks.
+
 ### Decision consequence
 
-Prefer Next.js for the owner's stated priority of documented integrations with
-less custom UI wiring. Keep authentication selection open rather than claim the
-original stack is fully compatible. The authentication choice needs a bounded
-proof of standalone Telegram login without email, Google login, session restore,
-and explicit account linking before application implementation is approved.
+Next.js is accepted for the owner's stated priority of documented integrations
+with less custom UI wiring. The openid-client recommendation resolves the known
+protocol mismatch; accepting its application session/linking work and proving the
+live flows remain distinct from library compatibility.
 This review does not authorize a prototype or add roadmap stages.
 
 Framework choice does not remove G1 cross-chain escrow/refund proof, G2 draw

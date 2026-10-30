@@ -11,9 +11,11 @@ No implementation stages are approved yet.
 
 SCOPE-01 evidence: the [framework compatibility review](technical-scope.md#framework-compatibility-review)
 confirms framework-independent wallet paths and documents the Better Auth /
-Telegram email mismatch in both frameworks. Next.js is recommended to reduce UI
-adapter work; authentication and hosting remain unselected. No runtime integration
-has been tested.
+Telegram email mismatch in both frameworks. Next.js is accepted. The
+[authentication resolution](technical-scope.md#authentication-resolution-documented-protocol-fit)
+recommends openid-client with application-owned PostgreSQL sessions, based on
+v6.8.8 source and provider documentation. Session/linking work is explicit; live
+login remains untested. Hosting remains undecided pending authentication review.
 
 REPO-01 is the repository setup checkpoint. SCOPE-01 authorizes discussion only.
 Do not expand the roadmap or change acceptance criteria without owner approval.
