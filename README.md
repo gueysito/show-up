@@ -23,6 +23,8 @@ integration. No dependencies need to be installed to review the product.
 
 The [technical scope](docs/technical-scope.md) connects current platform
 documentation to the unresolved choices and proof obligations in the PRD.
+The accepted [framework and authentication decision](docs/adr/0001-application-and-authentication.md)
+records the Next.js, Node.js, openid-client, and PostgreSQL session direction.
 
 ## Repository checks
 

@@ -11,6 +11,11 @@ or evidence of working integrations. The current authorized work is repository s
 The owner has not yet approved an implementation plan. Source citations retain their original
 identifiers; external technical claims must be revalidated when implementation begins.
 
+[ADR-0001](adr/0001-application-and-authentication.md) records the accepted
+Next.js/TypeScript/Node.js framework and openid-client authentication with
+PostgreSQL-backed sessions. These selections supersede provisional stack language
+below; implementation and testing remain future work.
+
 The [technical scope](technical-scope.md) records current documentation findings
 and open implementation choices. Owner confirmation on October 29, 2026: both
 digital and physical attendance modes must be ready before the first real pilot;

@@ -6,9 +6,10 @@ or an approved implementation plan. [The PRD](prd.md) remains the product author
 
 ## Scope confirmed with the owner
 
-- Next.js + TypeScript on Node.js is the agreed framework direction following
-  the compatibility review. Authentication must be resolved before the hosting
-  discussion resumes; hosting remains undecided.
+- [ADR-0001](adr/0001-application-and-authentication.md) accepts Next.js + TypeScript
+  on Node.js and openid-client for Telegram/Google login with PostgreSQL-backed
+  sessions. Authentication selection is resolved; live verification is normal
+  implementation work. Hosting remains undecided.
 - Base is the default EVM network; Ethereum mainnet must also be available.
   Prefer low total cost and fast delivery when recommending eligible routes;
   compare current quotes rather than claiming one network is always cheapest.
@@ -32,12 +33,12 @@ or an approved implementation plan. [The PRD](prd.md) remains the product author
 
 | Responsibility | PRD baseline | Evidence and remaining choice |
 | --- | --- | --- |
-| Website | TypeScript + React, responsive web, optional PWA | React recommends starting with a framework. Select framework, routing, rendering, and hosting together; React alone does not settle these. [React](https://react.dev/learn/creating-a-react-app) |
-| API and execution | TypeScript API and durable workers | Keep financial retries independent of an open browser or HTTP request. Runtime, hosting, job library, and scheduler are still unselected. This is a product architecture proposal. |
+| Website | TypeScript + React, responsive web, optional PWA | React recommends starting with a framework. Next.js App Router is accepted in ADR-0001; hosting remains open. [React](https://react.dev/learn/creating-a-react-app) |
+| API and execution | TypeScript API and durable workers | Keep financial retries independent of an open browser or HTTP request. Node.js is accepted; hosting, job library, and scheduler remain open. This is a product architecture proposal. |
 | Private records | PostgreSQL | Database constraints can enforce record validity; cross-row rules need appropriate uniqueness, foreign keys, and transaction design rather than arbitrary CHECK expressions. ORM, migration tooling, provider, and job locking remain open. [PostgreSQL](https://www.postgresql.org/docs/current/ddl-constraints.html) |
 | Money rules | Rust + near-sdk, one bounded NEAR contract | SDK supports asynchronous calls and fungible-token standards. Showup's escrow and recovery rules still need implementation and tests. [SDK](https://github.com/near/near-sdk-rs) |
 | Cross-chain delivery | NEAR Intents / 1Click | Quotes and status tracking exist; secure registration attribution and outbound destination enforcement remain G1 proof obligations. [1Click](https://docs.near-intents.org/integration/distribution-channels/1click-api/about-1click-api) |
-| Identity | Telegram and Google login plus wallet ownership proof | Both document OpenID Connect (OIDC), a standard for verified sign-in. Select a maintained server-side authentication library; provider login does not prove wallet control. [Telegram](https://core.telegram.org/bots/telegram-login), [Google](https://developers.google.com/identity/openid-connect/openid-connect) |
+| Identity | Telegram and Google login plus wallet ownership proof | Both document OpenID Connect (OIDC), a standard for verified sign-in. openid-client with PostgreSQL-backed sessions is accepted in ADR-0001; provider login does not prove wallet control. [Telegram](https://core.telegram.org/bots/telegram-login), [Google](https://developers.google.com/identity/openid-connect/openid-connect) |
 | Messaging | One ordinary Telegram bot, no Mini App | Telegram explicitly exempts regular bots without a Mini App from its Mini App blockchain restrictions. Preserve the ordinary website wallet flow. [Guidelines](https://core.telegram.org/bots/blockchain-guidelines) |
 | Draw proof | OutLayer candidate | Documented signatures and verification support investigation; they do not establish that Showup can enforce one request, prevent rerolls, or survive withholding. [OutLayer](https://app.outlayer.ai/docs/vrf) |
 
@@ -49,9 +50,8 @@ example's version range as the project baseline.
 
 ## Framework and partner recommendations for discussion
 
-These are recommendations, not adopted architecture decisions. Each choice
-will be marked accepted, rejected, or conditional after owner discussion, with
-the reason and the required validation. No provider is provisioned by this list.
+Framework and authentication are accepted in ADR-0001. Other entries remain
+recommendations for owner discussion. No provider is provisioned by this list.
 
 | Area | Recommendation | Why and qualification |
 | --- | --- | --- |
@@ -61,7 +61,7 @@ the reason and the required validation. No provider is provisioned by this list.
 | UI components | shadcn/ui as a starting point | Component source is owned in the application and can be adapted for phone check-in and wallet states. Accessibility and actual device behavior still need testing. [shadcn/ui](https://ui.shadcn.com/docs) |
 | Managed hosting | Render web service, background worker, and paid PostgreSQL as one candidate | Documented support covers all three runtime needs. Co-locate services. Paid Postgres provides point-in-time recovery; run an actual restore test. Compare with the owner's existing infrastructure before purchasing. [Web](https://render.com/docs/deploy-nextjs-app), [workers](https://render.com/docs/background-workers), [recovery](https://render.com/docs/postgresql-backups) |
 | Existing-server alternative | Same Node/container layout on an owner-selected existing host | Potentially avoids a new compute bill but requires capacity, isolation, backups, patching, monitoring, and recovery checks. No server has been inspected and no capacity or cost saving is established. Remote inspection needs its own authorization. |
-| Authentication | Recommend openid-client for provider login and PostgreSQL-backed application sessions | Source-verified protocol fit for Telegram without email or UserInfo, and Google OIDC. Session lifecycle and explicit account linking require application work; live proof remains outstanding. See the authentication resolution below. |
+| Authentication | Accepted: openid-client for provider login and PostgreSQL-backed application sessions | Source-verified protocol fit for Telegram without email or UserInfo, and Google OIDC. Session lifecycle and explicit account linking require application work; live proof remains outstanding. See the authentication resolution below. |
 | EVM wallets | Wagmi + viem for Rabby on Base and Ethereum | Candidate typed EVM connection layer. Verify Rabby discovery, chain switching, signatures, transactions, and mobile returns. [Wagmi](https://wagmi.sh/react/getting-started) |
 | Solana wallet | Phantom through its documented provider or Solana Wallet Adapter | Choose the smallest supported integration after desktop/mobile signature and funding checks. A connector does not supply a cross-chain escrow adapter. [Phantom](https://docs.phantom.com/solana/integrating-phantom) |
 | NEAR wallet | Evaluate HOT Connect before defaulting to Wallet Selector | The Wallet Selector repository recommends exploring HOT Connect while remaining supported during transition. Confirm the owner's wallet, testnet support, signature format, mobile return, and integration boundaries before adopting. [NEAR Wallet Selector](https://github.com/near/wallet-selector) |
@@ -80,8 +80,8 @@ database storage, and usage. Its smallest listed paid web/worker/database comput
 combination totals $20/month before extras; this is a price floor, not a measured
 capacity recommendation or an approved budget.
 
-RPC/indexing provider, error monitoring vendor, exact NEAR wallet, authentication
-adapter, and test-library versions remain open. Compare existing accounts and
+RPC/indexing provider, error monitoring vendor, exact NEAR wallet,
+and test-library versions remain open. Compare existing accounts and
 requirements before introducing another paid service. Package selection needs
 compatible stable versions and supply-chain checks before installation.
 
@@ -126,11 +126,12 @@ unproven auth recommendation with another.
 
 ### Authentication resolution: documented protocol fit
 
-Recommended on October 29, 2026: `openid-client` v6 for Telegram and Google
+Accepted on October 29, 2026 in [ADR-0001](adr/0001-application-and-authentication.md):
+`openid-client` v6 for Telegram and Google
 OpenID Connect (OIDC), with revocable application sessions in PostgreSQL.
 OIDC is the protocol for verifying an identity supplied by another service.
-This is a recommendation for owner review, not approval to install dependencies
-or build authentication. Next.js remains the accepted framework direction.
+This is an accepted design, not approval to install dependencies or begin the
+build. Next.js remains the accepted framework direction.
 
 Evidence was checked against the published [v6.8.8 release](https://github.com/panva/openid-client/releases/tag/v6.8.8)
 and its [source](https://github.com/panva/openid-client/blob/v6.8.8/src/index.ts),
@@ -146,7 +147,7 @@ into the Telegram integration or application logging.
 | --- | --- |
 | Telegram without email | Request `openid profile`, use the verified issuer and subject as identity, and allow email to be null. Telegram's [live discovery metadata](https://oauth.telegram.org/.well-known/openid-configuration) publishes code flow, S256 PKCE, token endpoint authentication, and signing keys; it has no UserInfo endpoint or email scope. |
 | No UserInfo request | Complete the code exchange, validate the ID token, and read `tokens.claims()`. Do not call `fetchUserInfo`. This uses the library's normal API rather than a fake endpoint or provider patch. |
-| Signature verification | Explicitly enable [enableNonRepudiationChecks](https://github.com/panva/openid-client/blob/v6.8.8/docs/functions/enableNonRepudiationChecks.md). The library otherwise permits relying on the direct TLS token response; our proposal requires cryptographic signature checking against the provider's published keys. Require ID token, issuer, audience, expiry and nonce validation, plus state and S256 PKCE. |
+| Signature verification | Explicitly enable [enableNonRepudiationChecks](https://github.com/panva/openid-client/blob/v6.8.8/docs/functions/enableNonRepudiationChecks.md). The library otherwise permits relying on the direct TLS token response; the accepted design requires cryptographic signature checking against the provider's published keys. Require ID token, issuer, audience, expiry and nonce validation, plus state and S256 PKCE. |
 | Telegram token authentication | Use the documented `ClientSecretBasic` method, matching [Telegram's login guide](https://core.telegram.org/bots/telegram-login). Keep secrets and code exchange server-side. Use provider-specific registered callback URLs and fixed provider configurations. |
 | Google | Use the same library with Google's issuer and its own credentials/callback. [Google documents](https://developers.google.com/identity/openid-connect/openid-connect) code exchange and identity from the ID token. Email, if requested, is profile data rather than the identity primary key. |
 | Sessions | Showup must implement opaque random session tokens in Secure, HttpOnly, SameSite cookies, hashed server-side session records, expiration, rotation on login, and logout/revocation. The library does not supply this layer. All protected operations resolve the session server-side. |
@@ -177,9 +178,9 @@ successful live login has not been established by these read-only checks.
 ### Decision consequence
 
 Next.js is accepted for the owner's stated priority of documented integrations
-with less custom UI wiring. The openid-client recommendation resolves the known
-protocol mismatch; accepting its application session/linking work and proving the
-live flows remain distinct from library compatibility.
+with less custom UI wiring. The accepted openid-client approach resolves the known
+protocol mismatch. Session/linking work and live-flow verification are normal
+implementation tasks, not unresolved architecture questions.
 This review does not authorize a prototype or add roadmap stages.
 
 Framework choice does not remove G1 cross-chain escrow/refund proof, G2 draw
@@ -275,14 +276,14 @@ and weak-network recovery still require devices. No source read establishes G3.
 
 ## Decisions needed before a build-ready plan
 
-| Decision | Proposed treatment | Still needed |
+| Priority | Decision | Still needed |
 | --- | --- | --- |
-| First pilot | Both modes ready; one coherent event engine | Date, expected attendance, venue/staff availability, and phones for testing |
-| Funding routes | Base default; Ethereum available; Phantom/Solana, Rabby/EVM, and NEAR retained | Validate every required route and actual wallet; compare current fees and completion times |
-| Economics | Preserve the PRD's refund and no-show rules | Confirm numeric defaults, sponsor budget, and a separately approved integration-test spending cap |
-| Frontend/API | Next.js and a separate Node worker proposed | Owner choice of hosting; wallet/auth compatibility experiments before adoption |
-| Draw | Investigate OutLayer with contract-bound requests | G2 experiment; no funded random draw until it passes |
-| Operations | Durable worker and recoverable records | Owner/provider choices for hosting, database, secrets, monitoring, and recovery |
+| 1 | Hosting and operations | Owner's existing Hostinger option versus a new provider; available plan, Node/worker support, PostgreSQL, region, domain, budget, backups, and staging arrangement. No server access or provider purchase is authorized. |
+| 2 | Remaining libraries and services | Confirm Drizzle, pg-boss, UI components, RPC provider, monitoring, and the proposed wallet connectors. Exact versions and advisories are implementation setup work. |
+| 3 | Wallets and test funding | Select the NEAR wallet and development accounts by public address; define testnet coverage and a small separately authorized mainnet routing budget. Base, Ethereum, Solana, and NEAR scope stays fixed. |
+| 4 | Event economics and timing | Confirm exact streak factor, sponsor split/budget, capacity, deposit example, check-in windows, and timeout defaults from PRD sections 7 and 13. Do not reopen the accepted daily streak model or refund/no-show rules. |
+| 5 | Draw and cross-chain providers | Confirm 1Click and OutLayer as the implementation candidates. Existing G1/G2 tests still determine operational readiness, not framework selection. |
+| 6 | Pilot and build plan | Confirm audience size, event timing, venue/staff, and test phones; both attendance modes precede the pilot. Convert the existing proposed sequence into the approved implementation plan. |
 
 The daily model assumes enough eligible events exist for a five-day run. That
 is a supply and product-validation question, not a reason to change the confirmed
