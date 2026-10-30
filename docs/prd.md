@@ -18,6 +18,13 @@ daily streaks unlock a modest, non-escalating boost after five consecutive days
 and reset after a missed, unprotected day. The exact 1.5x factor below remains a
 proposed numeric default.
 
+Owner-confirmed network direction: Base is the default EVM route and Ethereum
+mainnet must also be available. Wallet targets include Phantom, Rabby, and a
+selected NEAR wallet. Prefer low cost and fast delivery using current route
+quotes, without changing the user's authorized destination. Required routes
+must pass acceptance tests before use; removing one requires an explicit scope
+decision rather than treating it as an unplanned extra.
+
 > Showup turns a promise to attend into a refundable commitment.
 
 ## 1. The product in one page
@@ -198,7 +205,7 @@ Non-economic copy edits may correct descriptions, but cannot alter venue, sessio
 | NEAR | Accepted native USDC representation; NEAR through conversion | One selected, tested NEAR wallet | Core route |
 | Solana | USDC and SOL | Phantom | Core external route |
 | Base | USDC and ETH | MetaMask and Rabby | Preferred EVM route |
-| Ethereum mainnet | USDC | MetaMask and Rabby | Additional route, enabled after the same acceptance tests |
+| Ethereum mainnet | USDC | MetaMask and Rabby | Required supported route; enabled after the same acceptance tests |
 
 Ethereum ETH funding is enabled only if its conversion path also passes; it is not implied by USDC support. “Supported assets” means explicitly allowed chain + token-contract pairs that are available in the current Intents token list and pass Showup tests. Never identify a token by symbol alone. Do not advertise “any asset on any chain.” [S3–S5]
 

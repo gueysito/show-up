@@ -17,7 +17,8 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 
 ## Next action
 
-Resolve the remaining pilot, numeric-default, and stack selections in
-[SCOPE-01](docs/plan.md), then approve a build-ready plan. Both attendance modes
-must be ready before the first pilot; the daily streak model is confirmed.
-The proposed build sequence has no implementation authorization yet.
+Discuss framework, hosting, and partner recommendations in
+[SCOPE-01](docs/plan.md), then resolve remaining numeric defaults and approve a
+build-ready plan. Base is the default EVM route; Ethereum remains required.
+Both attendance modes and the daily streak model are confirmed. The proposed
+build sequence has no implementation authorization yet.

@@ -7,7 +7,7 @@ No implementation stages are approved yet.
 | ID | Status | Outcome and acceptance | Evidence |
 | --- | --- | --- | --- |
 | REPO-01 | Complete | Private `gueysito/show-up` repository; navigable front door; product-only requirements; active commit template and checks; no application implementation. | [README](../README.md), [agent instructions](../AGENTS.md), [standards](../.standards/README.md). Initial commit verification covers links, scope, baseline checks, and rejection of an incomplete commit message. |
-| SCOPE-01 | NOW | Discuss audience, full event loop, proposed economic defaults, integration gates, and evidence needed to assess product-market fit. Completion requires the owner's recorded decisions before an implementation plan is approved. | [Technical scope](technical-scope.md) records the October 29 documentation review and confirmed pilot/streak decisions. Remaining choices and the proposed sequence below are not yet approved for implementation. |
+| SCOPE-01 | NOW | Discuss audience, full event loop, proposed economic defaults, integration gates, and evidence needed to assess product-market fit. Completion requires the owner's recorded decisions before an implementation plan is approved. | [Technical scope](technical-scope.md) records platform evidence, confirmed pilot/streak/network choices, and framework/partner recommendations. Base is the default EVM route; Ethereum remains required. Recommendations are not implementation approval. |
 
 REPO-01 is the repository setup checkpoint. SCOPE-01 authorizes discussion only.
 Do not expand the roadmap or change acceptance criteria without owner approval.
