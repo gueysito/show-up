@@ -11,6 +11,13 @@ or evidence of working integrations. The current authorized work is repository s
 The owner has not yet approved an implementation plan. Source citations retain their original
 identifiers; external technical claims must be revalidated when implementation begins.
 
+The [technical scope](technical-scope.md) records current documentation findings
+and open implementation choices. Owner confirmation on October 29, 2026: both
+digital and physical attendance modes must be ready before the first real pilot;
+daily streaks unlock a modest, non-escalating boost after five consecutive days
+and reset after a missed, unprotected day. The exact 1.5x factor below remains a
+proposed numeric default.
+
 > Showup turns a promise to attend into a refundable commitment.
 
 ## 1. The product in one page

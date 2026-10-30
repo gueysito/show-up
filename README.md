@@ -21,6 +21,9 @@ integration. No dependencies need to be installed to review the product.
 3. Use [the plan](docs/plan.md) as the single task tracker.
 4. Read [AGENTS.md](AGENTS.md) before changing anything.
 
+The [technical scope](docs/technical-scope.md) connects current platform
+documentation to the unresolved choices and proof obligations in the PRD.
+
 ## Repository checks
 
 Git and Python 3 are required for the repository checks. On each new clone:
