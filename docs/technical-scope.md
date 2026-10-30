@@ -58,7 +58,7 @@ the reason and the required validation. No provider is provisioned by this list.
 | UI components | shadcn/ui as a starting point | Component source is owned in the application and can be adapted for phone check-in and wallet states. Accessibility and actual device behavior still need testing. [shadcn/ui](https://ui.shadcn.com/docs) |
 | Managed hosting | Render web service, background worker, and paid PostgreSQL as one candidate | Documented support covers all three runtime needs. Co-locate services. Paid Postgres provides point-in-time recovery; run an actual restore test. Compare with the owner's existing infrastructure before purchasing. [Web](https://render.com/docs/deploy-nextjs-app), [workers](https://render.com/docs/background-workers), [recovery](https://render.com/docs/postgresql-backups) |
 | Existing-server alternative | Same Node/container layout on an owner-selected existing host | Potentially avoids a new compute bill but requires capacity, isolation, backups, patching, monitoring, and recovery checks. No server has been inspected and no capacity or cost saving is established. Remote inspection needs its own authorization. |
-| Authentication | Evaluate Better Auth for Google and Telegram OIDC | Its generic OAuth integration supports discovery, PKCE, token verification, and custom profile handling. Telegram's missing UserInfo endpoint and email-less identities must pass a compatibility experiment before selection. Do not invent an email or force an additional identity provider to make the library fit. [Better Auth](https://www.better-auth.com/docs/plugins/generic-oauth) |
+| Authentication | Better Auth does not meet standalone Telegram login requirements as proposed | Better Auth requires email on each user; Telegram supplies none. Do not invent an email or require Google to make Telegram work. See the compatibility review below before selecting a replacement. |
 | EVM wallets | Wagmi + viem for Rabby on Base and Ethereum | Candidate typed EVM connection layer. Verify Rabby discovery, chain switching, signatures, transactions, and mobile returns. [Wagmi](https://wagmi.sh/react/getting-started) |
 | Solana wallet | Phantom through its documented provider or Solana Wallet Adapter | Choose the smallest supported integration after desktop/mobile signature and funding checks. A connector does not supply a cross-chain escrow adapter. [Phantom](https://docs.phantom.com/solana/integrating-phantom) |
 | NEAR wallet | Evaluate HOT Connect before defaulting to Wallet Selector | The Wallet Selector repository recommends exploring HOT Connect while remaining supported during transition. Confirm the owner's wallet, testnet support, signature format, mobile return, and integration boundaries before adopting. [NEAR Wallet Selector](https://github.com/near/wallet-selector) |
@@ -81,6 +81,57 @@ RPC/indexing provider, error monitoring vendor, exact NEAR wallet, authenticatio
 adapter, and test-library versions remain open. Compare existing accounts and
 requirements before introducing another paid service. Package selection needs
 compatible stable versions and supply-chain checks before installation.
+
+## Framework compatibility review
+
+Reviewed October 29, 2026 against current official documentation and the source
+noted below. This is documentation/source verification, not an installed build,
+wallet session, transaction test, or security audit. No package versions are
+approved. Hosting remains undecided while the owner investigates existing access.
+
+The recommendation is Next.js + TypeScript on Node.js for lower wallet UI
+integration effort. SvelteKit is technically viable; it is not rejected for an
+incompatibility. No benchmark establishes that either framework is faster for
+Showup. The earlier Next.js proposal was not a fully validated combination.
+
+| Boundary | Finding | Consequence |
+| --- | --- | --- |
+| Rabby / Base / Ethereum | [Rabby](https://rabby.io/docs/integrating-rabby-wallet) documents plain JavaScript discovery as well as React integration. [Wagmi Core](https://wagmi.sh/core/api/connectors/injected) supports injected providers and EIP-6963 discovery. | Svelte can use Core + viem; React has ready-made hooks. Svelte needs its own subscriptions and component state. Some Rabby examples use older Wagmi APIs; use the selected version's documentation. |
+| Phantom / Solana | [Phantom](https://docs.phantom.com/solana/integrating-phantom) documents direct browser-provider integration. Its [React SDK](https://docs.phantom.com/sdks/react-sdk) provides hooks and a modal. | No Svelte blocker. Browser injection and external mobile wallet return are different flows. New Phantom Portal applications are currently paused; injected-only SDK usage does not require a Portal app. Do not depend on new embedded-wallet enrollment. |
+| NEAR wallet | Official [NEAR documentation](https://docs.near.org/web3-apps/tutorials/wallet-login) identifies `@hot-labs/near-connect`; its [source and guide](https://github.com/azbang/near-connect) expose events, connection, message signing, and transactions without React. | Resolve the earlier HOT Connect naming to this package. Svelte needs a browser-only wrapper with listener cleanup. Filter for message signing and testnet support; support is wallet-specific. The actual wallet remains an owner choice. |
+| HOT Kit | [HOT Kit](https://github.com/hot-dao/kit) is a different multichain package whose browser setup requires React and React DOM. | Do not confuse it with NEAR Connect. It is not required by our direct wallet + 1Click design. Adopting its UI would favor React. |
+| UI components | [shadcn-svelte](https://www.shadcn-svelte.com/docs/installation/sveltekit) documents SvelteKit installation. | A documented Svelte alternative exists; React shadcn/ui components cannot simply be reused. |
+| Google / sessions | Better Auth has official [SvelteKit integration](https://www.better-auth.com/docs/integrations/svelte-kit) and [Google setup](https://www.better-auth.com/docs/authentication/google). | Svelte integration itself is supported. Its documentation distinguishes SvelteKit 2 and 3 imports; select matching stable versions. |
+| Telegram login | [Telegram](https://core.telegram.org/bots/telegram-login) returns identity in the ID token, no email, and no separate UserInfo endpoint. [Better Auth](https://www.better-auth.com/docs/concepts/oauth) explicitly requires email and documents missing-email failure. | The proposed Better Auth generic OAuth route fails our email-less login requirement in both SvelteKit and Next.js. Placeholder email or forced Google linking would alter requirements and is not adopted. |
+| PostgreSQL / jobs / transfers | [Drizzle](https://orm.drizzle.team/docs/get-started-postgresql) documents Node PostgreSQL drivers; [pg-boss](https://github.com/timgit/pg-boss) runs on Node/PostgreSQL; [1Click](https://docs.near-intents.org/integration/distribution-channels/1click-api/sdk) supplies a TypeScript SDK. | These server responsibilities do not depend on React or Svelte. Keep the worker separate from request lifetimes. No runtime version is selected from examples. |
+| Draw verification | [OutLayer](https://app.outlayer.ai/docs/vrf) describes WASI execution and signed outputs. | UI framework is not the integration boundary. G2 remains unproven for either framework. |
+
+### Authentication alternative examined
+
+[Auth.js](https://authjs.dev/guides/configuring-oauth-providers) documents custom
+OIDC providers for SvelteKit and Next.js, and a [Drizzle adapter](https://authjs.dev/getting-started/adapters/drizzle).
+Source inspected on its development branch, revision
+`a1a16a5a7780488c7449feece410033f445d0b31`, shows nullable email in the
+[PostgreSQL adapter](https://github.com/nextauthjs/next-auth/blob/a1a16a5a7780488c7449feece410033f445d0b31/packages/adapter-drizzle/src/lib/pg.ts).
+However, its [OAuth callback](https://github.com/nextauthjs/next-auth/blob/a1a16a5a7780488c7449feece410033f445d0b31/packages/core/src/lib/actions/callback/oauth/callback.ts)
+rejects discovery metadata without a UserInfo endpoint, even though a later OIDC
+path can use ID-token claims. Therefore an issuer-only Telegram configuration is
+not sufficient. Explicit endpoint configuration is a candidate, not verified here.
+Its [maintainers](https://github.com/nextauthjs/next-auth) now recommend Better Auth
+for new projects except specific feature gaps. Do not silently replace one
+unproven auth recommendation with another.
+
+### Decision consequence
+
+Prefer Next.js for the owner's stated priority of documented integrations with
+less custom UI wiring. Keep authentication selection open rather than claim the
+original stack is fully compatible. The authentication choice needs a bounded
+proof of standalone Telegram login without email, Google login, session restore,
+and explicit account linking before application implementation is approved.
+This review does not authorize a prototype or add roadmap stages.
+
+Framework choice does not remove G1 cross-chain escrow/refund proof, G2 draw
+verification, or G3 actual-device wallet return tests. No live access was used.
 
 ## Funding and refunds: first proof obligation
 

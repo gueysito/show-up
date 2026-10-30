@@ -9,6 +9,12 @@ No implementation stages are approved yet.
 | REPO-01 | Complete | Private `gueysito/show-up` repository; navigable front door; product-only requirements; active commit template and checks; no application implementation. | [README](../README.md), [agent instructions](../AGENTS.md), [standards](../.standards/README.md). Initial commit verification covers links, scope, baseline checks, and rejection of an incomplete commit message. |
 | SCOPE-01 | NOW | Discuss audience, full event loop, proposed economic defaults, integration gates, and evidence needed to assess product-market fit. Completion requires the owner's recorded decisions before an implementation plan is approved. | [Technical scope](technical-scope.md) records platform evidence, confirmed pilot/streak/network choices, and framework/partner recommendations. Base is the default EVM route; Ethereum remains required. Recommendations are not implementation approval. |
 
+SCOPE-01 evidence: the [framework compatibility review](technical-scope.md#framework-compatibility-review)
+confirms framework-independent wallet paths and documents the Better Auth /
+Telegram email mismatch in both frameworks. Next.js is recommended to reduce UI
+adapter work; authentication and hosting remain unselected. No runtime integration
+has been tested.
+
 REPO-01 is the repository setup checkpoint. SCOPE-01 authorizes discussion only.
 Do not expand the roadmap or change acceptance criteria without owner approval.
 
