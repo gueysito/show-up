@@ -349,9 +349,9 @@ is its recommended new format. Inspect collection and asset authorities/plugins
 that could block, freeze, delegate, or move a prize after escrow. If the intended
 contributor has a different NFT format, change the explicit scope before building.
 
-The detailed protocol and remaining observation-trust decision are in
-[ADR-0002](adr/0002-nft-custody.md). Contract-enforced release is now owner-approved;
-the attested observation proposal is not.
+The detailed protocol and accepted observation trust boundary are in
+[ADR-0002](adr/0002-nft-custody.md). Contract-enforced release and the bounded attested observation model are
+owner-approved for the restricted release; implementation remains unapproved.
 
 **Preferred architecture to investigate:** NEAR contract-governed Chain Signatures
 for per-event external custody addresses, with native NEAR NFT custody in the
@@ -370,9 +370,8 @@ recipients. Evaluate MPC availability, key derivation and upgrade controls.
 
 **Unresolved security boundary:** proving external NFT deposit/finality and
 reconciling external transfers back into the NEAR ledger. An RPC observation is
-not automatically a trustless contract proof. Select a verified proof mechanism
-or explicitly review an attested observation trust model. No attestor policy is
-approved here. Showup must not publish a prize based only on an unchecked worker
+not automatically a trustless contract proof. The observer policy in ADR-0002
+is accepted for the restricted release; its technical enforcement remains unverified. Showup must not publish a prize based only on an unchecked worker
 claim or refund an asset whose delivery remains uncertain.
 
 Alternative: native EVM escrow contracts and a Solana custody program receiving
@@ -423,7 +422,7 @@ meet the policy, return with evidence and a revised proposal before funded use.
 ### Approval boundary
 
 Recommended next review: approve the application-library package and narrow NFT
-formats together; choose the custody trust model after the focused design review.
+formats together; implement and verify the accepted custody trust model after build authorization.
 Then supply wallet public addresses and approve actual quoted spending/hosting
 caps. No secret values are needed for scoping. Provider accounts, installations,
 contracts, deployments, transactions and public access remain unauthorized.

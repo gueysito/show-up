@@ -17,11 +17,12 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 
 ## Next action
 
-Review [ADR-0002](docs/adr/0002-nft-custody.md): contract-enforced NFT release is
-accepted; external-chain custody observations still need a trust decision.
-The [implementation plan](docs/plan.md#implementation-plan-for-approval) now provides
-seven milestones, dependencies, effort ranges, checks and separate funding gates.
-Approve the plan before implementation; spending and hosting remain later decisions.
+Review the detailed [implementation plan](docs/plan.md#implementation-plan-for-approval).
+It includes task-level outputs, dependencies, acceptance checks, stop conditions,
+external prerequisites and official references. [ADR-0002](docs/adr/0002-nft-custody.md)
+records the accepted bounded observer trust model. Current authorization remains
+**documentation only**; an explicit later instruction is required to start building.
+Spending, deployments and broader access require their own approvals.
 
 Next.js/Node.js, openid-client, PostgreSQL sessions, Docker Compose local setup,
 and Railway hosting are accepted. The initial hosted product uses invitation-only

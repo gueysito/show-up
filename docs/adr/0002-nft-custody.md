@@ -1,7 +1,7 @@
 # ADR-0002: Contract-governed NFT custody
 
-Status: Contract-enforced release requirement accepted by owner. Mechanism proposed;
-external-state observation trust requires explicit review. Not implemented.
+Status: Accepted design direction for the restricted release, including platform-attested
+external observations. Implementation and verification remain pending.
 
 ## Decision
 
@@ -11,8 +11,8 @@ custody-policy contract through Chain Signatures. The broadcaster has no general
 spending key. NFT formats remain the narrow proposed allowlist in the technical
 scope; supporting a network does not mean supporting every asset standard.
 
-Keep external observations separate from release authorization. The owner accepted
-contract-enforced release, not an unchecked observer or an operator custody wallet.
+Keep external observations separate from release authorization. The owner accepted contract-enforced release and the bounded observer model below;
+this does not authorize implementation, funding, or an operator custody wallet.
 
 ## Context and evidence
 
@@ -60,9 +60,9 @@ No general NFT receipt proof spanning all selected chains was established here.
    the committed recipient. Accepted transfers remain recoverable indefinitely;
    retirement of the website does not erase obligations or enable clawback.
 
-## External-state observation: decision still required
+## Accepted external-state observation model
 
-Recommended restricted-release proposal: a dedicated observer attests finalized
+Accepted restricted-release model: a dedicated observer attests finalized
 NFT ownership and delivery after comparing two independently operated RPC services.
 Sign a receipt bound to deployment/network, event, exact asset, custody address,
 block/slot and block hash, operation and expiry. Pin observer keys for funded events,
@@ -73,9 +73,9 @@ This is **platform-attested custody evidence**, not trustless verification. Two 
 queries do not remove trust in the observer. Compromise could falsely mark an
 unfunded prize as ready or a transfer as delivered, though the observer must not
 select a new beneficiary or authorize arbitrary signatures. False publication and
-operational denial remain meaningful risks. No external NFT publication is allowed
-until the owner explicitly accepts this trust boundary or a verified proof design
-replaces it. The rest of application planning does not depend on this approval.
+operational denial remain meaningful risks. The owner accepted this trust boundary for inexpensive, allowlisted NFTs in the
+restricted release. Publication still requires implementation and passing security
+and integration checks. This is not acceptance of unrestricted public custody.
 
 Alternative: validate external ownership/receipt proofs on NEAR using a verified
 cross-chain proof system. Do not assume a fungible-token bridge is a general NFT
