@@ -17,10 +17,12 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 
 ## Next action
 
-Resolve withdrawal-fee collection, NFT custody across four networks, and draw
-proof-failure recovery in [SCOPE-01](docs/plan.md), then finish provider/operational
-choices and estimate an implementation plan. The [decision register](docs/technical-scope.md#decisions-needed-before-a-build-ready-plan)
-identifies the remaining questions.
+Review the [consolidated technical recommendation](docs/technical-scope.md#consolidated-technical-recommendation)
+in [SCOPE-01](docs/plan.md): library package, NFT formats/custody trust model,
+provider recovery validation, then funding/operations and an estimated build plan.
+Fee deductions, abort returns, draw recovery policy, invitation lifetimes/roles,
+capacity and closed-registration behavior are recorded in the PRD. Operational
+proof and implementation approval remain outstanding.
 
 Next.js/Node.js, openid-client, PostgreSQL sessions, Docker Compose local setup,
 and Railway hosting are accepted. The initial hosted product uses invitation-only

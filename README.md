@@ -1,7 +1,7 @@
 # Showup
 
 Showup turns an RSVP into a refundable commitment. Attendees place a deposit,
-check in, and recover their principal. Sponsors fund rewards; optional quizzes
+check in, and recover their deposit less disclosed transaction fees. Sponsors fund rewards; optional quizzes
 and attendance streaks add participation benefits. Hosts see reconciled
 attendance and spending results.
 

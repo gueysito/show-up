@@ -53,7 +53,7 @@ Attendees may fund through tested routes on NEAR, Solana, Base, and Ethereum. NE
 | Draw and settlement | A visible winner, refunds, rewards, transaction receipts | Frozen rules and entries determine money outcomes |
 | Host results | A concise attendance and spending report | Reported outcomes reconcile to actual records |
 
-**Attendee promise:** show up, recover your commitment, earn rewards, build your streak.
+**Attendee promise:** show up, recover your commitment less disclosed transaction fees, earn rewards, build your streak.
 **Host promise:** fund a reason to attend, recognize participation, and see what the outcome cost.
 
 > Attendees fund the commitment. Hosts and sponsors fund the excitement.
@@ -67,7 +67,7 @@ Sections 1–5 explain the product and journey. Sections 6–19 define behavior 
 - **Default:** a concrete implementation choice selected here where discussion did not settle the exact number or boundary. Review it with the owner before implementation; record any accepted change before publication of affected events.
 - **Integration gate:** a technical capability that must be demonstrated before the dependent route is enabled. A documentation claim is not a passed gate.
 
-Accepted policies include the 1.25× streak factor, fifth-day activation, late-arrival treatment, 40/60 sponsor split, and timing decisions in section 7. Capacity and unspecified operational timeouts remain proposals. Acceptance of product rules is not implementation authorization.
+Accepted policies include the 1.25× streak factor, fifth-day activation, late-arrival treatment, 40/60 sponsor split, and timing decisions in section 7. Capacity is host-selected up to 100, fixed at publication. Unspecified operational timeouts remain proposals; draw recovery timings are accepted provisional targets pending provider validation. Acceptance of product rules is not implementation authorization.
 
 An event’s published economics cannot be changed by editing this document. Changes apply to newly published events only. Do not silently remove a promised feature: obtain approval for scope changes and disclose the actual delivered scope in release notes.
 
@@ -108,11 +108,11 @@ Referral links in this release provide attribution only; they do not award extra
 | **Cancellation is a state of the contract, not a customer service conversation.** | Permitted cancellations create deterministic refund liabilities. |
 | **Hosts earn the room, the record, and the reputation, and never a cut of a pool they validate.** | Hosts and validators receive no attendee reward allocation or forfeiture revenue. |
 
-Use “refundable commitment” in attendee copy; explain “escrow” in the details. Use “entries” rather than “tickets” where confusion with paid admission is possible. Use “host-verified check-in” or “live-code check-in,” not “human verified.”
+Use “refundable commitment” in attendee copy; explain “escrow” in the details. Wherever refunds are promised, show the transaction-fee qualification alongside the promise; never hide it behind expandable details. Use “entries” rather than “tickets” where confusion with paid admission is possible. Use “host-verified check-in” or “live-code check-in,” not “human verified.”
 
 Suggested pitch copy:
 
-> Showup turns a promise to attend into a refundable commitment. Show up, get your deposit back, earn rewards, and build a streak worth keeping.
+> Showup turns a promise to attend into a refundable commitment. Show up, get your deposit back less disclosed transaction fees, earn rewards, and build a streak worth keeping.
 
 > Hosts are not buying ads. They are buying attendance: performance-based marketing with on-chain escrow. Cost per showup, not cost per impression.
 
@@ -177,7 +177,7 @@ All economic and timing obligations are visible before commitment. Store enforce
 | Field | Release default / rule |
 | --- | --- |
 | Mode | `digital` or `physical` |
-| Capacity | Up to 100 committed participants per event; measure gas/load before raising |
+| Capacity | Host-selected maximum of 100 funded attendees; fixed at publication and subject to load/gas validation |
 | Duration | 30–120 minutes planned |
 | Commitment | Public product: default 5 USDC, minimum 2.50 USDC; host chooses before publication. Restricted mainnet testing uses separately approved lower amounts subject to route minimums and budget caps |
 | Reward preset | Hybrid default; equal-only and draw-only also available |
@@ -195,12 +195,12 @@ All economic and timing obligations are visible before commitment. Store enforce
 | End countdown | 15 minutes after an accepted actual-end observation |
 | Hard close | Planned end plus 30 minutes |
 | Evidence submission grace | Five minutes after the relevant interaction window closes |
-| Draw proof timeout | Proposed ten minutes per request; initial/replacement timeout resolution remains open |
+| Draw recovery | Three attempts total within two minutes; provisional schedule 0/15/45 seconds, same bound request; validate provider behavior before release |
 | Platform take | Zero for this release |
 
 The accepted grace and final cutoff are fixed for this release; hosts cannot override them. Validate opening < grace < cutoff ≤ planned end. All cutoffs use UTC instants, displayed in event and attendee timezones. The start and end remain fixed after publication; a running-long event may use the published overrun allowance but may not extend deposit obligations indefinitely.
 
-Non-economic copy edits may correct descriptions, but cannot alter venue, session identity, proof instructions, eligibility, or times after publication. A material change requires cancellation and a new event. No late sponsor reward top-ups in this release. Operational fee-reserve replenishment is a separate unresolved mechanism, never a way to change prizes.
+Non-economic copy edits may correct descriptions, but cannot alter venue, session identity, proof instructions, eligibility, or times after publication. A material change requires cancellation/refunds and a new event. Offer duplication into a new draft without copying commitments, funds, invitations, or accepted terms. Attendees review and explicitly join the replacement. Capacity and access mode are material terms; no post-publication increases. Previously incurred fees remain costs. No late sponsor reward top-ups in this release. Operational fee-reserve replenishment is a separate unresolved mechanism, never a way to change prizes.
 
 ## 8. Funding, wallet support, and refunds
 
@@ -231,7 +231,9 @@ The NEAR USDC contract, decimals, bridge representations, deployed contract IDs,
 
 Attendees pay deposit gas, conversion/routing costs, and withdrawal delivery fees. Show estimates before confirmation and itemize principal, rewards, and fees separately. The project funds its own contract execution and storage. The platform fee is zero for this release; deposits and forfeitures are not platform revenue.
 
-Do not silently reduce refundable principal or advertised rewards. The exact withdrawal-fee collection mechanism is an open design decision: separately funded fee balance versus explicitly authorized deduction with gross entitlement and net delivery shown separately. Resolve it before implementation; no deduction is authorized by this document. If fee funding is insufficient, preserve the liability and show a funding-required state rather than declaring delivery complete.
+Deduct disclosed withdrawal delivery fees from the payout under an attendee-authorized maximum. The receipt must show gross principal/rewards, actual fee, and net delivery separately. Example: 5.00 USDC refund less 0.05 delivery fee yields 4.95 received. Product copy must say “deposit back, less disclosed transaction fees,” not promise fee-free receipt. The gross entitlement remains accounted for; fee deduction settles only the explicitly authorized fee amount, never hidden platform revenue.
+
+If the actual fee exceeds the authorized maximum, pause and request fresh approval. Do not reduce a fee cap, route minimum, or destination check to a client-only control. Nonpositive or below-route-minimum net payouts remain recoverable and pending; they cannot be silently consumed as fees. Fee-cap units, quote validity, aggregation, and recovery for uneconomic payouts need technical design. NFT delivery remains contributor-funded and is not deducted from the monetary prize.
 
 NFT contributors separately fund NFT escrow, delivery, and return costs (section 13.4). Reserves are scoped to their obligations and cannot consume other event funds. Return unused reserve after obligations finish. Exact top-up and recovery mechanics remain to be designed.
 
@@ -245,7 +247,7 @@ Only `ESCROW_CONFIRMED` creates reward eligibility or a booked seat. Browser red
 
 Bind every intent to event ID, rules hash, random registration ID, participant credential, source refund destination, and authorized payout destination. Validate token contract, exact principal, capacity reservation, expiry, and duplicate status.
 
-Expired quote: request a fresh quote and fresh consent if costs change. Failed swap: display provider refund tracking. Late completion, duplicate deposit, or full capacity: do not enroll or forfeit; create a recoverable return for the received amount. Any external-provider refund fee is disclosed and distinguished from a Showup penalty.
+Expired quote: request a fresh quote and fresh consent if costs change. Failed swap: display provider refund tracking. A deposit received after reservation expiry may enroll only while registration is open, capacity remains, and the original authorization is valid. Atomically recheck capacity so competing deposits cannot claim the last seat. Reservation expiry must be distinct from authorization expiry. If full, registration closed, authorization invalid, or duplicate, do not enroll or forfeit; automatically initiate a recoverable return to the authorized refund destination and show its status. Any external-provider refund fee is disclosed and distinguished from a Showup penalty.
 
 Do not automatically resend a source transfer after a timeout. Reconcile the original transaction first. Extra incoming amount belongs to the sender as excess, not to the event reward pool.
 
@@ -428,7 +430,7 @@ The example shows gross entitlements assuming the winner accepts; attendee fees 
 - One draw-eligible attendee: select that person without artificial RNG suspense; prize acceptance and deadline rules still apply.
 - A is nonempty but T is empty: return D and any NFT to their contributors; preserve principal and equal allocations. No draw.
 - No one qualifies: fail-neutral event resolution. Return all unreleased principal and the sponsor reward budget; no forfeiture beneficiary exists, so no forfeitures are created. Self-released participants retain their refunds. Record zero attendance and failed event outcome; no attendance streak increments.
-- Randomness unavailable: the earlier equal-split fallback is now unresolved because the accepted NFT and combined-prize rules cannot split one NFT. Resolve one initial-draw and redraw timeout policy before funded draws; no implicit fallback is approved.
+- Randomness unavailable: recover the same bound request under section 15.1. If the recovery deadline passes without a valid result, return unallocated D and the NFT to contributors through a mutually exclusive terminal transition. Principal/equal allocations proceed independently. Never reclaim an accepted winner’s liability.
 - Failed transfer: retain the beneficiary’s liability. It is never an “unclaimed prize” that can be reused.
 
 The host receives no portion of F under any case. Unused execution reserve is not forfeiture revenue.
@@ -439,7 +441,7 @@ Hosts may add one NFT alongside the monetary draw prize, on NEAR, Base, Solana, 
 
 The contributor must secure the exact NFT in escrow before publication. A wallet ownership check or revocable transfer approval alone is insufficient. Pin network, collection/contract or mint, token identifier, contributor, custody address, destination rules, and receipts. Supported NFT standards and token-program extensions are not selected yet; do not claim universal NFT compatibility.
 
-The same selected attendee receives the monetary draw prize and NFT through one acceptance action. Before entering an NFT-bearing draw, prove control of a compatible receiving wallet and bind its destination. Lacking that wallet does not block attendance, principal refunds, equal rewards, or streak credit. Proposed extension of the sponsor exclusion: NFT contributors should also be excluded from their event's rewards; confirm this before finalizing eligibility.
+The same selected attendee receives the monetary draw prize and NFT through one acceptance action. Before entering an NFT-bearing draw, prove control of a compatible receiving wallet and bind its destination. Lacking that wallet does not block attendance, principal refunds, equal rewards, or streak credit. NFT contributors are excluded from all event rewards, like hosts, staff, and monetary sponsors. This does not establish resistance to collusion through other accounts.
 
 The NFT contributor funds escrow, delivery, and return fees plus an adequate reserve. The winner pays no NFT delivery charge. Cancellation or an event with no eligible draw participants returns the NFT to its contributor. No automatic carryover to another event is included. Cross-chain custody and verification of NEAR claim decisions require a reviewed protocol; a general-purpose worker wallet is not an approved solution.
 
@@ -469,15 +471,15 @@ X API access and reliable ended-state detection are G4. A missing/deleted Space 
 
 Pre-start host cancellation returns principal and sponsor reward budget, charges no platform fee, protects eligible streak days, and records a host cancellation. Source-chain costs already incurred are not magically recoverable; the receipt distinguishes them.
 
-For this release, early termination before the attendance cutoff uses one simple, declared **abort** rule: return every unreleased principal, including people prevented from arriving. Distribute the sponsor reward budget equally among already qualified attendees as compensation; if nobody qualified, return it to the sponsor. No forfeitures and no draw. Actual attendees retain attendance credit; other still-committed attendees receive protected-day status. The original early-abort compensation proposal requires reconciliation with the accepted return-of-draw-funds policy: decide whether D returns while E compensates confirmed attendees. No implementation may choose between these outcomes implicitly. The NFT returns to its contributor. Publish the resolved rule for sponsor acceptance before funding.
+Early termination before normal settlement conditions uses an **abort** rule: refund every unreleased attendee principal and return all sponsor reward funding and the NFT to their respective contributors. No equal rewards, draw rewards, or forfeitures are distributed. Actual attendees retain attendance credit; other still-committed attendees receive protected-day status under the existing cancellation model. Already-incurred transaction costs remain costs. Removing reward distribution avoids a host ending early to concentrate sponsor funds among a few accomplices. This policy must be published before funding; it is not proof that collusion or fee-draining abuse is impossible.
 
 After the attendance cutoff and required windows, normal closing rules apply. Once allocation freezes, cancellation cannot undo beneficiary rights or reopen entries. There is no discretionary emergency override that returns already-allocated money to a sponsor.
 
 ### 14.4 Infrastructure failure
 
-An admission/attendance outage must not silently become a no-show windfall. If the evidence service cannot provide a signed complete reconciliation checkpoint by hard close + five minutes, enter the same fail-neutral abort path: principal returned, no forfeitures, NFT returned, and monetary sponsor allocation according to the resolved early-abort rule in section 14.3. This conservative outcome trades forfeiture collection for protection from incomplete evidence.
+An admission/attendance outage must not silently become a no-show windfall. If the evidence service cannot provide a signed complete reconciliation checkpoint by hard close + five minutes, enter the same fail-neutral abort path: principal returned, no forfeitures, NFT returned, and all monetary sponsor funding returned to its contributor. This conservative outcome trades forfeiture collection for protection from incomplete evidence.
 
-End detection is not part of that evidence-health signal; an X API outage alone does not abort a working event. Duplicate, restarted, or delayed workers must not produce different allocations.
+A host claim of an outage is not evidence of service failure; use the verified reconciliation condition above. End detection is not part of that evidence-health signal; an X API outage alone does not abort a working event. Duplicate, restarted, or delayed workers must not produce different allocations.
 
 ## 15. Draw integrity and payout states
 
@@ -487,7 +489,9 @@ At closure, freeze attendee states, exclusions, quiz credits, streak snapshots, 
 
 Request exactly one bound randomness result per authorized selection round after freeze. Only a verified explicit decline permits the next round; silence, errors, and operator preference do not. Default provider candidate is OutLayer, subject to G2. Pin the provider key and contract/project identifiers in published rules. Contract-originated request binding must fix request ID, sender, and a seed derived from event ID, snapshot hash, round number, and prior decline/exclusion state. Arbitrary repeated HTTPS requests followed by selecting a favorable result are prohibited. [S13]
 
-Verify the proof, exact request binding, and output derivation in the NEAR contract. A valid signature for a different request is invalid for this draw. Provider signatures do not eliminate provider withholding; an approved timeout rule must supply the terminal path before implementation.
+Verify the proof, exact request binding, and output derivation in the NEAR contract. A valid signature for a different request is invalid for this draw. Provider signatures do not eliminate withholding. The accepted recovery policy is up to three total attempts within two minutes, provisionally at 0, 15, and 45 seconds. Recover the same request ID, sender, seed, pinned key, and frozen round; retrieve an existing proof or retry verification, never create a new randomness execution merely to retry. These timings require measured provider validation, not an assumed service guarantee.
+
+At deadline, atomically resolve either a valid result or return of unallocated draw assets, never both. Reconcile pending verification transactions before declaring a safe return; late callbacks must not revive a returned round. An uncertain transaction remains visibly pending recovery, even beyond the target window. Apply the same policy to initial and explicit-decline replacement rounds, with replacement recovery clipped at the original 30-day claim deadline. Exact on-chain race handling remains a required design/proof obligation.
 
 Map the verified value to the total integer weight using rejection sampling, with deterministic domain-separated hashing for additional samples, to avoid modulo bias. Select the first cumulative weight exceeding the sampled integer. Publish a verifier script that reproduces the result from public snapshot and proof. Final odds are the attendee’s frozen weight divided by total frozen weight; before freeze, label displayed odds provisional.
 
@@ -501,7 +505,7 @@ Payout states: `ALLOCATED → ROUTE_PENDING → TRANSFER_SUBMITTED → DELIVERED
 
 Failed NEAR asynchronous transfers restore the unpaid balance through callbacks. An uncertain cross-chain attempt is reconciled before any retry. Never create a fresh route while the old attempt could still succeed. Retries retain the beneficiary, entitlement, and payout ID. A failed accepted draw-prize payment never redraws the winner or expires the liability.
 
-An attendee’s economic receipt can be final while delivery is pending. Show both statuses. Recovery controls may retry or authorize a new destination with fresh wallet proof; they cannot change a finalized amount or recipient identity. Normal operation requires no manual claim.
+An attendee’s economic receipt can be final while delivery is pending. Show both statuses. Recovery controls may retry or authorize a new destination with fresh wallet proof; they cannot change a finalized amount or recipient identity. Principal/equal delivery does not require manual claim; draw prizes require the explicit acceptance in section 15.3. Fee-cap overruns may require renewed consent.
 
 ### 15.3 Prize acceptance, decline, and replacement selection
 
@@ -511,7 +515,7 @@ Declining requires the selected winner to type `DECLINE` and confirm a warning: 
 
 Before the common deadline, an explicit decline permits another weighted selection among the original eligible set minus prior decliners, retaining their frozen weights. Continue until acceptance or candidate exhaustion. The host cannot choose a replacement, alter weights, or disqualify an attendee for leaving after valid check-in. No-shows are excluded before the initial freeze.
 
-If everyone declines, return D and the NFT to their respective contributors. If the selected person remains silent until the deadline, return unaccepted draw assets without redrawing. Principal and equal rewards are unaffected. NFT returns/delivery failures retain their correct beneficiary and retry state; they never authorize prize reuse. Expiry processing while a replacement proof is pending, proof failures, and cross-chain accept/return races must be resolved in the technical design before implementation.
+If everyone declines, return D and the NFT to their respective contributors. If the selected person remains silent until the deadline, return unaccepted draw assets without redrawing. Principal and equal rewards are unaffected. NFT returns/delivery failures retain their correct beneficiary and retry state; they never authorize prize reuse. Pending replacement proofs follow section 15.1 without extending the original claim deadline. Cross-chain accept/return race enforcement remains a required technical proof.
 
 ## 16. Architecture and implementation boundaries
 
@@ -575,7 +579,13 @@ The initial hosted experience is invitation-only mainnet with real deposits, esc
 
 Mainnet Intents requires mainnet assets and escrow throughout. Never mix test tokens with live routes. Network/contract/token identifiers, limits, explorers, and provider settings belong in validated environment manifests. Keep engineering environments, credentials, wallets, and data separate. No secrets in browser bundles or repository files.
 
-Host access uses expiring, single-use invitations. Opening the link and signing in with Google or Telegram atomically redeems it and grants host access; no application form or manual approval queue. Bind redemption to one account, prevent concurrent reuse, and support revocation before redemption. Exact invitation lifetime and authority for issuance remain open. Attendee event access and enrollment limits must enforce the restricted rollout; host invitations are not spending authorization or transferable event ownership.
+Only the platform administrator issues or revokes host invitations. Each is single-use and expires 15 days after issuance if unused. Opening it and signing in with Google or Telegram atomically redeems it and binds host access to one account. Expiry of a redeemed invitation does not revoke existing account access. No application form or manual approval queue is required; concurrent reuse must fail.
+
+Hosts choose open registration or invitation-only access before publication. The initial restricted-mainnet rollout enforces invitation-only regardless of the broader product setting. Event hosts and the platform administrator may issue/revoke single-use attendee invitations scoped to that event; attendees cannot delegate guest invitations. Attendee invitations expire at registration closing, not after the host-invitation lifetime. Redemption binds event eligibility to the signed-in account, not a seat or automatic funding. A funding interruption must not force redemption of a second invitation by the same account.
+
+An unused invitation reserves no capacity. Funding reserves a seat for at most five minutes and never past registration close; escrow confirmation secures it. Expired reservations follow section 8.4. Event links remain accessible to authorized viewers after closing. Disable and visually mute the deposit button, with accessible text: “Registration closed. New deposits are no longer accepted. Join us for the next event.” If available, link to the next published event. Expired invitation tokens must not become reusable access credentials or expose private rosters; the exact closed-page visibility boundary must preserve event privacy. Existing participants retain check-in, quizzes, receipts, and claims according to their own windows. Enforce closure in server and contract rules; unsolicited late deposits follow the return path.
+
+Referral links record attribution only. Guest-invite allowances and referral weight boosts remain outside the first release. Neither invitations nor public event URLs bypass platform restrictions, capacity, or spending caps.
 
 Provide pre-funded real events for invited hosts to operate, avoiding compulsory personal funding for initial host exploration. Allocation of those events and the source of attendee funding remain to be designed under the same approved budget; do not promise a mainnet faucet or free unlimited funds. Faucet links belong only in engineering testnet setup instructions when networks are selected, not the mainnet funding flow.
 
@@ -637,7 +647,7 @@ Event: `DRAFT → FUNDED → OPEN → LIVE → CLOSING → FROZEN → ALLOCATED`
 
 Registration: `PENDING → COMMITTED → RELEASED | ATTENDED_ON_TIME | ATTENDED_LATE | NO_SHOW | CANCEL_REFUND | ABORT_REFUND`. Financial delivery is a separate state. No record may be both refunded and forfeited.
 
-Quiz: `PLANNED → OPEN → CLOSED`, or `EXPIRED_UNUSED`. Draw selection: `NOT_REQUIRED | FROZEN → REQUESTED → SELECTED_AWAITING_ACCEPTANCE`; provider timeout is blocked pending policy approval. Claim: `AWAITING_ACCEPTANCE → ACCEPTED | DECLINED | EXPIRED`; decline authorizes a new selection excluding prior decliners, while expiry returns unclaimed prizes without a redraw. Terminal transitions cannot be reversed through UI operations.
+Quiz: `PLANNED → OPEN → CLOSED`, or `EXPIRED_UNUSED`. Draw selection: `NOT_REQUIRED | FROZEN → REQUESTED → SELECTED_AWAITING_ACCEPTANCE`; provider timeout enters an exclusive return/recovery path under section 15.1. Claim: `AWAITING_ACCEPTANCE → ACCEPTED | DECLINED | EXPIRED`; decline authorizes a new selection excluding prior decliners, while expiry returns unclaimed prizes without a redraw. Terminal transitions cannot be reversed through UI operations.
 
 ## 18. Screens and interaction acceptance
 
@@ -691,7 +701,7 @@ Pilot record: invitation count where known, funded users, check-ins, optional pa
 | Gate | Required evidence | Failure response |
 | --- | --- | --- |
 | G1 — Funds and authorization | End-to-end source wallet → attributable escrow → authorized destination; fees, expiry, duplicate and failed route recovery | Keep failing route disabled; revise implementation, not financial promises |
-| G2 — Draw proof | One bound request per authorized round, proof verification, independent replay, decline exclusions, overall deadline, withholding recovery | No funded draw until timeout policy and round protocol are approved and proven |
+| G2 — Draw proof | One bound request per authorized round, proof verification, independent replay, decline exclusions, overall deadline, withholding recovery | No funded draw until same-request recovery, timing, and terminal-state race safety are proven |
 | G3 — Phones and audio | Current iOS/Android, PWA/browser, Telegram, wallet returns, X audio continuity, typed/button answers | Use exact-question fallback; remove unsupported notification claims |
 | G4 — X end signal | Real live-to-ended observation, credentials/costs, timing and error cases | Host close and fixed deadline remain available |
 | G5 — Identity/privacy | Both social paths, wallet challenge replay protection, separate-account isolation, no public identity mapping | Block affected auth path until fixed |
@@ -708,7 +718,7 @@ No live wallet, phone, or cross-chain integration was validated merely by prepar
 | MONEY-03 | Timely release at boundary | Before deadline accepted; at/after rejected; no duplicate refund |
 | MONEY-04 | Failed/late/duplicate funding | No unfunded entries, double booking, or automatic penalty; recoverable funds tracked |
 | MONEY-05 | Concurrent settle/retry | Each entitlement paid at most once; uncertain attempts reconciled |
-| MONEY-06 | Fee funding exhausted | Full liability preserved; explicit funding-required state; no unauthorized deduction |
+| MONEY-06 | Fee cap / net payout too small | Itemized authorized deduction only; cap excess requests consent; uneconomic net amount remains recoverable |
 | ATT-01 | On-time vs late | Both refund and streak; only on-time earns draw entries; equal floor preserved |
 | ATT-02 | QR/code replay | Wrong event/user/nonce/expiry rejected |
 | ATT-03 | Optional question missed | Earned refund and attendance remain unchanged |
@@ -717,11 +727,11 @@ No live wallet, phone, or cross-chain integration was validated merely by prepar
 | QUIZ-03 | Boundary/normalization | Server-time cutoff and declared text normalization applied consistently |
 | DRAW-01 | Frozen snapshot | Later changes cannot alter participants, weights, amount or seed |
 | DRAW-02 | Wrong proof/request/retry | Rejected; new round only after current winner explicit decline; no discretionary reroll |
-| DRAW-03 | No draw-eligible users / provider timeout | No eligible users returns draw assets to contributors; timeout policy must be approved before implementation |
+| DRAW-03 | No draw-eligible users / provider timeout | No eligible users returns draw assets to contributors; same-request retries then exclusive return/recovery under the accepted provisional deadline |
 | STREAK-01 | Days 1–5 / multiple events | Activation on fifth qualifying day; one increment per day |
 | STREAK-02 | Attendee cancellation / host cancellation | Missed personal day resets; eligible host cancellation preserves without increment |
 | STREAK-03 | Midnight, DST, delayed evidence | Fixed calendar and grace; no invented extra day or premature reset |
-| CANCEL-01 | Pre-start / early abort | Published refunds and sponsor allocation; prevented arrivals never forfeit |
+| CANCEL-01 | Pre-start / early abort / replacement | All sponsor assets returned; attendee principal refunded less authorized costs; no rewards/forfeitures; replacement needs fresh consent |
 | LIVE-01 | Host absent / X API unavailable | Hard-deadline path completes without discretionary host signature |
 | LIVE-02 | Evidence outage | Fail-neutral recovery; no classification of unknown evidence as no-show |
 | PRIV-01 | Public logs, host export, other user API | No social-wallet directory; permissions and redaction enforced |
@@ -733,6 +743,8 @@ No live wallet, phone, or cross-chain integration was validated merely by prepar
 | CLAIM-01 | Accept/decline race and typed confirmation | One authorized outcome; both prizes together; stale/replayed attempts rejected |
 | CLAIM-02 | Multiple declines and deadline | Frozen weights minus decliners; one 30-day deadline; no silent rerolls |
 | ACCESS-01 | Restricted mainnet limits | Real-funds labeling; reduced limits restricted to configured events; aggregate and retry caps enforced |
+| CAPACITY-01 | Concurrent final seat / expired reservation | At most published capacity; expired reservation can enroll only before close with valid authorization and space; otherwise return |
+| INVITE-02 | Roles, expiry, and closed event link | Admin-only 15-day host invitations; host/admin event invitations expire at close; page remains available to authorized viewer without new deposits |
 | REPORT-01 | Report reconciliation | Counts, costs, principal and rewards match source records |
 
 Security tests focus on conservation, authorization, callback failure, replay, concurrent jobs, destination substitution, and draw manipulation. Use unit tests for pure rules, contract sandbox tests for transitions, integration tests for providers, and actual phones for UX. No amount of desktop simulation replaces the phone checks.

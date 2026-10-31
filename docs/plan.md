@@ -19,8 +19,12 @@ October 31 checkpoint: owner-approved interview decisions are reconciled in
 [remaining decision register](technical-scope.md#decisions-needed-before-a-build-ready-plan).
 Docker Compose/Railway and invitation-only mainnet are accepted. Economics,
 attendance, NFT prizes, claims/redraws, and reduced testing deposits are recorded.
-SCOPE-01 remains open: fee mechanics, NFT custody, proof-failure recovery,
-providers, funding/operations, estimates and implementation approval remain.
+Latest checkpoint also records capped fee deductions, three same-request draw
+attempts within a provisional two-minute window, all-funds-return aborts, locked
+capacity/material terms, and host/attendee invitation rules. SCOPE-01 remains
+open for custody/proof design, provider validation, funding/operations and build approval.
+The [consolidated recommendation](technical-scope.md#consolidated-technical-recommendation)
+groups the remaining technical choices and distinguishes proposals from accepted policy.
 Verification: repository standards, whitespace, local Markdown links, and
 product-only content checks; no application or security validation is claimed.
 
@@ -64,3 +68,18 @@ both attendance modes, invitation isolation, budget enforcement, and prize
 custody/accept/decline/return behavior. Security checks precede any mainnet
 exposure. Mainnet transaction amounts, deployment, and spending need explicit
 approval; a product decision or documentation commit does not grant it.
+
+## Dependency and estimation boundary
+
+The existing seven-outcome sequence remains the proposal; no implementation
+stage is added or authorized. First resolve the NFT custody trust model and
+same-request recovery support. Their proof obligations control the effort of
+outcomes 2, 5 and 6, so a defensible total estimate is not available yet. Do not
+promise a delivery date based only on library documentation.
+
+For the next build-plan draft, attach task-level estimates to the chosen design,
+including separate NEAR, EVM and Solana custody work, all four network qualification
+runs, refunds/returns, fee caps, invitation/capacity races, and mainnet-security
+verification. Identify tasks that can use engineering testnets versus those
+requiring an approved real-funds budget. Operational shutdown must preserve
+30-day claims and any accepted unresolved liabilities.

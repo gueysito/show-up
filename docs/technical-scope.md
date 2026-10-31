@@ -247,7 +247,7 @@ sender, and seed; the output is the hash of that signature. Showup must verify
 all those bindings and the frozen entry snapshot, not just signature validity.
 Its documented service requires an OutLayer project and keystore. Provider
 availability, cost, immutable key policy for funded events, per-round request binding,
-and timeout behavior remain untested. The accepted explicit-decline redraw policy now requires one bound request per authorized round, with frozen weights minus decliners. Initial and replacement proof timeout behavior needs owner approval before implementation; the old equal-split fallback cannot handle the combined NFT prize.
+and timeout behavior remain untested. The accepted explicit-decline redraw policy now requires one bound request per authorized round, with frozen weights minus decliners. The owner accepted three same-request attempts within two minutes (provisional 0/15/45-second schedule), followed by return of unallocated draw assets if no valid result exists. Actual recovery support, timing, and atomic timeout handling remain unproven; see the consolidated recommendation below.
 
 There is also an example inconsistency: the docs forbid colons in user seeds
 but show a multi-value example containing a colon. Follow the stated constraint
@@ -274,12 +274,11 @@ and weak-network recovery still require devices. No source read establishes G3.
 
 | Priority | Decision | Still needed |
 | --- | --- | --- |
-| 1 | Financial mechanics and unresolved draw recovery | Select separately funded versus explicitly deducted attendee withdrawal fees; reconcile early-abort compensation with return-of-draw-funds policy; define initial/replacement proof timeouts and near-deadline pending proofs. NFT and money cannot silently use conflicting fallback rules. |
-| 2 | NFT custody and delivery | Select supported standards on NEAR, Base, Solana, Ethereum; prove custody before publication and verification of NEAR winner/acceptance/return decisions on each chain. Define fee-reserve top-up and accepted-but-undelivered recovery; confirm extending sponsor eligibility exclusions to NFT contributors. |
-| 3 | Libraries and providers | Confirm Drizzle, pg-boss, UI components, RPC, monitoring, wallet connectors, exact NEAR wallet, 1Click API selection, and OutLayer candidate. NEAR Intents itself is accepted. Versions/advisories remain setup work. |
-| 4 | Restricted access and funding | Choose public development-wallet addresses, aggregate/per-transfer/attempt caps, quote-supported reduced deposits, invitation lifetime and issuer, attendee access controls, pre-funded event assignment and attendee funding. No spending is authorized. |
-| 5 | Railway operations | Region, domain, budget, resource sizing, backups/restore, secret handling, alerts, environment isolation, and recovery after shutdown. Docker Compose and Railway selection are settled. |
-| 6 | Pilot and build plan | Confirm capacity, schedule, staff and devices; estimate the expanded NFT/claim work and define dependencies/evidence. Both attendance modes and all required networks remain in scope. No implementation stages are approved. |
+| 1 | Custody and proof protocol | Review the cross-chain signing recommendation below; prove NFT custody evidence, restricted signing, finality and accept/return race safety. Validate same-request randomness recovery and the provisional two-minute schedule. |
+| 2 | Libraries and providers | Review the consolidated package below. Choose the actual NEAR wallet, RPC providers, monitoring destination, compatible stable versions and audited dependency pins. |
+| 3 | Funding and operations | Supply public development-wallet addresses; approve total/per-transfer/attempt caps and supported reduced amounts, pre-funded event assignment, attendee funding, Railway region/domain/resources/budget, backups and shutdown recovery. No spending is authorized. |
+| 4 | Build approval | Estimate against the selected custody design, verify devices/staff/schedule, and approve the implementation plan. Both attendance modes and all four required networks remain in scope. |
+
 
 Accepted economic, attendance, claim, and exposure rules are authoritative in
 [the PRD](prd.md), not new discussion items. In particular: 5 USDC default / 2.50
@@ -301,3 +300,126 @@ daily streak behavior. Repeated boosts alone are not evidence of retention.
 
 Use [the plan](plan.md) for the proposed sequence and task status. No alternate
 task tracker or implementation approval is created by this evidence document.
+
+## Consolidated technical recommendation
+
+Prepared October 31, 2026. This is a proposal for the next scope review, not a
+second task tracker or implementation authorization. Accepted product policies
+remain in the PRD. Review the package together instead of selecting each minor
+library through a separate interview.
+
+### Application and integrations
+
+| Area | Recommendation | Rationale and remaining check |
+| --- | --- | --- |
+| Application/runtime | Retain accepted Next.js App Router, TypeScript, Node.js, openid-client, PostgreSQL sessions, Docker Compose and Railway | No reason to reopen the documented identity/framework decision. Separate web and durable worker processes. |
+| Database/jobs | Drizzle with node-postgres; pg-boss in the worker | Both fit Node/PostgreSQL. Use explicit transactions and a durable outbox so a committed money-state change cannot lose its job. Queue retries do not guarantee exactly-once external transactions. Verify the chosen transactional integration. |
+| UI | shadcn/ui, with accessible native states for closed registration, fees, and pending transfers | Keep the existing React direction; verify mobile wallet return and audio separately. |
+| Wallet adapters | Wagmi/viem for Rabby on EVM; Phantom's documented provider for Solana; NEAR Connect for the chosen NEAR wallet | Keep injected/direct paths; mobile support and supported signing methods must be tested. The actual NEAR wallet still needs owner selection. |
+| USDC routes | 1Click as the NEAR Intents adapter | Implement G1 as a complete real deposit/escrow/refund loop, starting with Base, then qualifying every other required route. This ordering does not remove network requirements. |
+| Randomness | Retain OutLayer as the first candidate, not a verified dependency | Same-request recovery must satisfy the accepted retry policy; do not substitute new request IDs. |
+| Testing | Propose Vitest for TypeScript rules, Playwright for browser flows, and Rust/NEAR sandbox tests for escrow | Add provider integration and actual-device checks. Tool versions and fixtures follow implementation approval; these choices are recommendations, not installed tooling. |
+| Operations | One Railway web service, one worker, PostgreSQL; structured redacted logs and explicit health checks | Select an existing monitoring destination/provider where possible. Add durable alerts for stalled funds and failed jobs, not only HTTP uptime. Resource sizing and monthly spend remain unmeasured. |
+
+[Drizzle documents Node PostgreSQL drivers](https://orm.drizzle.team/docs/get-started-postgresql).
+Its current examples use release-candidate tags; do not copy these as approved
+stable dependencies. [pg-boss](https://github.com/timgit/pg-boss) documents a
+PostgreSQL-backed Node job queue. Exact versions, advisory checks, release-age
+policy, and lockfiles must be settled before installation. Other adapter evidence
+is linked in the framework review above. Context7 lookup did not find OutLayer;
+its unrelated results were not used. For pg-boss it returned a secondary index;
+the upstream project was consulted instead.
+
+### NFT standards and custody proposal
+
+Recommend a narrow, explicit asset allowlist, preserving all four networks:
+
+| Network | Proposed first supported format | Boundary |
+| --- | --- | --- |
+| NEAR | NEP-171 NFT | Validate the pinned collection and exact token, receiver callback and return semantics. |
+| Base and Ethereum | ERC-721 | Share reviewed EVM transfer code, but deploy/configure and test each chain separately. ERC-1155 and unusual transfer behavior need separate approval. |
+| Solana | Metaplex Core asset, with a reviewed plugin/authority allowlist | Current Metaplex guidance prefers Core for new projects. This does not include every existing Solana NFT. Legacy Token Metadata, programmable NFTs and compressed variants are not implicitly supported. |
+
+NEAR's [NEP-171 standard](https://github.com/near/NEPs/blob/master/neps/nep-0171.md)
+defines its NFT interface. [OpenZeppelin ERC-721](https://docs.openzeppelin.com/contracts/5.x/api/token/erc721)
+documents transfer and receiver interfaces, not Showup escrow policy.
+[Metaplex Token Metadata](https://www.metaplex.com/docs/smart-contracts/token-metadata)
+is supported but labeled legacy for new projects; [Core](https://www.metaplex.com/docs/smart-contracts/core)
+is its recommended new format. Inspect collection and asset authorities/plugins
+that could block, freeze, delegate, or move a prize after escrow. If the intended
+contributor has a different NFT format, change the explicit scope before building.
+
+**Preferred architecture to investigate:** NEAR contract-governed Chain Signatures
+for per-event external custody addresses, with native NEAR NFT custody in the
+Showup contract. Chain Signatures lets a NEAR contract request signatures for
+external-chain transactions. The official [overview](https://docs.near.org/chain-abstraction/chain-signatures)
+lists EVM and Solana examples, but explicitly distinguishes outbound signing
+from verification of external state. This is a documented avenue, not a proven
+Showup custody implementation.
+
+The contract must construct or fully validate the allowed transfer payload from
+the accepted prize state. Never expose unrestricted signing of caller-supplied
+hashes or transaction bytes. Bind network, custody derivation, asset, recipient,
+round, nonce/blockhash, fee bounds and operation; permit release or return only
+once. The broadcaster may submit authorized transactions but cannot select new
+recipients. Evaluate MPC availability, key derivation and upgrade controls.
+
+**Unresolved security boundary:** proving external NFT deposit/finality and
+reconciling external transfers back into the NEAR ledger. An RPC observation is
+not automatically a trustless contract proof. Select a verified proof mechanism
+or explicitly review an attested observation trust model. No attestor policy is
+approved here. Showup must not publish a prize based only on an unchecked worker
+claim or refund an asset whose delivery remains uncertain.
+
+Alternative: native EVM escrow contracts and a Solana custody program receiving
+verifiable NEAR release decisions. This adds deployment and cross-chain message
+verification work; it does not eliminate the proof boundary. Reject a general
+operator wallet as the silent shortcut. Approve a custody design only after its
+source-level design review, then prove it in the approved implementation.
+
+### Draw recovery finding and recommended mechanics
+
+[OutLayer VRF documentation](https://app.outlayer.ai/docs/vrf) binds its signature
+to request ID, sender and user seed. The same key and complete input produce the
+same output; a new request ID changes the input even when the seed is unchanged.
+It documents NEAR signature verification. It does not establish that Showup can
+recover a failed execution under the original ID within two minutes.
+
+Use one persisted round/request record. Attempt recovery at the accepted
+provisional offsets, checking existing result/transaction state before retrying.
+A queued retry must never create a new randomness execution or reset the deadline.
+The contract accepts either the matching verified result or the timeout return,
+never both; stale results cannot revive a returned round. A pending chain
+transaction requires reconciliation, not a second transfer. Measure submission,
+provider processing, callback and finality separately. If the provider cannot
+meet the policy, return with evidence and a revised proposal before funded use.
+
+### Financial and access implementation details
+
+- Store gross entitlement, authorized fee cap, actual fee, and net delivery as
+  separate integer amounts. Fee cap is bound to payout/destination and enforced
+  server-side and at the money-authority boundary; no silent cap expansion.
+- Recommend aggregate delivery of already-available USDC liabilities to the same
+  authorized destination where this reduces fees, without waiting for a 30-day
+  prize claim. Never charge the full fee twice to constituent allocations.
+  Exact aggregation behavior remains a technical proposal.
+- Distinguish invitation redemption, temporary seat reservation, deposit
+  authorization expiry, and registration cutoff. Their clocks are not interchangeable.
+- Use atomic capacity allocation and a single durable funding-attempt record.
+  An expired reservation can enroll only under the accepted late-arrival-of-funds
+  rules. Automatic return still requires route evidence and safe retries.
+- Closed event pages remain accessible within their existing privacy boundary;
+  expired invitation tokens never regain enrollment authority. Disabled buttons
+  supplement server/contract enforcement.
+- Mainnet spending needs an owner-approved aggregate cap covering gas, routing,
+  contract storage, signing/randomness services, NFT transfers and retries, plus
+  separate limits for refundable principal and sponsor rewards. Holding tiny
+  balances is useful containment, not a substitute for authorization checks.
+
+### Approval boundary
+
+Recommended next review: approve the application-library package and narrow NFT
+formats together; choose the custody trust model after the focused design review.
+Then supply wallet public addresses and approve actual quoted spending/hosting
+caps. No secret values are needed for scoping. Provider accounts, installations,
+contracts, deployments, transactions and public access remain unauthorized.
