@@ -443,7 +443,7 @@ The contributor must secure the exact NFT in escrow before publication. A wallet
 
 The same selected attendee receives the monetary draw prize and NFT through one acceptance action. Before entering an NFT-bearing draw, prove control of a compatible receiving wallet and bind its destination. Lacking that wallet does not block attendance, principal refunds, equal rewards, or streak credit. NFT contributors are excluded from all event rewards, like hosts, staff, and monetary sponsors. This does not establish resistance to collusion through other accounts.
 
-The NFT contributor funds escrow, delivery, and return fees plus an adequate reserve. The winner pays no NFT delivery charge. Cancellation or an event with no eligible draw participants returns the NFT to its contributor. No automatic carryover to another event is included. Cross-chain custody and verification of NEAR claim decisions require a reviewed protocol; a general-purpose worker wallet is not an approved solution.
+The NFT contributor funds escrow, delivery, and return fees plus an adequate reserve. The winner pays no NFT delivery charge. Cancellation or an event with no eligible draw participants returns the NFT to its contributor. No automatic carryover to another event is included. The owner requires contract-enforced release: workers cannot choose arbitrary recipients. [ADR-0002](adr/0002-nft-custody.md) proposes the mechanism and identifies the external-state observation trust boundary requiring review. A general-purpose worker wallet is rejected.
 
 ## 14. Event end, release, cancellation, and recovery
 

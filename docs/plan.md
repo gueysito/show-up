@@ -69,17 +69,68 @@ custody/accept/decline/return behavior. Security checks precede any mainnet
 exposure. Mainnet transaction amounts, deployment, and spending need explicit
 approval; a product decision or documentation commit does not grant it.
 
-## Dependency and estimation boundary
+## Implementation plan for approval
 
-The existing seven-outcome sequence remains the proposal; no implementation
-stage is added or authorized. First resolve the NFT custody trust model and
-same-request recovery support. Their proof obligations control the effort of
-outcomes 2, 5 and 6, so a defensible total estimate is not available yet. Do not
-promise a delivery date based only on library documentation.
+This expands the existing seven proposed outcomes into executable milestones;
+it does not create a second tracker or authorize implementation/deployment.
+Owner accepted contract-enforced custody. [ADR-0002](adr/0002-nft-custody.md)
+specifies the proposed protocol and the remaining observation trust decision.
+Planning work is complete for this checkpoint; SCOPE-01 remains NOW until review.
 
-For the next build-plan draft, attach task-level estimates to the chosen design,
-including separate NEAR, EVM and Solana custody work, all four network qualification
-runs, refunds/returns, fee caps, invitation/capacity races, and mainnet-security
-verification. Identify tasks that can use engineering testnets versus those
-requiring an approved real-funds budget. Operational shutdown must preserve
-30-day claims and any accepted unresolved liabilities.
+Effort ranges are engineering workdays (roughly six focused hours), not elapsed
+AI execution time or a delivery promise. They include implementation and focused
+verification, exclude external waiting/audits and assume the proposed attested
+observation model is accepted. Full cryptographic cross-chain proofs require a
+new estimate. Confidence is low until the early protocol experiments conclude.
+
+| Existing outcome | Work and dependency | Effort | Completion evidence |
+| --- | --- | --- | --- |
+| 1: Foundation | Pin stable versions with supply-chain checks; Next.js/web, worker, PostgreSQL, migrations, outbox, Docker Compose, CI format/lint/typecheck/tests; fail-closed configuration. No external funding required. | 2–3 days | Clean clone starts locally; migrations and job recovery work; no visitor simulation or secrets in bundles. |
+| 2: Protocol proofs | After minimal foundation, prove G1 token attribution/destination binding, G2 same-request recovery, and ADR-0002 signed payload/intent enforcement. NEAR sandbox first; EVM/Solana engineering networks next. Mainnet Intents portion waits for separately approved funds. | 4–7 days | Round-trip trace, independent draw verification, mutated-field/replay/race rejection, custody transfer and return on each family. Pause dependent integration if provider cannot meet invariants. |
+| 3: Identity and commitments | After foundation; proceed independently of unresolved NFT observation. OIDC sessions/linking, nonce-based wallet binding, host/attendee invitations, event rules, fee caps, capacity reservations, commit/release/late-return accounting. | 4–6 days | G5, PRIV-01, INVITE-01/02, CAPACITY-01, MONEY-01–06 and cancellation authorization. No real transfers until G1 passes. |
+| 4: Both attendance modes | After identity/commitments. Three-minute fresh code words, bound Telegram prompt, staff QR scan, exact windows, evidence outage handling; begin actual-phone tests here. | 3–4 days | ATT-01–03, LIVE-01/02; phone camera, app return and audio checks; no manual overrides. |
+| 5: Rewards and prizes | After attendance and protocol proofs. Quizzes, 1.25× streak, three presets, bound draw rounds, acceptance/typed decline, 30-day deadline, native NEAR NFT custody and external signing adapters. | 5–8 days | QUIZ/STREAK/DRAW/CLAIM/NFT matrix; freeze/abort/expiry/retry tests; contributor exclusions; two-minute target measured. |
+| 6: Delivery and operations | After money and reward engines. Idempotent routes, fee deduction/net receipts, NFT finality, recovery queues, reports, all four network qualification. Design backup/restore, caps and shutdown continuity before hosting. | 3–5 days | Destination receipts and reconciled reports; no double payment or stranded unknown liabilities; restore/restart recovers pending work. |
+| 7: Integration and release review | After all prior outcomes. Adversarial auth/data/money tests, 100-seat concurrency/load, complete digital/physical journeys, clean-clone reproduction and recovery rehearsal. Mainnet activation only with explicit budget/deployment approval. | 3–5 days | G1–G6 where applicable, complete acceptance matrix, security findings resolved for restricted exposure; optional G4 absence honestly disclosed. |
+
+Total planning range: **24–38 engineering workdays**, before external waiting or
+independent audit. Some foundation/identity work can overlap protocol investigation;
+do not subtract overlap before assigning actual capacity. Four-network NFT custody
+and cross-chain authorization dominate uncertainty. No network or attendance mode
+is removed to fit a calendar. If a milestone exceeds twice its estimate, stop and
+reforecast with evidence, rather than silently reducing acceptance.
+
+### Verification commands to establish in outcome 1
+
+Use the chosen package manager's locked install and exact scripts for `format:check`,
+`lint`, `typecheck`, `test:unit`, `test:integration`, `test:e2e`, and `build`; Rust
+contract checks use `cargo fmt --check`, `cargo clippy`, and `cargo test` plus the
+selected sandbox runner. These are planned commands, not currently available.
+Keep existing repository hooks active. Separate tests requiring external providers
+or funds from offline CI so CI cannot unexpectedly spend real money.
+
+### Security and stop conditions
+
+Check server authorization, user-to-user ID swaps, admin access, rate limits,
+error redaction, input/query handling, CSRF/CORS, server secret isolation, dependency
+advisories and production debug defaults. Avoid uploads initially; remote NFT
+metadata fetching needs SSRF/size/time limits. Money tests cover conservation,
+callback failure, replay, fee cap enforcement, destination substitution and every
+claim/timeout/return race. Test deterministic transitions, not merely mocks.
+
+A provider failure cannot be patched with a platform hot wallet, unrestricted
+signing or new draw request. Native-chain and cross-chain proofs remain separate.
+External attestation needs explicit approval before NFT publication. No production
+security claims follow from documentation or a passing unit test alone.
+
+### What requires the owner, and when
+
+- Before external NFT custody integration: accept the observation trust proposal
+  in ADR-0002 or require a cryptographic proof alternative. This is the one remaining
+  custody decision; it does not block local foundation/identity work after plan approval.
+- Before implementation: approve this plan. Routine package/version selection and
+  test implementation belong to engineering; return only for material scope/risk changes.
+- Before mainnet experiments: approve public wallet addresses, exact route quotes,
+  total and per-attempt caps, fee/service budgets. No secret values in planning docs.
+- Before hosting: approve deployment destination, operating budget, recovery and
+  security evidence. Preserve claim access and accepted liabilities after shutdown.

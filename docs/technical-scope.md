@@ -349,6 +349,10 @@ is its recommended new format. Inspect collection and asset authorities/plugins
 that could block, freeze, delegate, or move a prize after escrow. If the intended
 contributor has a different NFT format, change the explicit scope before building.
 
+The detailed protocol and remaining observation-trust decision are in
+[ADR-0002](adr/0002-nft-custody.md). Contract-enforced release is now owner-approved;
+the attested observation proposal is not.
+
 **Preferred architecture to investigate:** NEAR contract-governed Chain Signatures
 for per-event external custody addresses, with native NEAR NFT custody in the
 Showup contract. Chain Signatures lets a NEAR contract request signatures for

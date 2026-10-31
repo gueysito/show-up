@@ -17,12 +17,11 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 
 ## Next action
 
-Review the [consolidated technical recommendation](docs/technical-scope.md#consolidated-technical-recommendation)
-in [SCOPE-01](docs/plan.md): library package, NFT formats/custody trust model,
-provider recovery validation, then funding/operations and an estimated build plan.
-Fee deductions, abort returns, draw recovery policy, invitation lifetimes/roles,
-capacity and closed-registration behavior are recorded in the PRD. Operational
-proof and implementation approval remain outstanding.
+Review [ADR-0002](docs/adr/0002-nft-custody.md): contract-enforced NFT release is
+accepted; external-chain custody observations still need a trust decision.
+The [implementation plan](docs/plan.md#implementation-plan-for-approval) now provides
+seven milestones, dependencies, effort ranges, checks and separate funding gates.
+Approve the plan before implementation; spending and hosting remain later decisions.
 
 Next.js/Node.js, openid-client, PostgreSQL sessions, Docker Compose local setup,
 and Railway hosting are accepted. The initial hosted product uses invitation-only
