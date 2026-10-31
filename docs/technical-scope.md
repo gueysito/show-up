@@ -1,6 +1,6 @@
 # Technical scope and evidence
 
-Reviewed October 29, 2026. This document supports [SCOPE-01](plan.md).
+Technical sources reviewed October 29, 2026; owner decisions reconciled October 31, 2026. This document supports [SCOPE-01](plan.md).
 It records source-backed constraints and proposals, not a completed integration
 or an approved implementation plan. [The PRD](prd.md) remains the product authority.
 
@@ -9,7 +9,7 @@ or an approved implementation plan. [The PRD](prd.md) remains the product author
 - [ADR-0001](adr/0001-application-and-authentication.md) accepts Next.js + TypeScript
   on Node.js and openid-client for Telegram/Google login with PostgreSQL-backed
   sessions. Authentication selection is resolved; live verification is normal
-  implementation work. Hosting remains undecided.
+  implementation work. Docker Compose local setup and Railway hosting are accepted; see PRD section 16.5.
 - Base is the default EVM network; Ethereum mainnet must also be available.
   Prefer low total cost and fast delivery when recommending eligible routes;
   compare current quotes rather than claiming one network is always cheapest.
@@ -25,7 +25,7 @@ or an approved implementation plan. [The PRD](prd.md) remains the product author
 - Streaks are daily. Five consecutive qualifying days unlock a modest boost;
   continued daily attendance keeps it active. A missed, unprotected day resets
   progress and requires another five-day run. The multiplier does not escalate
-  indefinitely. The PRD's exact 1.5x figure remains the proposed numeric default.
+  indefinitely. The accepted fixed multiplier is 1.25× from day five onward.
 - Research and scoping are authorized. Application implementation, live spending,
   deployments, and repository visibility changes are not authorized by this review.
 
@@ -33,14 +33,14 @@ or an approved implementation plan. [The PRD](prd.md) remains the product author
 
 | Responsibility | PRD baseline | Evidence and remaining choice |
 | --- | --- | --- |
-| Website | TypeScript + React, responsive web, optional PWA | React recommends starting with a framework. Next.js App Router is accepted in ADR-0001; hosting remains open. [React](https://react.dev/learn/creating-a-react-app) |
-| API and execution | TypeScript API and durable workers | Keep financial retries independent of an open browser or HTTP request. Node.js is accepted; hosting, job library, and scheduler remain open. This is a product architecture proposal. |
+| Website | TypeScript + React, responsive web, optional PWA | React recommends starting with a framework. Next.js App Router is accepted in ADR-0001; Railway is selected; operational settings remain open. [React](https://react.dev/learn/creating-a-react-app) |
+| API and execution | TypeScript API and durable workers | Keep financial retries independent of an open browser or HTTP request. Node.js is accepted; Railway is selected; job library and scheduler remain open. This is a product architecture proposal. |
 | Private records | PostgreSQL | Database constraints can enforce record validity; cross-row rules need appropriate uniqueness, foreign keys, and transaction design rather than arbitrary CHECK expressions. ORM, migration tooling, provider, and job locking remain open. [PostgreSQL](https://www.postgresql.org/docs/current/ddl-constraints.html) |
 | Money rules | Rust + near-sdk, one bounded NEAR contract | SDK supports asynchronous calls and fungible-token standards. Showup's escrow and recovery rules still need implementation and tests. [SDK](https://github.com/near/near-sdk-rs) |
 | Cross-chain delivery | NEAR Intents / 1Click | Quotes and status tracking exist; secure registration attribution and outbound destination enforcement remain G1 proof obligations. [1Click](https://docs.near-intents.org/integration/distribution-channels/1click-api/about-1click-api) |
 | Identity | Telegram and Google login plus wallet ownership proof | Both document OpenID Connect (OIDC), a standard for verified sign-in. openid-client with PostgreSQL-backed sessions is accepted in ADR-0001; provider login does not prove wallet control. [Telegram](https://core.telegram.org/bots/telegram-login), [Google](https://developers.google.com/identity/openid-connect/openid-connect) |
 | Messaging | One ordinary Telegram bot, no Mini App | Telegram explicitly exempts regular bots without a Mini App from its Mini App blockchain restrictions. Preserve the ordinary website wallet flow. [Guidelines](https://core.telegram.org/bots/blockchain-guidelines) |
-| Draw proof | OutLayer candidate | Documented signatures and verification support investigation; they do not establish that Showup can enforce one request, prevent rerolls, or survive withholding. [OutLayer](https://app.outlayer.ai/docs/vrf) |
+| Draw proof | OutLayer candidate | Documented signatures and verification support investigation; they do not establish that Showup can enforce one request per authorized round, prevent discretionary rerolls, or survive withholding. [OutLayer](https://app.outlayer.ai/docs/vrf) |
 
 No dependency version is selected by these links. Context7 was used for React,
 NEAR Intents, and near-sdk; primary documentation supplemented gaps. Exact
@@ -59,8 +59,7 @@ recommendations for owner discussion. No provider is provisioned by this list.
 | Long-running operations | Separate Node worker using pg-boss | PostgreSQL-backed jobs avoid adding a second queue datastore initially. Transactional job creation and retries are documented. Retried jobs still need application-level payment idempotency and chain reconciliation; the queue cannot guarantee an external transfer occurs only once. [pg-boss](https://github.com/timgit/pg-boss) |
 | Database access | PostgreSQL with Drizzle | Explicit SQL-like queries and typed schema suit financial state and uniqueness rules. Review generated migrations; the contract remains authoritative for on-chain money. [Drizzle](https://orm.drizzle.team/docs/overview) |
 | UI components | shadcn/ui as a starting point | Component source is owned in the application and can be adapted for phone check-in and wallet states. Accessibility and actual device behavior still need testing. [shadcn/ui](https://ui.shadcn.com/docs) |
-| Managed hosting | Render web service, background worker, and paid PostgreSQL as one candidate | Documented support covers all three runtime needs. Co-locate services. Paid Postgres provides point-in-time recovery; run an actual restore test. Compare with the owner's existing infrastructure before purchasing. [Web](https://render.com/docs/deploy-nextjs-app), [workers](https://render.com/docs/background-workers), [recovery](https://render.com/docs/postgresql-backups) |
-| Existing-server alternative | Same Node/container layout on an owner-selected existing host | Potentially avoids a new compute bill but requires capacity, isolation, backups, patching, monitoring, and recovery checks. No server has been inspected and no capacity or cost saving is established. Remote inspection needs its own authorization. |
+| Managed hosting | Accepted: Railway for web, separate worker, and PostgreSQL | Docker Compose supports local setup of the same application. Region, sizing, billing cap, backups, restore checks, and shutdown/recovery plan remain unapproved. No service is provisioned. |
 | Authentication | Accepted: openid-client for provider login and PostgreSQL-backed application sessions | Source-verified protocol fit for Telegram without email or UserInfo, and Google OIDC. Session lifecycle and explicit account linking require application work; live proof remains outstanding. See the authentication resolution below. |
 | EVM wallets | Wagmi + viem for Rabby on Base and Ethereum | Candidate typed EVM connection layer. Verify Rabby discovery, chain switching, signatures, transactions, and mobile returns. [Wagmi](https://wagmi.sh/react/getting-started) |
 | Solana wallet | Phantom through its documented provider or Solana Wallet Adapter | Choose the smallest supported integration after desktop/mobile signature and funding checks. A connector does not supply a cross-chain escrow adapter. [Phantom](https://docs.phantom.com/solana/integrating-phantom) |
@@ -72,13 +71,10 @@ API to private PostgreSQL records and job queue; a separate worker to external
 providers and the NEAR contract. The worker submits authorized actions and
 reconciles results; it cannot choose beneficiaries or alter finalized amounts.
 
-Hosting selection also needs a domain, region, baseline monthly budget, secret
-storage, log redaction, alert destination, database recovery policy, and staging
-separation. Choose these together; do not silently create paid accounts. Current
-[Render pricing](https://render.com/pricing) separates workspace fees, compute,
-database storage, and usage. Its smallest listed paid web/worker/database compute
-combination totals $20/month before extras; this is a price floor, not a measured
-capacity recommendation or an approved budget.
+Railway operations still need a domain, region, baseline budget and spending cap,
+secret storage, log redaction, alerts, database restore policy, and environment
+separation. Accepted hosting is not authorization to purchase or deploy. Contract
+liabilities and accepted prizes must remain recoverable beyond service shutdown.
 
 RPC/indexing provider, error monitoring vendor, exact NEAR wallet,
 and test-library versions remain open. Compare existing accounts and
@@ -90,7 +86,7 @@ compatible stable versions and supply-chain checks before installation.
 Reviewed October 29, 2026 against current official documentation and the source
 noted below. This is documentation/source verification, not an installed build,
 wallet session, transaction test, or security audit. No package versions are
-approved. Hosting remains undecided while the owner investigates existing access.
+approved. Railway was subsequently selected; this historical compatibility review does not establish deployed behavior.
 
 The recommendation is Next.js + TypeScript on Node.js for lower wallet UI
 integration effort. SvelteKit is technically viable; it is not rejected for an
@@ -250,8 +246,8 @@ OutLayer documents an Ed25519 signature over a message containing request ID,
 sender, and seed; the output is the hash of that signature. Showup must verify
 all those bindings and the frozen entry snapshot, not just signature validity.
 Its documented service requires an OutLayer project and keystore. Provider
-availability, cost, immutable key policy for funded events, one-request binding,
-and timeout behavior remain untested.
+availability, cost, immutable key policy for funded events, per-round request binding,
+and timeout behavior remain untested. The accepted explicit-decline redraw policy now requires one bound request per authorized round, with frozen weights minus decliners. Initial and replacement proof timeout behavior needs owner approval before implementation; the old equal-split fallback cannot handle the combined NFT prize.
 
 There is also an example inconsistency: the docs forbid colons in user seeds
 but show a multi-value example containing a colon. Follow the stated constraint
@@ -278,12 +274,26 @@ and weak-network recovery still require devices. No source read establishes G3.
 
 | Priority | Decision | Still needed |
 | --- | --- | --- |
-| 1 | Hosting and operations | Owner's existing Hostinger option versus a new provider; available plan, Node/worker support, PostgreSQL, region, domain, budget, backups, and staging arrangement. No server access or provider purchase is authorized. |
-| 2 | Remaining libraries and services | Confirm Drizzle, pg-boss, UI components, RPC provider, monitoring, and the proposed wallet connectors. Exact versions and advisories are implementation setup work. |
-| 3 | Wallets and test funding | Select the NEAR wallet and development accounts by public address; define testnet coverage and a small separately authorized mainnet routing budget. Base, Ethereum, Solana, and NEAR scope stays fixed. |
-| 4 | Event economics and timing | Confirm exact streak factor, sponsor split/budget, capacity, deposit example, check-in windows, and timeout defaults from PRD sections 7 and 13. Do not reopen the accepted daily streak model or refund/no-show rules. |
-| 5 | Draw and cross-chain providers | Confirm 1Click and OutLayer as the implementation candidates. Existing G1/G2 tests still determine operational readiness, not framework selection. |
-| 6 | Pilot and build plan | Confirm audience size, event timing, venue/staff, and test phones; both attendance modes precede the pilot. Convert the existing proposed sequence into the approved implementation plan. |
+| 1 | Financial mechanics and unresolved draw recovery | Select separately funded versus explicitly deducted attendee withdrawal fees; reconcile early-abort compensation with return-of-draw-funds policy; define initial/replacement proof timeouts and near-deadline pending proofs. NFT and money cannot silently use conflicting fallback rules. |
+| 2 | NFT custody and delivery | Select supported standards on NEAR, Base, Solana, Ethereum; prove custody before publication and verification of NEAR winner/acceptance/return decisions on each chain. Define fee-reserve top-up and accepted-but-undelivered recovery; confirm extending sponsor eligibility exclusions to NFT contributors. |
+| 3 | Libraries and providers | Confirm Drizzle, pg-boss, UI components, RPC, monitoring, wallet connectors, exact NEAR wallet, 1Click API selection, and OutLayer candidate. NEAR Intents itself is accepted. Versions/advisories remain setup work. |
+| 4 | Restricted access and funding | Choose public development-wallet addresses, aggregate/per-transfer/attempt caps, quote-supported reduced deposits, invitation lifetime and issuer, attendee access controls, pre-funded event assignment and attendee funding. No spending is authorized. |
+| 5 | Railway operations | Region, domain, budget, resource sizing, backups/restore, secret handling, alerts, environment isolation, and recovery after shutdown. Docker Compose and Railway selection are settled. |
+| 6 | Pilot and build plan | Confirm capacity, schedule, staff and devices; estimate the expanded NFT/claim work and define dependencies/evidence. Both attendance modes and all required networks remain in scope. No implementation stages are approved. |
+
+Accepted economic, attendance, claim, and exposure rules are authoritative in
+[the PRD](prd.md), not new discussion items. In particular: 5 USDC default / 2.50
+public minimum with bounded restricted-mainnet exceptions; attendee deposit and
+withdrawal fees; zero platform fee; 40/60 hybrid plus equal-only/draw-only;
+optional quizzes; 1.25× streak; three-minute fresh host code words; no manual
+attendance overrides; optional single NFT with contributor-paid custody/delivery;
+one accepted winner and explicit-decline redraws inside one 30-day deadline.
+
+A separate visitor testnet environment and simulation mode are excluded. Real
+mainnet Intents is part of the restricted hosted experience. Engineering testnets
+remain useful, with faucet instructions only for selected engineering networks.
+Exact costs are not established until supported routes are quoted and tested.
+
 
 The daily model assumes enough eligible events exist for a five-day run. That
 is a supply and product-validation question, not a reason to change the confirmed

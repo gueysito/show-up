@@ -17,10 +17,15 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 
 ## Next action
 
-Resolve hosting and the remaining scope choices in [SCOPE-01](docs/plan.md).
-Next.js + TypeScript on Node.js, openid-client provider login, and PostgreSQL-backed
-sessions are [accepted](docs/adr/0001-application-and-authentication.md).
-Login verification is implementation work, not a pending stack decision.
-Base is the default EVM route; Ethereum remains required.
-Both attendance modes and the daily streak model are confirmed. The proposed
-build sequence has no implementation authorization yet.
+Resolve withdrawal-fee collection, NFT custody across four networks, and draw
+proof-failure recovery in [SCOPE-01](docs/plan.md), then finish provider/operational
+choices and estimate an implementation plan. The [decision register](docs/technical-scope.md#decisions-needed-before-a-build-ready-plan)
+identifies the remaining questions.
+
+Next.js/Node.js, openid-client, PostgreSQL sessions, Docker Compose local setup,
+and Railway hosting are accepted. The initial hosted product uses invitation-only
+mainnet access with reduced testing deposits and bounded funds. No visitor-facing
+simulation or separate testnet experience is planned; engineering tests still use
+sandbox/testnets. Both attendance modes and NFT support on NEAR, Base, Solana,
+and Ethereum are required. Product rules are recorded in the PRD; implementation,
+spending, deployment, and public access remain unapproved.

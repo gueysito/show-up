@@ -25,6 +25,9 @@ The [technical scope](docs/technical-scope.md) connects current platform
 documentation to the unresolved choices and proof obligations in the PRD.
 The accepted [framework and authentication decision](docs/adr/0001-application-and-authentication.md)
 records the Next.js, Node.js, openid-client, and PostgreSQL session direction.
+The [runtime and access requirements](docs/prd.md#165-runtime-and-exposure) select
+Docker Compose and Railway, with invitation-only mainnet access and real
+transactions under approved limits. These are planned capabilities, not a live service.
 
 ## Repository checks
 

@@ -13,7 +13,9 @@ PostgreSQL and explicit account linking.
 Showup needs documented wallet integrations and Telegram login without email.
 The compatibility review established a viable protocol path. Building and testing
 login, sessions, and linking is normal implementation work, not an unresolved
-stack decision. Hosting and exact versions remain open. No build plan is approved.
+stack decision. Hosting was subsequently settled as Railway with Docker Compose
+local setup in [PRD section 16.5](../prd.md#165-runtime-and-exposure). Exact versions
+remain open. No build plan is approved.
 
 ## Invariants
 

@@ -13,9 +13,17 @@ SCOPE-01 evidence: the [framework compatibility review](technical-scope.md#frame
 confirms framework-independent wallet paths and documents the Better Auth /
 Telegram email mismatch in both frameworks. [ADR-0001](adr/0001-application-and-authentication.md)
 records accepted Next.js, Node.js, openid-client, and PostgreSQL-backed sessions.
-Session/linking implementation and live verification remain build tasks. Hosting
-is the next owner decision; remaining choices are listed in the
-[technical scope](technical-scope.md#decisions-needed-before-a-build-ready-plan).
+Session/linking implementation and live verification remain build tasks.
+October 31 checkpoint: owner-approved interview decisions are reconciled in
+[PRD sections 7–16](prd.md) and the
+[remaining decision register](technical-scope.md#decisions-needed-before-a-build-ready-plan).
+Docker Compose/Railway and invitation-only mainnet are accepted. Economics,
+attendance, NFT prizes, claims/redraws, and reduced testing deposits are recorded.
+SCOPE-01 remains open: fee mechanics, NFT custody, proof-failure recovery,
+providers, funding/operations, estimates and implementation approval remain.
+Verification: repository standards, whitespace, local Markdown links, and
+product-only content checks; no application or security validation is claimed.
+
 
 REPO-01 is the repository setup checkpoint. SCOPE-01 authorizes discussion only.
 Do not expand the roadmap or change acceptance criteria without owner approval.
@@ -29,15 +37,30 @@ attendance modes and the complete money loop, not a partial digital-only build.
 
 | Order | Proposed outcome | Existing acceptance and dependency |
 | --- | --- | --- |
-| 1 | Confirm scope, numeric defaults, network boundaries, and stack selections | Owner decisions and a versioned deployment plan; PRD G6 |
-| 2 | Prove attributable deposit-to-refund routing and independently verified draw behavior | G1 and G2; investigate both before committing the rest of the architecture |
-| 3 | Establish identity, wallet binding, event rules, escrow, releases, and recovery | G5; MONEY-01 through MONEY-06; CANCEL-01; PRIV-01 |
+| 1 | Finish unresolved financial recovery, NFT custody, provider and operational decisions | Owner decisions and a versioned deployment plan; PRD G6 |
+| 2 | Prove attributable deposit-to-refund routing and independently verified draw behavior | G1 and G2; include authorized redraw rounds and NFT custody/release proofs on all four chains before dependent implementation |
+| 3 | Establish identity, wallet binding, event rules, escrow, releases, and recovery | G5; MONEY-01 through MONEY-06; CANCEL-01; PRIV-01; invitation redemption and restricted-access limits |
 | 4 | Complete digital codes and physical QR/staff flows against the same event engine | ATT-01 through ATT-03; LIVE-01 and LIVE-02; both modes required before pilot |
-| 5 | Add quizzes, daily streaks, reward presets, draw, and optional bot interactions | QUIZ-01 through QUIZ-03; STREAK-01 through STREAK-03; DRAW-01 through DRAW-03 |
-| 6 | Finish destination delivery, receipts, host reports, and supported-route qualification | G1 per enabled route; MONEY checks; REPORT-01; no pending payment represented as delivered |
+| 5 | Add quizzes, daily streaks, reward presets, draw, and optional bot interactions | QUIZ-01 through QUIZ-03; STREAK-01 through STREAK-03; DRAW-01 through DRAW-03; CLAIM-01/02 and NFT-01/02 |
+| 6 | Finish destination delivery, receipts, host reports, and supported-route qualification | G1 per required route; independent money/NFT delivery, returns and recovery; MONEY checks; REPORT-01; no pending payment represented as delivered |
 | 7 | Validate complete journeys on phones and prepare the first pilot | G3; UX-01 and UX-02; full enabled-feature acceptance matrix; optional G4 only if verified |
 
 Device probes should start during early integration work, with full end-to-end
 checks at order 7. Refining this proposal into tasks requires estimates,
 dependency links, evidence commands, and owner approval. PRD §20 remains the
 authority for pass conditions; those conditions are not replaced by this table.
+
+## Planning constraints for the next discussion
+
+The proposal above now includes the approved single-NFT and claim/redraw scope;
+it is not an implementation estimate. Before approval, break each outcome into
+bounded tasks with prerequisites, expected effort, evidence commands, and stop
+conditions. Do not estimate four-chain custody as one interchangeable adapter.
+Resolve the financial decision register first so estimates describe one coherent
+money model. No new tracker stages are created by this reconciliation.
+
+The restricted release must prove real cross-chain deposit-to-refund journeys,
+both attendance modes, invitation isolation, budget enforcement, and prize
+custody/accept/decline/return behavior. Security checks precede any mainnet
+exposure. Mainnet transaction amounts, deployment, and spending need explicit
+approval; a product decision or documentation commit does not grant it.
