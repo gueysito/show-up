@@ -10,3 +10,10 @@ __pycache__/
 dist/
 target/
 *.log
+
+# Wallet credentials must stay outside the repository.
+.showup-test-wallets/
+**/near-testnet.json
+**/evm-testnet.json
+**/solana-devnet.json
+**/solana-import.json

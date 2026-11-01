@@ -29,6 +29,9 @@ The [runtime and access requirements](docs/prd.md#165-runtime-and-exposure) sele
 Docker Compose and Railway, with invitation-only mainnet access and real
 transactions under approved limits. These are planned capabilities, not a live service.
 
+Project-only test account addresses and funding instructions are in
+[development wallets](docs/development-wallets.md). No private keys are tracked.
+
 ## Repository checks
 
 Git and Python 3 are required for the repository checks. On each new clone:

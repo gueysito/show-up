@@ -33,6 +33,13 @@ product-only content checks; no application or security validation is claimed.
 REPO-01 is the repository setup checkpoint. SCOPE-01 authorizes discussion only.
 Do not expand the roadmap or change acceptance criteria without owner approval.
 
+November 1 wallet-preparation checkpoint: owner-generated keys backed up in
+1Password (owner reported); local file permissions verified; public addresses
+and faucet status recorded in [development wallets](development-wallets.md).
+Solana RPC airdrop rejected and finalized balance remains zero; NEAR account not
+activated; EVM balances unverified. Funding remains pending. This authorizes no
+application implementation, mainnet spending or unattended work.
+
 ## Implementation plan for approval
 
 This expands the existing seven proposed outcomes into executable milestones;
