@@ -36,9 +36,10 @@ Do not expand the roadmap or change acceptance criteria without owner approval.
 November 1 wallet-preparation checkpoint: owner-generated keys backed up in
 1Password (owner reported); local file permissions verified; public addresses
 and faucet status recorded in [development wallets](development-wallets.md).
-NEAR named account now has 10 test NEAR with the original key verified; Ethereum
-Sepolia has 0.01 ETH. Base Sepolia and Solana funding remain pending. The proof-of-work faucet source
-review found a seed-gas/signing prerequisite; installation was not performed. This authorizes no
+Latest read-only checks at 18:10 UTC: NEAR 10 test NEAR; Ethereum Sepolia
+~0.007 ETH + 20 USDC; Base Sepolia 0.003 ETH + 20 USDC; Solana devnet 5 SOL.
+Network identifiers and NEAR public-key association checked. Proof-of-work tool
+was not installed and is no longer needed for initial funding. This authorizes no
 application implementation, mainnet spending or unattended work.
 
 ## Implementation plan for approval
@@ -333,3 +334,27 @@ justify mechanisms, not proof that Showup already implements them.
 | DOC9 | [PostgreSQL locking](https://www.postgresql.org/docs/current/explicit-locking.html) | Atomic reservation/redemption allocation and race/deadlock handling |
 | DOC10 | [Railway services](https://docs.railway.com/guides/services), [PostgreSQL](https://docs.railway.com/guides/postgresql), [cost control](https://docs.railway.com/pricing/cost-control) | Later operations planning; backup/restore behavior must be checked against chosen service configuration |
 | DOC11 | [Playwright best practices](https://playwright.dev/docs/best-practices) | Isolated user-visible tests and resilient locators |
+
+## Initial wallet test sequence
+
+This is preparation within P1/I4, not approval for application implementation or
+mainnet work. Three test groups, in order:
+
+1. **Network, account and funds:** public RPC reads only. Completed November 1 at
+   18:10 UTC; see the wallet guide for amounts and identities. Recheck before signing.
+2. **Proof of signing control:** prepare one domain-bound, expiring nonce challenge
+   per wallet family; owner signs through isolated Rabby/Phantom or a deliberately
+   configured local NEAR signer. Verify signature against the recorded public
+   identity. Wrong nonce/domain, modified text, wrong key and replay must fail.
+   No token approvals, transactions or key export to chat. Not run yet.
+3. **Small transfer and receipt:** prepare a reviewed testnet-only self-transfer
+   (native asset) and a small EVM USDC self-transfer, explicitly showing network,
+   recipient, amount, estimated fee and before/after balance. Owner approves each
+   wallet prompt; local automated signing needs separate authorization. Testnet
+   self-transfer proves signing, execution and receipt accounting, not escrow,
+   independent recipient delivery or cross-chain routing. Not run yet.
+
+Start with the first wallet family and record its result before repeating; do not
+request multiple blind signatures. Derive exact transfer amounts and fee limits
+at preparation time. No funds leave the project address during self-transfer,
+but native gas is consumed. Never substitute mainnet when a testnet is unavailable.

@@ -1,6 +1,6 @@
 # Development wallets and faucet setup
 
-Prepared November 1, 2026. Public test addresses only. These accounts are dedicated
+Updated November 1, 2026, 18:10 UTC. Public test addresses only. These accounts are dedicated
 to Showup engineering networks; never fund them with real assets. Key generation
 is not activation, funding, browser import or a tested signing integration.
 
@@ -9,8 +9,8 @@ is not activation, funding, browser import or a tested signing integration.
 | Network | Public address | Verified state |
 | --- | --- | --- |
 | NEAR testnet | `showup-dev-14989f.testnet` | Created with the original public key; finalized balance 10 test NEAR and matching FullAccess key verified |
-| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Derived from saved uncompressed public key using Keccak-256; compare with Rabby after import; Ethereum Sepolia RPC balance 0.01 ETH; Base Sepolia RPC balance zero |
-| Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Finalized RPC balance zero; RPC faucet returned code 410, directing to web faucet |
+| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Derived from saved uncompressed public key using Keccak-256; Ethereum Sepolia ~0.007 ETH + 20 test USDC; Base Sepolia 0.003 ETH + 20 test USDC; chain IDs verified |
+| Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Finalized RPC balance 5 SOL; devnet genesis ID verified |
 
 The same EVM address works on both selected test networks; balances are separate.
 EVM derivation used public data only, with empty-input and abc Keccak-256 reference
@@ -70,17 +70,24 @@ The original implicit ID remains unfunded. The web faucet rejects implicit IDs
 because its input validator only accepts testnet names or 0x-form addresses.
 Use the named account for subsequent NEAR requests/imports.
 
-Ethereum Sepolia has 0.01 ETH, verified by RPC; Base Sepolia remains unfunded.
-A bridge deposit is proposed, not executed. Use the testnet route linked by
-[Base bridge documentation](https://docs.base.org/base-chain/network-information/ecosystem-bridges),
-keeping some Sepolia ETH for gas. Never select mainnet.
+## Current funding verification
 
-For Solana, [SolFaucet](https://solfaucet.com/) presents address/amount fields without
-GitHub login, but uses the public RPC faucet and may hit the same closed-service
-error. [Solana’s official alternatives](https://solana.com/developers/cookbook/development/airdrops-and-faucets)
-also list DevnetFaucet.org with a separate rate limit; its current form also requires GitHub. The official guide lists a proof-of-work
-faucet as a no-GitHub alternative, requiring a separately reviewed installation. No SOL receipt is confirmed. Mainnet wallets,
-mainnet funding, contracts and NEAR Intents transfers remain outside this setup.
+At 18:10 UTC on November 1, public RPC checks confirmed Ethereum Sepolia chain ID
+11155111 and Base Sepolia 84532. Native balances were 6999999980865550 wei and
+3000000000000000 wei respectively. Circle's test USDC contracts each returned
+20000000 atomic units (20 USDC). NEAR finalized account balance was 10 NEAR and
+the original public key was present with FullAccess permission. Solana finalized
+balance was 5000000000 lamports (5 SOL), genesis ID
+`EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG`.
+
+The earlier bridge arrival delay is resolved. Source transaction hash was not
+provided; destination balance verifies funding, not a reconstructed bridge receipt.
+Rabby and Phantom are installed/imported in the isolated Brave profile according
+to the owner. Wallet signature ownership and outgoing transfers have not been
+verified. Solana test USDC has not been checked or recorded as funded.
+
+These balances support small initial tests, not a guarantee of all future contract
+storage, deployment or provider costs. No mainnet funds or Intents tests are enabled.
 
 ## Proof-of-work faucet review
 
@@ -98,11 +105,12 @@ Source: [CLI](https://github.com/jarry-xiao/proof-of-work-faucet/blob/main/cli/s
 [program](https://github.com/jarry-xiao/proof-of-work-faucet/blob/main/programs/proof-of-work-faucet/src/lib.rs).
 The published crate was inspected too; upstream default-branch links can change.
 
-The project Solana address still has zero finalized lamports. This route needs
+At the time of that review the project address had zero finalized lamports. It
+now has 5 SOL, so this mining route is unnecessary. The published tool needs
 initial devnet gas and authorized local signing before it is useful. The earlier
 claim that it required only a public address was incorrect for this version.
 No project key was read, no wallet configuration was reused, no global toolchain
 was changed, and no mining transaction was attempted. Dependency advisories/build
 scripts have not been audited, so this is not installation or security approval.
-Revisit only after seed devnet funds arrive; use exact pinned reviewed tooling,
+If ever revisited, use exact pinned reviewed tooling,
 explicit devnet/key path, a small reward target and a wall-clock limit.

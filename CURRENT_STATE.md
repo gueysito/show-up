@@ -17,12 +17,13 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 
 ## Next action
 
-Review the detailed [implementation plan](docs/plan.md#implementation-plan-for-approval).
-It includes task-level outputs, dependencies, acceptance checks, stop conditions,
-external prerequisites and official references. [ADR-0002](docs/adr/0002-nft-custody.md)
-records the accepted bounded observer trust model. Current authorization remains
-**documentation only**; an explicit later instruction is required to start building.
-Spending, deployments and broader access require their own approvals.
+Continue the [initial wallet test sequence](docs/plan.md#initial-wallet-test-sequence).
+Read-only network/funding checks passed; signing control and small testnet transfer
+receipts remain untested. [Wallet guide](docs/development-wallets.md) records funded
+accounts, private-key storage boundary and isolated browser setup. Current work
+covers wallet preparation and test planning; application implementation, automated
+private-key signing, mainnet spending and deployment still need explicit approval.
+The detailed build plan and both accepted ADRs remain the engineering baseline.
 
 Next.js/Node.js, openid-client, PostgreSQL sessions, Docker Compose local setup,
 and Railway hosting are accepted. The initial hosted product uses invitation-only
