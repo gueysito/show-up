@@ -42,6 +42,15 @@ Network identifiers and NEAR public-key association checked. Proof-of-work tool
 was not installed and is no longer needed for initial funding. This authorizes no
 application implementation, mainnet spending or unattended work.
 
+November 1 ownership-test preparation checkpoint: public network identities and
+the same balances reconfirmed at 18:25 UTC. A temporary Rabby ownership page in
+owner-approved local scratch passed reference-vector and HTTP boundary checks;
+see [wallet guide](development-wallets.md#ownership-test-preparation).
+Project-account connection passed; the network gate blocked message preparation
+on Ethereum Sepolia. Base Sepolia wallet setup, the owner signature and actual
+negative ownership checks remain pending; no new transfer or application
+implementation is claimed.
+
 ## Implementation plan for approval
 
 This expands the existing seven proposed outcomes into executable milestones;
@@ -341,7 +350,7 @@ This is preparation within P1/I4, not approval for application implementation or
 mainnet work. Three test groups, in order:
 
 1. **Network, account and funds:** public RPC reads only. Completed November 1 at
-   18:10 UTC; see the wallet guide for amounts and identities. Recheck before signing.
+   18:25 UTC; see the wallet guide for amounts and identities. Recheck before signing.
 2. **Proof of signing control:** prepare one domain-bound, expiring nonce challenge
    per wallet family; owner signs through isolated Rabby/Phantom or a deliberately
    configured local NEAR signer. Verify signature against the recorded public

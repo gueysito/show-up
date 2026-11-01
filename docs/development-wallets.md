@@ -1,6 +1,6 @@
 # Development wallets and faucet setup
 
-Updated November 1, 2026, 18:10 UTC. Public test addresses only. These accounts are dedicated
+Updated November 1, 2026, 18:25 UTC. Public test addresses only. These accounts are dedicated
 to Showup engineering networks; never fund them with real assets. Key generation
 is not activation, funding, browser import or a tested signing integration.
 
@@ -72,22 +72,53 @@ Use the named account for subsequent NEAR requests/imports.
 
 ## Current funding verification
 
-At 18:10 UTC on November 1, public RPC checks confirmed Ethereum Sepolia chain ID
+At 18:25 UTC on November 1, public RPC checks reconfirmed Ethereum Sepolia chain ID
 11155111 and Base Sepolia 84532. Native balances were 6999999980865550 wei and
 3000000000000000 wei respectively. Circle's test USDC contracts each returned
 20000000 atomic units (20 USDC). NEAR finalized account balance was 10 NEAR and
-the original public key was present with FullAccess permission. Solana finalized
+the original public key had been verified with FullAccess permission at 18:10 UTC. Solana finalized
 balance was 5000000000 lamports (5 SOL), genesis ID
 `EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG`.
 
-The earlier bridge arrival delay is resolved. Source transaction hash was not
-provided; destination balance verifies funding, not a reconstructed bridge receipt.
+The earlier bridge arrival delay is resolved. The isolated browser's completed
+bridge page displays source transaction
+`0x231471d8625f217666f2b88c1e966eeb3ced947689a6145d05d05f9064ac622d`
+and destination transaction
+`0x392b747389325d54f23c7b17d0528273a1c04d26ff16e4fde5e2a93f58f125b7`.
+These hashes are UI evidence only; transaction receipts have not been independently
+reconciled. Ethereum Sepolia's outgoing nonce is 1; Base Sepolia's is 0.
 Rabby and Phantom are installed/imported in the isolated Brave profile according
 to the owner. Wallet signature ownership and outgoing transfers have not been
 verified. Solana test USDC has not been checked or recorded as funded.
 
 These balances support small initial tests, not a guarantee of all future contract
 storage, deployment or provider costs. No mainnet funds or Intents tests are enabled.
+
+## Ownership test preparation
+
+A temporary, dependency-free Rabby test page is prepared in the owner-approved,
+ignored `.agents/wallet-tests/` folder. Its server binds only to
+`http://127.0.0.1:8765`; no application implementation is included in Git.
+The page requires the project EVM address and Base Sepolia chain ID 84532.
+It requests only an [ERC-191](https://eips.ethereum.org/EIPS/eip-191) message
+signature with an [ERC-4361](https://eips.ethereum.org/EIPS/eip-4361) origin,
+single-use nonce and ten-minute expiry. The statement explicitly limits consent
+to test-wallet ownership, without funds movement, token approval, delegation or
+production login. Connection, unlock and signing prompts remain owner-operated.
+
+Local preflight checks passed: Python/JavaScript syntax, Keccak/public-curve
+reference checks, the [ethers published signature vector](https://docs.ethers.org/v5/api/signer/),
+modified-message rejection, page delivery, server-file denial, wrong Host/origin
+rejection and invalid-signature rejection. This scratch verifier is not audited
+production cryptography. Actual project-wallet verification and its nonce/domain,
+modified-text, wrong-key, expiry and replay checks remain pending. No new transfer
+or token approval has been requested. Public funding/preflight evidence is saved
+locally; signatures will also remain outside Git.
+
+The owner connected the project account. The page rejected message preparation
+because the site was on Ethereum Sepolia; Rabby's custom-network list showed only
+Sepolia (11155111). Base Sepolia (84532) still needs to be added/selected in the
+isolated wallet. No ownership-signing prompt has been opened.
 
 ## Proof-of-work faucet review
 
