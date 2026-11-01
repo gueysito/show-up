@@ -110,15 +110,29 @@ Local preflight checks passed: Python/JavaScript syntax, Keccak/public-curve
 reference checks, the [ethers published signature vector](https://docs.ethers.org/v5/api/signer/),
 modified-message rejection, page delivery, server-file denial, wrong Host/origin
 rejection and invalid-signature rejection. This scratch verifier is not audited
-production cryptography. Actual project-wallet verification and its nonce/domain,
-modified-text, wrong-key, expiry and replay checks remain pending. No new transfer
-or token approval has been requested. Public funding/preflight evidence is saved
-locally; signatures will also remain outside Git.
+production cryptography. At 18:33:09 UTC on November 1, the owner signed the
+ownership message in Rabby. Local recovery matched the recorded EVM address;
+wrong nonce/domain, modified text, wrong key, expiry and replay were rejected.
+The page showed VERIFIED and saved `ownership-result.json` in local scratch.
+No transfer or token approval was part of this test. Public funding/preflight
+evidence and the signed message remain outside Git.
 
 The owner connected the project account. The page rejected message preparation
 because the site was on Ethereum Sepolia; Rabby's custom-network list showed only
-Sepolia (11155111). Base Sepolia (84532) still needs to be added/selected in the
-isolated wallet. No ownership-signing prompt has been opened.
+Sepolia (11155111). The owner added Base Sepolia, and selecting it for the local
+site passed the chain-ID gate (84532) before message preparation and signing.
+This verifies EVM signing control only; Solana/NEAR ownership tests, small native
+and USDC self-transfers, receipt accounting and production authentication remain
+untested.
+
+The first native self-transfer is prepared for Base Sepolia: 0.000001 test ETH
+to the same project address, empty call data, nonce 0 and 21,000 gas. Proposed
+gas price 0.01 gwei implies 0.00000021 ETH execution cost plus Base's additional
+fees; the owner review ceiling is 0.000001 ETH in total fees, not an on-chain cap
+on those additional fees. Public RPC confirmed 0.003 ETH before balance, empty
+recipient code and a 21,000-gas estimate. Rabby's configured routeme.sh RPC
+rejected browser preflight with a rate-limit error, while terminal reads succeeded.
+No transfer was requested; wallet RPC correction and owner review remain pending.
 
 ## Proof-of-work faucet review
 

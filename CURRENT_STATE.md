@@ -18,8 +18,9 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 ## Next action
 
 Continue the [initial wallet test sequence](docs/plan.md#initial-wallet-test-sequence).
-Read-only network/funding checks passed; signing control and small testnet transfer
-receipts remain untested. [Wallet guide](docs/development-wallets.md) records funded
+Read-only network/funding checks and Rabby EVM signing control passed; Solana/NEAR
+signing control and small testnet transfer receipts remain untested.
+[Wallet guide](docs/development-wallets.md) records funded
 accounts, private-key storage boundary and isolated browser setup. Current work
 covers wallet preparation and test planning; application implementation, automated
 private-key signing, mainnet spending and deployment still need explicit approval.

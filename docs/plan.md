@@ -47,9 +47,10 @@ the same balances reconfirmed at 18:25 UTC. A temporary Rabby ownership page in
 owner-approved local scratch passed reference-vector and HTTP boundary checks;
 see [wallet guide](development-wallets.md#ownership-test-preparation).
 Project-account connection passed; the network gate blocked message preparation
-on Ethereum Sepolia. Base Sepolia wallet setup, the owner signature and actual
-negative ownership checks remain pending; no new transfer or application
-implementation is claimed.
+on Ethereum Sepolia. After the owner added Base Sepolia and the site selected it,
+the owner-signed challenge verified at 18:33:09 UTC. Wrong nonce/domain, modified
+text, wrong key, expiry and replay checks passed. Solana/NEAR ownership and all
+self-transfer tests remain pending; no application implementation is claimed.
 
 ## Implementation plan for approval
 
@@ -355,7 +356,8 @@ mainnet work. Three test groups, in order:
    per wallet family; owner signs through isolated Rabby/Phantom or a deliberately
    configured local NEAR signer. Verify signature against the recorded public
    identity. Wrong nonce/domain, modified text, wrong key and replay must fail.
-   No token approvals, transactions or key export to chat. Not run yet.
+   No token approvals, transactions or key export to chat. EVM passed November 1
+   at 18:33:09 UTC through Rabby on Base Sepolia; Solana and NEAR remain pending.
 3. **Small transfer and receipt:** prepare a reviewed testnet-only self-transfer
    (native asset) and a small EVM USDC self-transfer, explicitly showing network,
    recipient, amount, estimated fee and before/after balance. Owner approves each
