@@ -81,3 +81,28 @@ error. [Solana’s official alternatives](https://solana.com/developers/cookbook
 also list DevnetFaucet.org with a separate rate limit; its current form also requires GitHub. The official guide lists a proof-of-work
 faucet as a no-GitHub alternative, requiring a separately reviewed installation. No SOL receipt is confirmed. Mainnet wallets,
 mainnet funding, contracts and NEAR Intents transfers remain outside this setup.
+
+## Proof-of-work faucet review
+
+Reviewed November 1, 2026 before installation. Rust/Cargo 1.88.0 is available;
+`devnet-pow` is not installed. `cargo info` downloaded version 0.1.4 source into
+a temporary isolated cache for inspection; no executable was built or run.
+
+[Solana's guide](https://solana.com/developers/cookbook/development/airdrops-and-faucets)
+links the [upstream faucet](https://github.com/jarry-xiao/proof-of-work-faucet).
+The published 0.1.4 CLI loads a payer keypair before executing commands and calls
+`Transaction::new_signed_with_payer` with that payer and a mined signer. The
+program transfers the reward to the payer; the transaction fee is charged before
+program execution. The reward therefore cannot fund the initial transaction fee.
+Source: [CLI](https://github.com/jarry-xiao/proof-of-work-faucet/blob/main/cli/src/main.rs),
+[program](https://github.com/jarry-xiao/proof-of-work-faucet/blob/main/programs/proof-of-work-faucet/src/lib.rs).
+The published crate was inspected too; upstream default-branch links can change.
+
+The project Solana address still has zero finalized lamports. This route needs
+initial devnet gas and authorized local signing before it is useful. The earlier
+claim that it required only a public address was incorrect for this version.
+No project key was read, no wallet configuration was reused, no global toolchain
+was changed, and no mining transaction was attempted. Dependency advisories/build
+scripts have not been audited, so this is not installation or security approval.
+Revisit only after seed devnet funds arrive; use exact pinned reviewed tooling,
+explicit devnet/key path, a small reward target and a wall-clock limit.

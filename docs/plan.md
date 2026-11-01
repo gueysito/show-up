@@ -37,7 +37,8 @@ November 1 wallet-preparation checkpoint: owner-generated keys backed up in
 1Password (owner reported); local file permissions verified; public addresses
 and faucet status recorded in [development wallets](development-wallets.md).
 NEAR named account now has 10 test NEAR with the original key verified; Ethereum
-Sepolia has 0.01 ETH. Base Sepolia and Solana funding remain pending. This authorizes no
+Sepolia has 0.01 ETH. Base Sepolia and Solana funding remain pending. The proof-of-work faucet source
+review found a seed-gas/signing prerequisite; installation was not performed. This authorizes no
 application implementation, mainnet spending or unattended work.
 
 ## Implementation plan for approval
