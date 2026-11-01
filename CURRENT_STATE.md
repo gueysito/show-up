@@ -19,8 +19,8 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 
 Continue the [initial wallet test sequence](docs/plan.md#initial-wallet-test-sequence).
 Read-only network/funding checks and Rabby EVM signing control passed; Solana/NEAR
-signing control remain untested. The Base Sepolia native self-transfer succeeded
-with reconciled fees; finality and the USDC self-transfer are next.
+signing control remain untested. Base Sepolia native and USDC self-transfers
+succeeded with reconciled balances/fees; recheck their finality next without resending.
 [Wallet guide](docs/development-wallets.md) records funded
 accounts, private-key storage boundary and isolated browser setup. Current work
 covers wallet preparation and test planning; application implementation, automated

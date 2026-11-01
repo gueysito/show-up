@@ -1,6 +1,6 @@
 # Development wallets and faucet setup
 
-Updated November 1, 2026, 18:25 UTC. Public test addresses only. These accounts are dedicated
+Updated November 1, 2026, 18:50 UTC. Public test addresses only. These accounts are dedicated
 to Showup engineering networks; never fund them with real assets. Key generation
 is not activation, funding, browser import or a tested signing integration.
 
@@ -9,12 +9,13 @@ is not activation, funding, browser import or a tested signing integration.
 | Network | Public address | Verified state |
 | --- | --- | --- |
 | NEAR testnet | `showup-dev-14989f.testnet` | Created with the original public key; finalized balance 10 test NEAR and matching FullAccess key verified |
-| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Derived from saved uncompressed public key using Keccak-256; Ethereum Sepolia ~0.007 ETH + 20 test USDC; Base Sepolia 0.003 ETH + 20 test USDC; chain IDs verified |
+| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Ethereum Sepolia ~0.007 ETH + 20 test USDC; Base Sepolia 0.00299941552999982 ETH + 20 test USDC after owner-signed self-transfers; chain IDs and EVM signing control verified |
 | Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Finalized RPC balance 5 SOL; devnet genesis ID verified |
 
 The same EVM address works on both selected test networks; balances are separate.
 EVM derivation used public data only, with empty-input and abc Keccak-256 reference
-vectors checked. Wallet-import comparison remains an independent verification step.
+vectors checked. Rabby signature recovery below independently confirms control of
+the selected project address.
 
 ## Key storage and backup boundary
 
@@ -86,10 +87,12 @@ bridge page displays source transaction
 and destination transaction
 `0x392b747389325d54f23c7b17d0528273a1c04d26ff16e4fde5e2a93f58f125b7`.
 These hashes are UI evidence only; transaction receipts have not been independently
-reconciled. Ethereum Sepolia's outgoing nonce is 1; Base Sepolia's is 0.
+reconciled. At the 18:25 UTC funding check, Ethereum Sepolia's outgoing nonce was
+1 and Base Sepolia's was 0; the two later Base tests used nonces 0 and 1.
 Rabby and Phantom are installed/imported in the isolated Brave profile according
-to the owner. Wallet signature ownership and outgoing transfers have not been
-verified. Solana test USDC has not been checked or recorded as funded.
+to the owner. EVM ownership and Base Sepolia self-transfer receipts are now
+verified below; Solana/NEAR signing remain untested. Solana test USDC has not
+been checked or recorded as funded.
 
 These balances support small initial tests, not a guarantee of all future contract
 storage, deployment or provider costs. No mainnet funds or Intents tests are enabled.
@@ -142,14 +145,27 @@ change from 3000000000000000 to 2999789999999910 wei, below the review ceiling.
 Inclusion and fee accounting passed; finality remains pending (finalized head
 53178974 at that check). Local receipt evidence is in
 `.agents/wallet-tests/native-transfer-result.json`; no duplicate send is needed.
-USDC self-transfer and the other network transfer tests remain pending. The next
-prepared check transfers 0.01 test USDC (10000 atomic units, six decimals) to the
+The next check transferred 0.01 test USDC (10000 atomic units, six decimals) to the
 same project address through Circle's Base Sepolia contract
 `0x036CbD53842c5426634e7929541eC2318f3dCF7e`. Read-only simulation returned true,
 with 20 USDC before balance and 40695 estimated gas. The request uses nonce 1,
 zero native value, 60000 gas limit and 0.01 gwei; total fee review ceiling remains
-0.000001 test ETH. This is a token transfer, not an allowance approval. Owner
-review/signing and actual token receipt verification remain pending.
+0.000001 test ETH. This is a token transfer, not an allowance approval.
+
+The owner signed the USDC transfer. At 18:50 UTC, both RPC providers agreed on
+successful receipt
+[`0xf6a8170a…9cd8f9ac`](https://sepolia.basescan.org/tx/0xf6a8170a426732d75a37541ada079e8aa6fce8e84387320dd92331709cd8f9ac)
+in block 53185675. The exact transfer call and contract event matched the project
+address as both sender and token recipient, with 10000 atomic units and zero
+native value. Token balance stayed at 20000000 atomic units before/after the block.
+Rabby used a 61043 gas limit; actual use was 37447 at 0.01 gwei plus 90 wei L1 fee.
+The 374470000090-wei total fee exactly matched the native balance decrease to
+2999415529999820 wei and stayed below the review ceiling. Local evidence is in
+`.agents/wallet-tests/usdc-transfer-result.json`.
+
+Both receipts remained canonical at the 18:50 UTC recheck, but finality is pending:
+finalized head 53180240 was below both transaction blocks. Next is a read-only
+finality recheck, not another send. Other-network transfer tests remain untested.
 
 ## Proof-of-work faucet review
 

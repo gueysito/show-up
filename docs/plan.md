@@ -51,9 +51,11 @@ on Ethereum Sepolia. After the owner added Base Sepolia and the site selected it
 the owner-signed challenge verified at 18:33:09 UTC. Wrong nonce/domain, modified
 text, wrong key, expiry and replay checks passed. The owner-signed Base Sepolia
 native self-transfer succeeded in block 53184329; two RPC receipts matched and
-the 210000000090-wei fee exactly reconciled the balance change. Finality, USDC
-self-transfer and Solana/NEAR ownership remain pending. See the wallet guide for
-the transaction and limits; no application implementation is claimed.
+the 210000000090-wei fee exactly reconciled the balance change. The owner-signed
+0.01-USDC self-transfer also passed in block 53185675: exact Transfer event,
+unchanged 20-USDC balance and 374470000090-wei fee reconciliation, with matching
+receipts from both RPCs. Finality for both and Solana/NEAR ownership remain pending.
+See the wallet guide for transactions and limits; no implementation is claimed.
 
 ## Implementation plan for approval
 
@@ -367,8 +369,9 @@ mainnet work. Three test groups, in order:
    wallet prompt; local automated signing needs separate authorization. Testnet
    self-transfer proves signing, execution and receipt accounting, not escrow,
    independent recipient delivery or cross-chain routing. Base Sepolia native
-   inclusion and fee reconciliation passed November 1 at 18:46 UTC; finality and
-   USDC/other-network transfer tests remain pending.
+   inclusion and fee reconciliation passed November 1 at 18:46 UTC; the USDC
+   self-transfer event and balances passed at 18:50 UTC. Finality for both and
+   other-network transfer tests remain pending. Recheck finality without resending.
 
 Start with the first wallet family and record its result before repeating; do not
 request multiple blind signatures. Derive exact transfer amounts and fee limits
