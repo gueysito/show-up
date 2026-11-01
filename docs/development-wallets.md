@@ -121,18 +121,35 @@ The owner connected the project account. The page rejected message preparation
 because the site was on Ethereum Sepolia; Rabby's custom-network list showed only
 Sepolia (11155111). The owner added Base Sepolia, and selecting it for the local
 site passed the chain-ID gate (84532) before message preparation and signing.
-This verifies EVM signing control only; Solana/NEAR ownership tests, small native
-and USDC self-transfers, receipt accounting and production authentication remain
-untested.
+This verifies EVM signing control only; Solana/NEAR ownership tests and production
+authentication remain untested.
 
 The first native self-transfer is prepared for Base Sepolia: 0.000001 test ETH
 to the same project address, empty call data, nonce 0 and 21,000 gas. Proposed
 gas price 0.01 gwei implies 0.00000021 ETH execution cost plus Base's additional
 fees; the owner review ceiling is 0.000001 ETH in total fees, not an on-chain cap
 on those additional fees. Public RPC confirmed 0.003 ETH before balance, empty
-recipient code and a 21,000-gas estimate. Rabby's configured routeme.sh RPC
-rejected browser preflight with a rate-limit error, while terminal reads succeeded.
-No transfer was requested; wallet RPC correction and owner review remain pending.
+recipient code and a 21,000-gas estimate. Changing the wallet RPC to
+`https://sepolia.base.org` resolved the browser preflight rate-limit failure.
+
+The owner signed the native self-transfer. At 18:46 UTC, Base's public RPC and
+PublicNode agreed on successful receipt
+[`0xa47a40aa…075c90b6`](https://sepolia.basescan.org/tx/0xa47a40aa12defc2e596cfdfd4be892625188937844b53ce7634f9e05075c90b6)
+in block 53184329. Chain, sender, recipient, amount and empty call data matched.
+Rabby increased the signed gas limit to 31,500; actual use was 21,000 at 0.01 gwei.
+Execution cost 210000000000 wei plus L1 fee 90 wei exactly reconciled the balance
+change from 3000000000000000 to 2999789999999910 wei, below the review ceiling.
+Inclusion and fee accounting passed; finality remains pending (finalized head
+53178974 at that check). Local receipt evidence is in
+`.agents/wallet-tests/native-transfer-result.json`; no duplicate send is needed.
+USDC self-transfer and the other network transfer tests remain pending. The next
+prepared check transfers 0.01 test USDC (10000 atomic units, six decimals) to the
+same project address through Circle's Base Sepolia contract
+`0x036CbD53842c5426634e7929541eC2318f3dCF7e`. Read-only simulation returned true,
+with 20 USDC before balance and 40695 estimated gas. The request uses nonce 1,
+zero native value, 60000 gas limit and 0.01 gwei; total fee review ceiling remains
+0.000001 test ETH. This is a token transfer, not an allowance approval. Owner
+review/signing and actual token receipt verification remain pending.
 
 ## Proof-of-work faucet review
 
