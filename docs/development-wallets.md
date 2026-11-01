@@ -8,8 +8,8 @@ is not activation, funding, browser import or a tested signing integration.
 
 | Network | Public address | Verified state |
 | --- | --- | --- |
-| NEAR testnet | `14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc` | RPC reported UNKNOWN_ACCOUNT; needs testnet activation/funding |
-| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Derived from saved uncompressed public key using Keccak-256; compare with Rabby after import; balances not verified |
+| NEAR testnet | `showup-dev-14989f.testnet` | Created with the original public key; finalized balance 10 test NEAR and matching FullAccess key verified |
+| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Derived from saved uncompressed public key using Keccak-256; compare with Rabby after import; Ethereum Sepolia RPC balance 0.01 ETH; Base Sepolia RPC balance zero |
 | Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Finalized RPC balance zero; RPC faucet returned code 410, directing to web faucet |
 
 The same EVM address works on both selected test networks; balances are separate.
@@ -43,10 +43,9 @@ import tutorial. The NEAR testnet wallet import path still needs confirmation.
 
 ## Funding sequence
 
-1. Activate/fund the NEAR testnet implicit account through the
-   [NEAR faucet](https://near-faucet.io/). A raw key does not create an on-chain
-   account. If the faucet rejects implicit IDs, select a documented creation flow
-   using this existing public key; do not generate a replacement key by accident.
+1. The named NEAR testnet account is already funded; use it for subsequent requests at the
+   [NEAR faucet](https://near-faucet.io/). The helper created `showup-dev-14989f.testnet` using the existing public key;
+   the web form does not support this wallet's original implicit ID.
 2. Request devnet SOL at the [Solana Foundation faucet](https://faucet.solana.com/).
    One 1-SOL RPC airdrop was attempted and rejected because the RPC faucet is closed.
    Do not loop requests, evade rate limits or claim successful funding from a UI
@@ -65,5 +64,20 @@ import tutorial. The NEAR testnet wallet import path still needs confirmation.
    performed by the owner in the isolated profile; never request a private key on
    a faucet site. Provider requirements and availability can change.
 
-No test tokens are recorded as received at this checkpoint. Mainnet wallets,
+NEAR faucet creation transaction: `EjYigWDCBA7yJcPUyyM8DZ6867SdQnAyFMWZ9e9NLhQt`.
+The existing backed-up private key controls the named account; no key was replaced.
+The original implicit ID remains unfunded. The web faucet rejects implicit IDs
+because its input validator only accepts testnet names or 0x-form addresses.
+Use the named account for subsequent NEAR requests/imports.
+
+Ethereum Sepolia has 0.01 ETH, verified by RPC; Base Sepolia remains unfunded.
+A bridge deposit is proposed, not executed. Use the testnet route linked by
+[Base bridge documentation](https://docs.base.org/base-chain/network-information/ecosystem-bridges),
+keeping some Sepolia ETH for gas. Never select mainnet.
+
+For Solana, [SolFaucet](https://solfaucet.com/) presents address/amount fields without
+GitHub login, but uses the public RPC faucet and may hit the same closed-service
+error. [Solana’s official alternatives](https://solana.com/developers/cookbook/development/airdrops-and-faucets)
+also list DevnetFaucet.org with a separate rate limit; its current form also requires GitHub. The official guide lists a proof-of-work
+faucet as a no-GitHub alternative, requiring a separately reviewed installation. No SOL receipt is confirmed. Mainnet wallets,
 mainnet funding, contracts and NEAR Intents transfers remain outside this setup.

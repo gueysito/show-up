@@ -36,8 +36,8 @@ Do not expand the roadmap or change acceptance criteria without owner approval.
 November 1 wallet-preparation checkpoint: owner-generated keys backed up in
 1Password (owner reported); local file permissions verified; public addresses
 and faucet status recorded in [development wallets](development-wallets.md).
-Solana RPC airdrop rejected and finalized balance remains zero; NEAR account not
-activated; EVM balances unverified. Funding remains pending. This authorizes no
+NEAR named account now has 10 test NEAR with the original key verified; Ethereum
+Sepolia has 0.01 ETH. Base Sepolia and Solana funding remain pending. This authorizes no
 application implementation, mainnet spending or unattended work.
 
 ## Implementation plan for approval
