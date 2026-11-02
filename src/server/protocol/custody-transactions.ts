@@ -94,6 +94,12 @@ function frozenManifest(intent: CustodyIntent) {
   return manifest;
 }
 
+export function custodyChainId(intent: CustodyIntent): string {
+  const network = frozenManifest(intent).networks.find((network) => network.id === intent.network);
+  if (!network) throw new Error("Missing frozen custody network");
+  return network.chainId;
+}
+
 const erc721 = new Interface([
   "function safeTransferFrom(address from,address to,uint256 tokenId)",
 ]);

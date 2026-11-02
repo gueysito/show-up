@@ -110,6 +110,32 @@ export async function compareFinalizedHeads(
   first: ReadOnlyRpc,
   second: ReadOnlyRpc,
   now = Date.now(),
+  signal?: AbortSignal,
+) {
+  return compareSources(network, first, second, now, undefined, signal);
+}
+
+// The requested state slot/block must already be finalized by both sources.
+// This is useful for Solana account responses, whose actual context slot may
+// differ from the initial head despite a minContextSlot request.
+export async function compareFinalizedBlock(
+  network: Network,
+  first: ReadOnlyRpc,
+  second: ReadOnlyRpc,
+  height: string,
+  now = Date.now(),
+  signal?: AbortSignal,
+) {
+  return compareSources(network, first, second, now, height, signal);
+}
+
+async function compareSources(
+  network: Network,
+  first: ReadOnlyRpc,
+  second: ReadOnlyRpc,
+  now: number,
+  requestedHeight?: string,
+  outerSignal?: AbortSignal,
 ) {
   if (
     first.endpoint.network !== network ||
@@ -118,15 +144,19 @@ export async function compareFinalizedHeads(
     first.endpoint.operator === second.endpoint.operator
   )
     throw new Error("Distinct same-network sources required");
-  const signal = AbortSignal.timeout(30_000);
+  const signal = outerSignal
+    ? AbortSignal.any([outerSignal, AbortSignal.timeout(30_000)])
+    : AbortSignal.timeout(30_000);
   const heads = await Promise.all([
     head(first, network, signal, now),
     head(second, network, signal, now),
   ]);
-  const height =
+  const available =
     BigInt(heads[0].height) < BigInt(heads[1].height)
       ? BigInt(heads[0].height)
       : BigInt(heads[1].height);
+  const height = requestedHeight === undefined ? available : unsigned(requestedHeight, 64);
+  if (height > available) throw new Error("Requested state block is not finalized by both sources");
   if (height === 0n) throw new Error("Unusable finalized height");
   const [a, b] = await Promise.all([
     blockAt(first, network, height, signal, now),

@@ -678,6 +678,50 @@ remain P5 work. Base total fees, real MPC derivation/signing, authority/code rev
 public-network approval and actual transfers remain gates. Fresh sandbox deployments
 exercise the changed state schema; no funded/public state was migrated.
 
+## P5 exact-asset source comparison checkpoint, November 2
+
+Raw external evidence now reconstructs EIP-1559 transactions/signers and requires
+the stored typed image, canonical finalized inclusion, exact ERC-721 Transfer log
+and receipt outcome. Solana checks the actual wire signature/message, fixed Core
+instruction/accounts, historical signature status, inclusion and exact integer
+fees/balances. The narrow Core decoder rejects compressed assets, different
+collections, unknown layouts and appended plugins. Collection/program authority
+qualification remains false.
+
+The fixed-source adapter compares both providers' normalized facts. EVM ownership
+and code reads use [EIP-1898](https://eips.ethereum.org/EIPS/eip-1898) canonical block
+hashes. Solana requires identical actual account-response slots, with at most three
+bounded attempts; it verifies that bank is finalized by both sources. Its
+[minContextSlot](https://solana.com/docs/rpc/http/getaccountinfo) is only a lower
+bound. Wrong chain, conflicting code/data/owner/history, missing inclusion and
+unfinalized responses fail closed. Missing transaction/receipt/status remains
+uncertain. No observation signs a receipt, changes an obligation or enables funding.
+
+Historical delivery is separate from current holding: a recipient's later transfer
+or burn cannot undo the earlier finalized payout. A focused negative test first
+reproduced the retention mistake, then passed after this separation. Raw cost
+evidence preserves known cap breaches; Base's full fee remains unqualified because
+its [operator fee](https://docs.base.org/specifications/transactions/network-fees)
+must accompany execution and L1 costs. Solana uses exact payer debit as well as
+transaction fees; ambiguous debit cannot become a qualified total.
+
+`npm run check` and `npm run build` pass in a clean snapshot of `582fdc9` plus only
+these eight protocol/test files: **36 unit scenarios**, excluding concurrent auth
+edits. The shared worktree's 38 checks/build also pass. The isolated build needed
+physical dependency copies because Turbopack rejects the external dependency
+symlink; project configuration was unchanged. The pinned Node 24 container separately
+passes exact-u64 JSON transport checks. No contract/database/UI input changed;
+[both CI jobs at 582fdc9](https://github.com/gueysito/show-up/actions/runs/41537401334)
+provide reused 24-sandbox/29-PostgreSQL/15-Chromium evidence.
+
+All asset/signature cases are disposable offline fixtures with keys only in memory.
+No wallet file, live asset query, external signing service or broadcast was used.
+Core layout references are pinned to [BaseAssetV1](https://github.com/metaplex-foundation/mpl-core/blob/a5c35db436fdb6382ac75b1d59205d769c4762ea/clients/rust/src/generated/accounts/base_asset_v1.rs)
+and its generated UpdateAuthority/Key definitions at the same revision. Matching
+facts do not qualify independent upstreams, code/upgrade authority, assets or fees.
+Real source/asset qualification, signed historical-witness assembly and contract
+nonce/blockhash recovery remain P5 work; every funding route stays disabled.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

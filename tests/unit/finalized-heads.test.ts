@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
-import { compareFinalizedHeads } from "../../src/server/protocol/finalized-heads";
+import {
+  compareFinalizedBlock,
+  compareFinalizedHeads,
+} from "../../src/server/protocol/finalized-heads";
 import { networkIdentity, type Network } from "../../src/server/protocol/manifest";
 import { ReadOnlyRpc } from "../../src/server/protocol/rpc";
 
@@ -95,5 +98,19 @@ test("wrong identities, stale sources, conflicting blocks and duplicate operator
     }
     const [first] = pair(network);
     await assert.rejects(compareFinalizedHeads(network, first, first, now), /Distinct/);
+  }
+});
+
+test("an exact state block must already be finalized by both sources and respect cancellation", async () => {
+  for (const network of ["near", "base", "ethereum", "solana"] as const) {
+    const [first, second] = pair(network);
+    const height = network === "near" ? 200 : network === "solana" ? 300 : 100;
+    const selected = await compareFinalizedBlock(network, first, second, String(height - 1), now);
+    assert.equal(selected.block.height, String(height - 1));
+    await assert.rejects(
+      compareFinalizedBlock(network, first, second, String(height + 1), now),
+      /not finalized/,
+    );
+    await assert.rejects(compareFinalizedHeads(network, first, second, now, AbortSignal.abort()));
   }
 });
