@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import mainnet from "../../../manifests/mainnet.v1.json";
+import mainnet from "../../../manifests/mainnet.v2.json";
 import engineering from "../../../manifests/engineering.v1.json";
 
 export const requiredNetworks = ["near", "base", "ethereum", "solana"] as const;

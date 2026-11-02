@@ -378,6 +378,44 @@ P5 observers, wallet/commitment/privacy screens and online-code/staff-QR control
 remain incomplete. Attested receipt fixtures do not prove those interfaces or providers.
 No rewards allocation, winner claim or later milestone is marked complete.
 
+## Signed pricing adapter checkpoint, November 2
+
+The active [v2 mainnet manifest](../manifests/mainnet.v2.json) adds the provider's
+pinned quote key and immutable SDK source revision. V1 remains available for
+historical receipts; no network route is enabled.
+
+The read-only 1Click adapter uses native Ed25519 verification and reproduces the
+provider's selected-field, stable-JSON/SHA-256/Base58 protocol. A public Base-USDC
+to NEAR-USDC dry response verifies against the actual pinned provider key. The
+probe used public placeholder destinations, requested no deposit address, made no
+wallet signature/transfer and spent no funds. Its sanitized public response is a
+[test fixture](../tests/fixtures/one-click-dry-public.json), with no personal wallet
+or credential. A subsequent actual adapter request also passed: input `5050741`,
+exact principal `5000000`, `fundingAllowed: false`.
+
+Seventeen JS unit tests pass, including signed-field substitution, a disposable-key
+wet-quote/deadline collision, stale/future time, whole-principal output, untrusted fee
+fields, historical recovery, manifest-only pricing, pre-HTTP funding rejection,
+bounded response reads and three-attempt network/429/5xx handling. Format/lint/types
+and production build pass. Existing PostgreSQL/browser evidence applies because no
+web journey or schema changed; this adds no HTTP ingress or provider configuration.
+
+The SDK signature excludes `appFees`, several routing options and an enclosing
+status. Dry quotes also exclude individual fee/time estimates. The adapter exposes
+only signed integer amounts and a warning that fee details are unsigned; it cannot
+produce fee consent or deposit instructions. Expected request fields are checked
+separately, including the deadline that a wet quote's flattened deadline can mask.
+Historical status reads remain available after quote expiry, but unsigned status
+is only a hint: it cannot enroll, settle debt or initiate a retry. Responses are
+bounded to 256 KiB, fixed-origin with redirects rejected, 15 seconds per attempt,
+at most three attempts. No unbounded transfer-retry path exists.
+
+Primary references: [signature verification and its exact source revision](https://github.com/defuse-protocol/one-click-sdk-typescript/blob/ae8b24e064785c8cba8081263e03e52fed4de089/src/quote-signature.ts),
+[provider verification guide](https://docs.near-intents.org/integration/distribution-channels/1click-api/verify-quote-signature).
+Actual escrow attribution, wallet authorization, authenticated fee/destination binding
+and an authorized round trip remain P2/G1 gates. No real status route or funding
+journey is claimed from the dry response or generated test key.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

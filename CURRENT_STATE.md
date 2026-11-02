@@ -11,14 +11,15 @@ private invitations and host management pass isolated-account checks. Funding an
 - I2: role-scoped invitations, explicit consent, atomic redemption and unused-link revocation/expiry.
 - I3 private account drafts: save/reopen/edit/duplicate, ownership checks and locked material terms.
 - Local NEAR sandbox prototype: source-bound escrow, recoverable principal liabilities/delivery and signed attendance/reconciliation authority.
-- 12 unit, 29 PostgreSQL, 15 Chromium and 11 actual sandbox tests covered; production build and Rust lint pass.
-- Private CI passed at `8543e84`; the contract checkpoint adds a separate sandbox CI job.
+- P2 read-only pricing: pinned real-provider signature verification, strict request/principal checks and bounded transport; no payment instruction or enrollment.
+- 17 unit, 29 PostgreSQL, 15 Chromium and 11 actual sandbox tests covered; production build and Rust lint pass.
+- Application CI passes; cold contract CI exposed resource/ownership differences, corrected at `a50c50f`/`718f545`, awaiting rerun.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-P2 quote/status adapter and P3–P5 proofs, then I4–I5 commitments/recovery and A1–A4 attendance interfaces.
+P3–P5 proofs and P2/G1 qualification, then I4–I5 commitments/recovery and A1–A4 attendance interfaces.
 Google/Telegram registrations and callback proof remain owner/provider gates;
 independent local work continues. Verified private-branch checkpoints are approved.
 No merge, hosting, public signing/deployment, paid purchase or spending is authorized.

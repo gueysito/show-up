@@ -448,7 +448,7 @@ meet the policy, return with evidence and a revised proposal before funded use.
 
 ### Implemented manifest boundary
 
-The [mainnet](../manifests/mainnet.v1.json) and
+The [mainnet](../manifests/mainnet.v2.json) and
 [engineering](../manifests/engineering.v1.json) manifests now record exact network
 and token identities. [Verification](verification.md#protocol-manifest-checkpoint-november-2)
 records primary-source checks and negative admission tests. Every route remains
