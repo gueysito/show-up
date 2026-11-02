@@ -333,7 +333,12 @@ passes 12 unit tests, formatting, lint and types; production build passes. No da
 or user interface behavior changed, so the passing 29 PostgreSQL/15 Chromium evidence
 from [private CI at 8543e84](https://github.com/gueysito/show-up/actions/runs/41508449623)
 is reused. A separate locked sandbox job is added for this checkpoint; its remote
-result is verified after publication.
+result is verified after publication. The first cold run at `ab33ecb` passed the
+application job but stopped before Cargo: Docker rejected four requested CPUs on
+the private runner's two-CPU daemon. The wrapper now requests the smaller of four
+and the daemon's reported capacity. Two/fourteen-CPU command probes, the local
+pinned runtime and Rust formatting verify this tooling correction; remote cold
+compilation remains a separate result.
 
 Tested artifact SHA-256:
 

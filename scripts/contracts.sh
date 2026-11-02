@@ -39,7 +39,10 @@ case "$task" in
   *) echo 'Use prepare, lock, fetch, pin, format, format-check, wasm or test' >&2; exit 1 ;;
 esac
 if [ "$source_mode" = readonly ]; then source_options=readonly; else source_options=consistency=consistent; fi
-exec docker run --rm --platform "linux/$contract_arch" --network "$network" --cpus 4 --memory 5g \
+cpu_limit=$(docker info --format '{{.NCPU}}')
+case "$cpu_limit" in ''|0|*[!0-9]*) echo 'Cannot determine Docker CPU capacity' >&2; exit 1 ;; esac
+if [ "$cpu_limit" -gt 4 ]; then cpu_limit=4; fi
+exec docker run --rm --platform "linux/$contract_arch" --network "$network" --cpus "$cpu_limit" --memory 5g \
   --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 \
   --mount "type=bind,src=$contract_root,dst=/work,$source_options" \
   --mount "type=bind,src=$contract_root/.cache,dst=/cache" "$tool_image" "$@"
