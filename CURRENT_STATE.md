@@ -20,8 +20,9 @@ Users cannot yet create events, commit funds, or check in; Showup is in product 
 Continue the [initial wallet test sequence](docs/plan.md#initial-wallet-test-sequence).
 Read-only network/funding checks and Rabby EVM/Phantom Solana signing control passed;
 NEAR signing remains untested. Base Sepolia native and USDC self-transfers are
-finalized with reconciled balances/fees. Next: prepare a tiny owner-signed Solana
-devnet self-transfer with explicit network, recipient, amount and fee review.
+finalized with reconciled balances/fees. The Solana devnet self-transfer finalized,
+but Phantom added priority fees above the review ceiling. Next: resolve wallet
+fee changes before further signing; the Solana fee-limit check remains failed.
 [Wallet guide](docs/development-wallets.md) records funded
 accounts, private-key storage boundary and isolated browser setup. Current work
 covers wallet preparation and test planning; application implementation, automated

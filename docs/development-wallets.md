@@ -202,6 +202,29 @@ owner review and the actual signed transaction remain pending. An independent
 wire-format check matched the one-instruction, same-address transfer and amount;
 the server's live simulation also passed.
 
+The first legacy provider request failed with `Reached end of buffer unexpectedly`.
+Before another preparation, devnet history showed only the original funding,
+balance remained 5 SOL, and the failed blockhash had expired. The local adapter
+changed to Wallet Standard with complete unsigned transaction bytes and explicit
+`solana:devnet`; account/capability checks and fresh simulation passed.
+
+The owner then signed. At 09:52 UTC on November 2, the official devnet RPC returned
+a successful finalized receipt in slot 517815677 for
+[`ziZeQ5Dp…nmED9x3z`](https://explorer.solana.com/tx/ziZeQ5Dpu1NWTRD8ioSCpHhu4AFKppq9jVEEFoSCMRNA2zCkQmgWgzaL8XvHHSYWyCzbahPBt97Eg45nmED9x3z?cluster=devnet).
+The 10000-lamport System Program transfer had the expected address as sender,
+recipient and fee payer. **The fee-limit check failed:** Phantom added two compute
+budget instructions (200000 compute units and 375000 micro-lamports per unit).
+The 75000-lamport priority fee plus 5000 base fee totaled 80000 lamports
+(0.00008 SOL), exceeding the 10000-lamport review ceiling. The finalized balance
+of 4999920000 lamports (4.99992 SOL) exactly reconciles that charge.
+
+Evidence: `.agents/wallet-tests/solana-transfer-result.json`, checked against one
+official devnet RPC. Execution/finality passed; fee control did not. A successful
+simulation of the prepared bytes did not constrain the wallet's signed output.
+Resolve wallet transaction modifications and fee enforcement before further
+signing. Do not repeat this transfer to obtain another receipt. No application
+implementation or production security validation follows from this test.
+
 ## Proof-of-work faucet review
 
 Reviewed November 1, 2026 before installation. Rust/Cargo 1.88.0 is available;

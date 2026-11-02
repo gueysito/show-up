@@ -58,7 +58,10 @@ receipts from both RPCs. Finality for both passed on November 2 at 09:36 UTC:
 two providers reported finalized head 53445467 and unchanged canonical receipts.
 Phantom ownership passed at 09:37:58 UTC with negative nonce/domain/text/address/key,
 expiry and replay checks; devnet identity and 5-SOL finalized balance reconfirmed.
-Solana transfer and NEAR signing remain pending. See the wallet guide for evidence
+Solana transfer subsequently finalized, but its fee-limit check failed: Phantom
+added priority fees, charging 80000 lamports against a 10000-lamport review ceiling.
+Balance reconciliation passed; resolve wallet fee changes before further signing.
+NEAR signing remains pending. See the wallet guide for evidence
 and limits; no application implementation is claimed.
 
 ## Implementation plan for approval
