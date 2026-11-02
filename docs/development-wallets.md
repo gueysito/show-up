@@ -1,6 +1,6 @@
 # Development wallets and faucet setup
 
-Updated November 2, 2026, 09:36 UTC. Public test addresses only. These accounts are dedicated
+Updated November 2, 2026 after the NEAR self-transfer. Public test addresses only. These accounts are dedicated
 to Showup engineering networks; never fund them with real assets. Key generation
 is not activation, funding, browser import or a tested signing integration.
 
@@ -8,9 +8,9 @@ is not activation, funding, browser import or a tested signing integration.
 
 | Network | Public address | Verified state |
 | --- | --- | --- |
-| NEAR testnet | `showup-dev-14989f.testnet` | Created with the original public key; finalized balance 10 test NEAR and matching FullAccess key verified |
-| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Ethereum Sepolia ~0.007 ETH + 20 test USDC; Base Sepolia 0.00299941552999982 ETH + 20 test USDC after owner-signed self-transfers; chain IDs and EVM signing control verified |
-| Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Finalized RPC balance 5 SOL; devnet genesis ID verified |
+| NEAR testnet | `showup-dev-14989f.testnet` | Ownership and native self-transfer verified; finalized balance 9.9999553634875 test NEAR; original FullAccess key unchanged |
+| Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Ethereum Sepolia 0.00699987998086555 ETH after native self-transfer, finality pending; Base Sepolia 0.00299941552999982 ETH after finalized native/USDC tests. Last checked test USDC balance: 20 on each chain. |
+| Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Ownership and native self-transfer verified; fee-control retest finalized; balance 4.999915 SOL |
 
 The same EVM address works on both selected test networks; balances are separate.
 EVM derivation used public data only, with empty-input and abc Keccak-256 reference
@@ -274,7 +274,20 @@ The owner must run the script and type the exact transfer confirmation; no
 agent-operated signing is authorized. The script rechecks network, original key,
 balance, nonce and fees, records the transaction ID before sending once, and
 refuses another attempt. Its serializer matches the official near-api-js transfer
-test vector. Signing, receipt verification and final accounting remain pending.
+test vector. The owner signed and sent the transfer at 10:13 UTC on November 2.
+NEAR RPC and FastNear both returned `FINAL` success for
+[`7t6mEWan…q4cw1jic`](https://testnet.nearblocks.io/txns/7t6mEWanUvbvrfCtVv2YkNP7yiNbp2wqqpeJq4cw1jic).
+Sender, recipient, original key, nonce and single 0.0001-NEAR Transfer action
+matched. Summed transaction/receipt fees were 44636512500000000000 yoctoNEAR
+(0.0000446365125 NEAR), exactly reconciling the balance from 10 NEAR to
+9.9999553634875 NEAR and passing the review ceiling. Public evidence is in
+`.agents/wallet-tests/near-transfer-result.json`.
+
+All initial wallet signing steps are finished. Ethereum finality remains the only
+read-only follow-up: its successful canonical receipt is in block `0xb7d432`,
+while PublicNode's latest checked finalized head is `0xb7d42b`. The additional
+dRPC check was rejected; it supplies no corroborating evidence. No resend is
+needed. These tests do not verify escrow, cross-chain routes or application behavior.
 
 ## Proof-of-work faucet review
 

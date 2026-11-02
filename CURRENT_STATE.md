@@ -24,7 +24,9 @@ finalized with reconciled balances/fees. The Solana devnet self-transfer finaliz
 but Phantom added priority fees above the review ceiling. A controlled retest
 finalized with unchanged signed bytes and a 5000-lamport fee, passing the ceiling.
 Ethereum Sepolia native execution/accounting passed; finality remains pending.
-Next: owner-reviewed NEAR native self-transfer and final receipt reconciliation.
+NEAR native self-transfer finalized with matching receipts from two providers;
+amount and fee reconciliation passed. No further wallet signatures are needed.
+Next: read-only Ethereum finality recheck, then owner review of implementation approval.
 [Wallet guide](docs/development-wallets.md) records funded
 accounts, private-key storage boundary and isolated browser setup. Current work
 covers wallet preparation and test planning; application implementation, automated

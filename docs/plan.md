@@ -68,7 +68,11 @@ separate owner-operated broadcast. That retest finalized with unchanged signed
 bytes and a 5000-lamport fee; fee control and balance reconciliation passed.
 NEAR owner-operated ownership signing passed at 10:09:32 UTC, including negative
 challenge checks and independent signature verification. A 0.0001-NEAR self-transfer
-is prepared for explicit owner confirmation; execution remains pending. See the wallet guide for evidence
+finalized with matching receipts from NEAR RPC and FastNear; the exact
+44636512500000000000-yoctoNEAR fee reconciled the balance and stayed below the
+review ceiling. No further initial wallet signatures are needed. Ethereum's
+canonical successful receipt has not yet reached finalized status, so
+read-only finality confirmation is the remaining wallet check. See the wallet guide for evidence
 and limits; no application implementation is claimed.
 
 ## Implementation plan for approval
@@ -389,7 +393,9 @@ mainnet work. Three test groups, in order:
    self-transfer event and balances passed at 18:50 UTC. Finality for both passed
    November 2 at 09:36 UTC with two RPC providers. Solana finalized but exceeded
    its fee review ceiling; a controlled fee retest finalized within the ceiling. Ethereum Sepolia
-   native execution and accounting passed; finality and NEAR tests remain pending.
+   native execution and accounting passed; Ethereum finality remains pending.
+   NEAR native transfer finalized with two-provider receipt agreement and exact
+   fee reconciliation. No further signatures are required for this initial sequence.
 
 Start with the first wallet family and record its result before repeating; do not
 request multiple blind signatures. Derive exact transfer amounts and fee limits
