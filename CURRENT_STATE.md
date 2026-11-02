@@ -12,14 +12,16 @@ private invitations and host management pass isolated-account checks. Funding an
 - I3 private account drafts: save/reopen/edit/duplicate, ownership checks and locked material terms.
 - Local NEAR sandbox prototype: source-bound escrow, principal recovery, signed attendance/reconciliation and first-round proof/recovery deadlines.
 - P2 read-only pricing: pinned real-provider signature verification, strict request/principal checks and bounded transport; no payment instruction or enrollment.
-- 18 unit, 29 PostgreSQL, 15 Chromium and 14 actual sandbox tests covered; independent Node proof replay/build/Rust lint pass.
-- Both CI jobs pass at `1b38c08`; this first-round proof checkpoint has a separate remote result.
+- P4 local typed-construction proof: exclusive custody intent, fixed EVM/Core transfers and immutable pending signing images; no MPC signatures.
+- 21 unit, 29 PostgreSQL, 15 Chromium and 16 actual sandbox tests covered; independent Node proof/transaction replay, build and Rust lint pass.
+- Both CI jobs pass at `faf3ce4`; this typed-custody checkpoint has a separate remote result.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-P4–P5 proofs and P2/G1/P3/G2 live qualification, then I4–I5 commitments/recovery and A1–A4 attendance interfaces.
+P4 native custody/P5 observation and recovery proofs, then I4–I5 commitments/recovery and A1–A4 attendance interfaces.
+P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Google/Telegram registrations and callback proof remain owner/provider gates;
 independent local work continues. Verified private-branch checkpoints are approved.
 No merge, hosting, public signing/deployment, paid purchase or spending is authorized.

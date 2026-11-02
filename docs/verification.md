@@ -467,6 +467,66 @@ for this checkpoint. Native signature verification proves message/key/output
 consistency; it does not independently attest deterministic service execution or
 availability. Those G2 qualifications remain open without changing the accepted policy.
 
+## Typed custody construction checkpoint, November 2
+
+P4 now proves a local irreversible intent and typed construction boundary for Base,
+Ethereum and Solana. A controlled fixture freezes a prescribed beneficiary and
+contributor; private contract calls lock either delivery or return after the matching
+terminal event/proof state. The opposite decision cannot replace that intent. This
+prescribed beneficiary is test input, **not** a real winner or claim implementation.
+
+The contract constructs EIP-1559 zero-value ERC-721 `safeTransferFrom` bytes and their
+Keccak signing digest, or a legacy Solana message with exact account roles, Core
+`TransferV1`, bounded compute units and explicit zero priority fee. No caller-supplied
+hash, calldata, program, path, destination or arbitrary instruction is signed. It
+stores the first signing image before returning it; retries preserve that image.
+A different nonce/blockhash/fee envelope cannot replace an unresolved image.
+No MPC request or broadcaster method is implemented/enabled by these proofs.
+
+Custody derivation is scoped to deployment/environment/network/event/exact asset,
+independently of recipient/operation. Delivery and return therefore use the same
+custody address. Intent hashes separately bind manifest, rules, payout, operation,
+recipient and cap. EVM address casing is canonicalized. Historical manifests remain
+available to reconstruct existing intents; active-version changes do not silently
+change their chain identities.
+
+All **16 actual sandbox tests**, 21 JS unit tests, production build, formatting and
+Clippy/lint/types pass. Independent Node construction matches the exact on-chain
+bytes, digests, intent hashes and derivation paths for all three external networks.
+Additional focused vectors cover zero/multibyte EVM nonces and hostile extra fields.
+The immutable source for Core's program/accounts/discriminator is
+[Metaplex at a5c35db](https://github.com/metaplex-foundation/mpl-core/blob/a5c35db436fdb6382ac75b1d59205d769c4762ea/clients/rust/src/generated/instructions/transfer_v1.rs),
+with its [program ID](https://github.com/metaplex-foundation/mpl-core/blob/a5c35db436fdb6382ac75b1d59205d769c4762ea/clients/rust/src/generated/programs.rs).
+Other primary formats: [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559),
+[ERC-721](https://eips.ethereum.org/EIPS/eip-721),
+[Solana message layout](https://solana.com/docs/core/transactions/transaction-structure).
+
+Escrow WASM SHA-256: `b8e8b76084afa10788117c8cfb1cdfa33a3eb866ea901ecc4a6db6cf0b58337c`.
+Cargo lock SHA-256: `e72ea405fba148d85e351f1388fc24987d1d89f8d864df31c8e9e739bb2a29e7`.
+Rust's 380-package graph passes its advisory/age gate; existing `bs58` becomes a
+direct dependency. Exact Ethers `6.17.0` and its lockfile pass the seven-day gate;
+the 484-entry JS lock passes integrity/registry review. Candidate audit preceded
+script-blocked installation. Latest full audit: zero high/critical, 19 moderate
+development notices; runtime audit: zero. Contract CI installs the frozen JS lock
+with scripts blocked for independent Ethers replay. Both jobs passed at the prior
+[P3 revision faf3ce4](https://github.com/gueysito/show-up/actions/runs/41521157807);
+this checkpoint's remote result is checked after publication.
+
+Scoped review covered authority, intent races, fixed chain/asset/call/account roles,
+canonical addresses/integers, arithmetic bounds, immutable pending envelopes,
+bounded encodings and unchanged principal accounting. No HTTP ingress or identity
+data path changes; prior auth/private-data/browser/database evidence is reused.
+Private full-access fixture calls do not prove production authority removal,
+canonical winner selection, MPC derivation/signatures or final custody ownership.
+
+Qualification limits remain material: EVM bounds cover `gas_limit × max_fee_per_gas`,
+not demonstrated Base L1/data fees. Solana's fee estimate/blockhash lack finalized
+observer evidence; its message itself does not encode a cluster ID. Actual key/path
+derivation, NFT/plugin/authority allowlists, native NEAR receipt/delivery, engineering
+network execution, dropped/replaced/expired-image reconciliation and two independent
+finality sources remain P4/P5 work. No asset or funding route is enabled, no signature
+issued, no transfer broadcast, and no production fee guarantee is claimed.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

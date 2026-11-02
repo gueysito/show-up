@@ -7,42 +7,7 @@ use sha2::{Digest, Sha256};
 
 async fn closed_fixture() -> Fixture {
     let f = Fixture::new(1, "online", 20_000_000).await;
-    let auth = f.authorization(110, f.alice.id().as_str()).await;
-    f.fund(&f.alice, &auth, 5_000_000).await;
-    f.advance(f.start).await;
-    let receipt = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),
-        "manifest":"local-v1","event":f.event,"rules_hash":id(2),"registration":auth["registration"],
-        "participant":auth["participant"],"proof_class":"live_code","received_ms":f.start,
-        "nonce":id(8100),"expires_ms":f.end-600_000});
-    f.alice
-        .call(f.escrow.id(), "accept_attendance")
-        .args_json(json!({"receipt":receipt,"proof":proof(&f.evidence,&receipt)}))
-        .transact()
-        .await
-        .unwrap()
-        .into_result()
-        .unwrap();
-    f.advance(f.end - 600_000 + 1).await;
-    f.host
-        .call(f.escrow.id(), "record_end")
-        .args_json(json!({"event":f.event}))
-        .transact()
-        .await
-        .unwrap()
-        .into_result()
-        .unwrap();
-    let state = f.view("get_event", json!({"event":f.event})).await;
-    let checkpoint = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),
-        "manifest":"local-v1","event":f.event,"rules_hash":id(2),"ledger_version":state["ledger_version"],
-        "complete_through_ms":f.end-900_000,"expires_ms":f.end+2_100_000});
-    f.bob
-        .call(f.escrow.id(), "close")
-        .args_json(json!({"checkpoint":checkpoint,"proof":proof(&f.evidence,&checkpoint)}))
-        .transact()
-        .await
-        .unwrap()
-        .into_result()
-        .unwrap();
+    f.close_for_draw().await;
     f
 }
 

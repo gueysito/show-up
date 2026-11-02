@@ -157,7 +157,9 @@ Preparation builds the digest-pinned Rust 1.93 container, verifies the nearcore
 2.13.4 archive/binary checksums in the engineering manifest and fetches locked
 Cargo sources. The check reviews registry/checksum/release-age/OSV metadata before
 running Rust formatting, warning-free Clippy, WASM build and actual sandbox tests,
-then independently replaying the accepted public draw proof with native Node.
+then independently replaying the accepted public draw proof and the typed EVM/Solana
+custody construction. The latter uses the frozen Ethers dependency. Run
+`npm ci --ignore-scripts` first on a clean clone as described above.
 Public metadata requests have bounded bodies/retries and a three-minute review
 deadline. Metadata cache freshness is limited to six hours; advisories are queried
 on every check. [Advisory policy](../contracts/advisory-policy.json) records two
@@ -181,6 +183,9 @@ transfers; one pending attempt prevents duplicate sends. Contract-only attendanc
 tests exercise signed evidence, not a working online-code or QR interface.
 First-round proof tests freeze one snapshot/key/version/request/deadline and enforce
 same-request recovery/timeout; they do not execute OutLayer or allocate draw assets.
+Typed-custody tests prescribe a fixture beneficiary, lock an exclusive intent and
+compare constructed bytes independently; they do not request MPC signatures or
+prove actual NFT ownership/delivery.
 External source funding/delivery remains rejected and app publication remains
 disabled. [Evidence and limits](verification.md#local-contract-checkpoint-november-2).
 

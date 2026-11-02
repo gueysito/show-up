@@ -46,6 +46,65 @@ pub struct Terms {
     pub latest_quiz_close_ms: u64,
     pub excluded: Vec<String>,
     pub draw_policy: Option<DrawPolicy>,
+    pub custody_proof_policy: Option<CustodyProofPolicy>,
+}
+
+// Controlled P4 fixture policy, not a real prize/winner eligibility assertion.
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct CustodyProofPolicy {
+    pub network: String,
+    pub collection: String,
+    pub asset: String,
+    pub source: String,
+    pub beneficiary: String,
+    pub contributor: String,
+    pub fee_cap: U128,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CustodyIntent {
+    pub deployment: String,
+    pub environment: String,
+    pub network: String,
+    pub manifest: String,
+    pub event: String,
+    pub rules_hash: String,
+    pub payout: String,
+    pub operation: String,
+    pub collection: String,
+    pub asset: String,
+    pub source: String,
+    pub recipient: String,
+    pub fee_cap: U128,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct CustodyImage {
+    pub intent_hash: String,
+    pub path: String,
+    pub scheme: String,
+    pub unsigned: Base64VecU8,
+    pub payload: Base64VecU8,
+    pub envelope_hash: String,
+}
+
+#[near(serializers = [json])]
+pub struct EvmCustodyEnvelope {
+    pub nonce: u64,
+    pub gas_limit: u64,
+    pub max_fee_per_gas: U128,
+    pub max_priority_fee_per_gas: U128,
+}
+
+#[near(serializers = [json])]
+pub struct SolanaCustodyEnvelope {
+    pub blockhash: String,
+    pub compute_units: u32,
+    pub estimated_fee: U128,
 }
 
 #[near(serializers = [borsh, json])]

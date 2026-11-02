@@ -1,6 +1,7 @@
 //! NEAR settlement authority. Local sandbox proof does not qualify external routes.
 mod attendance;
 mod canonical;
+mod custody;
 mod delivery;
 mod draw;
 mod funding;
@@ -26,6 +27,8 @@ pub struct Escrow {
     nonces: LookupMap<String, String>,
     liabilities: LookupMap<String, Liability>,
     draws: LookupMap<String, DrawProof>,
+    custody_intents: LookupMap<String, CustodyIntent>,
+    custody_images: LookupMap<String, CustodyImage>,
     received: u128,
     delivered: u128,
     owed: u128,
@@ -65,6 +68,8 @@ impl Escrow {
             nonces: LookupMap::new(b"n"),
             liabilities: LookupMap::new(b"l"),
             draws: LookupMap::new(b"d"),
+            custody_intents: LookupMap::new(&b"ci"[..]),
+            custody_images: LookupMap::new(&b"cs"[..]),
             received: 0,
             delivered: 0,
             owed: 0,
@@ -108,6 +113,9 @@ impl Escrow {
             "Quiz outside published schedule"
         );
         self.valid_destination(&terms.sponsor_return);
+        if let Some(policy) = &terms.custody_proof_policy {
+            custody::validate_policy(policy);
+        }
         if let Some(policy) = &terms.draw_policy {
             require!(valid_id(&policy.version_hash), "Invalid draw version");
             require!(policy.key.0.len() == 32, "Draw key length");

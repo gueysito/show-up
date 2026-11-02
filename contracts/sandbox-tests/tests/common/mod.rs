@@ -3,6 +3,7 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use ed25519_dalek::{Signer, SigningKey};
 use near_workspaces::{Account, Contract, Worker, network::Sandbox, types::NearToken};
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::io::Read;
 
 pub struct Fixture {
@@ -61,7 +62,79 @@ pub fn proof(key: &SigningKey, value: &Value) -> String {
 }
 
 impl Fixture {
+    pub async fn close_for_draw(&self) {
+        let auth = self.authorization(110, self.alice.id().as_str()).await;
+        self.fund(&self.alice, &auth, 5_000_000).await;
+        self.advance(self.start).await;
+        let receipt = json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
+            "manifest":"local-v1","event":self.event,"rules_hash":id(2),"registration":auth["registration"],
+            "participant":auth["participant"],"proof_class":"live_code","received_ms":self.start,
+            "nonce":id(8100),"expires_ms":self.end-600_000});
+        self.alice
+            .call(self.escrow.id(), "accept_attendance")
+            .args_json(json!({"receipt":receipt,"proof":proof(&self.evidence,&receipt)}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        self.advance(self.end - 600_000 + 1).await;
+        self.host
+            .call(self.escrow.id(), "record_end")
+            .args_json(json!({"event":self.event}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let event = self.view("get_event", json!({"event":self.event})).await;
+        let checkpoint = json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
+            "manifest":"local-v1","event":self.event,"rules_hash":id(2),"ledger_version":event["ledger_version"],
+            "complete_through_ms":self.end-900_000,"expires_ms":self.end+2_100_000});
+        self.bob
+            .call(self.escrow.id(), "close")
+            .args_json(json!({"checkpoint":checkpoint,"proof":proof(&self.evidence,&checkpoint)}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+    }
+    pub async fn verified_draw(&self) {
+        self.escrow
+            .call("freeze_draw_proof")
+            .args_json(json!({"event":self.event,"snapshot_hash":id(9200)}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let binding: Value = self
+            .escrow
+            .call("bind_draw_proof")
+            .args_json(json!({"event":self.event,"request_id":"original-42"}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap()
+            .json()
+            .unwrap();
+        let alpha = binding["alpha"].as_str().unwrap();
+        let signature = self.draw.sign(alpha.as_bytes()).to_bytes();
+        self.bob.call(self.escrow.id(),"accept_draw_proof").args_json(json!({"event":self.event,"alpha":alpha,
+            "signature":STANDARD.encode(signature),"output":format!("{:x}",Sha256::digest(signature))}))
+            .transact().await.unwrap().into_result().unwrap();
+    }
     pub async fn new(capacity: u32, mode: &str, budget: u128) -> Self {
+        Self::with_custody(capacity, mode, budget, None).await
+    }
+    pub async fn with_custody(
+        capacity: u32,
+        mode: &str,
+        budget: u128,
+        custody: Option<Value>,
+    ) -> Self {
         let (worker, node) = start_node().await;
         let wasm = "/cache/target/wasm32-unknown-unknown/release";
         let escrow = worker
@@ -133,7 +206,8 @@ impl Fixture {
             "sponsor_return":fixture.destination(fixture.host.id().as_str()),
             "start_ms":start,"end_ms":end,"latest_quiz_close_ms":0,"excluded":[id(9990)],
             "draw_policy":{"provider":"outlayer.local","project":"showup.local/vrf-test",
-                "version_hash":id(9300),"sender":fixture.escrow.id(),"key":STANDARD.encode(fixture.draw.verifying_key().to_bytes())}});
+                "version_hash":id(9300),"sender":fixture.escrow.id(),"key":STANDARD.encode(fixture.draw.verifying_key().to_bytes())},
+            "custody_proof_policy":custody});
         fixture
             .escrow
             .call("create_event")

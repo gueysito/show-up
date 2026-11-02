@@ -2839,6 +2839,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 name = "showup-escrow"
 version = "0.1.0"
 dependencies = [
+ "bs58 0.5.1",
  "near-sdk",
 ]
 
@@ -2847,6 +2848,7 @@ name = "showup-sandbox-tests"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "bs58 0.5.1",
  "ed25519-dalek",
  "near-sandbox",
  "near-workspaces",
