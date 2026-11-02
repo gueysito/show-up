@@ -12,7 +12,7 @@ All work stays local and unpublished. Other tasks remain proposed and unapproved
 | F2 | Complete | Digest-pinned Node/PostgreSQL images; health/migration-ordered Compose starts, restarts, stops and resumes on M4. Published ports verified as loopback; startup rejects unsupported configuration. This checkpoint's commit plus [verification](verification.md) identify evidence. |
 | F3 | Complete | Seven real PostgreSQL integration checks pass: concurrent/checksummed migrations, DDL rollback, SIGKILL before/after writer commit and worker effects, atomic dispatch rollback, concurrent logical effect deduplication and bounded dead-letter retries. [Verification](verification.md). |
 | F4 | Complete | Format/lint/types, unit/integration, Chromium production smoke and Docker build pass; frozen-install CI defined with pinned actions and no provider secrets. CI has not run remotely because publication is prohibited. [Setup](setup.md). |
-| I3 subset | NOW | Only draft interface, validation and isolated local persistence. Authentication, funding, immutable publication and integrations remain incomplete. |
+| I3 subset | NOW | Draft UI, shared validation, transactional PostgreSQL persistence, private browser workspaces and revision/replay checks implemented. Seven unit, twelve integration and eight browser tests pass, including actual Compose persistence/restart. [Review guide](verification.md), [isolation decision](adr/0003-local-draft-workspace.md). Final clean-checkout reproduction/receipt is next; I3 authentication, funding, immutable publication and integrations remain incomplete. |
 
 The descriptions below retain planning history. Their earlier approval warnings
 apply to that historical checkpoint; the bounded approval above supersedes them

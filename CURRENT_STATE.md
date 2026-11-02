@@ -1,17 +1,18 @@
 # Current state
 
-Showup runs locally with PostgreSQL and a recoverable worker; event creation, login and payments are not yet available.
+You can prepare, validate, save and reopen fictional event drafts locally; login, publication and payments are unavailable.
 
 ## Available
 
 - Accepted PRD and two ADRs; one task tracker and existing standards/hooks.
 - F1–F4: pinned dependencies, Compose, checksummed migrations, transactional outbox and pg-boss.
-- Format, lint, types, unit/integration, Chromium smoke and production/container builds pass.
-- [Setup](docs/setup.md) records dependency and runtime limits.
+- Bounded I3 draft UI: both modes, timings, budgets, quiz/NFT descriptors, rules preview and isolated persistence.
+- Seven unit, twelve PostgreSQL and eight Chromium tests pass; actual Docker restart persistence verified.
+- [Review walkthrough](docs/verification.md), [setup](docs/setup.md), [isolation boundary](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
-Implement only I3 event-draft UI, validation and isolated development persistence.
+Finish clean-checkout reproduction and the local verification receipt, then owner testing.
 The owner approved this bounded local implementation on November 2, 2026.
 All work remains local and unpublished; other roadmap tasks need further approval.
 

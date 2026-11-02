@@ -17,7 +17,8 @@ in that inventory; it supplies narrowly scoped commit-message exception evidence
 - `../.githooks/`: generated, tracked Git entrypoints.
 
 Run setup on every clone; Git does not activate these hooks merely by cloning.
-Git and Python 3 are prerequisites. No package install is required at this stage.
+Git, Python 3 and the pinned project Node tooling are prerequisites for code checks.
+Use the locked installation in setup; hooks never install tools themselves.
 
 ## Current scope and cost
 

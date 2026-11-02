@@ -9,9 +9,10 @@ The initial audience is wallet-familiar communities running X Spaces and small
 in-person events. The proposed product is a responsive website with optional
 PWA installation and Telegram reminders. Event audio stays on its existing platform.
 
-**Status: local implementation in progress.** The bounded F1–F4 foundation and
-I3 event-draft interface are approved. There is no deployed contract or validated
-authentication/payment integration. See [local setup](docs/setup.md).
+**Status: local event-draft workspace.** You can prepare, validate, save and reopen
+drafts with fictional details. F1–F4 and the bounded I3 draft subset are implemented.
+Authentication, publication and funding remain unavailable. Start with the
+[10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).
 
 ## Start here
 

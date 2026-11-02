@@ -5,7 +5,8 @@ COPY package.json package-lock.json .npmrc ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
 FROM dependencies AS tools
-COPY . .
+COPY --chown=node:node . .
+RUN chown node:node /app
 USER node
 
 FROM tools AS production

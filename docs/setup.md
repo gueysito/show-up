@@ -52,6 +52,24 @@ worker and browser checks use the disposable resources below.
 
 ## Start and stop
 
+For the saved-draft interface, use the opt-in development workspace:
+
+```sh
+docker compose --profile harness up --build -d --wait web worker harness
+```
+
+Open <http://127.0.0.1:3101/workbench>. Use fictional event details only; no login,
+wallet, fee quote, funding or publication is implemented. The same browser can
+reopen its saved drafts for 24 hours. The ordinary build at port 3100 is a
+nonpersistent rules preview; production refuses the development API and page.
+See the [walkthrough and persistence limits](verification.md).
+
+```sh
+docker compose restart harness worker
+docker compose --profile harness stop
+docker compose --profile harness up -d --wait web worker harness
+```
+
 Docker Desktop is the only prerequisite for the container application. Run from
 the repository root:
 
@@ -107,6 +125,22 @@ both install and test. Chromium needs permission for macOS process bootstrap;
 the Codex filesystem sandbox blocks that and needs its normal reviewed escalation.
 CI installs Chromium's Linux system dependencies explicitly. CI is configured,
 not remotely executed during this unpublished run.
+
+Run the browser suite against the actual running Compose workspace:
+
+```sh
+export SHOWUP_CONTAINER_E2E=1
+npm run test:e2e
+```
+
+This mode uses fictional data in `showup_dev` and a fresh browser workspace per
+test. The default mode instead launches a native development test server on 3103
+against `showup_test`. Both modes launch an isolated production build on 3102 to
+verify production refusal. CI selects the container mode to cover its origin and
+permissions boundaries. Ports 3102 and 3103 must be free when running those tests.
+
+`next-env.d.ts` and both build directories are generated and ignored. Next's
+automatic agent-file generation is disabled to preserve the repository front door.
 
 The worker commits an outbox job and dispatch marker together using pg-boss's
 transaction adapter. `processed_operations` gives one durable local receipt per

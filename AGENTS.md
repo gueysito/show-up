@@ -63,4 +63,6 @@ before mutation. Confirm the published commit and repository visibility after
 publication. Do not infer deployment or working product behavior from a push.
 
 Money, authentication, and data access require explicit security verification
-when implemented. No such implementation or security review has happened yet.
+when implemented. The local draft workspace has scoped data-boundary checks;
+production identity, money and release security remain unimplemented/unverified.
+Read [ADR-0003](docs/adr/0003-local-draft-workspace.md) before changing its isolation.
