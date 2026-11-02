@@ -74,10 +74,11 @@ or sends messages. Use fictional test accounts until the provider gate passes.
    tunnels are not implicitly approved. Telegram uses OIDC client credentials,
    not a bot API token. Request only `openid profile`.
 4. Start database/migrations using the normal Compose command, then run
-   `npm run dev:secure`. Open `https://localhost:3443/account`. The local proxy
+   `npm run dev:secure`. Open `https://localhost:3443/account`. The local launcher
    generates a disposable self-signed certificate; accept its local browser warning
-   for testing. No trust-store change is made. Both listeners bind to loopback;
-   3104 is the internal web port. Ctrl+C stops both processes.
+   for testing. No trust-store change is made. Next.js serves HTTPS directly on loopback
+   port 3443. Ctrl+C stops it. Stop this development server before the default
+   native browser suite, or use the documented container E2E mode.
 5. Sign in through an actually configured provider. Refresh restores the account;
    Log out revokes its session. Linking requires the current account session and
    fresh proof of the second identity. Email/username-based merging is absent.

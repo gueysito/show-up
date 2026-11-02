@@ -6,9 +6,7 @@ test("production shell and database health are observable", async ({ page, reque
   await expect(
     page.getByRole("heading", { name: "Make showing up mean something." }),
   ).toBeVisible();
-  await expect(
-    page.getByText("Authentication, publication and funding are unavailable."),
-  ).toBeVisible();
+  await expect(page.getByText("Publication and funding are unavailable.")).toBeVisible();
   const health = await request.get("/api/health");
   expect(health.status()).toBe(200);
   expect(await health.json()).toEqual({ status: "ready", scope: "local-foundation" });

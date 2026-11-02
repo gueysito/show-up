@@ -1,0 +1,85 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { InvitationManager } from "./invitation-manager";
+
+export function EventActions({
+  id,
+  revision,
+  state,
+  description,
+  changeDescription,
+  onSaved,
+  busy,
+  setBusy,
+}: {
+  id: string;
+  revision: number;
+  state?: string;
+  description: string;
+  changeDescription: (value: string) => void;
+  onSaved: (revision: number) => void;
+  busy: boolean;
+  setBusy: (busy: boolean) => void;
+}) {
+  const [status, setStatus] = useState("");
+  const pending = useRef<{ operationId: string; description: string; revision: number } | null>(
+    null,
+  );
+  async function correctDescription() {
+    setBusy(true);
+    if (pending.current?.description !== description || pending.current.revision !== revision)
+      pending.current = { operationId: crypto.randomUUID(), description, revision };
+    try {
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ operation: "copy", id, ...pending.current }),
+      });
+      const receipt = await response.json();
+      if (!response.ok)
+        throw new Error(receipt.error ?? "Description correction was not confirmed.");
+      onSaved(receipt.revision);
+      pending.current = null;
+      setStatus("Description correction saved. Published material terms remain locked.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Correction was not confirmed. Retry.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="saved-panel" aria-label="Event publication and access">
+      <h2>{state === "published" ? "Published terms are locked" : "Before publication"}</h2>
+      <p>
+        Publication requires attributable escrow, authorized principal returns and verified protocol
+        prerequisites. No funding route is enabled yet.
+      </p>
+      <button type="button" className="secondary-button" disabled>
+        Publish event · protocol verification required
+      </button>
+      {state === "published" && (
+        <div>
+          <label htmlFor="copy-description">Correct description only</label>
+          <textarea
+            id="copy-description"
+            disabled={busy}
+            value={description}
+            maxLength={2000}
+            onChange={(event) => changeDescription(event.target.value)}
+          />
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy}
+            onClick={correctDescription}
+          >
+            Save description correction
+          </button>
+          <p role="status">{status}</p>
+          <InvitationManager canIssueHost={false} eventId={id} />
+        </div>
+      )}
+    </section>
+  );
+}

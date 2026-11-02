@@ -11,7 +11,8 @@ PWA installation and Telegram reminders. Event audio stays on its existing platf
 
 **Status: local event-draft workspace.** You can prepare, validate, save and reopen
 drafts with fictional details. F1–F4 and the bounded I3 draft subset are implemented.
-Authentication, publication and funding remain unavailable. The five draft UX
+Live sign-in, publication and funding remain unverified. Identity, invitations and
+private host draft management have isolated fixture evidence. The five draft UX
 improvements are implemented under the active [halfway goal](docs/plan.md#active-halfway-implementation-goal).
 Start with the
 [10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).

@@ -1,10 +1,12 @@
 import type pg from "pg";
 import { hash } from "../auth/crypto";
+import type { DraftErrors } from "../../domain/event-draft";
 
 export class AppFailure extends Error {
   constructor(
     public status: number,
     message: string,
+    public errors?: DraftErrors,
   ) {
     super(message);
   }
@@ -67,7 +69,10 @@ export async function jsonBody(
 
 export function failureResponse(error: unknown) {
   return Response.json(
-    { error: error instanceof AppFailure ? error.message : "Service unavailable. Retry later." },
+    {
+      error: error instanceof AppFailure ? error.message : "Service unavailable. Retry later.",
+      ...(error instanceof AppFailure && error.errors ? { errors: error.errors } : {}),
+    },
     {
       status: error instanceof AppFailure ? error.status : 503,
       headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },

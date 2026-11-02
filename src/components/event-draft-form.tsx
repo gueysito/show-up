@@ -12,17 +12,28 @@ import { DetailsFields, CommitmentFields, ParticipationFields } from "./event-fi
 import { RulePreview } from "./rule-preview";
 import { SaveConfirmation } from "./save-confirmation";
 import { errorFieldLabel } from "./field";
+import { SavedDrafts, type SavedDraft } from "./saved-drafts";
+import { EventActions } from "./access/event-actions";
 
-type SavedDraft = { id: string; revision: number; data: EventDraft; updatedAt: string };
 type SaveRequest = { id: string; revision: number; operationId: string; data: EventDraft };
-const api = "/api/dev/drafts";
-const headers = { "x-showup-harness": "1", "content-type": "application/json" };
+const accountHeaders = { "content-type": "application/json" };
+const workspaceHeaders = { "x-showup-harness": "1", "content-type": "application/json" };
 
-export function EventDraftForm({ persistence = false }: { persistence?: boolean }) {
+export function EventDraftForm({
+  persistence = false,
+  account = false,
+}: {
+  persistence?: boolean;
+  account?: boolean;
+}) {
+  const api = account ? "/api/events" : "/api/dev/drafts";
+  const headers = account ? accountHeaders : workspaceHeaders;
   const [draft, setDraft] = useState<EventDraft>(() => structuredClone(emptyDraft));
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saved, setSaved] = useState<SavedDraft[]>([]);
-  const [identity, setIdentity] = useState<{ id: string; revision: number } | null>(null);
+  const [identity, setIdentity] = useState<{ id: string; revision: number; state?: string } | null>(
+    null,
+  );
   const [snapshot, setSnapshot] = useState("");
   const [status, setStatus] = useState("");
   const [ready, setReady] = useState(false);
@@ -31,6 +42,8 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
   const [conflict, setConflict] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const pending = useRef<SaveRequest | null>(null);
+  const locked = Boolean(identity?.state && identity.state !== "draft");
+  const duplicatePending = useRef<{ id: string; operationId: string } | null>(null);
   const dirty = snapshot !== JSON.stringify(draft);
 
   async function loadSaved() {
@@ -57,7 +70,7 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
           setStatus("Storage unavailable. Your form is still editable. Reconnect storage to save.");
       });
     return () => controller.abort();
-  }, [persistence]);
+  }, [persistence, api, headers]);
 
   function change<K extends keyof EventDraft>(key: K, value: EventDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -114,7 +127,7 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
       pending.current = null;
       setConfirmation(structuredClone(draft));
       setStatus(
-        `Saved locally · revision ${receipt.revision}. This event is unpublished and unfunded.`,
+        `${account ? "Saved private draft" : "Saved locally"} · revision ${receipt.revision}. This event is unpublished and unfunded.`,
       );
       await loadSaved().catch(() =>
         setStatus(
@@ -130,11 +143,16 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
     }
   }
 
-  function openDraft(item?: SavedDraft) {
-    if (dirty && (draft.title || identity) && !window.confirm("Discard unsaved form changes?"))
+  function openDraft(item?: SavedDraft, discardApproved = false) {
+    if (
+      !discardApproved &&
+      dirty &&
+      (draft.title || identity) &&
+      !window.confirm("Discard unsaved form changes?")
+    )
       return;
     setDraft(item ? structuredClone(item.data) : structuredClone(emptyDraft));
-    setIdentity(item ? { id: item.id, revision: item.revision } : null);
+    setIdentity(item ? { id: item.id, revision: item.revision, state: item.state } : null);
     setSnapshot(item ? JSON.stringify(item.data) : "");
     pending.current = null;
     setErrors({});
@@ -143,6 +161,36 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
     setConfirmation(null);
     setStatus(item ? `Loaded saved revision ${item.revision}.` : "New draft. Nothing saved yet.");
     document.getElementById("title")?.focus();
+  }
+
+  async function duplicate(item: SavedDraft) {
+    if (dirty && !window.confirm("Discard unsaved edits and open an independent copy?")) return;
+    setBusy(true);
+    if (duplicatePending.current?.id !== item.id)
+      duplicatePending.current = { id: item.id, operationId: crypto.randomUUID() };
+    try {
+      const response = await fetch(api, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ operation: "duplicate", ...duplicatePending.current }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Duplication was not confirmed. Retry.");
+      duplicatePending.current = null;
+      openDraft(result, true);
+      setStatus(
+        "Independent unfunded draft created. No commitments, invitations or funds were copied.",
+      );
+      await loadSaved().catch(() =>
+        setStatus(
+          "Independent unfunded draft created. The list could not refresh; reconnect storage.",
+        ),
+      );
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Duplication was not confirmed. Retry.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function clearWorkspace() {
@@ -185,7 +233,11 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
           <span className="brand-dot">®</span>
         </Link>
         <span className="environment-tag">
-          {persistence ? "Development workspace" : "Local rules preview"}
+          {account
+            ? "Private host workspace"
+            : persistence
+              ? "Development workspace"
+              : "Local rules preview"}
         </span>
       </header>
       <main>
@@ -204,11 +256,13 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
           <span className="status-dot" aria-hidden="true" />
           <p>
             <span>
-              {persistence
-                ? "Isolated development harness. Drafts save to this browser workspace for 24 hours of access. Use fictional event details only."
-                : "Plan and validate an event. This preview stays on this page and is lost on refresh."}
+              {account
+                ? "Your private host drafts. Sign-in is required; anonymous workspace data is separate."
+                : persistence
+                  ? "Isolated development harness. Drafts save to this browser workspace for 24 hours of access. Use fictional event details only."
+                  : "Plan and validate an event. This preview stays on this page and is lost on refresh."}
             </span>
-            <span> Authentication, publication and funding are unavailable.</span>
+            <span> Publication and funding are unavailable.</span>
           </p>
         </div>
         <p>
@@ -265,9 +319,11 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
                   </button>
                 </div>
               )}
-              <DetailsFields draft={draft} errors={errors} change={change} />
-              <CommitmentFields draft={draft} errors={errors} change={change} />
-              <ParticipationFields draft={draft} errors={errors} change={change} />
+              <fieldset className="material-fields" disabled={busy || locked}>
+                <DetailsFields draft={draft} errors={errors} change={change} />
+                <CommitmentFields draft={draft} errors={errors} change={change} />
+                <ParticipationFields draft={draft} errors={errors} change={change} />
+              </fieldset>
               <div className="form-footer">
                 <p role="status" aria-live="polite">
                   {status ||
@@ -278,9 +334,15 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
                 <button
                   className="primary-button"
                   type="submit"
-                  disabled={busy || conflict || (persistence && !ready)}
+                  disabled={busy || locked || conflict || (persistence && !ready)}
                 >
-                  {busy ? "Saving…" : persistence ? "Validate & save draft" : "Check draft rules"}
+                  {locked
+                    ? "Published material terms locked"
+                    : busy
+                      ? "Saving…"
+                      : persistence
+                        ? "Validate & save draft"
+                        : "Check draft rules"}
                   <span aria-hidden="true">↗</span>
                 </button>
                 <p className="hint">No publication, wallet action or funding takes place.</p>
@@ -336,64 +398,46 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
             {confirmation && (
               <SaveConfirmation draft={confirmation} onClose={() => setConfirmation(null)} />
             )}
+            {account && identity && (
+              <EventActions
+                key={identity.id}
+                id={identity.id}
+                revision={identity.revision}
+                state={identity.state}
+                description={draft.description}
+                busy={busy}
+                setBusy={setBusy}
+                changeDescription={(value) => change("description", value)}
+                onSaved={(revision) => {
+                  setIdentity({ ...identity, revision });
+                  setSnapshot(JSON.stringify(draft));
+                  void loadSaved().catch(() =>
+                    setStatus("Description saved. Reconnect storage to refresh the list."),
+                  );
+                }}
+              />
+            )}
             {persistence && (
-              <section className="saved-panel" aria-label="Saved drafts">
-                <h2>In this browser workspace</h2>
-                <p className="hint">
-                  50 most recent drafts. Access expires after 24 hours; refresh restores saved
-                  revisions. Unsaved edits stay on this page.
-                </p>
-                <div className="saved-actions">
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    disabled={busy}
-                    onClick={() => openDraft()}
-                  >
-                    New draft
-                  </button>
-                  <button
-                    type="button"
-                    className="text-button"
-                    disabled={busy}
-                    onClick={() =>
-                      loadSaved()
-                        .then(() => setStatus("Storage reconnected."))
-                        .catch(() =>
-                          setStatus("Storage unavailable. Check the local database and retry."),
-                        )
-                    }
-                  >
-                    Reconnect storage
-                  </button>
-                </div>
-                <ul>
-                  {saved.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        className="saved-draft"
-                        disabled={busy}
-                        onClick={() => openDraft(item)}
-                      >
-                        <span>{item.data.title}</span>
-                        <span>{`Revision ${item.revision} ↗`}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  className="text-button danger"
-                  disabled={busy || !ready}
-                  onClick={clearWorkspace}
-                >
-                  Clear this local workspace
-                </button>
-              </section>
+              <SavedDrafts
+                saved={saved}
+                account={account}
+                busy={busy}
+                ready={ready}
+                onOpen={openDraft}
+                onNew={() => openDraft()}
+                onDuplicate={duplicate}
+                onClear={clearWorkspace}
+                onRefresh={() => {
+                  loadSaved()
+                    .then(() => setStatus("Storage reconnected."))
+                    .catch(() =>
+                      setStatus("Storage unavailable. Check the local database and retry."),
+                    );
+                }}
+              />
             )}
           </div>
-          <RulePreview draft={draft} />
+          <RulePreview draft={draft} state={identity?.state} />
         </div>
         <footer className="page-footer">
           <span className="brand">showup.</span>

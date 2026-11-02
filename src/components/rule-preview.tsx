@@ -16,13 +16,19 @@ function time(value: number, zone: string) {
   }
 }
 
-export function RulePreview({ draft }: { draft: EventDraft }) {
+export function RulePreview({ draft, state = "draft" }: { draft: EventDraft; state?: string }) {
   const rules = rulePreview(draft);
+  const labels: Record<string, string> = {
+    published: "Published terms",
+    cancelled: "Cancelled",
+    aborted: "Aborted",
+    closed: "Closed",
+  };
   return (
     <aside className="preview" aria-label="Event rules preview">
       <div className="preview-heading">
         <span className="eyebrow">The attendee promise</span>
-        <span className="outline-tag">Unfunded draft</span>
+        <span className="outline-tag">{labels[state] ?? "Unfunded draft"}</span>
       </div>
       <h2>{draft.title || "Your next gathering"}</h2>
       <p className="preview-commitment">
@@ -111,10 +117,11 @@ export function RulePreview({ draft }: { draft: EventDraft }) {
         </p>
       )}
       <div className="publication-limit">
-        <h3>Before this can go live</h3>
+        <h3>{state === "draft" ? "Before this can go live" : "Existing event terms"}</h3>
         <p>
-          Host authentication and invitations, sponsor funding, fee policy, contract rules and any
-          NFT custody must be verified. Publication is unavailable.
+          {state === "draft"
+            ? "Host authentication and invitations, sponsor funding, fee policy, contract rules and any NFT custody must be verified. Publication is unavailable."
+            : "Material terms are locked. No new funding route is enabled in this build. Duplicate into an independent draft to change material terms."}
         </p>
       </div>
     </aside>

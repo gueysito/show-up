@@ -1,7 +1,5 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { createLocalCertificate } from "./local-certificate";
 import { createServer } from "node:https";
 import { request as upstream } from "node:http";
 
@@ -9,34 +7,7 @@ const port = Number(process.argv[2] ?? 3443);
 const target = Number(process.argv[3] ?? 3100);
 if (![port, target].every((value) => Number.isInteger(value) && value >= 1024 && value <= 65535))
   throw new Error("Choose two unprivileged local ports");
-const directory = await mkdtemp(join(tmpdir(), "showup-local-tls-"));
-const certificate = join(directory, "certificate.pem");
-const privateKey = join(directory, "key.pem");
-const generated = spawnSync(
-  "openssl",
-  [
-    "req",
-    "-x509",
-    "-newkey",
-    "rsa:2048",
-    "-nodes",
-    "-days",
-    "1",
-    "-keyout",
-    privateKey,
-    "-out",
-    certificate,
-    "-subj",
-    "/CN=localhost",
-    "-addext",
-    "subjectAltName=DNS:localhost,IP:127.0.0.1",
-  ],
-  { stdio: "ignore" },
-);
-if (generated.status !== 0) {
-  await rm(directory, { recursive: true, force: true });
-  throw new Error("Could not generate disposable local TLS certificate; OpenSSL is required");
-}
+const { certificate, privateKey, dispose } = await createLocalCertificate();
 const server = createServer(
   { key: await readFile(privateKey), cert: await readFile(certificate) },
   (incoming, outgoing) => {
@@ -68,7 +39,7 @@ server.listen(port, "127.0.0.1", () => console.log(`Local HTTPS: https://localho
 async function shutdown() {
   server.closeAllConnections();
   server.close();
-  await rm(directory, { recursive: true, force: true });
+  await dispose();
 }
 process.once("SIGTERM", shutdown);
 process.once("SIGINT", shutdown);

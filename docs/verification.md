@@ -4,6 +4,57 @@ The larger halfway goal is active and incomplete. UX-03–07 are implemented;
 live identity, funding, publication, contracts and attendance are not yet verified.
 The original foundation walkthrough below remains useful historical evidence.
 
+## Invitation and private event checkpoint, November 2
+
+I2 and private I3 management are implemented; funded publication and the full
+halfway target remain incomplete. 10 unit and 29 real integration tests pass;
+15 distinct Chromium scenarios are covered by the combined container run plus
+focused host updates. Format/lint/types, production/Docker builds pass.
+
+The browser exercised actual controls with isolated **preauthenticated fixtures**:
+admin issues a host link → invited account explicitly consents/redeems → host
+creates, saves, reopens and duplicates an event → another host sees none of its
+drafts/answers → an attendee receives no host controls. The published engineering
+fixture separately proves disabled material fields and description-only editing
+without changing the frozen hash. These do not prove real sign-in or publication.
+
+PostgreSQL proves one winner in invitation races, exact scope, role loss/session
+revocation, expiry/revocation, durable replay, independent duplicate records,
+stale-write rejection and private IDs. Invitation grants reserve no seat; encrypted
+receipts recover the same issued link after transport loss. Redeemed access survives
+link expiry and closed registration. No message is sent and no funds move.
+
+Security review traced role checks inside locked transactions, own-account event
+queries, ID swaps including admin-without-host access, high-entropy hashed link
+capabilities, encrypted recovery/cookies, CSRF/Host checks, shared limits, bounded
+JSON, parameterized SQL and error redaction. Correct answers stay in own-account
+responses; neither the anonymous workspace cookie nor a role field from the browser
+authorizes account data. A second skeptical read checked publication bypass,
+concurrent retry and in-flight editing boundaries. Money/contracts/uploads/hosted
+security remain outside this implemented-boundary evidence.
+
+Material screenshots are in ignored `.agents/runs/showup-halfway/evidence/`:
+`invited-host-draft.png`, `host-actions-mobile.png` and `secure-local.png`.
+The actual native HTTPS development page at `https://localhost:3443/invite`
+returns 200 and completes client loading with no failed requests. The launcher
+uses Next.js native HTTPS with a disposable self-signed certificate, no trust-store
+change, and loopback binding. The secure config was generated with empty provider
+fields; no existing credential or wallet key was inspected. Stop native development
+before the default native browser suite, or use container mode to avoid a second
+development server in the same build directory.
+
+New host/admin behavior after secure live-provider setup:
+
+- Admin issues a host invitation → a private copyable link appears; no message is sent.
+- Invited account opens it, signs in and explicitly accepts → host access is confirmed for that account.
+- Host saves/reopens/duplicates → private revisions persist; the copy is a new unfunded draft with no grants or commitments copied.
+- Another account opens host/admin URLs → only its own authorized controls and records appear.
+- Host inspects publication → it remains disabled until actual escrow/protocol gates pass.
+
+No persistent fake login or owner-facing test-provider option exists. Fictional
+browser accounts are removed after tests. Live registration/callbacks, funded routes,
+actual escrow returns, both attendance modes and phone/device behavior remain gates.
+
 ## Identity checkpoint, November 2
 
 Implementation: encrypted issuer/subject mappings, browser-bound one-use

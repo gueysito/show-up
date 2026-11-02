@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { authConfig, providers } from "../../server/auth/config";
 import { findSession, sessionCookie } from "../../server/auth/sessions";
 import { createDatabase } from "../../server/db/client";
+import { InvitationManager } from "../../components/access/invitation-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,13 @@ export default async function AccountPage({
         The anonymous development workspace remains separate. Its drafts are never imported into
         accounts.
       </p>
+      <p>
+        <Link href="/invite">Return to a saved invitation</Link>
+      </p>
+      <p>
+        <Link href="/host">Host workspace</Link>
+      </p>
+      {session?.roles.includes("admin") && <InvitationManager canIssueHost />}
     </main>
   );
 }

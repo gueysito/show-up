@@ -1,32 +1,30 @@
 # Current state
 
-You can prepare, validate, save and reopen fictional event drafts locally; login, publication and payments are unavailable.
+You can prepare and reopen fictional drafts locally. Live sign-in is not configured;
+private invitations and host management pass isolated-account checks. Funding and publication remain disabled.
 
 ## Available
 
-- Accepted PRD and three ADRs; one task tracker and existing standards/hooks.
-- F1–F4: pinned dependencies, Compose, checksummed migrations, transactional outbox and pg-boss.
-- Bounded I3 draft UI: both modes, timings, budgets, quiz/NFT descriptors, rules preview and isolated persistence.
-- Ten unit, twenty integration and thirteen Chromium tests pass; actual Docker restart persistence verified.
-- UX-03–07: timezone suggestions, visible save/errors, explicit conflict recovery and separate answer choices.
-- Owner-guided saving, validation, preview, conflict recovery and workspace-clear checks passed on November 2.
-- [Review walkthrough](docs/verification.md), [setup](docs/setup.md), [isolation boundary](docs/adr/0003-local-draft-workspace.md).
+- F1–F4: pinned runtime/Compose, migrations, durable outbox/worker and CI.
+- Isolated anonymous draft workspace and UX-03–07 improvements.
+- I1 code: signed OIDC verification, encrypted identity/linking, revocable HTTPS sessions and local admin bootstrap.
+- I2: role-scoped invitations, explicit consent, atomic redemption and unused-link revocation/expiry.
+- I3 private account drafts: save/reopen/edit/duplicate, ownership checks and locked material terms.
+- 10 unit, 29 integration and 15 distinct Chromium scenarios covered; production/Docker builds pass.
+- Private CI passed at `a1ea340`; newer checkpoint CI is verified after publication.
+- [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
-Implement the authorized [halfway goal](docs/plan.md#active-halfway-implementation-goal):
-UX-03–07, P1–P5, I1–I5 and A1–A4 through milestone 4. Begin with external-provider
-preflight, I2 invitations/private event management and P1 manifests. I1 code/isolated checks and UX-03–07 pass; live identity remains gated.
-The first goal is complete at `faa05ff`, with clean tracked-only reproduction verified.
-Verified private-branch checkpoints are authorized; no merge, public deployment,
-public-network signing or spending is authorized by this goal.
-The next build must pass agent browser testing before the owner receives a checklist of new behavior.
+Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
+P1–P5 manifests/sandbox proofs, then I4–I5 commitments/recovery and A1–A4 attendance.
+Google/Telegram registrations and callback proof remain owner/provider gates;
+independent local work continues. Verified private-branch checkpoints are approved.
+No merge, hosting, public signing/deployment, paid purchase or spending is authorized.
 
-## Not implemented or validated
+## Unimplemented or unverified
 
-Live identity, invitations, funding, contracts, attendance, rewards and hosted operations.
-I1 code exists; actual Google/Telegram registration/callback proof is still required.
-No complete host/attendee journey or production security validation is claimed.
-Wallet ownership and Base/Solana/NEAR self-transfer checks passed; Ethereum execution/accounting passed,
-with read-only finality still pending. No further signing is authorized or needed.
-See [the plan](docs/plan.md) and [wallet evidence](docs/development-wallets.md).
+Live provider journeys, attributable funding, actual publication, contracts,
+wallet commitments, principal return/reconciliation, privacy operations and attendance.
+Published-state tests are fixtures. Rewards/claims/reporting/release stay in milestones 5–7.
+No mainnet, real-phone or full halfway completion is claimed.

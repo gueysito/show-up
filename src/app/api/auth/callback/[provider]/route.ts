@@ -10,6 +10,11 @@ import {
 } from "../../../../../server/auth/sessions";
 import { createDatabase } from "../../../../../server/db/client";
 import { guardRequest } from "../../../../../server/http/security";
+import {
+  inspectInvitation,
+  invitationCookie,
+  pendingInvitation,
+} from "../../../../../server/invitations/pending";
 
 export async function GET(request: Request, context: { params: Promise<{ provider: string }> }) {
   const { provider } = await context.params;
@@ -33,7 +38,16 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     );
     jar.set(sessionCookie, result.value, { ...cookieOptions, maxAge: sessionSeconds });
     jar.delete(browserCookie);
-    location = "/account?auth=complete";
+    const pending = pendingInvitation(config.encryptionKey, jar.get(invitationCookie)?.value);
+    let reviewInvitation = false;
+    if (pending) {
+      try {
+        reviewInvitation = !(await inspectInvitation(database.pool, pending)).redeemed;
+      } catch {
+        /* An unavailable invitation never invalidates successful sign-in. */
+      }
+    }
+    location = reviewInvitation ? "/invite" : "/account?auth=complete";
   } catch {
     // Provider responses, code, ID token and private claims never enter logs or URLs.
   } finally {

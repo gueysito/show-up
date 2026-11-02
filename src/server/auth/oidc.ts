@@ -55,7 +55,6 @@ export async function beginLogin(
     nonce,
     code_challenge: challenge,
     code_challenge_method: "S256",
-    ...(linking ? { prompt: "login" } : {}),
   });
 }
 
