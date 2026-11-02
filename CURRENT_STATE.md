@@ -14,15 +14,15 @@ private invitations and host management pass isolated-account checks. Funding an
 - P2 read-only pricing: pinned real-provider signature verification, strict request/principal checks and bounded transport; no payment instruction or enrollment.
 - P4 local typed-construction proof: exclusive custody intent, fixed EVM/Core transfers and immutable pending signing images; no MPC signatures.
 - Native NFT prototype: exact receipt/publication gate, fixed delivery/return with retry, draft/outage recovery and recomputed material-terms commitments.
-- P5 read-only transport/source comparison: all four public chain/finalized-header pairs match; operator independence/assets remain unqualified.
-- 26 unit, 29 PostgreSQL, 15 Chromium and 21 actual sandbox tests covered; independent Node replays, build and Rust lint pass.
-- Both CI jobs pass at `f00e47b`; this read-only source checkpoint has a separate remote result.
+- P5: all four public finalized-header pairs match; sandbox observer receipts gate custody readiness and reconcile only the fixed payout intent. Routes remain unqualified.
+- 28 unit, 29 PostgreSQL, 15 Chromium and 24 sandbox scenarios covered; independent Node replays, build and Rust lint pass.
+- Both CI jobs pass at `a381b4e`; this signed-observer checkpoint has a separate remote result.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-P5 observation and external recovery proofs, then I4–I5 commitments/recovery and A1–A4 attendance interfaces.
+P5 exact-asset observation normalization and external recovery, then I4–I5 commitments/recovery and A1–A4 attendance interfaces.
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Google/Telegram registrations and callback proof remain owner/provider gates;
 independent local work continues. Verified private-branch checkpoints are approved.

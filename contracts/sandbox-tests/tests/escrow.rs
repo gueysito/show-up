@@ -44,6 +44,11 @@ async fn rules_hash_is_recomputed_from_the_complete_frozen_terms() {
         ("latest_quiz_close_ms", json!(f.start + 600_000)),
         ("excluded", json!([id(9991)])),
         (
+            "observer_policy",
+            json!({"key":STANDARD.encode([9u8;32]),"profile_hash":id(9400),
+            "sources":["one","two"],"operators":["operator-one","operator-two"]}),
+        ),
+        (
             "custody_proof_policy",
             json!({"network":"base","collection":format!("0x{}","11".repeat(20)),
             "asset":format!("0x{}01","00".repeat(31)),"source":format!("0x{}","22".repeat(20)),

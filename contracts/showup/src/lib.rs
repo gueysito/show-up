@@ -6,6 +6,7 @@ mod delivery;
 mod draw;
 mod funding;
 mod nft;
+mod observer;
 mod types;
 
 use near_sdk::json_types::{Base64VecU8, U128};
@@ -31,6 +32,7 @@ pub struct Escrow {
     custody_intents: LookupMap<String, CustodyIntent>,
     custody_images: LookupMap<String, CustodyImage>,
     native_prizes: LookupMap<String, NativePrize>,
+    observations: LookupMap<String, ObservationState>,
     received: u128,
     delivered: u128,
     owed: u128,
@@ -73,6 +75,7 @@ impl Escrow {
             custody_intents: LookupMap::new(&b"ci"[..]),
             custody_images: LookupMap::new(&b"cs"[..]),
             native_prizes: LookupMap::new(b"q"),
+            observations: LookupMap::new(b"o"),
             received: 0,
             delivered: 0,
             owed: 0,
@@ -132,6 +135,7 @@ impl Escrow {
         if let Some(policy) = &terms.custody_proof_policy {
             custody::validate_policy(policy);
         }
+        observer::validate_policy(&terms, &self.credential_key, &self.evidence_key);
         if let Some(policy) = &terms.draw_policy {
             require!(valid_id(&policy.version_hash), "Invalid draw version");
             require!(policy.key.0.len() == 32, "Draw key length");
@@ -188,6 +192,17 @@ impl Escrow {
                     .get(&event)
                     .is_some_and(|prize| prize.held && prize.intent.is_none()),
                 "Native NFT escrow receipt missing"
+            );
+        }
+        if item.terms.custody_proof_policy.is_some() {
+            require!(
+                self.observations
+                    .get(&event)
+                    .is_some_and(|state| !state.paused
+                        && !state.delivered
+                        && state.latest.operation == "holding"
+                        && state.latest.expires_ms > now()),
+                "Fresh external custody observation missing or paused"
             );
         }
         item.status = "published".into();

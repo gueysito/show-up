@@ -637,6 +637,47 @@ Optional manual read-only reprobe:
 node --import tsx scripts/probe-rpc-candidates.ts
 ```
 
+## P5 signed observer boundary checkpoint, November 2
+
+The sandbox contract now freezes a separate observer public key and a two-source
+profile inside the complete rules commitment. Credential, attendance and draw keys
+cannot fill that role. External-custody publication requires an unexpired signed
+holding receipt. Receipts bind deployment, engineering manifest/chain, event/rules,
+profile/sources, exact collection/asset/custody/owner, final block/slot/hash, times,
+purpose and fees. Delivery additionally requires the already locked operation,
+recipient, intent hash, stored transaction-image hash and transaction identifier.
+It cannot change principal accounting or authorize a different payout.
+
+Authenticated conflicting/regressing state latches a pause; later holding receipts
+cannot silently clear it. Recovery still accepts a newer valid receipt for the
+already fixed delivery/return while retaining the pause. A focused negative test
+first reproduced a bug that suppressed this reconciliation, then passed after the
+fix. Expired signatures cannot refresh publication readiness. Invalid signatures,
+wrong contexts and insufficient finality are rejected without changing state.
+
+Twenty-eight unit checks, format/lint/types and production build pass. All 24 local
+sandbox scenarios passed; after the pause correction, focused conflict/recovery,
+expiry/profile and expanded rules-hash checks passed against final WASM. Existing
+escrow/attendance/native-NFT scenarios are reused for unchanged boundaries. Native
+Node independently replays the three sandbox networks' accepted public observer
+signatures and rejects changed fields/context/expiry. CI runs that replay too.
+The canonical encoder also now sorts Unicode keys by UTF-8 bytes to match Rust;
+a minimal counterexample and regression check cover JavaScript's differing order.
+The final escrow WASM SHA-256 is
+`5df2379d3fdf7ab97c5cb135af5754a44136ab629492c7d564ae505c401dbb0b`;
+the test-token WASM and Cargo lock hashes are unchanged from the native checkpoint.
+Both [private CI jobs at a381b4e](https://github.com/gueysito/show-up/actions/runs/41534835526)
+also pass, including the unchanged 29 PostgreSQL and 15 Chromium scenarios.
+
+This is **signed synthetic external-state evidence**, not an actual remote NFT
+deposit or delivery. The observer remains trusted for truthful state, independent
+upstreams and finality under [ADR-0002](adr/0002-nft-custody.md). No observer signing
+service/key is configured, no real asset/profile is allowlisted, and no route is
+qualified. Raw exact-asset RPC normalization and EVM nonce/Solana expiry recovery
+remain P5 work. Base total fees, real MPC derivation/signing, authority/code review,
+public-network approval and actual transfers remain gates. Fresh sandbox deployments
+exercise the changed state schema; no funded/public state was migrated.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

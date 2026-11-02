@@ -16,6 +16,7 @@ pub struct Fixture {
     pub credential: SigningKey,
     pub evidence: SigningKey,
     pub draw: SigningKey,
+    pub observer: SigningKey,
     pub start: u64,
     pub end: u64,
     pub event: String,
@@ -143,10 +144,13 @@ impl Fixture {
         budget: u128,
         custody: Option<Value>,
     ) -> Self {
-        Self::build(capacity, mode, budget, custody, false).await
+        Self::build(capacity, mode, budget, custody, false, true).await
+    }
+    pub async fn with_unobserved_custody(custody: Value) -> Self {
+        Self::build(1, "online", 0, Some(custody), false, false).await
     }
     pub async fn with_native() -> Self {
-        Self::build(1, "online", 20_000_000, None, true).await
+        Self::build(1, "online", 20_000_000, None, true, false).await
     }
     async fn build(
         capacity: u32,
@@ -154,6 +158,7 @@ impl Fixture {
         budget: u128,
         custody: Option<Value>,
         native: bool,
+        observed: bool,
     ) -> Self {
         let (worker, node) = start_node().await;
         let wasm = "/cache/target/wasm32-unknown-unknown/release";
@@ -171,6 +176,7 @@ impl Fixture {
         let credential = fresh_key();
         let evidence = fresh_key();
         let draw = fresh_key();
+        let observer = fresh_key();
         token
             .call("new")
             .args_json(json!({}))
@@ -216,6 +222,7 @@ impl Fixture {
             credential,
             evidence,
             draw,
+            observer,
             start,
             end,
             event,
@@ -228,6 +235,8 @@ impl Fixture {
             "start_ms":start,"end_ms":end,"latest_quiz_close_ms":0,"excluded":[id(9990)],
             "draw_policy":{"provider":"outlayer.local","project":"showup.local/vrf-test",
                 "version_hash":id(9300),"sender":fixture.escrow.id(),"key":STANDARD.encode(fixture.draw.verifying_key().to_bytes())},
+            "observer_policy":if custody.is_some() {json!({"key":STANDARD.encode(fixture.observer.verifying_key().to_bytes()),
+                "profile_hash":id(9400),"sources":["fixture-one","fixture-two"],"operators":["fixture-operator-one","fixture-operator-two"]})} else {Value::Null},
             "custody_proof_policy":custody,
             "native_nft":if native {json!({"token":fixture.token.id(),"token_id":"prize-1", "contributor":fixture.alice.id(),
                 "fixture_beneficiary":fixture.bob.id()})} else {Value::Null}});
@@ -251,7 +260,15 @@ impl Fixture {
                 )
                 .await;
         }
-        if !native {
+        if !native && observed {
+            if terms["custody_proof_policy"].is_object() {
+                let receipt = fixture.holding_observation().await;
+                fixture
+                    .submit_observation(&receipt)
+                    .await
+                    .into_result()
+                    .unwrap();
+            }
             fixture
                 .host
                 .call(fixture.escrow.id(), "publish")
@@ -263,6 +280,33 @@ impl Fixture {
                 .unwrap();
         }
         fixture
+    }
+
+    pub async fn holding_observation(&self) -> Value {
+        let item = self.view("get_event", json!({"event":self.event})).await;
+        let policy = &item["terms"]["custody_proof_policy"];
+        let network = policy["network"].as_str().unwrap();
+        let current = self.timestamp().await;
+        json!({"format":"showup.asset.observation.v1","domain":"showup.sandbox.authorization.v1",
+            "deployment":self.escrow.id(),"manifest":"showup-engineering-2026-11-02-v1",
+            "event":self.event,"rules_hash":self.rules_hash,"network":network,
+            "chain_id":match network {"base"=>"84532","ethereum"=>"11155111",_=>"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"},
+            "profile_hash":id(9400),"sources":["fixture-one","fixture-two"],"collection":policy["collection"],
+            "asset":policy["asset"],"custody":policy["source"],"owner":policy["source"],"operation":"holding",
+            "intent_hash":null,"image_hash":null,"transaction":null,"block_height":"100",
+            "block_hash":if network == "solana" {bs58::encode([10u8;32]).into_string()} else {format!("0x{}",id(100))},
+            "block_ms":current-1000,"observed_ms":current,"expires_ms":current+60_000,"finalized":true,"fee":"0"})
+    }
+    pub async fn submit_observation(
+        &self,
+        receipt: &Value,
+    ) -> near_workspaces::result::ExecutionFinalResult {
+        self.bob
+            .call(self.escrow.id(), "observe_asset")
+            .args_json(json!({"receipt":receipt,"proof":proof(&self.observer,receipt)}))
+            .transact()
+            .await
+            .unwrap()
     }
 
     pub fn destination(&self, address: &str) -> Value {

@@ -48,6 +48,56 @@ pub struct Terms {
     pub draw_policy: Option<DrawPolicy>,
     pub custody_proof_policy: Option<CustodyProofPolicy>,
     pub native_nft: Option<NativeNftTerms>,
+    pub observer_policy: Option<ObserverPolicy>,
+}
+
+/// Operator-qualified source profile is frozen with the event. Source labels
+/// attest the observer's process; NEAR does not verify remote RPC independence.
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct ObserverPolicy {
+    pub key: Base64VecU8,
+    pub profile_hash: String,
+    pub sources: [String; 2],
+    pub operators: [String; 2],
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone, PartialEq, Eq)]
+pub struct AssetObservation {
+    pub format: String,
+    pub domain: String,
+    pub deployment: AccountId,
+    pub manifest: String,
+    pub event: String,
+    pub rules_hash: String,
+    pub network: String,
+    pub chain_id: String,
+    pub profile_hash: String,
+    pub sources: [String; 2],
+    pub collection: String,
+    pub asset: String,
+    pub custody: String,
+    pub owner: String,
+    pub operation: String,
+    pub intent_hash: Option<String>,
+    pub image_hash: Option<String>,
+    pub transaction: Option<String>,
+    pub block_height: near_sdk::json_types::U64,
+    pub block_hash: String,
+    pub block_ms: u64,
+    pub observed_ms: u64,
+    pub expires_ms: u64,
+    pub finalized: bool,
+    pub fee: U128,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct ObservationState {
+    pub paused: bool,
+    pub delivered: bool,
+    pub latest: AssetObservation,
 }
 
 #[near(serializers = [borsh, json])]

@@ -9,6 +9,8 @@ test("attestations preserve exact integers and canonical nested context without 
     '{"a":null,"z":[{"a":"☀","b":2}]}',
   );
   assert.equal(canonicalHash({ b: 2, a: 1 }), canonicalHash({ a: 1, b: 2 }));
+  assert.equal(canonicalJson({ "\u{10000}": 1, "\ue000": 2 }), '{"\ue000":2,"\u{10000}":1}');
+  assert.throws(() => canonicalJson({ "\ud800": 1 }), /Invalid attestation key/);
   for (const value of [undefined, NaN, Infinity, 0.5, 2 ** 54, 1n, new Date(), "\ud800", () => 1])
     assert.throws(() => canonicalHash(value));
   assert.throws(() => canonicalHash(Array(257).fill(0)));

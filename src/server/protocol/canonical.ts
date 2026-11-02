@@ -21,7 +21,10 @@ export function canonicalJson(value: unknown, depth = 0): string {
   if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
     const entries = Object.entries(value);
     if (entries.length > 64) throw new Error("Attestation field limit");
-    entries.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    if (entries.some(([key]) => Buffer.from(key).toString("utf8") !== key))
+      throw new Error("Invalid attestation key");
+    // Rust String ordering compares UTF-8 bytes, not JavaScript UTF-16 units.
+    entries.sort(([a], [b]) => Buffer.compare(Buffer.from(a), Buffer.from(b)));
     return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item, depth + 1)}`).join(",")}}`;
   }
   throw new Error("Unsupported attestation value");
