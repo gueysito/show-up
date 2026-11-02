@@ -14,6 +14,7 @@ pub struct Fixture {
     pub bob: Account,
     pub credential: SigningKey,
     pub evidence: SigningKey,
+    pub draw: SigningKey,
     pub start: u64,
     pub end: u64,
     pub event: String,
@@ -76,6 +77,7 @@ impl Fixture {
         let bob = worker.dev_create_account().await.unwrap();
         let credential = fresh_key();
         let evidence = fresh_key();
+        let draw = fresh_key();
         token
             .call("new")
             .args_json(json!({}))
@@ -120,6 +122,7 @@ impl Fixture {
             bob,
             credential,
             evidence,
+            draw,
             start,
             end,
             event,
@@ -128,7 +131,9 @@ impl Fixture {
         let terms = json!({"event":fixture.event,"rules_hash":id(2),"host":fixture.host.id(),"mode":mode,
             "capacity":capacity,"principal":"5000000","sponsor_budget":budget.to_string(),
             "sponsor_return":fixture.destination(fixture.host.id().as_str()),
-            "start_ms":start,"end_ms":end,"latest_quiz_close_ms":0,"excluded":[id(9990)]});
+            "start_ms":start,"end_ms":end,"latest_quiz_close_ms":0,"excluded":[id(9990)],
+            "draw_policy":{"provider":"outlayer.local","project":"showup.local/vrf-test",
+                "version_hash":id(9300),"sender":fixture.escrow.id(),"key":STANDARD.encode(fixture.draw.verifying_key().to_bytes())}});
         fixture
             .escrow
             .call("create_event")

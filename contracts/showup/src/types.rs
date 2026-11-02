@@ -1,4 +1,4 @@
-use near_sdk::json_types::U128;
+use near_sdk::json_types::{Base64VecU8, U128};
 use near_sdk::{AccountId, near};
 
 #[near(serializers = [borsh, json])]
@@ -45,6 +45,32 @@ pub struct Terms {
     pub end_ms: u64,
     pub latest_quiz_close_ms: u64,
     pub excluded: Vec<String>,
+    pub draw_policy: Option<DrawPolicy>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct DrawPolicy {
+    pub provider: AccountId,
+    pub project: String,
+    pub version_hash: String,
+    pub sender: AccountId,
+    pub key: Base64VecU8,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct DrawProof {
+    pub event: String,
+    pub snapshot_hash: String,
+    pub request_id: String,
+    pub seed: String,
+    pub alpha: String,
+    pub created_ms: u64,
+    pub deadline_ms: u64,
+    pub attempts: u8,
+    pub state: String,
+    pub output: Option<String>,
 }
 
 #[near(serializers = [borsh, json])]

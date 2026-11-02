@@ -14,8 +14,9 @@ drafts with fictional details. F1–F4 and the bounded I3 draft subset are imple
 Live sign-in, publication and funding remain unverified. Identity, invitations and
 private host draft management have isolated fixture evidence. The five draft UX
 improvements are implemented under the active [halfway goal](docs/plan.md#active-halfway-implementation-goal).
-A local NEAR contract prototype proves token receipt, principal recovery and signed
-attendance boundaries in a disposable sandbox; it does not enable app funding.
+A local NEAR contract prototype proves token receipt, principal recovery, signed
+attendance and first-round proof boundaries in a disposable sandbox. Read-only
+provider pricing verifies actual quote signatures; app funding remains disabled.
 Start with the
 [10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).
 

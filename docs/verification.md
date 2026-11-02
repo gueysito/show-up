@@ -416,6 +416,57 @@ Actual escrow attribution, wallet authorization, authenticated fee/destination b
 and an authorized round trip remain P2/G1 gates. No real status route or funding
 journey is claimed from the dry response or generated test key.
 
+## First-round proof checkpoint, November 2
+
+P3 now has a sandbox-only first-round proof boundary. Event terms pin a distinct
+draw key, provider/project, version hash and original sender. After complete event
+reconciliation, a private fixture call freezes the snapshot and two-minute deadline
+**before** request allocation. Binding the original ID cannot reset that deadline.
+Recovery returns the same ID/seed/alpha at the provisional 15/45-second offsets,
+with at most three attempts including the original submission. It cannot execute
+a provider call or create a new request.
+
+The contract checks the exact request/sender/seed, pinned Ed25519 key, signature and
+SHA-256 output. Seed derivation includes domain, deployment, manifest, event/rules,
+snapshot, first-round/exclusion state and provider version. A verified result or
+timeout becomes terminal; late allocation/proof cannot revive it. Repeated matching
+results remain idempotent. This boundary does not select a winner, allocate rewards,
+return draw assets or implement later decline rounds. Existing principal liabilities
+and accounting remain unchanged by proof state.
+
+All **14 actual sandbox tests** pass, including the three new proof scenarios and
+the eleven escrow/attendance regressions. An independently serialized Rust seed
+matches the on-chain value. Native Node independently verifies the exact proof that
+the sandbox accepted; only public generated test data is written to the ignored
+contract cache. Eighteen JS unit tests, format/Clippy, lint/types and production build
+pass. The unchanged 380-package registry graph passes the release-age/advisory gate;
+only the already-locked SHA-256 implementation becomes a direct test dependency.
+Tested escrow WASM SHA-256: `cdeda01fdd6b1deacc46618af62625e568b8ec5a5a3f9853e7fc4b6ea98850ac`.
+Lock SHA-256: `badab77a3f9663734c666041bdcf9a2ec97f47fd0ae825de51f5d40ac6b7b6ba`.
+
+The earlier CPU/UID fixes pass both jobs in
+[private CI at 718f545](https://github.com/gueysito/show-up/actions/runs/41518568017).
+The pricing checkpoint also passes both jobs in
+[private CI at 1b38c08](https://github.com/gueysito/show-up/actions/runs/41519500727).
+P3's new revision has its own remote result after publication. No web
+journey/schema changes here; existing browser/database evidence remains applicable.
+
+Scoped review checked immutable key/version/context binding, private freeze/allocation,
+bounded ID parsing, failed/unknown submission, replay, exact deadline conditions,
+competing terminal calls, unchanged principal accounting and absence of provider
+execution/signing APIs. Sandbox full-access accounts are disposable controls; actual
+snapshot eligibility, key-removal/deployment authority and original-request allocation
+are not proven by them. No funded draw is enabled.
+
+Current [VRF documentation](https://app.outlayer.ai/docs/vrf) describes the signed
+alpha/output format; [HTTPS documentation](https://app.outlayer.ai/docs/https-api)
+documents polling an existing async call ID. Neither the local fixture nor those
+docs establish Showup's actual 0/15/45-second service latency/recovery. No registered
+project/version, approved service budget or public signing experiment is configured
+for this checkpoint. Native signature verification proves message/key/output
+consistency; it does not independently attest deterministic service execution or
+availability. Those G2 qualifications remain open without changing the accepted policy.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

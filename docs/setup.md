@@ -156,7 +156,8 @@ npm run contracts:check
 Preparation builds the digest-pinned Rust 1.93 container, verifies the nearcore
 2.13.4 archive/binary checksums in the engineering manifest and fetches locked
 Cargo sources. The check reviews registry/checksum/release-age/OSV metadata before
-running Rust formatting, warning-free Clippy, WASM build and actual sandbox tests.
+running Rust formatting, warning-free Clippy, WASM build and actual sandbox tests,
+then independently replaying the accepted public draw proof with native Node.
 Public metadata requests have bounded bodies/retries and a three-minute review
 deadline. Metadata cache freshness is limited to six hours; advisories are queried
 on every check. [Advisory policy](../contracts/advisory-policy.json) records two
@@ -164,7 +165,8 @@ exact fresh security backports and one test-only maintenance notice; no general
 advisory or age bypass exists.
 
 Builds/tests run with networking disabled, read-only contract sources, dropped
-capabilities, bounded CPU/memory/processes and only a project cache mounted writable.
+capabilities, the invoking UID/GID, bounded CPU/memory/processes and only a project
+cache mounted writable. CPU requests use available daemon capacity, capped at four.
 They create disposable nodes/accounts and synthetic NEP-141 tokens. `.env.auth`,
 personal wallets and host credential directories are never mounted. The sandbox
 uses long test epochs for clock jumps; published economic windows are unchanged.
@@ -177,6 +179,8 @@ participant/wallet uniqueness, capacity and authorization expiry. Only actual to
 receipt creates a funded sandbox seat. Principal liabilities outlive failed
 transfers; one pending attempt prevents duplicate sends. Contract-only attendance
 tests exercise signed evidence, not a working online-code or QR interface.
+First-round proof tests freeze one snapshot/key/version/request/deadline and enforce
+same-request recovery/timeout; they do not execute OutLayer or allocate draw assets.
 External source funding/delivery remains rejected and app publication remains
 disabled. [Evidence and limits](verification.md#local-contract-checkpoint-november-2).
 

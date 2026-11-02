@@ -410,8 +410,10 @@ source-level design review, then prove it in the approved implementation.
 ### Draw recovery finding and recommended mechanics
 
 [OutLayer VRF documentation](https://app.outlayer.ai/docs/vrf) binds its signature
-to request ID, sender and user seed. The same key and complete input produce the
-same output; a new request ID changes the input even when the seed is unchanged.
+to request ID, sender and user seed. Under its documented deterministic signing
+algorithm, the same key and complete input produce the same output; a new request
+ID changes the input even when the seed is unchanged. Signature verification alone
+does not attest the service's execution, availability or original-request provenance.
 It documents NEAR signature verification. It does not establish that Showup can
 recover a failed execution under the original ID within two minutes.
 

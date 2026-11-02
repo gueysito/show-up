@@ -2,6 +2,7 @@
 mod attendance;
 mod canonical;
 mod delivery;
+mod draw;
 mod funding;
 mod types;
 
@@ -24,6 +25,7 @@ pub struct Escrow {
     active_wallets: LookupMap<String, String>,
     nonces: LookupMap<String, String>,
     liabilities: LookupMap<String, Liability>,
+    draws: LookupMap<String, DrawProof>,
     received: u128,
     delivered: u128,
     owed: u128,
@@ -62,6 +64,7 @@ impl Escrow {
             active_wallets: LookupMap::new(b"w"),
             nonces: LookupMap::new(b"n"),
             liabilities: LookupMap::new(b"l"),
+            draws: LookupMap::new(b"d"),
             received: 0,
             delivered: 0,
             owed: 0,
@@ -105,6 +108,23 @@ impl Escrow {
             "Quiz outside published schedule"
         );
         self.valid_destination(&terms.sponsor_return);
+        if let Some(policy) = &terms.draw_policy {
+            require!(valid_id(&policy.version_hash), "Invalid draw version");
+            require!(policy.key.0.len() == 32, "Draw key length");
+            require!(
+                policy.key.0 != self.credential_key && policy.key.0 != self.evidence_key,
+                "Separate draw key required"
+            );
+            require!(
+                !policy.project.is_empty()
+                    && policy.project.len() <= 128
+                    && policy
+                        .project
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || b"./_-".contains(&byte)),
+                "Invalid draw project"
+            );
+        }
         require!(
             terms.excluded.iter().all(|value| valid_id(value)),
             "Invalid exclusion roster"
