@@ -54,8 +54,12 @@ native self-transfer succeeded in block 53184329; two RPC receipts matched and
 the 210000000090-wei fee exactly reconciled the balance change. The owner-signed
 0.01-USDC self-transfer also passed in block 53185675: exact Transfer event,
 unchanged 20-USDC balance and 374470000090-wei fee reconciliation, with matching
-receipts from both RPCs. Finality for both and Solana/NEAR ownership remain pending.
-See the wallet guide for transactions and limits; no implementation is claimed.
+receipts from both RPCs. Finality for both passed on November 2 at 09:36 UTC:
+two providers reported finalized head 53445467 and unchanged canonical receipts.
+Phantom ownership passed at 09:37:58 UTC with negative nonce/domain/text/address/key,
+expiry and replay checks; devnet identity and 5-SOL finalized balance reconfirmed.
+Solana transfer and NEAR signing remain pending. See the wallet guide for evidence
+and limits; no application implementation is claimed.
 
 ## Implementation plan for approval
 
@@ -362,7 +366,8 @@ mainnet work. Three test groups, in order:
    configured local NEAR signer. Verify signature against the recorded public
    identity. Wrong nonce/domain, modified text, wrong key and replay must fail.
    No token approvals, transactions or key export to chat. EVM passed November 1
-   at 18:33:09 UTC through Rabby on Base Sepolia; Solana and NEAR remain pending.
+   at 18:33:09 UTC through Rabby on Base Sepolia. Solana passed November 2 at
+   09:37:58 UTC through Phantom; NEAR signing remains pending.
 3. **Small transfer and receipt:** prepare a reviewed testnet-only self-transfer
    (native asset) and a small EVM USDC self-transfer, explicitly showing network,
    recipient, amount, estimated fee and before/after balance. Owner approves each
@@ -370,8 +375,9 @@ mainnet work. Three test groups, in order:
    self-transfer proves signing, execution and receipt accounting, not escrow,
    independent recipient delivery or cross-chain routing. Base Sepolia native
    inclusion and fee reconciliation passed November 1 at 18:46 UTC; the USDC
-   self-transfer event and balances passed at 18:50 UTC. Finality for both and
-   other-network transfer tests remain pending. Recheck finality without resending.
+   self-transfer event and balances passed at 18:50 UTC. Finality for both passed
+   November 2 at 09:36 UTC with two RPC providers. Other-network transfer tests
+   remain pending; prepare the Solana devnet self-transfer after passed ownership.
 
 Start with the first wallet family and record its result before repeating; do not
 request multiple blind signatures. Derive exact transfer amounts and fee limits

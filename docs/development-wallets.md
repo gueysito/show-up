@@ -1,6 +1,6 @@
 # Development wallets and faucet setup
 
-Updated November 1, 2026, 18:50 UTC. Public test addresses only. These accounts are dedicated
+Updated November 2, 2026, 09:36 UTC. Public test addresses only. These accounts are dedicated
 to Showup engineering networks; never fund them with real assets. Key generation
 is not activation, funding, browser import or a tested signing integration.
 
@@ -163,9 +163,44 @@ The 374470000090-wei total fee exactly matched the native balance decrease to
 2999415529999820 wei and stayed below the review ceiling. Local evidence is in
 `.agents/wallet-tests/usdc-transfer-result.json`.
 
-Both receipts remained canonical at the 18:50 UTC recheck, but finality is pending:
-finalized head 53180240 was below both transaction blocks. Next is a read-only
-finality recheck, not another send. Other-network transfer tests remain untested.
+Both receipts remained canonical at the November 1, 18:50 UTC recheck; finality
+was still pending then. On November 2 at 09:36 UTC, Base's public RPC and PublicNode
+both reported finalized head 53445467, above transaction blocks 53184329 and
+53185675. Each successful receipt retained its original canonical block hash.
+Both self-transfers are now finalized; no resend was needed. Other-network
+transfer tests remain untested.
+
+## Solana ownership preparation
+
+November 2, 09:36 UTC: Solana devnet's genesis ID matched and finalized balance
+remained 5000000000 lamports (5 SOL). The next temporary test page uses Phantom's
+documented [message-signing interface](https://docs.phantom.com/solana/signing-a-message)
+for the dedicated Solana address. The challenge includes the local origin,
+address, devnet genesis, single-use nonce and ten-minute expiry, with explicit
+ownership-only consent. This off-chain signature does not establish Phantom's
+selected transaction network; any later transfer needs separate devnet checks.
+
+The dependency-free local Node verifier uses built-in Ed25519 verification;
+the RFC8032 public signature vector and altered-message rejection passed.
+Syntax, exact Host/origin checks, source-file denial and malformed-signature
+rejection passed. Evidence is in `.agents/wallet-tests/solana-preflight.json`.
+The owner unlocked and connected the project account, then signed the message.
+At 09:37:58 UTC, local Ed25519 verification passed for the recorded address;
+wrong nonce/domain, altered text, wrong address/key, expiry and replay were rejected.
+Evidence is in `.agents/wallet-tests/solana-ownership-result.json`. No Solana
+transaction has been requested; no project key was read or generated. Next is
+devnet transaction preparation with independent network and fee checks.
+
+The proposed native check is 10000 lamports (0.00001 SOL) to the same project
+address, with that address also paying the fee. Devnet read-only simulation of
+the single System Program transfer succeeded: 5000-lamport fee, 5-SOL starting
+balance and 4999995000 lamports afterward. No priority-fee instruction is included.
+The owner review ceiling is 10000 lamports total fees. The local page prepares a
+fresh devnet blockhash, rechecks its validity before opening Phantom, and permits
+one request without automatic retry. The owner confirmed Phantom Devnet selection;
+owner review and the actual signed transaction remain pending. An independent
+wire-format check matched the one-instruction, same-address transfer and amount;
+the server's live simulation also passed.
 
 ## Proof-of-work faucet review
 
