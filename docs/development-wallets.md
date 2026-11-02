@@ -225,6 +225,26 @@ Resolve wallet transaction modifications and fee enforcement before further
 signing. Do not repeat this transfer to obtain another receipt. No application
 implementation or production security validation follows from this test.
 
+## Ethereum Sepolia native check
+
+November 2: the owner signed 0.000001 test ETH to the same project address on
+chain 11155111, with empty call data and nonce 1. PublicNode returned successful
+receipt [`0x311e810d…8b4c01d`](https://sepolia.etherscan.io/tx/0x311e810d265ecb47d8cc8bf0a2456e68546625ec86486ae8b6b74d2848b4c01d).
+Actual gas 12000 at 0.01 gwei cost 120000000000 wei (0.00000012 ETH), below the
+0.000001-ETH review ceiling. Before/after block balances reconciled exactly:
+6999999980865550 to 6999879980865550 wei. Finality is pending; a second provider
+timed out, so this receipt currently has one-provider verification.
+Local evidence: `.agents/wallet-tests/ethereum-native-result.json`.
+
+## Solana fee-control retest
+
+The next Solana fee retest explicitly sets zero compute-unit price and a 1000-unit
+limit. Devnet simulation returned a 5000-lamport fee. The local page requests
+signing only, rejects changed transaction bytes or invalid signatures, and checks
+the signed message fee before enabling a separate owner-operated broadcast.
+Unsigned-signature and changed-message rejection checks passed; the retest has
+not yet been signed or sent.
+
 ## Proof-of-work faucet review
 
 Reviewed November 1, 2026 before installation. Rust/Cargo 1.88.0 is available;

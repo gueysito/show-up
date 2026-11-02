@@ -61,7 +61,10 @@ expiry and replay checks; devnet identity and 5-SOL finalized balance reconfirme
 Solana transfer subsequently finalized, but its fee-limit check failed: Phantom
 added priority fees, charging 80000 lamports against a 10000-lamport review ceiling.
 Balance reconciliation passed; resolve wallet fee changes before further signing.
-NEAR signing remains pending. See the wallet guide for evidence
+Ethereum Sepolia native self-transfer passed execution and balance reconciliation
+with a 120000000000-wei fee; finality remains pending. Solana fee-control retest
+preparation uses explicit zero priority fee and checks signed bytes before a
+separate owner-operated broadcast. NEAR signing remains pending. See the wallet guide for evidence
 and limits; no application implementation is claimed.
 
 ## Implementation plan for approval
@@ -379,8 +382,9 @@ mainnet work. Three test groups, in order:
    independent recipient delivery or cross-chain routing. Base Sepolia native
    inclusion and fee reconciliation passed November 1 at 18:46 UTC; the USDC
    self-transfer event and balances passed at 18:50 UTC. Finality for both passed
-   November 2 at 09:36 UTC with two RPC providers. Other-network transfer tests
-   remain pending; prepare the Solana devnet self-transfer after passed ownership.
+   November 2 at 09:36 UTC with two RPC providers. Solana finalized but exceeded
+   its fee review ceiling; a controlled fee retest is prepared. Ethereum Sepolia
+   native execution and accounting passed; finality and NEAR tests remain pending.
 
 Start with the first wallet family and record its result before repeating; do not
 request multiple blind signatures. Derive exact transfer amounts and fee limits
