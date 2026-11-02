@@ -21,8 +21,10 @@ Continue the [initial wallet test sequence](docs/plan.md#initial-wallet-test-seq
 Read-only network/funding checks and Rabby EVM/Phantom Solana signing control passed;
 NEAR signing remains untested. Base Sepolia native and USDC self-transfers are
 finalized with reconciled balances/fees. The Solana devnet self-transfer finalized,
-but Phantom added priority fees above the review ceiling. Next: resolve wallet
-fee changes before further signing; the Solana fee-limit check remains failed.
+but Phantom added priority fees above the review ceiling. A controlled retest
+finalized with unchanged signed bytes and a 5000-lamport fee, passing the ceiling.
+Ethereum Sepolia native execution/accounting passed; finality remains pending.
+Next: owner-approved NEAR signing setup, ownership proof and native self-transfer.
 [Wallet guide](docs/development-wallets.md) records funded
 accounts, private-key storage boundary and isolated browser setup. Current work
 covers wallet preparation and test planning; application implementation, automated

@@ -64,7 +64,10 @@ Balance reconciliation passed; resolve wallet fee changes before further signing
 Ethereum Sepolia native self-transfer passed execution and balance reconciliation
 with a 120000000000-wei fee; finality remains pending. Solana fee-control retest
 preparation uses explicit zero priority fee and checks signed bytes before a
-separate owner-operated broadcast. NEAR signing remains pending. See the wallet guide for evidence
+separate owner-operated broadcast. That retest finalized with unchanged signed
+bytes and a 5000-lamport fee; fee control and balance reconciliation passed.
+NEAR ownership script preparation passed public-only checks; owner authorization
+for this local signing method remains pending. See the wallet guide for evidence
 and limits; no application implementation is claimed.
 
 ## Implementation plan for approval
@@ -383,7 +386,7 @@ mainnet work. Three test groups, in order:
    inclusion and fee reconciliation passed November 1 at 18:46 UTC; the USDC
    self-transfer event and balances passed at 18:50 UTC. Finality for both passed
    November 2 at 09:36 UTC with two RPC providers. Solana finalized but exceeded
-   its fee review ceiling; a controlled fee retest is prepared. Ethereum Sepolia
+   its fee review ceiling; a controlled fee retest finalized within the ceiling. Ethereum Sepolia
    native execution and accounting passed; finality and NEAR tests remain pending.
 
 Start with the first wallet family and record its result before repeating; do not

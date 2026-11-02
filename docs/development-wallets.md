@@ -242,8 +242,26 @@ The next Solana fee retest explicitly sets zero compute-unit price and a 1000-un
 limit. Devnet simulation returned a 5000-lamport fee. The local page requests
 signing only, rejects changed transaction bytes or invalid signatures, and checks
 the signed message fee before enabling a separate owner-operated broadcast.
-Unsigned-signature and changed-message rejection checks passed; the retest has
-not yet been signed or sent.
+Unsigned-signature and changed-message rejection checks passed. The owner signed
+and separately broadcast the verified bytes. The retest finalized in slot 517818472:
+[`4z45LiBZ…7cVMD27e`](https://explorer.solana.com/tx/4z45LiBZk8X9pnDy8XCJp6z5yKJ4FUYyooF43JDPRWvrWhVDT6XLTkZDJRQ4dsvgsZU8yhrwYzqAoH8K7cVMD27e?cluster=devnet).
+The on-chain message exactly matched the prepared bytes, including zero priority
+fee. Actual fee was 5000 lamports; balance decreased from 4999920000 to 4999915000
+lamports (4.999915 SOL), with the 10000-lamport self-transfer verified. Fee control
+and accounting passed. Evidence: `.agents/wallet-tests/solana-fee-retest-result.json`;
+one official devnet RPC checked. The earlier over-ceiling result remains recorded.
+
+## NEAR signing preparation
+
+Testnet RPC reconfirmed 10 NEAR and the original FullAccess public key. No NEAR
+CLI is installed. An owner-operated, dependency-free Node script is prepared in
+`.agents/wallet-tests/near-ownership.mjs` for an off-chain
+[NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message.
+It requires a terminal and explicit typed consent before reading the existing
+dedicated NEAR key locally; it never prints secrets, changes keys or constructs
+transactions. Public Ed25519 and serialization checks passed without opening the
+secret file. Owner approval of this signing method and execution remain pending;
+this is temporary wallet testing, not production authentication implementation.
 
 ## Proof-of-work faucet review
 
