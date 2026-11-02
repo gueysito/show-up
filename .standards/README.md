@@ -21,9 +21,10 @@ Git and Python 3 are prerequisites. No package install is required at this stage
 
 ## Current scope and cost
 
-Documentation-only baseline: no application formatter or linter is needed yet.
-First-party code requires the appropriate enforced tools before adoption can
-remain passing. Checks never install dependencies or rewrite the index.
+The November 2 foundation adds pinned Prettier, ESLint, TypeScript and browser/
+database checks; see [setup](../docs/setup.md). The imported helper and hooks are
+unchanged. First-party JS/TS checks enforce the adopted readability rules.
+Checks never install dependencies or rewrite the index.
 
 - `pre-commit`: expected 0.5–3 seconds with code tooling; only local Python and Git
   startup plus staged-document inspection in the current repository.

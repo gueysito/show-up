@@ -8,9 +8,16 @@ All work stays local and unpublished. Other tasks remain proposed and unapproved
 
 | Approved checkpoint | Status | Evidence |
 | --- | --- | --- |
-| F1 | Complete | Exact manifest/lockfile, npm seven-day gate, blocked lifecycle scripts, registry/integrity check; zero high/critical advisories, zero runtime advisories. Format/lint/typecheck, configuration unit test and production shell build. This checkpoint's commit identifies the code revision. [Setup](setup.md). |
-| F2–F4 | NOW | Local topology, migrations, worker recovery and integrated checks are next. |
-| I3 subset | NEXT | Only draft interface, validation and isolated local persistence after F1–F4. Authentication, funding, immutable publication and integrations remain incomplete. |
+| F1 | Complete | `eb42d64`: exact manifest/lockfile, seven-day gate, blocked lifecycle scripts; zero high/critical and zero runtime advisories. Format/lint/types, configuration unit test and shell production build pass. [Setup](setup.md). |
+| F2 | Complete | Digest-pinned Node/PostgreSQL images; health/migration-ordered Compose starts, restarts, stops and resumes on M4. Published ports verified as loopback; startup rejects unsupported configuration. This checkpoint's commit plus [verification](verification.md) identify evidence. |
+| F3 | Complete | Seven real PostgreSQL integration checks pass: concurrent/checksummed migrations, DDL rollback, SIGKILL before/after writer commit and worker effects, atomic dispatch rollback, concurrent logical effect deduplication and bounded dead-letter retries. [Verification](verification.md). |
+| F4 | Complete | Format/lint/types, unit/integration, Chromium production smoke and Docker build pass; frozen-install CI defined with pinned actions and no provider secrets. CI has not run remotely because publication is prohibited. [Setup](setup.md). |
+| I3 subset | NOW | Only draft interface, validation and isolated local persistence. Authentication, funding, immutable publication and integrations remain incomplete. |
+
+The descriptions below retain planning history. Their earlier approval warnings
+apply to that historical checkpoint; the bounded approval above supersedes them
+only for F1–F4 and the named I3 subset. SCOPE-01 is partially resolved by that
+approval, not completion of all product scoping or the full roadmap.
 
 | ID | Status | Outcome and acceptance | Evidence |
 | --- | --- | --- | --- |

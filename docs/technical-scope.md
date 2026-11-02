@@ -4,6 +4,10 @@ Technical sources reviewed October 29, 2026; owner decisions reconciled October 
 It records source-backed constraints and proposals, not a completed integration
 or an approved implementation plan. [The PRD](prd.md) remains the product authority.
 
+November 2 implementation update: F1–F4 and only the I3 draft subset are approved.
+Current evidence and status live in [the plan](plan.md). Approval statements below
+describe the earlier research checkpoint, not the current bounded authorization.
+
 ## Scope confirmed with the owner
 
 - [ADR-0001](adr/0001-application-and-authentication.md) accepts Next.js + TypeScript

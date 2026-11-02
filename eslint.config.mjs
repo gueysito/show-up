@@ -7,6 +7,7 @@ export default tseslint.config(
   {
     ignores: [
       ".next/**",
+      ".next-dev/**",
       ".agents/**",
       ".codex-attachments/**",
       ".standards/**",

@@ -1,0 +1,11 @@
+.git
+.agents
+.codex-attachments
+.next
+.next-dev
+node_modules
+.env*
+!.env.example
+test-results
+playwright-report
+*.log

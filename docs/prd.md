@@ -3,12 +3,15 @@
 
 **Product baseline:** 1.0 · **Source prepared:** October 21, 2026 · **Product edition:** October 31, 2026
 
-**Status:** Proposed product scope. No application, contracts, integrations, or pilot results exist in this repository yet.
+**Status:** Product requirements. The bounded F1–F4 local foundation is implemented;
+the I3 event-draft subset is approved. Contracts, live integrations and pilot results
+do not exist. See [current implementation evidence](plan.md).
 
 This product edition preserves the owner's supplied requirements and technical references.
 Accepted choices are identified below; other defaults remain proposals for discussion.
-Neither requirements nor stack selections authorize implementation or prove working integrations. The current authorized work is repository setup and product scoping.
-The owner has not yet approved an implementation plan. Source citations retain their original
+Requirements and stack selections do not prove working integrations. The current
+authorized work includes the bounded November 2 implementation recorded in the plan.
+Other roadmap work remains unapproved. Source citations retain their original
 identifiers; external technical claims must be revalidated when implementation begins.
 
 [ADR-0001](adr/0001-application-and-authentication.md) records the accepted

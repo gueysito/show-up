@@ -1,6 +1,7 @@
 # ADR-0001: Application framework and authentication
 
-Status: Accepted by the owner on October 29, 2026. Not yet implemented.
+Status: Accepted by the owner on October 29, 2026. Local framework foundation
+implemented November 2; authentication is not implemented.
 
 ## Decision
 
@@ -15,7 +16,8 @@ The compatibility review established a viable protocol path. Building and testin
 login, sessions, and linking is normal implementation work, not an unresolved
 stack decision. Hosting was subsequently settled as Railway with Docker Compose
 local setup in [PRD section 16.5](../prd.md#165-runtime-and-exposure). Exact versions
-remain open. No build plan is approved.
+are pinned in the manifest and [setup](../setup.md). Bounded foundation/draft
+implementation is approved; authentication remains outside that authorization.
 
 ## Invariants
 

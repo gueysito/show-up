@@ -1,17 +1,17 @@
 # Current state
 
-Showup has a verified local application shell; event creation, login and payments are not yet available.
+Showup runs locally with PostgreSQL and a recoverable worker; event creation, login and payments are not yet available.
 
 ## Available
 
 - Accepted PRD and two ADRs; one task tracker and existing standards/hooks.
-- F1: pinned Node LTS/dependencies, blocked install scripts, release-age/integrity checks.
-- Format, lint, typecheck, configuration unit test and production shell build pass.
+- F1–F4: pinned dependencies, Compose, checksummed migrations, transactional outbox and pg-boss.
+- Format, lint, types, unit/integration, Chromium smoke and production/container builds pass.
 - [Setup](docs/setup.md) records dependency and runtime limits.
 
 ## Next action
 
-Implement F2–F4, then only I3 event-draft UI, validation and isolated development persistence.
+Implement only I3 event-draft UI, validation and isolated development persistence.
 The owner approved this bounded local implementation on November 2, 2026.
 All work remains local and unpublished; other roadmap tasks need further approval.
 

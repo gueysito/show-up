@@ -10,8 +10,8 @@
   },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3100",
-    "build": "next build",
-    "start": "next start --hostname 127.0.0.1 --port 3100",
+    "build": "next build && node scripts/prepare-standalone.mjs",
+    "start": "node --import tsx scripts/check-config.ts && node .next/standalone/server.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
