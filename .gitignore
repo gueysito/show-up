@@ -16,6 +16,7 @@ next-env.d.ts
 *.tsbuildinfo
 playwright-report/
 test-results/
+.playwright-mcp/
 
 # Wallet credentials must stay outside the repository.
 .showup-test-wallets/

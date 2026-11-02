@@ -9,6 +9,7 @@ package-lock.json
 next-env.d.ts
 playwright-report/
 test-results/
+.playwright-mcp/
 docs/prd.md
 docs/plan.md
 docs/technical-scope.md

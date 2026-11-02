@@ -1,12 +1,36 @@
 # Test the local event-draft workspace
 
-The bounded scope is implemented: F1–F4 and the I3 draft interface, validation and
-isolated local persistence subset. **I3 as a whole and milestone 3 remain incomplete.**
-No complete host journey, authentication, publication, funding or live integration
-is claimed. The application runs locally; private GitHub source publication on
-`codex/bounded-foundation-drafts` is now authorized. This walkthrough describes
-the original build. The [accepted UX follow-up and next handoff requirements](plan.md#i3-follow-up-accepted-walkthrough-requirements)
-are pending implementation, not changes already available to test.
+The larger halfway goal is active and incomplete. UX-03–07 are implemented;
+identity, funding, publication, contracts and attendance are not yet available.
+The original foundation walkthrough below remains useful historical evidence.
+
+## Halfway UX checkpoint, November 2
+
+This checkpoint changes the existing draft journey only. Local evidence: 7 unit,
+12 PostgreSQL integration and 11 Chromium tests; format/lint/types, production
+and Docker builds pass. Agent-controlled browser inspection at 3101 exercised
+save details on desktop and validation at 390px. Screenshots are in ignored
+`.agents/runs/showup-halfway/evidence/ux-save-desktop.png` and
+`ux-errors-mobile.png`. Tests cover 320/430/640px reflow and keyboard error links.
+The duplicate Commitment section/input ID was reproduced in the browser; a new
+regression verifies the amount label and linked-error focus after correction.
+
+New since the owner's November 2 walkthrough:
+
+- Search the display timezone → IANA suggestions appear; preview converts and UTC inputs stay fixed.
+- Save a valid draft while down the page → a persistent saved-details card names amounts, date, times and timezone, with unpublished/unfunded wording.
+- Save invalid fields → a red card names fields/reasons; its links focus controls and preserve entries.
+- Save from an older tab → a prominent warning protects the newer save; reload asks before discarding edits, and Cancel keeps them.
+- Add a multiple-choice question → separate choices support two through six; removing a selected choice resets the correct answer. Short answer has its own accepted-answer editor.
+
+The network-failure test checks stable operation replay; the new success card is
+created only after the server returns a durable receipt. PostgreSQL isolation,
+CSRF/origin, bounded JSON, production refusal and race checks remain passing.
+No new authenticated, contract, live-provider, mainnet or actual-phone evidence
+is claimed. Manual screen-reader/zoom and actual native timezone-menu behavior
+on owner devices remain review gates. Existing foundation CI at `4732ee0`
+[passed](https://github.com/gueysito/show-up/actions/runs/41486576136);
+this checkpoint's CI is checked separately after publication.
 
 ## Open it
 
@@ -125,8 +149,8 @@ variable to reuse this session's temporary browser cache. CI installs its own.
 | Development advisories       | 17 moderate minimatch tooling findings; details and reachability in setup                                                     |
 | Git hooks and standards      | Staged/full checks and readability rejection probes pass                                                                      |
 
-CI is configured to build the Docker harness and exercise it in Chromium; remote
-CI has **not run**, because this work has not been pushed. No Linux-browser or
+Foundation CI built the Docker harness and exercised it in Chromium successfully
+at `4732ee0`; the original local evidence below predates that publication. No Linux-browser or
 actual-phone result is inferred from the M4 checks. Screenshot evidence is local
 under `.agents/runs/showup-foundation-drafts/evidence/`.
 
@@ -174,7 +198,7 @@ docker volume rm showup-local_development-data
 That optional command deletes stored development data. Normal start/stop/restart
 and the first cleanup command do not. The next startup creates an empty database.
 
-## What's next, outside this authorization
+## Historical prerequisites, superseded by the active goal
 
 | Task                     | Dependency and owner input                                                                                                                                                                                             |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

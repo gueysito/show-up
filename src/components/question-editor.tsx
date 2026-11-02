@@ -71,21 +71,58 @@ export function QuestionEditor({
       </Field>
       {quiz.type === "choice" ? (
         <>
-          <Field
-            name={`${path}.options`}
-            label="Answer options"
-            hint="Two to six distinct options, one per line."
-            errors={errors}
-          >
-            {(attrs) => (
-              <textarea
-                {...attrs}
-                rows={3}
-                value={quiz.options.join("\n")}
-                onChange={(e) => onChange({ ...quiz, options: e.target.value.split("\n") })}
-              />
+          <div id={`${path}.options`} tabIndex={-1}>
+            <p>Answer choices: two to six distinct, nonempty options.</p>
+            {errors[`${path}.options`] && (
+              <p className="field-error">{errors[`${path}.options`]}</p>
             )}
-          </Field>
+            {quiz.options.map((option, i) => (
+              <div className="choice-row" key={i}>
+                <Field name={`${path}.options.${i}`} label={`Choice ${i + 1}`} errors={errors}>
+                  {(attrs) => (
+                    <input
+                      {...attrs}
+                      value={option}
+                      maxLength={200}
+                      onChange={(e) =>
+                        onChange({
+                          ...quiz,
+                          options: quiz.options.map((text, n) => (n === i ? e.target.value : text)),
+                        })
+                      }
+                    />
+                  )}
+                </Field>
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={quiz.options.length <= 2}
+                  onClick={() =>
+                    onChange({
+                      ...quiz,
+                      options: quiz.options.filter((_, n) => n !== i),
+                      correctOption:
+                        quiz.correctOption === i
+                          ? 0
+                          : quiz.correctOption > i
+                            ? quiz.correctOption - 1
+                            : quiz.correctOption,
+                    })
+                  }
+                >
+                  {`Remove choice ${i + 1}`}
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="secondary-button"
+              disabled={quiz.options.length >= 6}
+              onClick={() => onChange({ ...quiz, options: [...quiz.options, ""] })}
+            >
+              {`Add answer choice (${quiz.options.length}/6)`}
+            </button>
+          </div>
           <Field name={`${path}.correctOption`} label="Correct option" errors={errors}>
             {(attrs) => (
               <select

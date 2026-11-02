@@ -2,7 +2,8 @@
 
 This is an unfinished local application. Authentication, event publication,
 wallet connections, funding and transfers are unavailable. Approved scope is
-F1–F4 and the event-draft subset of I3; see [the plan](plan.md).
+the larger halfway implementation goal; see [the plan](plan.md). Implemented and
+verified capabilities are recorded separately from that authorization.
 
 ## Runtime and dependencies
 

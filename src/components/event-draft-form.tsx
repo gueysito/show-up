@@ -10,6 +10,8 @@ import {
 } from "../domain/event-draft";
 import { DetailsFields, CommitmentFields, ParticipationFields } from "./event-fields";
 import { RulePreview } from "./rule-preview";
+import { SaveConfirmation } from "./save-confirmation";
+import { errorFieldLabel } from "./field";
 
 type SavedDraft = { id: string; revision: number; data: EventDraft; updatedAt: string };
 type SaveRequest = { id: string; revision: number; operationId: string; data: EventDraft };
@@ -25,6 +27,9 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
   const [status, setStatus] = useState("");
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmation, setConfirmation] = useState<EventDraft | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
   const pending = useRef<SaveRequest | null>(null);
   const dirty = snapshot !== JSON.stringify(draft);
 
@@ -34,6 +39,7 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
     if (!response.ok) throw new Error(result.error ?? "Storage unavailable.");
     setSaved(result.drafts);
     setReady(true);
+    return result.drafts as SavedDraft[];
   }
 
   useEffect(() => {
@@ -60,11 +66,13 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
 
   function showErrors(next: DraftErrors) {
     setErrors(next);
+    setShowValidation(true);
     requestAnimationFrame(() => document.getElementById("draft-errors")?.focus());
   }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    setConfirmation(null);
     const result = validateDraft(draft);
     if (!result.ok) {
       showErrors(result.errors);
@@ -72,6 +80,7 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
       return;
     }
     setErrors({});
+    setShowValidation(false);
     if (!persistence) {
       setStatus(
         "Draft rules are valid. This preview is not saved; use the isolated local workspace for persistence.",
@@ -97,11 +106,13 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
       const receipt = await response.json();
       if (!response.ok) {
         if (receipt.errors) showErrors(receipt.errors);
+        if (response.status === 409) setConflict(true);
         throw new Error(receipt.error ?? "Save failed. Retry without changing the form.");
       }
       setIdentity({ id: receipt.id, revision: receipt.revision });
       setSnapshot(JSON.stringify(draft));
       pending.current = null;
+      setConfirmation(structuredClone(draft));
       setStatus(
         `Saved locally · revision ${receipt.revision}. This event is unpublished and unfunded.`,
       );
@@ -127,6 +138,9 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
     setSnapshot(item ? JSON.stringify(item.data) : "");
     pending.current = null;
     setErrors({});
+    setShowValidation(false);
+    setConflict(false);
+    setConfirmation(null);
     setStatus(item ? `Loaded saved revision ${item.revision}.` : "New draft. Nothing saved yet.");
     document.getElementById("title")?.focus();
   }
@@ -146,6 +160,9 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
       pending.current = null;
       setSaved([]);
       setErrors({});
+      setShowValidation(false);
+      setConflict(false);
+      setConfirmation(null);
       await loadSaved();
       setStatus("Local workspace cleared. A new empty workspace is ready.");
     } catch {
@@ -206,13 +223,13 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
             </div>
             <nav className="section-nav" aria-label="Draft sections">
               <a href="#details">01 Details</a>
-              <a href="#commitment">02 Commitment</a>
+              <a href="#commitment-section">02 Commitment</a>
               <a href="#participation">03 Participation</a>
             </nav>
             <form noValidate onSubmit={submit} id="event-form" aria-label="Event draft">
-              {Object.keys(errors).length > 0 && (
+              {showValidation && Object.keys(errors).length > 0 && (
                 <div
-                  className="error-summary"
+                  className="error-summary feedback-card"
                   id="draft-errors"
                   tabIndex={-1}
                   role="alert"
@@ -224,10 +241,25 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
                   <ul>
                     {Object.entries(errors).map(([name, message]) => (
                       <li key={name}>
-                        <a href={`#${name}`}>{`${name}: ${message}`}</a>
+                        <a
+                          href={`#${name}`}
+                          onClick={() => {
+                            setShowValidation(false);
+                            requestAnimationFrame(() => document.getElementById(name)?.focus());
+                          }}
+                        >
+                          {`${errorFieldLabel(name)}: ${message}`}
+                        </a>
                       </li>
                     ))}
                   </ul>
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setShowValidation(false)}
+                  >
+                    Return to editing; keep inline errors
+                  </button>
                 </div>
               )}
               <DetailsFields draft={draft} errors={errors} change={change} />
@@ -243,7 +275,7 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
                 <button
                   className="primary-button"
                   type="submit"
-                  disabled={busy || (persistence && !ready)}
+                  disabled={busy || conflict || (persistence && !ready)}
                 >
                   {busy ? "Saving…" : persistence ? "Validate & save draft" : "Check draft rules"}
                   <span aria-hidden="true">↗</span>
@@ -251,6 +283,56 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
                 <p className="hint">No publication, wallet action or funding takes place.</p>
               </div>
             </form>
+            {!showValidation && Object.keys(errors).length > 0 && (
+              <button type="button" className="text-button" onClick={() => showErrors(errors)}>
+                Review validation errors
+              </button>
+            )}
+            {conflict && (
+              <section
+                className="error-summary feedback-card"
+                role="alert"
+                aria-label="Newer saved draft"
+              >
+                <h2>A newer saved version exists</h2>
+                <p>Your edits are preserved here. The newer save has not been overwritten.</p>
+                <p>
+                  Reloading asks before discarding your unsaved edits. Cancel to keep them for
+                  reference.
+                </p>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    try {
+                      const items = await loadSaved();
+                      const latest = items.find((item) => item.id === identity?.id);
+                      if (latest) openDraft(latest);
+                      else
+                        setStatus(
+                          "Saved draft unavailable. Your edits remain; reconnect or start a new draft.",
+                        );
+                    } catch {
+                      setStatus(
+                        "Could not reload storage. Your edits remain; retry when connected.",
+                      );
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  Load newer saved version
+                </button>
+                <button type="button" className="text-button" onClick={() => setConflict(false)}>
+                  Keep my edits for reference
+                </button>
+              </section>
+            )}
+            {confirmation && (
+              <SaveConfirmation draft={confirmation} onClose={() => setConfirmation(null)} />
+            )}
             {persistence && (
               <section className="saved-panel" aria-label="Saved drafts">
                 <h2>In this browser workspace</h2>

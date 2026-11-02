@@ -577,6 +577,46 @@ main {
     font-size: 8px;
   }
 }
+.feedback-card {
+  position: fixed;
+  z-index: 30;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(600px, calc(100vw - 24px));
+  max-height: 55vh;
+  overflow: auto;
+  padding: 20px;
+  border: 2px solid #a32222;
+  border-radius: 8px;
+  background: #fff0f0;
+  color: #751616;
+  box-shadow: 0 8px 30px #0003;
+  overflow-wrap: anywhere;
+}
+.feedback-card h2 {
+  font-size: 22px;
+}
+.feedback-card button {
+  min-height: 44px;
+}
+.save-confirmation {
+  border-color: #365927;
+  background: #eef7e7;
+  color: #243a19;
+}
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.choice-row .field {
+  flex: 1;
+  min-width: 0;
+}
+.choice-row button {
+  min-height: 44px;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

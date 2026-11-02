@@ -174,13 +174,16 @@ export function validateDraft(input: unknown, now = Date.now()): DraftValidation
         quiz.options.some((option) => typeof option !== "string" || option.length > 200)
       ) {
         errors[`${prefix}.options`] = "Use at most six options, each up to 200 characters.";
-      } else if (
-        quiz.type === "choice" &&
-        (quiz.options.length < 2 ||
-          quiz.options.some((option) => !option.trim()) ||
-          new Set(quiz.options.map(normalizeAnswer)).size !== quiz.options.length)
-      ) {
-        errors[`${prefix}.options`] = "Enter two to six distinct, nonempty options.";
+      } else if (quiz.type === "choice") {
+        if (quiz.options.length < 2)
+          errors[`${prefix}.options`] = "Add at least two answer choices.";
+        else if (new Set(quiz.options.map(normalizeAnswer)).size !== quiz.options.length)
+          errors[`${prefix}.options`] = "Each answer choice must be distinct; remove duplicates.";
+        quiz.options.forEach((option, i) => {
+          if (!option.trim())
+            errors[`${prefix}.options.${i}`] =
+              `Enter choice ${i + 1} or remove this unused choice.`;
+        });
       }
       if (
         quiz.type === "choice" &&

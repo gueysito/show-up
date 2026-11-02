@@ -4,14 +4,16 @@
 **Product baseline:** 1.0 · **Source prepared:** October 21, 2026 · **Product edition:** November 2, 2026
 
 **Status:** Product requirements. The bounded F1–F4 local foundation is implemented;
-the I3 event-draft subset is approved. Contracts, live integrations and pilot results
+the I3 event-draft subset is implemented. Contracts, live integrations and pilot results
 do not exist. See [current implementation evidence](plan.md).
 
 This product edition preserves the owner's supplied requirements and technical references.
 Accepted choices are identified below; other defaults remain proposals for discussion.
 Requirements and stack selections do not prove working integrations. The current
 authorized work includes the bounded November 2 implementation recorded in the plan.
-Other roadmap work remains unapproved. Source citations retain their original
+The owner additionally authorizes P1–P5, I1–I5, A1–A4 and UX-03–07 through
+milestone 4; the plan owns current status. Later milestones remain unapproved.
+Source citations retain their original
 identifiers; external technical claims must be revalidated when implementation begins.
 
 [ADR-0001](adr/0001-application-and-authentication.md) records the accepted
@@ -681,8 +683,8 @@ Provisional UX targets to measure: visible submission feedback within 300 ms; or
 ### 18.1 Host draft interactions
 
 Accepted by the owner after the November 2, 2026 local walkthrough. These five
-requirements are approved product behavior and remain **not implemented** until
-the linked I3 follow-up in [the plan](plan.md) records passing evidence.
+requirements are approved product behavior. Implementation evidence and remaining
+verification limits live in the linked I3 follow-up in [the plan](plan.md).
 
 | ID | Required behavior |
 | --- | --- |

@@ -21,14 +21,18 @@ test("invalid rules have linked errors, keyboard focus and preserved input", asy
   await expect(save).toBeEnabled();
   await page.getByLabel("Event name", { exact: true }).fill("Keep my entries");
   await page.getByLabel("Capacity", { exact: true }).fill("101");
+  await page.getByLabel("Refundable commitment (USDC)", { exact: true }).fill("2.49");
   await save.click();
   const errors = page.getByRole("alert", { name: "Draft validation errors" });
   await expect(errors).toBeFocused();
   await expect(errors).toContainText("Choose a whole number from 1 to 100");
   await expect(page.getByLabel("Event name", { exact: true })).toHaveValue("Keep my entries");
-  await errors.getByRole("link", { name: /capacity:/ }).focus();
+  await errors.getByRole("link", { name: /Capacity:/ }).focus();
   await page.keyboard.press("Enter");
   await expect(page.getByLabel("Capacity", { exact: true })).toBeFocused();
+  await page.getByRole("button", { name: "Review validation errors" }).click();
+  await errors.getByRole("link", { name: /commitment:/ }).click();
+  await expect(page.getByLabel("Refundable commitment (USDC)", { exact: true })).toBeFocused();
 });
 
 test("valid draft persists, reloads, protects a stale tab and clears only its workspace", async ({
@@ -116,6 +120,7 @@ test("network failure preserves the form and a retry keeps the same operation", 
   });
   await page.getByRole("button", { name: "Validate & save draft" }).click();
   await expect(page.getByRole("status")).toContainText(/fetch/i);
+  await expect(page.getByRole("region", { name: "Saved draft confirmation" })).toHaveCount(0);
   await expect(page.getByLabel("Event name", { exact: true })).toHaveValue("Retry this gathering");
   await page.unroute("**/api/dev/drafts");
   page.on("request", (request) => {
@@ -184,4 +189,100 @@ test("phone widths preserve labels, controls and horizontal reflow", async ({ pa
       .evaluate((node) => node.getBoundingClientRect().height);
     expect(height).toBeGreaterThanOrEqual(44);
   }
+});
+
+test("timezone search updates preview and durable save details without moving UTC instants", async ({
+  page,
+}) => {
+  await page.goto("/workbench");
+  await expect(page.getByRole("button", { name: "Validate & save draft" })).toBeEnabled();
+  const draft = await fillDraft(page, "Timezone proof");
+  const zone = page.getByLabel("Event display timezone", { exact: true });
+  await expect(zone).toHaveAttribute("list", "event-timezones");
+  await expect(page.locator('#event-timezones option[value="America/Denver"]')).toHaveCount(1);
+  await zone.fill("America/Denver");
+  await expect(page.getByLabel("Planned start (UTC)", { exact: true })).toHaveValue(
+    draft.startsAt.slice(0, 16),
+  );
+  await page.getByRole("button", { name: "Validate & save draft" }).click();
+  const card = page.getByRole("region", { name: "Saved draft confirmation" });
+  await expect(card).toBeInViewport();
+  await expect(card).toContainText("Commitment: 5 USDC");
+  await expect(card).toContainText("Sponsor budget: 100 USDC");
+  await expect(card).toContainText("America/Denver");
+  await expect(card).toContainText("Unpublished and unfunded");
+  await page.reload();
+  await page.getByRole("button", { name: /Timezone proof Revision 1/ }).click();
+  await expect(zone).toHaveValue("America/Denver");
+  await expect(page.getByLabel("Planned start (UTC)", { exact: true })).toHaveValue(
+    draft.startsAt.slice(0, 16),
+  );
+});
+
+test("choice editor saves two through six choices, repairs selection and names invalid choices", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/workbench");
+  await expect(page.getByRole("button", { name: "Validate & save draft" })).toBeEnabled();
+  await fillDraft(page, "Choice proof");
+  await page.getByRole("button", { name: /Add optional question/ }).click();
+  await page.getByLabel("Question", { exact: true }).fill("Pick the word");
+  await page.getByLabel("Choice 1", { exact: true }).fill("First");
+  await page.getByLabel("Choice 2", { exact: true }).fill("Second");
+  for (const count of [2, 3, 4, 5, 6]) {
+    if (count > 2) {
+      await page.getByRole("button", { name: /Add answer choice/ }).click();
+      await page.getByLabel(`Choice ${count}`, { exact: true }).fill(`Option ${count}`);
+    }
+    await page.getByLabel("Correct option", { exact: true }).selectOption(String(count - 1));
+    await page.getByRole("button", { name: "Validate & save draft" }).click();
+    await expect(page.getByRole("region", { name: "Saved draft confirmation" })).toBeInViewport();
+    await page.getByRole("button", { name: "Close saved details" }).click();
+  }
+  await expect(page.getByRole("button", { name: /Add answer choice/ })).toBeDisabled();
+  await page.getByRole("button", { name: "Remove choice 6", exact: true }).click();
+  await expect(page.getByLabel("Correct option", { exact: true })).toHaveValue("0");
+  await page.getByLabel("Choice 2", { exact: true }).fill(" first ");
+  await page.getByRole("button", { name: "Validate & save draft" }).click();
+  const errors = page.getByRole("alert", { name: "Draft validation errors" });
+  await expect(errors).toBeInViewport();
+  await expect(errors).toContainText("remove duplicates");
+  await page.getByRole("button", { name: "Return to editing; keep inline errors" }).click();
+  await page.getByLabel("Choice 2", { exact: true }).fill("");
+  await page.getByRole("button", { name: "Validate & save draft" }).click();
+  await expect(errors).toContainText("Enter choice 2 or remove");
+  await errors.getByRole("link", { name: /Choice 2:/ }).click();
+  await expect(page.getByLabel("Choice 2", { exact: true })).toBeFocused();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("conflict reload requires explicit discard and preserves the newer save", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/workbench");
+  await expect(page.getByRole("button", { name: "Validate & save draft" })).toBeEnabled();
+  await fillDraft(page, "Conflict proof");
+  await page.getByRole("button", { name: "Validate & save draft" }).click();
+  await expect(page.getByRole("status")).toContainText("revision 1");
+  await page.getByRole("button", { name: "Close saved details" }).click();
+  const stale = await context.newPage();
+  await stale.goto("/workbench");
+  await stale.getByRole("button", { name: /Conflict proof Revision 1/ }).click();
+  await stale.getByLabel("Event name", { exact: true }).fill("Unsaved reference");
+  await page.getByLabel("Event name", { exact: true }).fill("Newer durable version");
+  await page.getByRole("button", { name: "Validate & save draft" }).click();
+  await expect(page.getByRole("status")).toContainText("revision 2");
+  await stale.getByRole("button", { name: "Validate & save draft" }).click();
+  await expect(stale.getByRole("alert", { name: "Newer saved draft" })).toBeInViewport();
+  stale.once("dialog", (dialog) => dialog.dismiss());
+  await stale.getByRole("button", { name: "Load newer saved version" }).click();
+  await expect(stale.getByLabel("Event name", { exact: true })).toHaveValue("Unsaved reference");
+  stale.once("dialog", (dialog) => dialog.accept());
+  await stale.getByRole("button", { name: "Load newer saved version" }).click();
+  await expect(stale.getByLabel("Event name", { exact: true })).toHaveValue(
+    "Newer durable version",
+  );
+  await expect(stale.getByRole("alert", { name: "Newer saved draft" })).toHaveCount(0);
 });

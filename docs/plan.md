@@ -2,12 +2,52 @@
 
 This is the single task tracker. Requirements live in [the PRD](prd.md);
 maturity and the next action live in [current state](../CURRENT_STATE.md).
-Owner approval on November 2, 2026 authorizes F1–F4, followed by only the I3
-event-draft interface/validation and isolated development persistence subset.
-The application runs locally. The owner additionally approved recording the
-walkthrough requirements and publishing the existing private GitHub branch on
-November 2. No merge, deployment or further application implementation is
-authorized by that publication request. Other build tasks remain unapproved.
+Owner approval on November 2, 2026 authorizes the larger halfway slice through
+milestone 4: P1–P5, I1–I5, A1–A4 and I3 UX-03–07, preserving F1–F4.
+This supersedes the smaller host-workspace proposal and earlier build warnings
+for these packages. Local application/contracts, disposable sandbox testing and
+project-local tooling are authorized, as are verified private feature-branch
+checkpoints. No merge, public deployment, public-network signing/deployment,
+mainnet spending, paid purchase, external messages or SSH is authorized.
+
+## Active halfway implementation goal
+
+Goal: working, verified milestone-4 journeys, not a percentage claim. Exposure:
+local pilot with fictional data. Existing ADRs and PRD acceptance remain binding.
+Ignored `.agents/runs/showup-halfway/` is the owner-approved evidence location,
+not another tracker.
+
+Execution order and dependencies:
+
+1. Preflight Google/Telegram registrations, callbacks and credential configuration;
+   revalidate Intents, randomness, signing and finality against primary sources.
+2. Implement UX-03–07 and P1 manifests; run actual-browser regression checks.
+3. Implement I1/I2 identities, explicit linking, revocable sessions, bootstrap
+   and atomic invitations, then I3 private drafts/duplication separate from ADR-0003.
+4. Prove P2–P5 in local sandbox first. Public engineering-network signing needs
+   separate bounded approval; live Intents requires approved mainnet funds.
+5. Implement I3 publication gates, I4 commitments and I5 recovery/privacy. P2/G1
+   blocks real-money enrollment; provider status or fixtures cannot create real seats.
+6. Implement A1–A4 on the shared funded-registration/evidence boundary, including
+   principal return/reconciliation for exercised routes and fail-neutral abort.
+7. Verify unit/PostgreSQL/contracts, production build/CI, actual browser journeys,
+   authorization/ID swaps, timing/replay/races, accounting and restart recovery.
+   Separate fixture, sandbox, engineering-network, mainnet and phone evidence.
+
+Acceptance: PRD §18.1 and §20 checks applicable to the named packages. Both social
+providers, all four required networks, both attendance modes and exercised principal
+returns need actual evidence before the full target is complete. Keep unverified
+routes disabled. Rewards/claims/reporting/release in milestones 5–7 remain incomplete.
+Credentials, approved assets/budgets, public signing/deployment and actual-phone
+checks are external gates, never inferred from offline tests.
+
+| Active package | Status | Evidence / next dependency |
+| --- | --- | --- |
+| External preflight | In progress | Starting `4732ee0`; M4/private repo verified; fetched branch 0 ahead/0 behind with no remote changes; unrelated `.codex-attachments/` preserved. |
+| UX-03–07 | Implemented; locally verified | This checkpoint: 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
+| P1–P5 | Approved; pending | Provider revalidation and sandbox proofs precede route activation. |
+| I1–I5 | NEXT | Identity can progress independently of P2; live registrations/credentials required for provider proof. |
+| A1–A4 | Approved; pending | Depends on identities, commitments and shared evidence; owner device gate remains. |
 
 | Approved checkpoint | Status | Evidence |
 | --- | --- | --- |
@@ -35,20 +75,20 @@ manual evidence for these paths, not a claim that every guide variation was test
 
 The owner approved integrating these requirements on November 2, 2026 after
 reviewing the feedback. Requirements live in the PRD; this is the execution
-checklist within existing I3, not a new product stage. **Application implementation
-has not started and requires the next goal's explicit approval.**
+checklist within existing I3, not a new product stage. **Implementation is now
+authorized by the active halfway goal above.**
 
 | Requirement | Work / verification | Status |
 | --- | --- | --- |
-| UX-03: timezone selection | Implement searchable dropdown; browser check that preview changes without shifting stored UTC instants. | Accepted; implementation pending. |
-| UX-04: save confirmation | Implement visible saved-details confirmation; browser check while scrolled down and after failed requests to rule out false success. | Accepted; implementation pending. |
-| UX-05: validation feedback | Implement visible field/reason summary plus linked inline errors; browser/keyboard check with preserved entries. | Accepted; implementation pending. |
-| UX-06: save conflict | Implement prominent recovery warning; two-tab test proves the newer save survives and discard requires explicit choice. | Accepted; implementation pending. |
-| UX-07: question choices | Implement separate choice controls and clear short-answer editing; browser check two, three, four and six choices, targeted errors and correct-answer consistency. | Accepted; implementation pending. |
+| UX-03: timezone selection | Implement searchable dropdown; browser check that preview changes without shifting stored UTC instants. | Implemented; local browser checks pass. |
+| UX-04: save confirmation | Implement visible saved-details confirmation; browser check while scrolled down and after failed requests to rule out false success. | Implemented; local browser checks pass. |
+| UX-05: validation feedback | Implement visible field/reason summary plus linked inline errors; browser/keyboard check with preserved entries. | Implemented; local browser checks pass. |
+| UX-06: save conflict | Implement prominent recovery warning; two-tab test proves the newer save survives and discard requires explicit choice. | Implemented; local browser checks pass. |
+| UX-07: question choices | Implement separate choice controls and clear short-answer editing; browser check two, three, four and six choices, targeted errors and correct-answer consistency. | Implemented; local browser checks pass. |
 
 ### Recommended next bounded goal: invite-only host workspace
 
-**Proposal for owner approval, not execution authorization.** Build a coherent
+**Superseded by the larger halfway goal above.** Historical proposal: build a coherent
 host-access and event-management slice of existing I1/I2/I3 rather than treating
 the five UI fixes as the whole next goal:
 
@@ -97,7 +137,7 @@ The owner requested this sequence for subsequent builds, beginning with the next
 
 The descriptions below retain planning history. Their earlier approval warnings
 apply to that historical checkpoint; the bounded approval above supersedes them
-only for F1–F4 and the named I3 subset. SCOPE-01 is partially resolved by that
+for F1–F4 and the currently authorized P/I/A packages. SCOPE-01 is partially resolved by that
 approval, not completion of all product scoping or the full roadmap.
 
 | ID | Status | Outcome and acceptance | Evidence |

@@ -135,18 +135,25 @@ export function DetailsFields({ draft, errors, change }: Props) {
         {(attrs) => (
           <input
             {...attrs}
+            list="event-timezones"
+            autoComplete="off"
             value={draft.timeZone}
             onChange={(e) => change("timeZone", e.target.value)}
           />
         )}
       </Field>
+      <datalist id="event-timezones">
+        {["UTC", ...Intl.supportedValuesOf("timeZone")].map((zone) => (
+          <option key={zone} value={zone} />
+        ))}
+      </datalist>
     </section>
   );
 }
 
 export function CommitmentFields({ draft, errors, change }: Props) {
   return (
-    <section className="form-section" id="commitment">
+    <section className="form-section" id="commitment-section">
       <div className="section-title">
         <span>02</span>
         <div>

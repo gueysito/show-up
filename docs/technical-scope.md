@@ -4,9 +4,32 @@ Technical sources reviewed October 29, 2026; owner decisions reconciled October 
 It records source-backed constraints and proposals, not a completed integration
 or an approved implementation plan. [The PRD](prd.md) remains the product authority.
 
-November 2 implementation update: F1–F4 and only the I3 draft subset are approved.
+November 2 implementation update: the owner authorizes the larger halfway slice,
+P1–P5, I1–I5, A1–A4 and UX-03–07, preserving F1–F4.
 Current evidence and status live in [the plan](plan.md). Approval statements below
 describe the earlier research checkpoint, not the current bounded authorization.
+
+### Halfway provider preflight, November 2
+
+Revalidated primary documentation, not live capability:
+
+- [Telegram login](https://core.telegram.org/bots/telegram-login) requires a bot,
+  registered allowed origin/redirects and OIDC client credentials. Google requires
+  its own [OAuth client and callback registration](https://developers.google.com/identity/openid-connect/openid-connect).
+  Both live proofs await operator configuration. Request only `openid profile`;
+  no email, phone or messaging permission is required for authentication.
+- [openid-client v6.8.8](https://github.com/panva/openid-client/blob/v6.8.8/docs/functions/enableNonRepudiationChecks.md)
+  supports explicit ID-token signature checks and state/nonce/S256 PKCE; UserInfo
+  remains a separate optional operation. This is the reviewed dependency candidate.
+- [Intents SDK](https://docs.near-intents.org/integration/distribution-channels/1click-api/sdk)
+  explicitly has no testnet. Sandbox receipts cannot qualify a live route.
+- [OutLayer VRF](https://app.outlayer.ai/docs/vrf) binds output to request ID,
+  sender and seed; request ID/sender are injected by its worker. Same-request
+  retrieval, latency and terminal races still need an actual service experiment.
+  New execution IDs cannot be used as recovery attempts.
+
+No provider credentials, public signing, funded requests or new registrations
+were used. The sole tracker records blocked gates and independent local work.
 
 ## Scope confirmed with the owner
 

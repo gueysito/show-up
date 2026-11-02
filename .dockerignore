@@ -1,5 +1,6 @@
 .git
 .agents
+.playwright-mcp
 .codex-attachments
 .next
 .next-dev
