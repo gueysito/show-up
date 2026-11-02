@@ -260,8 +260,21 @@ CLI is installed. An owner-operated, dependency-free Node script is prepared in
 It requires a terminal and explicit typed consent before reading the existing
 dedicated NEAR key locally; it never prints secrets, changes keys or constructs
 transactions. Public Ed25519 and serialization checks passed without opening the
-secret file. Owner approval of this signing method and execution remain pending;
-this is temporary wallet testing, not production authentication implementation.
+secret file. The owner approved and ran the script: ownership verified at
+10:09:32 UTC on November 2, with changed text, nonce, domain, expiry and replay
+rejection. Independent verification of the saved public signature also passed.
+Evidence: `.agents/wallet-tests/near-ownership-result.json`. This is temporary
+wallet testing, not production authentication implementation.
+
+The final native test is prepared in `.agents/wallet-tests/near-transfer.mjs`:
+0.0001 test NEAR to `showup-dev-14989f.testnet` itself, one Transfer action,
+no contract call or key change. Current protocol fees estimate 0.0000446365125
+NEAR, with a 0.0001-NEAR pre-send review ceiling, not an on-chain fee cap.
+The owner must run the script and type the exact transfer confirmation; no
+agent-operated signing is authorized. The script rechecks network, original key,
+balance, nonce and fees, records the transaction ID before sending once, and
+refuses another attempt. Its serializer matches the official near-api-js transfer
+test vector. Signing, receipt verification and final accounting remain pending.
 
 ## Proof-of-work faucet review
 

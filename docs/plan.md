@@ -66,8 +66,9 @@ with a 120000000000-wei fee; finality remains pending. Solana fee-control retest
 preparation uses explicit zero priority fee and checks signed bytes before a
 separate owner-operated broadcast. That retest finalized with unchanged signed
 bytes and a 5000-lamport fee; fee control and balance reconciliation passed.
-NEAR ownership script preparation passed public-only checks; owner authorization
-for this local signing method remains pending. See the wallet guide for evidence
+NEAR owner-operated ownership signing passed at 10:09:32 UTC, including negative
+challenge checks and independent signature verification. A 0.0001-NEAR self-transfer
+is prepared for explicit owner confirmation; execution remains pending. See the wallet guide for evidence
 and limits; no application implementation is claimed.
 
 ## Implementation plan for approval
@@ -376,7 +377,8 @@ mainnet work. Three test groups, in order:
    identity. Wrong nonce/domain, modified text, wrong key and replay must fail.
    No token approvals, transactions or key export to chat. EVM passed November 1
    at 18:33:09 UTC through Rabby on Base Sepolia. Solana passed November 2 at
-   09:37:58 UTC through Phantom; NEAR signing remains pending.
+   09:37:58 UTC through Phantom; NEAR passed November 2 at 10:09:32 UTC through
+   the owner-operated local signer.
 3. **Small transfer and receipt:** prepare a reviewed testnet-only self-transfer
    (native asset) and a small EVM USDC self-transfer, explicitly showing network,
    recipient, amount, estimated fee and before/after balance. Owner approves each
