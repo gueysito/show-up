@@ -338,7 +338,13 @@ application job but stopped before Cargo: Docker rejected four requested CPUs on
 the private runner's two-CPU daemon. The wrapper now requests the smaller of four
 and the daemon's reported capacity. Two/fourteen-CPU command probes, the local
 pinned runtime and Rust formatting verify this tooling correction; remote cold
-compilation remains a separate result.
+compilation remains a separate result. The next cold run passed the CPU guard but
+exposed Linux cache ownership: root with all capabilities dropped cannot bypass
+the runner-owned bind directory's mode. A disposable Linux permission probe confirms
+the failure and the matching-UID success. The wrapper now runs as the invoking
+UID/GID, retaining capability/network restrictions. Locked fetch, Clippy and the
+clock sandbox check verify that correction locally. See Docker's
+[user/capability reference](https://docs.docker.com/engine/containers/run/).
 
 Tested artifact SHA-256:
 

@@ -43,6 +43,7 @@ cpu_limit=$(docker info --format '{{.NCPU}}')
 case "$cpu_limit" in ''|0|*[!0-9]*) echo 'Cannot determine Docker CPU capacity' >&2; exit 1 ;; esac
 if [ "$cpu_limit" -gt 4 ]; then cpu_limit=4; fi
 exec docker run --rm --platform "linux/$contract_arch" --network "$network" --cpus "$cpu_limit" --memory 5g \
+  --user "$(id -u):$(id -g)" \
   --cap-drop ALL --security-opt no-new-privileges --pids-limit 256 \
   --mount "type=bind,src=$contract_root,dst=/work,$source_options" \
   --mount "type=bind,src=$contract_root/.cache,dst=/cache" "$tool_image" "$@"
