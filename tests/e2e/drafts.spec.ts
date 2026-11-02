@@ -276,11 +276,14 @@ test("conflict reload requires explicit discard and preserves the newer save", a
   await expect(page.getByRole("status")).toContainText("revision 2");
   await stale.getByRole("button", { name: "Validate & save draft" }).click();
   await expect(stale.getByRole("alert", { name: "Newer saved draft" })).toBeInViewport();
-  stale.once("dialog", (dialog) => dialog.dismiss());
+  const dismissed = stale.waitForEvent("dialog").then((dialog) => dialog.dismiss());
   await stale.getByRole("button", { name: "Load newer saved version" }).click();
+  await dismissed;
+  await expect(stale.getByRole("button", { name: "Load newer saved version" })).toBeEnabled();
   await expect(stale.getByLabel("Event name", { exact: true })).toHaveValue("Unsaved reference");
-  stale.once("dialog", (dialog) => dialog.accept());
+  const accepted = stale.waitForEvent("dialog").then((dialog) => dialog.accept());
   await stale.getByRole("button", { name: "Load newer saved version" }).click();
+  await accepted;
   await expect(stale.getByLabel("Event name", { exact: true })).toHaveValue(
     "Newer durable version",
   );

@@ -44,9 +44,10 @@ checks are external gates, never inferred from offline tests.
 | Active package | Status | Evidence / next dependency |
 | --- | --- | --- |
 | External preflight | In progress | Starting `4732ee0`; M4/private repo verified; fetched branch 0 ahead/0 behind with no remote changes; unrelated `.codex-attachments/` preserved. |
-| UX-03–07 | Implemented; locally verified | This checkpoint: 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
+| UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
 | P1–P5 | Approved; pending | Provider revalidation and sandbox proofs precede route activation. |
-| I1–I5 | NEXT | Identity can progress independently of P2; live registrations/credentials required for provider proof. |
+| I1 | Code and isolated checks pass; live gate pending | This checkpoint: signed OIDC fixture exchanges, encrypted identities, browser-bound callback replay, linking conflicts, revocable HTTPS sessions and initial-admin bootstrap. 10 unit, 20 integration and 13 Chromium checks pass. Actual Google/Telegram login requires owner registration/configuration; [setup](setup.md#secure-local-identity-setup). |
+| I2–I5 | NOW | Implement invitations/private events independently of live credentials; P2 still blocks real-money enrollment. |
 | A1–A4 | Approved; pending | Depends on identities, commitments and shared evidence; owner device gate remains. |
 
 | Approved checkpoint | Status | Evidence |

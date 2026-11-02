@@ -10,6 +10,8 @@
   },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3100",
+    "auth:prepare": "node --import tsx scripts/prepare-auth.ts",
+    "dev:secure": "node --import tsx scripts/dev-secure.ts",
     "build": "next build && node scripts/prepare-standalone.mjs",
     "start": "node --import tsx scripts/check-config.ts && node .next/standalone/server.js",
     "format": "prettier --write .",
@@ -28,6 +30,7 @@
   "dependencies": {
     "drizzle-orm": "0.45.4",
     "next": "16.4.3",
+    "openid-client": "6.8.8",
     "pg": "8.23.1",
     "pg-boss": "12.38.0",
     "react": "19.3.1",

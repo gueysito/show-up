@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { randomBytes } from "node:crypto";
 
 const containerHarness = process.env.SHOWUP_CONTAINER_E2E === "1";
 
@@ -26,7 +27,17 @@ export default defineConfig({
         HOSTNAME: "127.0.0.1",
         SHOWUP_HARNESS: "1",
         SHOWUP_ORIGIN: "http://127.0.0.1:3101",
+        SHOWUP_AUTH: "1",
+        SHOWUP_AUTH_ORIGIN: "https://localhost:3444",
+        SHOWUP_IDENTITY_KEY: randomBytes(32).toString("hex"),
+        SHOWUP_IDENTITY_INDEX_KEY: randomBytes(32).toString("hex"),
       },
+    },
+    {
+      command: "node --import tsx scripts/local-https.ts 3444 3102",
+      url: "https://localhost:3444/account",
+      ignoreHTTPSErrors: true,
+      reuseExistingServer: false,
     },
     ...(containerHarness
       ? []

@@ -211,6 +211,9 @@ export function EventDraftForm({ persistence = false }: { persistence?: boolean 
             <span> Authentication, publication and funding are unavailable.</span>
           </p>
         </div>
+        <p>
+          <Link href="/account">Account and host access</Link>
+        </p>
         <div className="workspace-grid">
           <div className="editor-column">
             <div className="editor-topline">

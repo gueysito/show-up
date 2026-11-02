@@ -1,7 +1,8 @@
 # ADR-0001: Application framework and authentication
 
 Status: Accepted by the owner on October 29, 2026. Local framework foundation
-implemented November 2; authentication is not implemented.
+implemented November 2. Identity/session/linking code has isolated protocol,
+database and browser evidence; live provider verification remains pending.
 
 ## Decision
 
@@ -16,8 +17,9 @@ The compatibility review established a viable protocol path. Building and testin
 login, sessions, and linking is normal implementation work, not an unresolved
 stack decision. Hosting was subsequently settled as Railway with Docker Compose
 local setup in [PRD section 16.5](../prd.md#165-runtime-and-exposure). Exact versions
-are pinned in the manifest and [setup](../setup.md). Bounded foundation/draft
-implementation is approved; authentication remains outside that authorization.
+are pinned in the manifest and [setup](../setup.md). The expanded November 2
+halfway goal approves identity implementation. Provider registration/credentials
+and live verification remain separate prerequisites.
 
 ## Invariants
 
@@ -54,8 +56,9 @@ No additional hosted identity provider is required by this architecture.
 
 ## Verification / guardrails
 
-Source and documentation review used openid-client v6.8.8. No package is installed
-or live login verified. Implementation must test both provider journeys, session
+Implementation pins openid-client v6.8.8 with a reviewed frozen dependency graph.
+Signed OIDC exchanges, database races, encryption and HTTPS session/logout controls
+have isolated fixture evidence. No live login is verified. Both live provider journeys, session
 restoration/revocation, invalid and replayed callbacks, explicit linking,
 conflicting ownership, and phone redirects as described in the technical scope.
 Run dependency and security checks when selecting and implementing exact versions.

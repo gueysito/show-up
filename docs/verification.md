@@ -1,8 +1,47 @@
 # Test the local event-draft workspace
 
 The larger halfway goal is active and incomplete. UX-03–07 are implemented;
-identity, funding, publication, contracts and attendance are not yet available.
+live identity, funding, publication, contracts and attendance are not yet verified.
 The original foundation walkthrough below remains useful historical evidence.
+
+## Identity checkpoint, November 2
+
+Implementation: encrypted issuer/subject mappings, browser-bound one-use
+state/nonce/S256 PKCE, pinned provider issuers and ID-token signature checking,
+explicit linking, opaque revocable Secure/HttpOnly sessions and closed-after-first-use
+local admin bootstrap. Live provider registration/login is **not verified**.
+
+Checks: 10 unit, 20 integration and 13 Chromium tests pass; format/lint/types,
+production build, frozen install, seven-day supply-chain check and runtime audit
+(0 advisories) pass. Full audit has the same 17 moderate development-tool findings.
+Signed OIDC tests use a real loopback token/JWKS server and reject signature,
+issuer, audience, expiry, nonce, state and PKCE errors. They are provider fixtures.
+PostgreSQL covers concurrent signup, linking ownership/session conflicts,
+callback replay, shared limits, session expiry/revocation and atomic bootstrap.
+
+Browser evidence uses an explicitly preauthenticated fictional database session
+on local HTTPS to exercise actual account refresh/logout controls. It does not
+simulate a provider in the application or prove signup. The test checks both real
+provider buttons remain disabled without configuration. Screenshot:
+`.agents/runs/showup-halfway/evidence/account-fixture.png`.
+
+Security review traced origin/Host/CSRF enforcement, no GET login mutation,
+fixed callbacks, callback replay, explicit linking, encrypted private records,
+parameterized SQL, no provider-token retention/logging, opaque cookies, revocation,
+error redaction, provider disablement and separate anonymous workspace access.
+The initial browser failure reproduced `Origin: null` on a plain form under
+`no-referrer`; application pages now use `same-origin`, callbacks keep
+`no-referrer`, and browser regression proves logout plus hostile-origin rejection.
+Request/browser logging is disabled to keep OAuth callback queries out of dev logs.
+A skeptical second read found no additional blocker in these implemented surfaces.
+Uploads, payments, attendance and hosted ingress remain unimplemented/unreviewed.
+
+Rollback evidence: archived `770424a` startup check passes against the upgraded
+disposable test database; migration 003 adds tables without changing existing
+ones. Existing draft/restart scenarios remain passing. No production DB is used.
+The secure local setup is [documented](setup.md#secure-local-identity-setup).
+Owner-controlled provider registrations, actual callbacks/linking and phone return
+remain required. Never treat these fixtures as a passed G5 or halfway gate.
 
 ## Halfway UX checkpoint, November 2
 

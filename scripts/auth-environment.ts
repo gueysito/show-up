@@ -1,0 +1,39 @@
+import { lstat, readFile } from "node:fs/promises";
+
+const names = new Set([
+  "SHOWUP_ENV",
+  "DATABASE_URL",
+  "SHOWUP_AUTH",
+  "SHOWUP_AUTH_ORIGIN",
+  "SHOWUP_IDENTITY_KEY",
+  "SHOWUP_IDENTITY_INDEX_KEY",
+  "SHOWUP_GOOGLE_CLIENT_ID",
+  "SHOWUP_GOOGLE_CLIENT_SECRET",
+  "SHOWUP_TELEGRAM_CLIENT_ID",
+  "SHOWUP_TELEGRAM_CLIENT_SECRET",
+]);
+
+export function parseAuthEnvironment(text: string) {
+  const result: Record<string, string> = {};
+  for (const [index, line] of text.split(/\r?\n/).entries()) {
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    const match = /^(?:export )?([A-Z][A-Z0-9_]*)=(.*)$/.exec(line);
+    if (!match || !names.has(match[1]) || Object.hasOwn(result, match[1]) || line.includes("\0"))
+      throw new Error(`Invalid credential configuration at line ${index + 1}`);
+    let value = match[2].trim();
+    if (value.startsWith('"') || value.startsWith("'")) {
+      if (value.length < 2 || value.at(-1) !== value[0])
+        throw new Error(`Invalid credential configuration at line ${index + 1}`);
+      value = value.slice(1, -1);
+    }
+    result[match[1]] = value;
+  }
+  return result;
+}
+
+export async function loadAuthEnvironment(path = ".env.auth") {
+  const info = await lstat(path);
+  if (!info.isFile() || info.uid !== process.getuid?.() || info.mode & 0o077 || info.size > 16384)
+    throw new Error("Credential file must be an owner-only regular file of at most 16 KiB");
+  return parseAuthEnvironment(await readFile(path, "utf8"));
+}

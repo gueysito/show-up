@@ -7,6 +7,7 @@ const config: NextConfig = {
   distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  logging: { incomingRequests: false, browserToTerminal: false },
   serverExternalPackages: ["pg", "pg-boss"],
   async headers() {
     return [
@@ -14,7 +15,7 @@ const config: NextConfig = {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Referrer-Policy", value: "same-origin" },
           { key: "X-Frame-Options", value: "DENY" },
         ],
       },

@@ -51,6 +51,53 @@ enforcement includes long-line, statement-chain and JSX density rejection probes
 `npm run check` performs formatting, lint, types and unit tests. Database,
 worker and browser checks use the disposable resources below.
 
+## Secure local identity setup
+
+Identity code is implemented; live Google/Telegram registration and login remain
+unverified. This starts only a local application and never creates provider accounts
+or sends messages. Use fictional test accounts until the provider gate passes.
+
+1. Run `npm run auth:prepare`. It creates ignored `.env.auth` with mode 600,
+   fresh separate encryption/index keys, a local development database and empty
+   provider fields. It refuses to overwrite an existing file. Do not print or
+   copy this file into chat, logs, Git or container images.
+2. Open `nano .env.auth`. Fill `SHOWUP_GOOGLE_CLIENT_ID` and
+   `SHOWUP_GOOGLE_CLIENT_SECRET`, and/or `SHOWUP_TELEGRAM_CLIENT_ID` and
+   `SHOWUP_TELEGRAM_CLIENT_SECRET`, through the provider's interactive setup.
+   Keep each key/value on one line. `export NAME=value` is also accepted.
+   The runtime parses allowlisted keys as data, rejects malformed lines by number,
+   and never executes or expands shell text. Never source the file.
+3. Register origin `https://localhost:3443` and exact callbacks
+   `https://localhost:3443/api/auth/callback/google` and
+   `https://localhost:3443/api/auth/callback/telegram` with the respective providers.
+   If a provider rejects loopback callbacks, record that restriction; hosting or
+   tunnels are not implicitly approved. Telegram uses OIDC client credentials,
+   not a bot API token. Request only `openid profile`.
+4. Start database/migrations using the normal Compose command, then run
+   `npm run dev:secure`. Open `https://localhost:3443/account`. The local proxy
+   generates a disposable self-signed certificate; accept its local browser warning
+   for testing. No trust-store change is made. Both listeners bind to loopback;
+   3104 is the internal web port. Ctrl+C stops both processes.
+5. Sign in through an actually configured provider. Refresh restores the account;
+   Log out revokes its session. Linking requires the current account session and
+   fresh proof of the second identity. Email/username-based merging is absent.
+6. For the initial administrator only, copy the account reference shown after
+   verified sign-in and run the following command, replacing `ACCOUNT_REFERENCE`.
+   It loads the same private configuration parser and works only against the
+   designated disposable local database. Bootstrap closes atomically once an
+   administrator exists; there is no bootstrap HTTP endpoint.
+
+```sh
+node --import tsx scripts/bootstrap-admin.ts ACCOUNT_REFERENCE
+```
+
+The anonymous workspace remains separate and cannot be imported into accounts.
+Session cookies require HTTPS, are HttpOnly/SameSite=Lax and store opaque tokens;
+only hashes reach PostgreSQL. Identity mappings use authenticated encryption and
+a separate keyed index. Preserve both application keys while records exist;
+generating replacements cannot recover encrypted identities. These are application
+keys, not wallet keys. Isolated fixtures do not prove live login or phone callbacks.
+
 ## Start and stop
 
 For the saved-draft interface, use the opt-in development workspace:
