@@ -2,7 +2,15 @@
 
 This is the single task tracker. Requirements live in [the PRD](prd.md);
 maturity and the next action live in [current state](../CURRENT_STATE.md).
-No implementation stages are approved yet.
+Owner approval on November 2, 2026 authorizes F1–F4, followed by only the I3
+event-draft interface/validation and isolated development persistence subset.
+All work stays local and unpublished. Other tasks remain proposed and unapproved.
+
+| Approved checkpoint | Status | Evidence |
+| --- | --- | --- |
+| F1 | Complete | Exact manifest/lockfile, npm seven-day gate, blocked lifecycle scripts, registry/integrity check; zero high/critical advisories, zero runtime advisories. Format/lint/typecheck, configuration unit test and production shell build. This checkpoint's commit identifies the code revision. [Setup](setup.md). |
+| F2–F4 | NOW | Local topology, migrations, worker recovery and integrated checks are next. |
+| I3 subset | NEXT | Only draft interface, validation and isolated local persistence after F1–F4. Authentication, funding, immutable publication and integrations remain incomplete. |
 
 | ID | Status | Outcome and acceptance | Evidence |
 | --- | --- | --- | --- |

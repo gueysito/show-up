@@ -1,0 +1,16 @@
+.standards/
+.githooks/
+.agents/
+.codex-attachments/
+.next/
+node_modules/
+package-lock.json
+next-env.d.ts
+playwright-report/
+test-results/
+docs/prd.md
+docs/plan.md
+docs/technical-scope.md
+docs/development-wallets.md
+docs/adr/0001-application-and-authentication.md
+docs/adr/0002-nft-custody.md

@@ -9,9 +9,9 @@ The initial audience is wallet-familiar communities running X Spaces and small
 in-person events. The proposed product is a responsive website with optional
 PWA installation and Telegram reminders. Event audio stays on its existing platform.
 
-**Status: product scoping.** This repository contains requirements and working
-conventions. There is no runnable application, deployed contract, or validated
-integration. No dependencies need to be installed to review the product.
+**Status: local implementation in progress.** The bounded F1–F4 foundation and
+I3 event-draft interface are approved. There is no deployed contract or validated
+authentication/payment integration. See [local setup](docs/setup.md).
 
 ## Start here
 

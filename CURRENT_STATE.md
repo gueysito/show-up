@@ -1,42 +1,24 @@
 # Current state
 
-Users cannot yet create events, commit funds, or check in; Showup is in product scoping.
+Showup has a verified local application shell; event creation, login and payments are not yet available.
 
 ## Available
 
-- Product requirements with journeys, accounting rules, technical gates, and acceptance criteria.
-- A human and agent front door, one task tracker, and repository commit checks.
-- [Technical scope](docs/technical-scope.md) with platform documentation and open decisions.
-
-## Not implemented or validated
-
-- Application, contracts, authentication, payments, Telegram bot, and host reports.
-- Cross-chain funding and payout authorization, randomness proof, phone behavior,
-  identity isolation, and deployment networks.
-- Pilot outcomes, attendance lift, repeat use, and willingness to pay.
+- Accepted PRD and two ADRs; one task tracker and existing standards/hooks.
+- F1: pinned Node LTS/dependencies, blocked install scripts, release-age/integrity checks.
+- Format, lint, typecheck, configuration unit test and production shell build pass.
+- [Setup](docs/setup.md) records dependency and runtime limits.
 
 ## Next action
 
-Continue the [initial wallet test sequence](docs/plan.md#initial-wallet-test-sequence).
-Read-only network/funding checks and EVM/Solana/NEAR signing control passed.
-Base Sepolia native and USDC self-transfers are
-finalized with reconciled balances/fees. The Solana devnet self-transfer finalized,
-but Phantom added priority fees above the review ceiling. A controlled retest
-finalized with unchanged signed bytes and a 5000-lamport fee, passing the ceiling.
-Ethereum Sepolia native execution/accounting passed; finality remains pending.
-NEAR native self-transfer finalized with matching receipts from two providers;
-amount and fee reconciliation passed. No further wallet signatures are needed.
-Next: read-only Ethereum finality recheck, then owner review of implementation approval.
-[Wallet guide](docs/development-wallets.md) records funded
-accounts, private-key storage boundary and isolated browser setup. Current work
-covers wallet preparation and test planning; application implementation, automated
-private-key signing, mainnet spending and deployment still need explicit approval.
-The detailed build plan and both accepted ADRs remain the engineering baseline.
+Implement F2–F4, then only I3 event-draft UI, validation and isolated development persistence.
+The owner approved this bounded local implementation on November 2, 2026.
+All work remains local and unpublished; other roadmap tasks need further approval.
 
-Next.js/Node.js, openid-client, PostgreSQL sessions, Docker Compose local setup,
-and Railway hosting are accepted. The initial hosted product uses invitation-only
-mainnet access with reduced testing deposits and bounded funds. No visitor-facing
-simulation or separate testnet experience is planned; engineering tests still use
-sandbox/testnets. Both attendance modes and NFT support on NEAR, Base, Solana,
-and Ethereum are required. Product rules are recorded in the PRD; implementation,
-spending, deployment, and public access remain unapproved.
+## Not implemented or validated
+
+Authentication, invitations, funding, contracts, attendance, rewards and hosted operations.
+No complete host/attendee journey or production security validation is claimed.
+Wallet ownership and Base/Solana/NEAR self-transfer checks passed; Ethereum execution/accounting passed,
+with read-only finality still pending. No further signing is authorized or needed.
+See [the plan](docs/plan.md) and [wallet evidence](docs/development-wallets.md).
