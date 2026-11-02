@@ -45,10 +45,10 @@ checks are external gates, never inferred from offline tests.
 | --- | --- | --- |
 | External preflight | In progress | Starting `4732ee0`; M4/private repo verified; fetched branch 0 ahead/0 behind with no remote changes; unrelated `.codex-attachments/` preserved. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | NOW | Public manifest and local contract/sandbox proofs next. Intents token list/Circle token identities revalidated read-only; no route qualified. Host Rust 1.88 is below current SDK MSRV; prepare pinned project-local toolchain rather than changing the workstation. |
+| P1–P5 | NOW | This checkpoint: versioned mainnet/engineering manifests, exact chain/token/decimals/provider-asset checks (12 unit tests total); no route qualified. Circle/Intents identities and public RPC chain/genesis reads revalidated. Signer hashes, observer keys/provider pairs and live proofs remain gates. P2 sandbox next using pinned project-local Rust, without changing the workstation. [Evidence](verification.md#protocol-manifest-checkpoint-november-2). |
 | I1 | Code and isolated checks pass; live gate pending | `a1ea340` (private CI passed): signed OIDC fixture exchanges, encrypted identities, browser-bound callback replay, linking conflicts, revocable HTTPS sessions and initial-admin bootstrap. 10 unit, 20 integration and 13 Chromium checks pass. Actual Google/Telegram login requires owner registration/configuration; [setup](setup.md#secure-local-identity-setup). |
-| I2 | Implemented; isolated verification passes | This checkpoint: admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. Actual provider-to-host journey remains gated by I1 live setup. |
-| I3 | Private draft management verified; publication incomplete | This checkpoint: own-account list/save/reopen, stale-write rejection, independent unfunded duplication and material-term lock/description-only correction. Published-state checks use an explicit engineering fixture, not funded publication. 10 unit, 29 integration and 15 distinct Chromium scenarios covered; [evidence](verification.md#invitation-and-private-event-checkpoint-november-2). |
+| I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. Actual provider-to-host journey remains gated by I1 live setup. |
+| I3 | Private draft management verified; publication incomplete | `ac19b14` (private CI passed): own-account list/save/reopen, stale-write rejection, independent unfunded duplication and material-term lock/description-only correction. Published-state checks use an explicit engineering fixture, not funded publication. 10 unit, 29 integration and all 15 Chromium scenarios pass; [evidence](verification.md#invitation-and-private-event-checkpoint-november-2). |
 | I4–I5 | Approved; pending | Wallet, commitments, delivery/recovery and privacy remain; P2/G1 blocks real-money enrollment. |
 | A1–A4 | Approved; pending | Depends on identities, commitments and shared evidence; owner device gate remains. |
 
@@ -146,7 +146,7 @@ approval, not completion of all product scoping or the full roadmap.
 | ID | Status | Outcome and acceptance | Evidence |
 | --- | --- | --- | --- |
 | REPO-01 | Complete | Private `gueysito/show-up` repository; navigable front door; product-only requirements; active commit template and checks; no application implementation. | [README](../README.md), [agent instructions](../AGENTS.md), [standards](../.standards/README.md). Initial commit verification covers links, scope, baseline checks, and rejection of an incomplete commit message. |
-| SCOPE-01 | NOW | Discuss audience, full event loop, proposed economic defaults, integration gates, and evidence needed to assess product-market fit. Completion requires the owner's recorded decisions before an implementation plan is approved. | [Technical scope](technical-scope.md) records platform evidence, confirmed pilot/streak/network choices, and framework/partner recommendations. Base is the default EVM route; Ethereum remains required. Recommendations are not implementation approval. |
+| SCOPE-01 | Named slice approved; remaining scoping open | November 2 approval authorizes the active halfway slice above. Other product-market fit and later release decisions remain open. | [Technical scope](technical-scope.md) records platform evidence and confirmed choices. Base is the default EVM route; Ethereum remains required. The active package table governs the next implementation action. |
 
 SCOPE-01 evidence: the [framework compatibility review](technical-scope.md#framework-compatibility-review)
 confirms framework-independent wallet paths and documents the Better Auth /
@@ -220,7 +220,7 @@ This expands the existing seven proposed outcomes into executable milestones;
 it does not create a second tracker or authorize implementation/deployment.
 Owner accepted contract-enforced custody. [ADR-0002](adr/0002-nft-custody.md)
 records the accepted contract-control and platform-attested observation model.
-Planning work is complete for this checkpoint; SCOPE-01 remains NOW until review.
+Planning history below predates the November 2 approval; the active package table governs current implementation.
 
 Effort ranges are engineering workdays (roughly six focused hours), not elapsed
 AI execution time or a delivery promise. They include implementation and focused

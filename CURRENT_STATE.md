@@ -11,7 +11,7 @@ private invitations and host management pass isolated-account checks. Funding an
 - I2: role-scoped invitations, explicit consent, atomic redemption and unused-link revocation/expiry.
 - I3 private account drafts: save/reopen/edit/duplicate, ownership checks and locked material terms.
 - 10 unit, 29 integration and 15 distinct Chromium scenarios covered; production/Docker builds pass.
-- Private CI passed at `a1ea340`; newer checkpoint CI is verified after publication.
+- Private CI passed at `ac19b14`, including the full 15-scenario browser suite.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action

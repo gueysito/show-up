@@ -267,6 +267,36 @@ screen-reader/200% browser-zoom and actual-device checks remain for owner review
 This was a scoped local review, not an independent security audit or hosted release
 approval. A broader audit is recommended before hosted exposure.
 
+## Protocol manifest checkpoint, November 2
+
+The versioned [mainnet manifest](../manifests/mainnet.v1.json) binds NEAR,
+Base, Ethereum and Solana to exact chain/genesis identities, native Circle USDC,
+decimals, provider asset identifiers, signing domain and finality policy. The
+separate [engineering manifest](../manifests/engineering.v1.json) never qualifies
+a mainnet route. Empty NFT allowlists and missing provider/observer configuration
+keep affected routes disabled.
+
+Primary-source revalidation: [Circle's contract table](https://developers.circle.com/stablecoins/usdc-contract-addresses),
+the public [1Click token list](https://1click.chaindefuser.com/v0/tokens),
+[1Click's explicit no-testnet statement](https://docs.near-intents.org/integration/distribution-channels/1click-api/sdk),
+and [Chain Signatures contracts](https://docs.near.org/chain-abstraction/chain-signatures/implementation).
+Public RPC reads at 18:32:02–18:32:06 UTC confirmed Base 8453, Ethereum 1,
+NEAR mainnet and the distinct Solana mainnet/devnet genesis hashes. No wallet,
+secret, balance or transaction signing was involved. Token-list timestamp and
+SHA-256 are in the manifest; they identify the observed response, not an escrow receipt.
+
+`npm run check` passes: formatting, lint, types and 12 unit tests. New hostile
+vectors reject wrong environment/revision/chain/token/decimals/provider asset,
+cross-EVM token substitution and Solana cluster substitution. Funding admission
+always rejects unqualified routes. This is metadata/admission evidence only.
+No sandbox, engineering-network, mainnet funding, draw recovery, custody delivery
+or phone gate passes from these tests. Signer code hashes, pinned event keys,
+independent observer RPC pairs and actual protocol traces remain incomplete.
+
+The previous `ac19b14` private CI passed the full 15-browser-scenario suite,
+29 PostgreSQL tests and production/container checks:
+[CI receipt](https://github.com/gueysito/show-up/actions/runs/41501064513).
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

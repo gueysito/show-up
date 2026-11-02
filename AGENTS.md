@@ -17,7 +17,7 @@ Owner authorization on November 2, 2026 covers F1–F4 and the I3 event-draft
 interface, validation and isolated local persistence subset. The owner additionally
 approved the five walkthrough requirements, their PRD/plan integration and private
 GitHub branch publication on November 2. Keep application runtime local; no merge
-or deployment is authorized. The owner now explicitly approves UX-03–07, P1–P5,
+or hosted deployment is authorized. The owner now explicitly approves UX-03–07, P1–P5,
 I1–I5 and A1–A4 through milestone 4: local application/contracts, disposable sandbox
 tests and project-local tooling. Preserve the ADRs and all four required networks.
 Keep unverified provider/funding routes disabled. Public-network signing or contract

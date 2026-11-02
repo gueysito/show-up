@@ -1,0 +1,52 @@
+{
+  "revision": "showup-engineering-2026-11-02-v1",
+  "environment": "engineering",
+  "signingDomain": "showup.engineering.authorization.v1",
+  "networks": [
+    {
+      "id": "near",
+      "chainId": "testnet",
+      "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+      "decimals": 6,
+      "explorer": "https://testnet.nearblocks.io",
+      "routeState": "disabled"
+    },
+    {
+      "id": "base",
+      "chainId": "84532",
+      "usdc": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "decimals": 6,
+      "explorer": "https://sepolia.basescan.org",
+      "routeState": "disabled"
+    },
+    {
+      "id": "ethereum",
+      "chainId": "11155111",
+      "usdc": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+      "decimals": 6,
+      "explorer": "https://sepolia.etherscan.io",
+      "routeState": "disabled"
+    },
+    {
+      "id": "solana",
+      "chainId": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "usdc": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      "decimals": 6,
+      "explorer": "https://solscan.io/?cluster=devnet",
+      "routeState": "disabled"
+    }
+  ],
+  "chainSignatures": { "contract": "v1.signer-prod.testnet", "codeHash": null },
+  "toolchain": {
+    "nearSdk": "5.29.1",
+    "rust": "1.93.0",
+    "linuxAmd64Image": "rust:1.93.0-bookworm@sha256:7274e0edb5b47eda8053b350ebf3d489f7e0f65d2d7e77b16076299c7c047c28"
+  },
+  "sources": {
+    "tokens": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+    "sdk": "https://github.com/near/near-sdk-rs/releases/tag/near-sdk-v5.29.1",
+    "msrv": "https://github.com/near/near-sdk-rs/blob/near-sdk-v5.29.1/README.md",
+    "reviewedAt": "2026-11-02"
+  },
+  "limits": "No public-network signing/deployment is authorized. These are engineering identifiers, not a testnet Intents service or qualified funding routes."
+}

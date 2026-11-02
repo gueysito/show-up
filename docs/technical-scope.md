@@ -446,6 +446,16 @@ meet the policy, return with evidence and a revised proposal before funded use.
   separate limits for refundable principal and sponsor rewards. Holding tiny
   balances is useful containment, not a substitute for authorization checks.
 
+### Implemented manifest boundary
+
+The [mainnet](../manifests/mainnet.v1.json) and
+[engineering](../manifests/engineering.v1.json) manifests now record exact network
+and token identities. [Verification](verification.md#protocol-manifest-checkpoint-november-2)
+records primary-source checks and negative admission tests. Every route remains
+disabled pending attributable escrow/authorized-return evidence; metadata is not
+proof of custody. Missing signer hashes, observer keys/provider pairs and NFT
+allowlists remain explicit gaps.
+
 ### Approval boundary
 
 Recommended next review: approve the application-library package and narrow NFT
