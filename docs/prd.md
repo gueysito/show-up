@@ -1,7 +1,7 @@
 # Showup
 ## Product requirements
 
-**Product baseline:** 1.0 · **Source prepared:** October 21, 2026 · **Product edition:** October 31, 2026
+**Product baseline:** 1.0 · **Source prepared:** October 21, 2026 · **Product edition:** November 2, 2026
 
 **Status:** Product requirements. The bounded F1–F4 local foundation is implemented;
 the I3 event-draft subset is approved. Contracts, live integrations and pilot results
@@ -321,6 +321,10 @@ Attendance qualification creates an irrevocable principal refund right. A quiz, 
 ### 11.1 Host controls
 
 Each event has at most two preconfigured quizzes. Host-authored question text, options, accepted answer aliases, planned time, and duration are fixed at publication. Store correct answers privately; a public hash of a short answer is guessable.
+
+The host editor must distinguish multiple choice from short answer and use separate
+fields for individual answer choices. See [host draft interaction requirements](#181-host-draft-interactions)
+for the accepted editor behavior; these requirements do not imply implementation.
 
 Default scheduling is manual with reminder: notify the host two minutes before planned time, then allow “Open quiz.” Windows must fit before the planned end. No automatic opening is required. Unfired questions expire harmlessly at planned end and award nothing.
 
@@ -674,6 +678,24 @@ If Telegram notifications are enabled, run a test notification during onboarding
 
 Provisional UX targets to measure: visible submission feedback within 300 ms; ordinary API acceptance p95 below two seconds under the 100-attendee test load; returning quiz interaction under ten seconds in observed phone tests. Chain confirmations and push delivery have separate measured latencies and are not covered by those targets. Never show a success animation as a substitute for confirmation.
 
+### 18.1 Host draft interactions
+
+Accepted by the owner after the November 2, 2026 local walkthrough. These five
+requirements are approved product behavior and remain **not implemented** until
+the linked I3 follow-up in [the plan](plan.md) records passing evidence.
+
+| ID | Required behavior |
+| --- | --- |
+| UX-03 | Offer a searchable timezone dropdown with readable IANA names. Selecting the event display timezone updates the preview without changing the saved UTC start/end instants. Show the selected timezone alongside displayed dates/times. |
+| UX-04 | After the server confirms a durable draft save, show a conspicuous popup/toast or success card visible without scrolling. Say that the draft was saved and summarize the saved commitment amount, sponsor budget, event date and start/end times with their timezone. Distinguish draft saving from event publication or funding; never report success before confirmation. |
+| UX-05 | A rejected save shows a conspicuous red popup/card visible without scrolling, naming each field needing correction and explaining the specific reason in plain language, such as a duration below 30 minutes or a commitment below 2.50 USDC. Keep the red inline field errors, link to the affected controls, and preserve all entered values. |
+| UX-06 | An older-tab save conflict shows a conspicuous red warning/popup explaining that a newer version exists and offering a clear path to reload it. Preserve unsaved edits until the user explicitly chooses to discard them; the older version must never overwrite the newer save. |
+| UX-07 | Multiple choice uses one labeled input per answer choice, with clear add/remove or enable/disable controls and an obvious correct-answer selector. Support the existing two-to-six choice range, including the owner's examples of two, three or four; do not silently reduce the maximum to four. Unused choices are excluded from validation and saved data. Explain missing, duplicate or insufficient choices specifically. Short answer has a separate accepted-answer control and clear instructions. Correct-answer selection must remain valid as choices change. |
+
+Feedback must be readable and announced to assistive technology, usable by keyboard,
+and distinguish success/error through text as well as color. A fleeting notification
+must not be the only way to recover a failure or inspect the saved result.
+
 ## 19. Host report and pilot measurement
 
 Report values show an as-of timestamp/block and clearly distinguish provisional, allocated, and delivered results.
@@ -740,6 +762,11 @@ No live wallet, phone, or cross-chain integration was validated merely by prepar
 | PRIV-01 | Public logs, host export, other user API | No social-wallet directory; permissions and redaction enforced |
 | UX-01 | Refresh, wallet return, weak network | Restore state; no repeated funding or phantom answer success |
 | UX-02 | Audio + notification | Measured device behavior; quiz does not intentionally claim audio focus |
+| UX-03 | Search and select event timezone | Searchable dropdown; preview converts correctly while UTC schedule instants remain unchanged |
+| UX-04 | Successful draft save while scrolled down | Visible, accessible confirmation only after durable save, with saved amounts/date/times/timezone and accurate draft wording |
+| UX-05 | Invalid draft save while scrolled down | Visible red feedback names fields and reasons, links controls, preserves inputs and retains inline errors |
+| UX-06 | Older tab attempts to save | Visible conflict warning; latest save survives; reload/discard behavior is explicit and recoverable |
+| UX-07 | Configure multiple-choice and short-answer questions | Separate choice fields, two-to-six active choices, clear correct-answer selection and targeted errors; short-answer controls remain distinct |
 | INVITE-01 | Concurrent/expired/revoked invitation | One account receives role; no reuse, escalation, or budget bypass |
 | NFT-01 | Publish and receive prize on each supported chain | Confirm custody before publication; correct asset delivered only to bound eligible winner |
 | NFT-02 | Cancellation/expiry/decline exhaustion | Return to contributor once; accepted or uncertain transfers cannot be reclaimed |

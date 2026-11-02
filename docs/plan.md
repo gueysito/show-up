@@ -4,21 +4,96 @@ This is the single task tracker. Requirements live in [the PRD](prd.md);
 maturity and the next action live in [current state](../CURRENT_STATE.md).
 Owner approval on November 2, 2026 authorizes F1–F4, followed by only the I3
 event-draft interface/validation and isolated development persistence subset.
-All work stays local and unpublished. Other tasks remain proposed and unapproved.
+The application runs locally. The owner additionally approved recording the
+walkthrough requirements and publishing the existing private GitHub branch on
+November 2. No merge, deployment or further application implementation is
+authorized by that publication request. Other build tasks remain unapproved.
 
 | Approved checkpoint | Status | Evidence |
 | --- | --- | --- |
 | F1 | Complete | `eb42d64`: exact manifest/lockfile, seven-day gate, blocked lifecycle scripts; zero high/critical and zero runtime advisories. Format/lint/types, configuration unit test and shell production build pass. [Setup](setup.md). |
 | F2 | Complete | Digest-pinned Node/PostgreSQL images; health/migration-ordered Compose starts, restarts, stops and resumes on M4. Published ports verified as loopback; startup rejects unsupported configuration. This checkpoint's commit plus [verification](verification.md) identify evidence. |
 | F3 | Complete | Seven real PostgreSQL integration checks pass: concurrent/checksummed migrations, DDL rollback, SIGKILL before/after writer commit and worker effects, atomic dispatch rollback, concurrent logical effect deduplication and bounded dead-letter retries. [Verification](verification.md). |
-| F4 | Complete | Format/lint/types, unit/integration, Chromium production smoke and Docker build pass; frozen-install CI defined with pinned actions and no provider secrets. CI has not run remotely because publication is prohibited. [Setup](setup.md). |
+| F4 | Complete locally | Format/lint/types, unit/integration, Chromium production smoke and Docker build pass; frozen-install CI defined with pinned actions and no provider secrets. Remote CI is a separate check after the newly authorized branch publication. [Setup](setup.md). |
 | I3 subset | Complete | `faa05ff`: draft UI, shared validation, transactional persistence, private workspaces and revision/replay checks. Seven unit, twelve integration and eight browser tests pass, including actual Compose persistence/restart. A tracked-only archive of `faa05ff` starts with a new database and passes interactive save/reload/clear; production refuses the workspace with 404. [Review guide](verification.md), [isolation decision](adr/0003-local-draft-workspace.md). Full I3 authentication, funding, immutable publication and integrations remain incomplete. |
+| Walkthrough requirements | Recorded; implementation pending | This checkpoint's commit incorporates the owner's five accepted requirements into [PRD §18.1](prd.md#181-host-draft-interactions) and the I3 follow-up below. Standards and whitespace checks verify the documentation; no UI fix is claimed. |
 
 Bounded implementation exit verified November 2, 2026: F1–F4 and the approved I3
-subset are complete locally. No scoped blocker remains. Next action is owner
-testing via the review guide; further roadmap implementation needs approval.
-The final receipt commit updates this row/current state without changing the tested
-application source. No push, merge or deployment occurred; repository remains private.
+subset are complete locally. No scoped blocker remains. The owner completed the
+guided test paths below; next action is review/approval of the recommended larger
+goal. The original exit receipt was local-only; the owner now authorizes publishing
+that implementation and these requirements to the existing private branch.
+
+Owner-guided local browser checks, November 2, 2026: save/refresh/reopen,
+older-tab conflict/reload, invalid capacity and commitment, 29/121-minute rejection
+and 30/120-minute acceptance, Denver preview conversion, NFT/equal-only rejection,
+draw-only save, in-person preview and two-question cap passed the exercised paths.
+Workspace clearing showed an empty form/list and its success message. This is
+manual evidence for these paths, not a claim that every guide variation was tested.
+
+### I3 follow-up: accepted walkthrough requirements
+
+The owner approved integrating these requirements on November 2, 2026 after
+reviewing the feedback. Requirements live in the PRD; this is the execution
+checklist within existing I3, not a new product stage. **Application implementation
+has not started and requires the next goal's explicit approval.**
+
+| Requirement | Work / verification | Status |
+| --- | --- | --- |
+| UX-03: timezone selection | Implement searchable dropdown; browser check that preview changes without shifting stored UTC instants. | Accepted; implementation pending. |
+| UX-04: save confirmation | Implement visible saved-details confirmation; browser check while scrolled down and after failed requests to rule out false success. | Accepted; implementation pending. |
+| UX-05: validation feedback | Implement visible field/reason summary plus linked inline errors; browser/keyboard check with preserved entries. | Accepted; implementation pending. |
+| UX-06: save conflict | Implement prominent recovery warning; two-tab test proves the newer save survives and discard requires explicit choice. | Accepted; implementation pending. |
+| UX-07: question choices | Implement separate choice controls and clear short-answer editing; browser check two, three, four and six choices, targeted errors and correct-answer consistency. | Accepted; implementation pending. |
+
+### Recommended next bounded goal: invite-only host workspace
+
+**Proposal for owner approval, not execution authorization.** Build a coherent
+host-access and event-management slice of existing I1/I2/I3 rather than treating
+the five UI fixes as the whole next goal:
+
+1. Finish UX-03–07 and verify them in the real browser.
+2. Implement I1 Google/Telegram sign-in, session restoration/logout and explicit
+   linking under ADR-0001; start with a provider/callback configuration preflight.
+3. Implement the I2 admin-to-host invitation path and its role/expiry/revocation
+   boundaries. Do not mark full I2 complete while attendee event invitations remain.
+4. Extend I3 into private host event listing, create/reopen/edit and duplication
+   into an independent unfunded draft. Keep private answers and other hosts' drafts
+   inaccessible. Preserve the anonymous development workspace's isolation; do not
+   silently turn its cookie into an authenticated identity or import its records.
+
+The next owner-testable journey should be: admin issues a host invitation → invited
+host signs in/redeems → creates, edits and duplicates a draft → logs out/in and
+reopens it. A second account must not access the first host's records. This is
+larger than the first form-only slice while retaining a defined finish line.
+Funding, publication, wallets, attendance, rewards, contracts and hosting remain
+outside this proposed goal; the corresponding full work packages stay incomplete.
+
+Live provider verification needs owner-controlled Google/Telegram registrations,
+approved callback URLs and securely configured credentials. If these are unavailable,
+continue independent UI/database/security work, identify the exact blocked step,
+and keep that provider path disabled. Test-provider fixtures are test evidence only;
+they must not appear as real login in the owner-facing app or pass the live gate.
+The fresh kickoff should explicitly authorize the selected implementation scope
+and goal creation; this documentation task does not start that goal.
+
+### Browser verification before each owner handoff
+
+The owner requested this sequence for subsequent builds, beginning with the next goal:
+
+1. Run the applicable unit, PostgreSQL, integration, production-build and security
+   checks for the changed boundaries, retaining regression evidence for the old slice.
+2. Exercise the new journey in the agent-controlled browser against the actual
+   running application, using isolated test accounts/workspaces. Verify desktop,
+   narrow/mobile layout, keyboard use, failures, refresh/recovery and cross-account
+   access where applicable; retain screenshots/traces for failures and material UI changes.
+3. Report the tested revision, browser, scenarios, pass/fail and exclusions before
+   inviting owner testing. Distinguish live-provider checks from fixtures. Do not
+   report an untested or blocked journey as passed, or imply phone testing from emulation.
+4. Update the existing [review guide](verification.md) with a short **new since the
+   November 2 walkthrough** bullet flow: action → expected visible result, test URL,
+   setup prerequisites and destructive cleanup labels. Present that flow to the
+   owner so the next session tests new behavior rather than repeating the old guide.
 
 The descriptions below retain planning history. Their earlier approval warnings
 apply to that historical checkpoint; the bounded approval above supersedes them
@@ -161,7 +236,8 @@ security claims follow from documentation or a passing unit test alone.
 
 ## How to execute this plan
 
-All tasks below are **planned, not started**. Their IDs decompose the seven existing
+Except for the completed F1–F4 and bounded I3 work recorded above, tasks below
+remain planned. Their IDs decompose the seven existing
 milestones within this sole tracker; they are not new product stages. The PRD is
 requirements authority. ADR-0001 governs authentication; ADR-0002 governs custody.
 Each checkpoint updates this plan with its commit, checks and actual limits.
@@ -258,7 +334,7 @@ Prerequisite: F1–F4. P2 blocks real-money enrollment, not offline implementati
 | --- | --- | --- |
 | I1 Identity/session | Telegram and Google OIDC using openid-client; verified issuer/subject, signatures, state/nonce/PKCE, secure opaque revocable sessions. [DOC8] | Telegram without email works; callback replay, issuer confusion, expired sessions and unsafe redirects fail. No implicit email-based linking. |
 | I2 Roles and invitations | Admin-only host invitations, 15-day unused expiry. Host/admin event invitations expire at registration close. Atomic redemption bound to account; separate message consent. | ID swaps, simultaneous redemption, revoked token, cross-event reuse and self-promotion fail. Redeemed access survives invitation expiry. |
-| I3 Event draft/publish | Mode, capacity up to 100, timing, reward preset, optional questions/NFT, fee and cancellation preview; funding prerequisites and immutable rule hash. | Only harmless copy edits after publication. Duplication creates fresh draft with no funds, attendees or invitations transferred. |
+| I3 Event draft/publish | Draft subset complete; implement [accepted walkthrough follow-up](#i3-follow-up-accepted-walkthrough-requirements) UX-03–07 when authorized. Full scope includes mode, capacity up to 100, timing, rewards, questions/NFT, preview, funding prerequisites and immutable rule hash. | PRD §18.1 browser acceptance for the follow-up. Only harmless copy edits after publication. Duplication creates fresh draft with no funds, attendees or invitations transferred. |
 | I4 Wallet and commitment | Domain-bound signature challenge; authorized destinations and fee caps. Five-minute reservation clipped at close; escrow controls final enrollment. | Wallet replay/changed destination fail; concurrent last-seat race cannot overbook. Expired reservation can enroll only with valid authorization, open registration and space. |
 | I5 Recovery and privacy | Automatic late/full/duplicate return, user release, own-data export/deletion workflow and role-filtered reports. [DOC9] | One refund per liability; unresolved funds survive deletion request. Never expose identity-wallet mappings in logs/on-chain. Closed page remains accessible without enabling deposits. |
 
@@ -317,7 +393,7 @@ integration evidence. Developer convenience must not weaken funded deployment ru
 
 | Task | Output and execution details | Acceptance / failure check |
 | --- | --- | --- |
-| V1 Browser journeys | Independent browser contexts, user-visible locators/assertions, trace failures, no arbitrary sleeps. [DOC11] | New host invitation through funded event; new attendee through check-in/refund/prize; digital and physical cases. |
+| V1 Browser journeys | Independent browser contexts, user-visible locators/assertions, trace failures, no arbitrary sleeps. Apply the [owner-handoff sequence](#browser-verification-before-each-owner-handoff) to each implemented slice. [DOC11] | Agent browser pass before owner testing, plus a short checklist of new behavior. Full release still requires host invitation through funded event and attendee check-in/refund/prize in both modes. |
 | V2 Adversarial review | Role isolation, auth replay, XSS/SSRF metadata handling, rate limits, secret/CORS/CSRF review, contract upgrades and signing-field mutations. | Findings have severity, reachable path, fix and rerun evidence. Security-sensitive failures block affected exposure. |
 | V3 Load and recovery | 100-seat concurrency, worker crashes, provider outages, database restore, dropped/replaced transfers, proof timeout/late callback races. | No overbooking, duplicate payment, competing NFT signatures or false confirmations; record measured latency/gas/cost. |
 | V4 Clean-clone reproduction | Follow setup without author intervention, inspect containers and default network flags, run production build and appropriate checks. | Another operator reproduces the documented outcome; no hidden keys or fake transaction history. |

@@ -3,7 +3,10 @@
 The bounded scope is implemented: F1–F4 and the I3 draft interface, validation and
 isolated local persistence subset. **I3 as a whole and milestone 3 remain incomplete.**
 No complete host journey, authentication, publication, funding or live integration
-is claimed. Everything is local and unpublished on `codex/bounded-foundation-drafts`.
+is claimed. The application runs locally; private GitHub source publication on
+`codex/bounded-foundation-drafts` is now authorized. This walkthrough describes
+the original build. The [accepted UX follow-up and next handoff requirements](plan.md#i3-follow-up-accepted-walkthrough-requirements)
+are pending implementation, not changes already available to test.
 
 ## Open it
 

@@ -11,7 +11,9 @@ PWA installation and Telegram reminders. Event audio stays on its existing platf
 
 **Status: local event-draft workspace.** You can prepare, validate, save and reopen
 drafts with fictional details. F1–F4 and the bounded I3 draft subset are implemented.
-Authentication, publication and funding remain unavailable. Start with the
+Authentication, publication and funding remain unavailable. Five UX improvements
+from the owner's walkthrough are [accepted requirements](docs/prd.md#181-host-draft-interactions),
+pending implementation. Start with the
 [10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).
 
 ## Start here
@@ -46,5 +48,5 @@ Setup activates the commit template and Git checks, preserving any existing
 active hooks. The check should report the front door and baseline as passing.
 See [standards maintenance](.standards/README.md) for scope and provenance.
 
-All product behavior described here is planned. Technical sources in the PRD
-are research references, not evidence that integrations work.
+Implementation evidence is recorded in the plan. Other product behavior remains
+planned; technical sources in the PRD do not prove working integrations.
