@@ -583,6 +583,60 @@ engineering evidence and deployment authority removal. The prototype's execution
 uses disposable sandbox funds. No mainnet asset, provider signature, external custody
 route, fee guarantee or later reward/claim stage is enabled by these tests.
 
+## P5 read-only source comparison checkpoint, November 2
+
+The [candidate registry](../manifests/rpc-candidates.v1.json) names two fixed public
+read sources per required network. Its status is explicitly unqualified. The client
+rejects arbitrary origins, redirects, write methods and raw NEAR state dumps. It
+bounds requests/bodies, request IDs, per-attempt and overall time, and three-attempt
+retry/backoff. Request encoding cannot execute serialization hooks. Large JSON-RPC
+integers retain their original decimal bytes rather than JavaScript rounding; this
+was verified in the pinned Node container as well as unit tests.
+
+Comparison checks chain/genesis identity, fetches each source's finalized head,
+then reads the lower common finalized height/slot from both. It requires the same
+canonical hash, timestamp and Solana block height. Stale/future blocks, wrong chains,
+duplicate source/operator claims or conflicts fail closed. Current technical lag
+bounds are 30 minutes for finalized EVM heads and two minutes for NEAR/Solana; these
+are comparison limits, not an asset/route approval or service guarantee.
+
+Actual public metadata reads at **2026-11-02 21:59:53 UTC** matched all four:
+
+| Network  | Compared finalized height/slot         | Result                    |
+| -------- | -------------------------------------- | ------------------------- |
+| NEAR     | 222778446                              | Matching hash/time        |
+| Base     | 53432988                               | Matching hash/time        |
+| Ethereum | 26329855                               | Matching hash/time        |
+| Solana   | slot 464655171; block height 442676253 | Matching hash/time/height |
+
+The first Ethereum candidate returned HTTP 525 after bounded retries. Its receipt
+is retained in the approved ignored evidence directory; the current candidate uses
+the [documented public dRPC endpoint](https://drpc.org/docs/ethereum-api), and the
+subsequent comparison passed. No account, API key, purchase, wallet/address query,
+signature, broadcast or asset transfer was involved. The successful receipt records
+candidate-manifest canonical SHA-256
+`206bea70efa25ed53c3fc434eb22e9effb8e781673a0f2e39654b5a35348e67d`.
+
+All results keep **independenceVerified / assetEvidence / fundingAllowed false**.
+Different endpoint/operator labels and matching headers do not prove independent
+upstreams, NFT state, receipt attribution or payout completion. P5 signed exact-asset
+observations, contract reconciliation and external-attempt recovery remain next.
+Base's [separate L1/L2 fee components](https://docs.base.org/specifications/transactions/network-fees)
+also remain distinct from P4's gas-envelope bound.
+
+Twenty-six unit tests, format/lint/types and production build pass. Tests exercise
+all four identity/finality branches, hostile identities/time/forks, large integers,
+unsafe serializers, RPC correlation, network/HTTP/JSON-RPC retries and byte limits.
+No contract, schema, UI or auth input changed; the 21-sandbox/29-PostgreSQL/15-Chromium
+evidence from [private CI at f00e47b](https://github.com/gueysito/show-up/actions/runs/41529452668)
+is reused. No signing/observer service is configured or qualified by this checkpoint.
+
+Optional manual read-only reprobe:
+
+```sh
+node --import tsx scripts/probe-rpc-candidates.ts
+```
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

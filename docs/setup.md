@@ -191,6 +191,11 @@ before publication and verify immutable retry/return ownership. Draft cancellati
 and hard-grace recovery return prototype holdings. Rules commitments are recomputed
 from normalized typed terms and deployment context. These are fresh local deployments;
 no production upgrade, collection approval or real winner/fee-reserve flow is implied.
+
+The optional `node --import tsx scripts/probe-rpc-candidates.ts` command only compares
+public mainnet network identities and finalized headers. It cannot sign/broadcast,
+query a wallet or qualify an asset/route. The versioned candidate list and retained
+limits are in [verification](verification.md#p5-read-only-source-comparison-checkpoint-november-2).
 External source funding/delivery remains rejected and app publication remains
 disabled. [Evidence and limits](verification.md#local-contract-checkpoint-november-2).
 
