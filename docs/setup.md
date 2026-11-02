@@ -33,7 +33,7 @@ It requires the public npm registry. esbuild, fsevents and unrs-resolver
 lifecycle scripts remain blocked; platform packages supply the needed binaries.
 No scaffold or downloaded package runner is used.
 
-The baseline audit has **0 high/critical and 17 moderate development advisories**,
+The latest November 2 audit has **0 high/critical and 19 moderate development advisories**,
 all originating in minimatch's glob denial-of-service issue
 [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
 These tooling paths parse repository lint patterns, not event input. The runtime
@@ -67,7 +67,7 @@ or sends messages. Use fictional test accounts until the provider gate passes.
    Keep each key/value on one line. `export NAME=value` is also accepted.
    The runtime parses allowlisted keys as data, rejects malformed lines by number,
    and never executes or expands shell text. Never source the file.
-3. Register origin `https://localhost:3443` and exact callbacks
+3. Follow the provider registration steps below. Register origin `https://localhost:3443` and exact callbacks
    `https://localhost:3443/api/auth/callback/google` and
    `https://localhost:3443/api/auth/callback/telegram` with the respective providers.
    If a provider rejects loopback callbacks, record that restriction; hosting or
@@ -98,6 +98,50 @@ only hashes reach PostgreSQL. Identity mappings use authenticated encryption and
 a separate keyed index. Preserve both application keys while records exist;
 generating replacements cannot recover encrypted identities. These are application
 keys, not wallet keys. Isolated fixtures do not prove live login or phone callbacks.
+
+### Provider registration, owner steps
+
+Owner confirmed November 2 that neither provider is set up. The local private
+configuration already exists on M4; do not regenerate its application keys.
+
+Google, following [Google's OIDC setup](https://developers.google.com/identity/openid-connect/openid-connect):
+
+1. In Google Cloud Console, create/select a Showup development project. Configure
+   the Google Auth Platform branding and audience for your test accounts.
+2. In Clients, create an OAuth client of type **Web application**. Name it
+   `Showup local`. Register this exact authorized redirect URI:
+   `https://localhost:3443/api/auth/callback/google`.
+3. If an authorized JavaScript origin is requested, use `https://localhost:3443`.
+   Showup uses the server code flow with `openid profile`; no other Google API
+   permissions or service-account key is needed.
+4. Enter the client ID and secret in the existing private file using nano,
+   under `SHOWUP_GOOGLE_CLIENT_ID` and `SHOWUP_GOOGLE_CLIENT_SECRET`.
+
+Telegram, following [Telegram's OIDC setup](https://core.telegram.org/bots/telegram-login):
+
+1. In Telegram, open the official verified `@BotFather` yourself and create/select
+   a Showup development bot. This is an owner action; the agent sends no message.
+2. Open BotFather's bot settings → **Login Widget** → **Allowed URLs**. Add
+   `https://localhost:3443` and
+   `https://localhost:3443/api/auth/callback/telegram` exactly.
+3. Obtain the OIDC **Client ID** and **Client Secret** from that section. Enter them
+   as `SHOWUP_TELEGRAM_CLIENT_ID` and `SHOWUP_TELEGRAM_CLIENT_SECRET` in nano.
+   The bot API token is a different credential. Login requests only `openid profile`;
+   phone sharing and bot-message access are separate consent, not required login.
+
+For either provider, if its console rejects the loopback URL, stop that provider's
+setup and report the nonsecret error. Telegram's public guide does not establish
+loopback acceptance. A public callback/tunnel and phone-access origin require a
+separate concrete approval and configuration review; the current app accepts
+HTTPS loopback only. Do not invent an accepted redirect or switch to HTTP.
+
+After saving, restart `npm run dev:secure`, open
+<https://localhost:3443/account>, and use the newly enabled provider button.
+Successful login visibly shows an account reference. Then test refresh, logout,
+sign-in again and explicit second-provider linking. Report only provider names,
+registered callback URLs and success/nonsecret error, never credential values,
+authorization URLs, callback query strings or tokens. The live gate remains open
+until these actual interactions pass.
 
 ## Start and stop
 
