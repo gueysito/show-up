@@ -143,6 +143,43 @@ registered callback URLs and success/nonsecret error, never credential values,
 authorization URLs, callback query strings or tokens. The live gate remains open
 until these actual interactions pass.
 
+## Local contract sandbox
+
+Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet
+file, provider credential or public deployment is involved. From the repository:
+
+```sh
+npm run contracts:prepare
+npm run contracts:check
+```
+
+Preparation builds the digest-pinned Rust 1.93 container, verifies the nearcore
+2.13.4 archive/binary checksums in the engineering manifest and fetches locked
+Cargo sources. The check reviews registry/checksum/release-age/OSV metadata before
+running Rust formatting, warning-free Clippy, WASM build and actual sandbox tests.
+Public metadata requests have bounded bodies/retries and a three-minute review
+deadline. Metadata cache freshness is limited to six hours; advisories are queried
+on every check. [Advisory policy](../contracts/advisory-policy.json) records two
+exact fresh security backports and one test-only maintenance notice; no general
+advisory or age bypass exists.
+
+Builds/tests run with networking disabled, read-only contract sources, dropped
+capabilities, bounded CPU/memory/processes and only a project cache mounted writable.
+They create disposable nodes/accounts and synthetic NEP-141 tokens. `.env.auth`,
+personal wallets and host credential directories are never mounted. The sandbox
+uses long test epochs for clock jumps; published economic windows are unchanged.
+Current native-M4 evidence is ARM64; the CI job independently exercises AMD64.
+The Trixie runtime supplies the GLIBC needed by the pinned sandbox binary.
+
+The prototype accepts only its sandbox authorization domain. Direct funding checks
+the actual token sender, signed source/refund/payout destinations, event/rules,
+participant/wallet uniqueness, capacity and authorization expiry. Only actual token
+receipt creates a funded sandbox seat. Principal liabilities outlive failed
+transfers; one pending attempt prevents duplicate sends. Contract-only attendance
+tests exercise signed evidence, not a working online-code or QR interface.
+External source funding/delivery remains rejected and app publication remains
+disabled. [Evidence and limits](verification.md#local-contract-checkpoint-november-2).
+
 ## Start and stop
 
 For the saved-draft interface, use the opt-in development workspace:

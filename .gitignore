@@ -9,6 +9,7 @@ __pycache__/
 *.pyc
 dist/
 target/
+contracts/.cache/
 *.log
 .next/
 .next-dev/

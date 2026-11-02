@@ -27,6 +27,10 @@ database checks; see [setup](../docs/setup.md). The imported helper and hooks ar
 unchanged. First-party JS/TS checks enforce the adopted readability rules.
 Checks never install dependencies or rewrite the index.
 
+Contract Rust uses pinned `cargo fmt` and Clippy with warnings denied through
+`npm run contracts:check` and a separate CI job. The imported kit remains unchanged.
+Downloaded Rust sources and generated caches are excluded from first-party checks.
+
 - `pre-commit`: expected 0.5–3 seconds with code tooling; only local Python and Git
   startup plus staged-document inspection in the current repository.
 - `commit-msg`: expected under 100 ms normally; up to 1 second for named-automation proof.

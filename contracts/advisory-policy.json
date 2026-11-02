@@ -1,0 +1,29 @@
+{
+  "reviewedAt": "2026-11-02",
+  "recentSecurityPatches": [
+    {
+      "package": "zstd",
+      "version": "0.13.4",
+      "reason": "Exact 0.13 security backport for RUSTSEC-2026-0391; old aged releases expose abandoned stream contents. Published 2026-11-01. Registry checksum and current OSV response must still pass.",
+      "expires": "2026-11-09T00:00:00Z",
+      "source": "https://api.osv.dev/v1/vulns/RUSTSEC-2026-0391"
+    },
+    {
+      "package": "zstd-safe",
+      "version": "7.4.0",
+      "reason": "Exact 7.x security backport for RUSTSEC-2026-0395 through 0406 memory safety fixes. Current OSV records list 7.4.0 as fixed. Published 2026-11-01; checksum and current advisory query remain mandatory.",
+      "expires": "2026-11-09T00:00:00Z",
+      "source": "https://api.osv.dev/v1/vulns/RUSTSEC-2026-0395"
+    }
+  ],
+  "reviews": [
+    {
+      "package": "unsafe-libyaml",
+      "version": "0.2.11",
+      "advisory": "RUSTSEC-2024-0449",
+      "classification": "unmaintained",
+      "scope": "Local sandbox test runner only through near-parameters/serde_yaml; absent from contract WASM and the application. No external YAML is accepted; runner and build execute without networking or host credentials.",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2024-0449.html"
+    }
+  ]
+}

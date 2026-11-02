@@ -6,6 +6,8 @@
 .next-dev
 next-env.d.ts
 node_modules
+contracts/.cache
+contracts/target
 .env*
 .showup-test-wallets
 **/near-testnet.json

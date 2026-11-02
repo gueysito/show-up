@@ -40,7 +40,24 @@
   "toolchain": {
     "nearSdk": "5.29.1",
     "rust": "1.93.0",
-    "linuxAmd64Image": "rust:1.93.0-bookworm@sha256:7274e0edb5b47eda8053b350ebf3d489f7e0f65d2d7e77b16076299c7c047c28"
+    "linuxAmd64Image": "rust:1.93.0-trixie@sha256:9707deb7307068a13b22023fc0e8a3804717781641cc7ad823e649415a6af4c8",
+    "linuxArm64Image": "rust:1.93.0-trixie@sha256:dd0174522c412ad5be5f2472ac3ea2ebb686768cbfd7c16884fc5200efdf1857",
+    "sandbox": {
+      "version": "2.13.4",
+      "release": "https://github.com/near/nearcore/releases/tag/2.13.4",
+      "archives": {
+        "arm64": {
+          "platform": "Linux-aarch64",
+          "sha256": "edd77d6d28b960852243fc6f45656c97a7976fc2b3cfe53cda89324a6804bd30",
+          "binarySha256": "90082ad0e5f487081d5a844f570cb8e4deb76a032b32696098b333a8d50ae8ed"
+        },
+        "amd64": {
+          "platform": "Linux-x86_64",
+          "sha256": "5690a4635172263cf026683f75965cac09dd916912584f12709974fed620163f",
+          "binarySha256": "4e89fbc0f2958634e84af44634f90e87c246288fa11b067d2121ce1394cba2c2"
+        }
+      }
+    }
   },
   "sources": {
     "tokens": "https://developers.circle.com/stablecoins/usdc-contract-addresses",

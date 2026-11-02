@@ -29,5 +29,11 @@
     ".next-dev/types/**/*.ts",
     ".next-dev/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", ".agents", ".codex-attachments"]
+  "exclude": [
+    "node_modules",
+    ".agents",
+    ".codex-attachments",
+    "contracts/.cache",
+    "contracts/target"
+  ]
 }

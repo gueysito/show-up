@@ -297,6 +297,76 @@ The previous `ac19b14` private CI passed the full 15-browser-scenario suite,
 29 PostgreSQL tests and production/container checks:
 [CI receipt](https://github.com/gueysito/show-up/actions/runs/41501064513).
 
+## Local contract checkpoint, November 2
+
+The new settlement-authority prototype is compiled to WASM and executed in actual
+nearcore 2.13.4 sandbox nodes. It uses synthetic NEP-141 tokens, fresh per-run
+credential/evidence/participant keys and a separately configured local registrar.
+This is local sandbox evidence, not Circle USDC, Intents, public engineering-network,
+mainnet, social-login, actual-phone or wallet-return evidence.
+
+All 11 sandbox tests pass, including:
+
+- Wrong token/caller, altered authorization fields and source-wallet substitution
+  fail. The same source cannot enroll twice through different opaque credentials.
+- Short, excess, duplicate, full-capacity and late receipts remain return liabilities;
+  only actual full attributable receipt creates a funded seat. The expired-reservation
+  last-seat race enrolls exactly one attendee and preserves the other principal.
+- Failed NEAR transfer restores unpaid debt; retry reaches the exact authorized
+  destination once. Forged callbacks, competing withdrawals and an 8 KiB successful
+  return body cannot create a second payment. Integer accounting matches actual balances.
+- Both live-code and staff-QR **receipt classes** enforce event/manifest/participant,
+  mode and time bindings. Start+10m equality is on-time; +1ms is late. Replayed
+  evidence cannot increment attendance. Principal delivery proceeds without a draw.
+- Pre-start cancellation and missing complete reconciliation at end+35m return all
+  unreleased principal/sponsor funds, with no forfeiture beneficiary or revival.
+- The clock guard verifies the pinned sandbox's fast-forward behavior. Long test
+  epochs avoid repeated epoch-boundary production; real product timing is unchanged.
+
+Clock/tooling references: pinned nearcore's
+[delta-time calculation](https://github.com/near/nearcore/blob/44f7ae6cd7ef08bab604e20a473bf77e35d4c993/chain/client/src/client.rs#L1755)
+and [fast-mode delays](https://github.com/near/nearcore/blob/44f7ae6cd7ef08bab604e20a473bf77e35d4c993/nearcore/src/config.rs#L100),
+plus the SDK's [custom sandbox configuration](https://github.com/near/near-sandbox-rs/blob/v0.3.16/src/sandbox/mod.rs).
+
+Rust formatting and contract/test Clippy pass with warnings denied. `npm run check`
+passes 12 unit tests, formatting, lint and types; production build passes. No database
+or user interface behavior changed, so the passing 29 PostgreSQL/15 Chromium evidence
+from [private CI at 8543e84](https://github.com/gueysito/show-up/actions/runs/41508449623)
+is reused. A separate locked sandbox job is added for this checkpoint; its remote
+result is verified after publication.
+
+Tested artifact SHA-256:
+
+| Artifact             | SHA-256                                                            |
+| -------------------- | ------------------------------------------------------------------ |
+| Escrow WASM          | `2d11e00fadb00a0b88a1618837b715118313dbfda9b4ec096c770a00be855ada` |
+| Synthetic token WASM | `c5b2d87835aadfd131b0641224ef862f8040eea0bb60dac29ae61741f7bbd82d` |
+| Cargo lockfile       | `3ef58a5a6ec9de6f9600d7867e22107d387ba8b440f8bbd34ffeff059a3cd2ec` |
+
+The locked 380-package graph passes OSV review with one explicitly reviewed test-only
+unmaintained YAML package. Exact zstd security backports have dated seven-day-age
+exceptions; checksums and advisories remain enforced. The optional unmaintained
+allocator is removed. Details/sources are in [advisory policy](../contracts/advisory-policy.json).
+Compiler, source fetch and execution are isolated from host credentials; execution
+has no outbound networking. Sandbox archives and binaries have independently recorded
+checksums in the [engineering manifest](../manifests/engineering.v1.json).
+
+Scoped manual review covered signed-field/domain/manifest binding, separate key roles,
+actual token/source checks, immutable terms/destinations/exclusions, capacity/expiry,
+private callbacks, competing operations, failure restoration, arithmetic conservation,
+bounded reads/loops/resources/retries and secret-free source mounts. The full-access
+sandbox keys remain disposable test controls; funded deployment authority removal,
+code hashes, gas/storage sizing at full capacity and independent custody review are
+still qualification work. No new public HTTP endpoint or upload path is introduced.
+Prior web auth/CSRF/CORS/private-data evidence is reused; this is not a new full-app audit.
+
+P2's actual Base→NEAR escrow/authorized-return gate remains unpassed. Native sponsor
+funding is the tested prototype subset; external source/delivery paths are rejected.
+Google/Telegram live callbacks, P3 same-request service recovery, P4 custody signing,
+P5 observers, wallet/commitment/privacy screens and online-code/staff-QR controls
+remain incomplete. Attested receipt fixtures do not prove those interfaces or providers.
+No rewards allocation, winner claim or later milestone is marked complete.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:
