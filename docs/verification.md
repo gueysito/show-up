@@ -527,6 +527,62 @@ network execution, dropped/replaced/expired-image reconciliation and two indepen
 finality sources remain P4/P5 work. No asset or funding route is enabled, no signature
 issued, no transfer broadcast, and no production fee guarantee is claimed.
 
+## Native NFT custody and rules commitment checkpoint, November 2
+
+The local P4 prototype now takes an actual synthetic NEP-171 asset through
+contributor → escrow → the immutable fixture delivery/return recipient. Publication
+requires its exact token/ID receipt. The receiver checks predecessor, original
+owner/direct sender, event state and bounded message; rejected deposits roll back
+to the original owner through the NFT resolver. No approval/delegate deposit is
+accepted. This is a transfer-interface harness, not a complete NFT implementation
+or an approved real collection.
+
+Native delivery locks the prescribed fixture beneficiary after the proof boundary;
+it does not select a winner or implement acceptance/claims. One pending transfer
+prevents competing sends. A failed callback preserves the same liability/recipient
+for retry; success remains success even with an oversized return body. Tests inspect
+actual token ownership before/after, not just a provider flag or contract status.
+Cancelled/aborted events and draw timeout create contributor-return intent without
+overriding an existing allocation. Unpublished drafts can now cancel safely; after
+hard close plus grace, anyone can trigger fail-neutral recovery of an abandoned
+funded draft. A blocked publication cannot trap sponsor/NFT holdings.
+
+Review also found that the prior sandbox checked `rules_hash` as a label. A deliberate
+negative baseline confirmed it accepted unrelated hashes. The contract now recomputes
+a recursively sorted compact UTF-8 JSON/SHA-256 commitment over every normalized
+term plus the format tag, authorization domain, deployment, manifest and settlement
+token. The hash field itself is excluded. Independent fixture computation matches;
+mutated amounts, schedule, roles, destination, capacity, exclusions, NFT descriptor
+and provider policy are rejected specifically by the hash guard. A valid creation
+counterpart passes. Future schema fields therefore participate through the typed
+serialization rather than a manually selected material-field list.
+
+All **21 actual sandbox tests** and both independent Node replays pass on the final
+artifact. Four native scenarios cover invalid receipt rollback, failed/competing
+delivery, draft cancellation with actual sponsor/NFT returns, host-independent hard
+grace and automatic NFT return after the original draw timeout. The fifth new test
+covers the rules commitment and hostile material-field variants. Rust formatting
+and both Clippy targets pass; the unchanged 380-package graph passes advisory/age
+review. App inputs are unchanged: the 21-unit/29-PostgreSQL/15-Chromium/build result
+from [private CI at d9ad39e](https://github.com/gueysito/show-up/actions/runs/41524703198)
+is reused. This revision receives its own CI check after publication.
+
+Final SHA-256: escrow `5b0043e8f0f241f158e5c71609ae6d95f9051a5b7d927a6cca47345e4f90592e`;
+synthetic transfer harness `7a2e4a98b9331824b1978db72760f7270fa639cf8cc95b2f143758117a1203d8`.
+Cargo lock remains `e72ea405fba148d85e351f1388fc24987d1d89f8d864df31c8e9e739bb2a29e7`.
+The [NEP-171 receiver/resolver requirements](https://github.com/near/NEPs/blob/master/neps/nep-0171.md)
+define the return boolean and source interface used here.
+
+Scoped review checked token/ID/source binding, immutable terms/recipients, callback
+privacy/attempt matching, bounded payloads, terminal/retry races, real ownership
+and unchanged FT accounting. No web ingress, social data or private keys are added.
+Fresh sandbox state is used; no funded public-contract upgrade/migration is claimed.
+Qualification still needs real collection/code/authority approval, contributor fee
+reserves and delivery-cost reconciliation, real canonical claim decisions, public
+engineering evidence and deployment authority removal. The prototype's execution
+uses disposable sandbox funds. No mainnet asset, provider signature, external custody
+route, fee guarantee or later reward/claim stage is enabled by these tests.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:
@@ -557,5 +613,5 @@ and the first cleanup command do not. The next startup creates an empty database
 | I2 roles/invitations     | Depends on I1; invitation redemption and host/attendee authorization remain unimplemented.                                                                                                                             |
 | Remaining I3 publication | Depends on identities/roles, funding/protocol proofs and immutable rules. NFT publication also requires custody/observer evidence. Real funding, transactions and deployment need separate explicit approval and caps. |
 
-Milestone 4 is untouched. Ethereum's older public finality follow-up remains
+At the original foundation checkpoint, milestone 4 was untouched. Ethereum's older public finality follow-up remains
 unverified in this run; it does not block this local draft workspace.

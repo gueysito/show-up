@@ -1,4 +1,5 @@
-//! Test-only NEP-141 transfer/callback harness. Never a production asset.
+//! Test-only NEP-141/NEP-171 transfer/callback harness. Never a production asset.
+mod nft;
 use near_sdk::json_types::U128;
 use near_sdk::{
     AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseOrValue, env, ext_contract, near,
@@ -27,6 +28,8 @@ pub struct TestToken {
     owner: AccountId,
     balances: LookupMap<AccountId, u128>,
     reply_size: u32,
+    nft_owners: LookupMap<String, AccountId>,
+    fail_nft: bool,
 }
 
 #[near]
@@ -37,6 +40,8 @@ impl TestToken {
             owner: env::predecessor_account_id(),
             balances: LookupMap::new(b"b"),
             reply_size: 0,
+            nft_owners: LookupMap::new(b"n"),
+            fail_nft: false,
         }
     }
 

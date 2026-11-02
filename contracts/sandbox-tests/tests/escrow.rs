@@ -1,6 +1,112 @@
 mod common;
+use base64::{Engine, engine::general_purpose::STANDARD};
 use common::*;
 use serde_json::json;
+
+#[tokio::test]
+async fn rules_hash_is_recomputed_from_the_complete_frozen_terms() {
+    let f = Fixture::with_native().await;
+    let mut terms = f.view("get_event", json!({"event":f.event})).await["terms"].clone();
+    terms["event"] = json!(id(9900));
+    terms["rules_hash"] = json!(id(9901));
+    let result = f
+        .escrow
+        .call("create_event")
+        .args_json(json!({"terms":terms}))
+        .transact()
+        .await
+        .unwrap();
+    assert!(
+        result.is_failure(),
+        "Contract accepted a rules hash unrelated to its material terms"
+    );
+    terms["rules_hash"] = json!(f.rules_commitment(&terms));
+    let independent: String = f
+        .escrow
+        .view("compute_rules_hash")
+        .args_json(json!({"terms":terms}))
+        .await
+        .unwrap()
+        .json()
+        .unwrap();
+    assert_eq!(terms["rules_hash"], independent);
+    let mut variants = vec![];
+    for (field, value) in [
+        ("event", json!(id(9902))),
+        ("host", json!(f.bob.id())),
+        ("mode", json!("physical")),
+        ("capacity", json!(2)),
+        ("principal", json!("6000000")),
+        ("sponsor_budget", json!("10000000")),
+        ("sponsor_return", f.destination(f.bob.id().as_str())),
+        ("start_ms", json!(f.start - 60_000)),
+        ("end_ms", json!(f.end + 60_000)),
+        ("latest_quiz_close_ms", json!(f.start + 600_000)),
+        ("excluded", json!([id(9991)])),
+        (
+            "custody_proof_policy",
+            json!({"network":"base","collection":format!("0x{}","11".repeat(20)),
+            "asset":format!("0x{}01","00".repeat(31)),"source":format!("0x{}","22".repeat(20)),
+            "beneficiary":format!("0x{}","33".repeat(20)),"contributor":format!("0x{}","44".repeat(20)),"fee_cap":"300000000000000"}),
+        ),
+    ] {
+        let mut changed = terms.clone();
+        changed[field] = value;
+        variants.push((field.to_string(), changed));
+    }
+    for (field, value) in [
+        ("token", json!(f.escrow.id())),
+        ("token_id", json!("different")),
+        ("contributor", json!(f.host.id())),
+        ("fixture_beneficiary", json!(f.token.id())),
+    ] {
+        let mut changed = terms.clone();
+        changed["native_nft"][field] = value;
+        variants.push((format!("native_nft.{field}"), changed));
+    }
+    for (field, value) in [
+        ("provider", json!(f.token.id())),
+        ("project", json!("other.local/project")),
+        ("version_hash", json!(id(9993))),
+        ("sender", json!(f.bob.id())),
+        ("key", json!(STANDARD.encode([9u8; 32]))),
+    ] {
+        let mut changed = terms.clone();
+        changed["draw_policy"][field] = value;
+        variants.push((format!("draw_policy.{field}"), changed));
+    }
+    for (field, changed) in variants {
+        let result = f
+            .escrow
+            .call("create_event")
+            .args_json(json!({"terms":changed}))
+            .transact()
+            .await
+            .unwrap();
+        assert!(result.is_failure(), "Uncommitted field accepted: {field}");
+        let message = result
+            .into_result()
+            .err()
+            .map(|error| error.to_string())
+            .unwrap_or_default();
+        assert!(
+            message.contains("Rules hash does not match frozen terms"),
+            "Wrong rejection for {field}"
+        );
+    }
+    f.escrow
+        .call("create_event")
+        .args_json(json!({"terms":terms}))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(
+        f.view("get_event", json!({"event":id(9900)})).await["terms"]["rules_hash"],
+        independent
+    );
+}
 
 #[tokio::test]
 async fn actual_funding_wallet_cannot_be_substituted_or_aliased_to_take_two_seats() {

@@ -115,7 +115,14 @@ impl Escrow {
         if item.status == "cancelled" || item.status == "aborted" {
             return item.status.clone();
         }
-        require!(item.status == "published", "Already resolved");
+        require!(
+            item.status == "published" || item.status == "draft",
+            "Already resolved"
+        );
+        if item.status == "draft" {
+            self.resolve(&event, "cancelled", true);
+            return "cancelled".into();
+        }
         require!(
             now() < interaction_close(item) + 300_000,
             "Normal closing required"
@@ -179,7 +186,7 @@ impl Escrow {
 
     pub fn fail_neutral(&mut self, event: String) -> String {
         let item = self.events.get(&event).expect("Unknown event");
-        if item.status != "published" {
+        if item.status != "published" && item.status != "draft" {
             return item.status.clone();
         }
         require!(
@@ -220,5 +227,8 @@ impl Escrow {
             );
         }
         self.events.get_mut(id).unwrap().status = status.into();
+        if neutral {
+            self.native_return(id);
+        }
     }
 }

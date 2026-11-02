@@ -5,6 +5,7 @@ mod custody;
 mod delivery;
 mod draw;
 mod funding;
+mod nft;
 mod types;
 
 use near_sdk::json_types::{Base64VecU8, U128};
@@ -29,6 +30,7 @@ pub struct Escrow {
     draws: LookupMap<String, DrawProof>,
     custody_intents: LookupMap<String, CustodyIntent>,
     custody_images: LookupMap<String, CustodyImage>,
+    native_prizes: LookupMap<String, NativePrize>,
     received: u128,
     delivered: u128,
     owed: u128,
@@ -70,6 +72,7 @@ impl Escrow {
             draws: LookupMap::new(b"d"),
             custody_intents: LookupMap::new(&b"ci"[..]),
             custody_images: LookupMap::new(&b"cs"[..]),
+            native_prizes: LookupMap::new(b"q"),
             received: 0,
             delivered: 0,
             owed: 0,
@@ -85,6 +88,10 @@ impl Escrow {
         require!(
             valid_id(&terms.event) && valid_id(&terms.rules_hash),
             "Invalid identifiers"
+        );
+        require!(
+            terms.rules_hash == self.compute_rules_hash(terms.clone()),
+            "Rules hash does not match frozen terms"
         );
         require!(
             terms.mode == "online" || terms.mode == "physical",
@@ -113,6 +120,15 @@ impl Escrow {
             "Quiz outside published schedule"
         );
         self.valid_destination(&terms.sponsor_return);
+        if let Some(prize) = &terms.native_nft {
+            require!(
+                !prize.token_id.is_empty()
+                    && prize.token_id.len() <= 256
+                    && prize.fixture_beneficiary != prize.contributor
+                    && prize.fixture_beneficiary != terms.host,
+                "Invalid native prize terms"
+            );
+        }
         if let Some(policy) = &terms.custody_proof_policy {
             custody::validate_policy(policy);
         }
@@ -166,11 +182,29 @@ impl Escrow {
             item.sponsor_received == item.terms.sponsor_budget,
             "Sponsor funding missing"
         );
+        if item.terms.native_nft.is_some() {
+            require!(
+                self.native_prizes
+                    .get(&event)
+                    .is_some_and(|prize| prize.held && prize.intent.is_none()),
+                "Native NFT escrow receipt missing"
+            );
+        }
         item.status = "published".into();
     }
 
     pub fn get_event(&self, event: String) -> Option<Event> {
         self.events.get(&event).cloned()
+    }
+    pub fn compute_rules_hash(&self, terms: Terms) -> String {
+        let mut value = near_sdk::serde_json::to_value(terms).expect("Terms serialization");
+        value.as_object_mut().unwrap().remove("rules_hash");
+        let context = near_sdk::serde_json::json!({"format":"showup.event.rules.v1","authorization_domain":self.domain,
+            "deployment":env::current_account_id(),"manifest":self.manifest,"settlement_token":self.token,"terms":value});
+        env::sha256(canonical::bytes(&context))
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect()
     }
     pub fn get_registration(&self, registration: String) -> Option<Registration> {
         self.registrations.get(&registration).cloned()

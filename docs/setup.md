@@ -186,6 +186,11 @@ same-request recovery/timeout; they do not execute OutLayer or allocate draw ass
 Typed-custody tests prescribe a fixture beneficiary, lock an exclusive intent and
 compare constructed bytes independently; they do not request MPC signatures or
 prove actual NFT ownership/delivery.
+Native custody tests additionally transfer a synthetic NFT, require its receipt
+before publication and verify immutable retry/return ownership. Draft cancellation
+and hard-grace recovery return prototype holdings. Rules commitments are recomputed
+from normalized typed terms and deployment context. These are fresh local deployments;
+no production upgrade, collection approval or real winner/fee-reserve flow is implied.
 External source funding/delivery remains rejected and app publication remains
 disabled. [Evidence and limits](verification.md#local-contract-checkpoint-november-2).
 

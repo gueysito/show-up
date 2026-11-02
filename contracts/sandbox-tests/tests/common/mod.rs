@@ -19,6 +19,7 @@ pub struct Fixture {
     pub start: u64,
     pub end: u64,
     pub event: String,
+    pub rules_hash: String,
     _node: near_sandbox::Sandbox,
 }
 
@@ -62,12 +63,19 @@ pub fn proof(key: &SigningKey, value: &Value) -> String {
 }
 
 impl Fixture {
+    pub fn rules_commitment(&self, terms: &Value) -> String {
+        let mut terms = terms.clone();
+        terms.as_object_mut().unwrap().remove("rules_hash");
+        let context = json!({"format":"showup.event.rules.v1","authorization_domain":"showup.sandbox.authorization.v1",
+            "deployment":self.escrow.id(),"manifest":"local-v1","settlement_token":self.token.id(),"terms":terms});
+        format!("{:x}", Sha256::digest(context.to_string()))
+    }
     pub async fn close_for_draw(&self) {
         let auth = self.authorization(110, self.alice.id().as_str()).await;
         self.fund(&self.alice, &auth, 5_000_000).await;
         self.advance(self.start).await;
         let receipt = json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
-            "manifest":"local-v1","event":self.event,"rules_hash":id(2),"registration":auth["registration"],
+            "manifest":"local-v1","event":self.event,"rules_hash":self.rules_hash,"registration":auth["registration"],
             "participant":auth["participant"],"proof_class":"live_code","received_ms":self.start,
             "nonce":id(8100),"expires_ms":self.end-600_000});
         self.alice
@@ -89,7 +97,7 @@ impl Fixture {
             .unwrap();
         let event = self.view("get_event", json!({"event":self.event})).await;
         let checkpoint = json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
-            "manifest":"local-v1","event":self.event,"rules_hash":id(2),"ledger_version":event["ledger_version"],
+            "manifest":"local-v1","event":self.event,"rules_hash":self.rules_hash,"ledger_version":event["ledger_version"],
             "complete_through_ms":self.end-900_000,"expires_ms":self.end+2_100_000});
         self.bob
             .call(self.escrow.id(), "close")
@@ -134,6 +142,18 @@ impl Fixture {
         mode: &str,
         budget: u128,
         custody: Option<Value>,
+    ) -> Self {
+        Self::build(capacity, mode, budget, custody, false).await
+    }
+    pub async fn with_native() -> Self {
+        Self::build(1, "online", 20_000_000, None, true).await
+    }
+    async fn build(
+        capacity: u32,
+        mode: &str,
+        budget: u128,
+        custody: Option<Value>,
+        native: bool,
     ) -> Self {
         let (worker, node) = start_node().await;
         let wasm = "/cache/target/wasm32-unknown-unknown/release";
@@ -186,7 +206,7 @@ impl Fixture {
         let start = worker.view_block().await.unwrap().timestamp() / 1_000_000 + 3_600_000;
         let end = start + 1_800_000;
         let event = id(1);
-        let fixture = Self {
+        let mut fixture = Self {
             worker,
             escrow,
             token,
@@ -199,15 +219,20 @@ impl Fixture {
             start,
             end,
             event,
+            rules_hash: String::new(),
             _node: node,
         };
-        let terms = json!({"event":fixture.event,"rules_hash":id(2),"host":fixture.host.id(),"mode":mode,
+        let mut terms = json!({"event":fixture.event,"rules_hash":id(2),"host":fixture.host.id(),"mode":mode,
             "capacity":capacity,"principal":"5000000","sponsor_budget":budget.to_string(),
             "sponsor_return":fixture.destination(fixture.host.id().as_str()),
             "start_ms":start,"end_ms":end,"latest_quiz_close_ms":0,"excluded":[id(9990)],
             "draw_policy":{"provider":"outlayer.local","project":"showup.local/vrf-test",
                 "version_hash":id(9300),"sender":fixture.escrow.id(),"key":STANDARD.encode(fixture.draw.verifying_key().to_bytes())},
-            "custody_proof_policy":custody});
+            "custody_proof_policy":custody,
+            "native_nft":if native {json!({"token":fixture.token.id(),"token_id":"prize-1", "contributor":fixture.alice.id(),
+                "fixture_beneficiary":fixture.bob.id()})} else {Value::Null}});
+        fixture.rules_hash = fixture.rules_commitment(&terms);
+        terms["rules_hash"] = json!(fixture.rules_hash);
         fixture
             .escrow
             .call("create_event")
@@ -226,15 +251,17 @@ impl Fixture {
                 )
                 .await;
         }
-        fixture
-            .host
-            .call(fixture.escrow.id(), "publish")
-            .args_json(json!({"event":fixture.event}))
-            .transact()
-            .await
-            .unwrap()
-            .into_result()
-            .unwrap();
+        if !native {
+            fixture
+                .host
+                .call(fixture.escrow.id(), "publish")
+                .args_json(json!({"event":fixture.event}))
+                .transact()
+                .await
+                .unwrap()
+                .into_result()
+                .unwrap();
+        }
         fixture
     }
 
@@ -264,7 +291,7 @@ impl Fixture {
     pub async fn authorization(&self, number: u64, address: &str) -> Value {
         let now = self.timestamp().await;
         json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
-            "manifest":"local-v1","event":self.event,"rules_hash":id(2),"registration":id(number),
+            "manifest":"local-v1","event":self.event,"rules_hash":self.rules_hash,"registration":id(number),
             "participant":id(number+1000),"wallet_tag":id(number+2000),"principal":"5000000",
             "source":self.destination(address),"refund":self.destination(address),"payout":self.destination(address),"fee_cap":"100000",
             "nonce":id(number+3000),"expires_ms":self.start,"reservation_ms":now+240_000})

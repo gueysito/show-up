@@ -66,7 +66,7 @@ async fn original_request_seed_key_and_exclusive_result_are_verified_on_chain() 
     assert!(rejected_freeze.is_failure(), "Snapshot cannot be replaced");
     // Independent Rust implementation reproduces the contract's seed and alpha.
     let context = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),
-        "manifest":"local-v1","event":f.event,"rules_hash":id(2),"snapshot_hash":id(9200),"round":0,
+        "manifest":"local-v1","event":f.event,"rules_hash":f.rules_hash,"snapshot_hash":id(9200),"round":0,
         "exclusion_hash":format!("{:x}",Sha256::digest(b"[]")),"provider":"outlayer.local",
         "project":"showup.local/vrf-test","version_hash":id(9300),"sender":f.escrow.id(),"key":STANDARD.encode(f.draw.verifying_key().to_bytes())});
     let seed = format!("{:x}", Sha256::digest(context.to_string()));

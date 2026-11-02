@@ -47,6 +47,31 @@ pub struct Terms {
     pub excluded: Vec<String>,
     pub draw_policy: Option<DrawPolicy>,
     pub custody_proof_policy: Option<CustodyProofPolicy>,
+    pub native_nft: Option<NativeNftTerms>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct NativeNftTerms {
+    pub token: AccountId,
+    pub token_id: String,
+    pub contributor: AccountId,
+    pub fixture_beneficiary: AccountId,
+}
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct NativePrize {
+    pub held: bool,
+    pub intent: Option<NativeNftIntent>,
+    pub attempts: u64,
+    pub pending: bool,
+    pub delivered: bool,
+}
+#[near(serializers = [borsh, json])]
+#[derive(Clone, PartialEq, Eq)]
+pub struct NativeNftIntent {
+    pub operation: String,
+    pub recipient: AccountId,
 }
 
 // Controlled P4 fixture policy, not a real prize/winner eligibility assertion.

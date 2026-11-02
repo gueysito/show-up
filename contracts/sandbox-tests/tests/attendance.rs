@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 
 fn receipt(f: &Fixture, auth: &Value, time: u64, class: &str) -> Value {
     json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),
-        "manifest":"local-v1","event":f.event,"rules_hash":id(2),"registration":auth["registration"],
+        "manifest":"local-v1","event":f.event,"rules_hash":f.rules_hash,"registration":auth["registration"],
         "participant":auth["participant"],"proof_class":class,"received_ms":time,
         "nonce":id(8000),"expires_ms":f.end-600_000})
 }
@@ -70,7 +70,7 @@ async fn both_proof_classes_enforce_exact_time_bindings_and_irrevocable_principa
             .unwrap();
         let event = f.view("get_event", json!({"event":f.event})).await;
         let checkpoint = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),
-            "manifest":"local-v1","event":f.event,"rules_hash":id(2),"ledger_version":event["ledger_version"],
+            "manifest":"local-v1","event":f.event,"rules_hash":f.rules_hash,"ledger_version":event["ledger_version"],
             "complete_through_ms":f.end-900_000,"expires_ms":f.end+2_100_000});
         let closed = f
             .bob

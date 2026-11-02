@@ -152,7 +152,9 @@ impl Escrow {
         }
         require!(now() >= proof.deadline_ms, "Proof deadline pending");
         proof.state = "timed_out".into();
-        proof.clone()
+        let result = proof.clone();
+        self.native_return(&event);
+        result
     }
 
     pub fn get_draw_proof(&self, event: String) -> Option<DrawProof> {
