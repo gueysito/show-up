@@ -12,7 +12,13 @@ All work stays local and unpublished. Other tasks remain proposed and unapproved
 | F2 | Complete | Digest-pinned Node/PostgreSQL images; health/migration-ordered Compose starts, restarts, stops and resumes on M4. Published ports verified as loopback; startup rejects unsupported configuration. This checkpoint's commit plus [verification](verification.md) identify evidence. |
 | F3 | Complete | Seven real PostgreSQL integration checks pass: concurrent/checksummed migrations, DDL rollback, SIGKILL before/after writer commit and worker effects, atomic dispatch rollback, concurrent logical effect deduplication and bounded dead-letter retries. [Verification](verification.md). |
 | F4 | Complete | Format/lint/types, unit/integration, Chromium production smoke and Docker build pass; frozen-install CI defined with pinned actions and no provider secrets. CI has not run remotely because publication is prohibited. [Setup](setup.md). |
-| I3 subset | NOW | Draft UI, shared validation, transactional PostgreSQL persistence, private browser workspaces and revision/replay checks implemented. Seven unit, twelve integration and eight browser tests pass, including actual Compose persistence/restart. [Review guide](verification.md), [isolation decision](adr/0003-local-draft-workspace.md). Final clean-checkout reproduction/receipt is next; I3 authentication, funding, immutable publication and integrations remain incomplete. |
+| I3 subset | Complete | `faa05ff`: draft UI, shared validation, transactional persistence, private workspaces and revision/replay checks. Seven unit, twelve integration and eight browser tests pass, including actual Compose persistence/restart. A tracked-only archive of `faa05ff` starts with a new database and passes interactive save/reload/clear; production refuses the workspace with 404. [Review guide](verification.md), [isolation decision](adr/0003-local-draft-workspace.md). Full I3 authentication, funding, immutable publication and integrations remain incomplete. |
+
+Bounded implementation exit verified November 2, 2026: F1–F4 and the approved I3
+subset are complete locally. No scoped blocker remains. Next action is owner
+testing via the review guide; further roadmap implementation needs approval.
+The final receipt commit updates this row/current state without changing the tested
+application source. No push, merge or deployment occurred; repository remains private.
 
 The descriptions below retain planning history. Their earlier approval warnings
 apply to that historical checkpoint; the bounded approval above supersedes them

@@ -127,8 +127,12 @@ CI has **not run**, because this work has not been pushed. No Linux-browser or
 actual-phone result is inferred from the M4 checks. Screenshot evidence is local
 under `.agents/runs/showup-foundation-drafts/evidence/`.
 
-Foundation checkpoints: `eb42d64` (F1), `1eabde0` (F2–F4). The subsequent draft
-implementation checkpoint and final reproduction receipt are recorded in
+Foundation checkpoints: `eb42d64` (F1), `1eabde0` (F2–F4); draft implementation:
+`faa05ff`. A tracked-only archive of `faa05ff` was built in the separate
+`showup-repro` Compose project with an empty database and loopback port overrides:
+startup, browser interactivity, save/reload/clear and production workspace refusal
+all passed. That temporary project and its disposable volume were then removed.
+No independent operator or remote CI run is implied. Final receipt status is in
 [the plan](plan.md). All existing wallet-documentation commits are preserved.
 
 ## Scoped review and limitations

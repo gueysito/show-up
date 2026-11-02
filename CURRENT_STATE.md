@@ -12,9 +12,11 @@ You can prepare, validate, save and reopen fictional event drafts locally; login
 
 ## Next action
 
-Finish clean-checkout reproduction and the local verification receipt, then owner testing.
+Owner testing at <http://127.0.0.1:3101/workbench>, following the review walkthrough.
+The bounded goal is complete: clean tracked-only reproduction with an empty database passed.
 The owner approved this bounded local implementation on November 2, 2026.
-All work remains local and unpublished; other roadmap tasks need further approval.
+Implementation checkpoint: `faa05ff`. All work remains local and unpublished;
+other roadmap tasks need further approval. No blocker remains within this scope.
 
 ## Not implemented or validated
 
