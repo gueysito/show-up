@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import { personalAttendanceQr, type PersonalAttendanceQr } from "../../domain/attendance-qr";
 import type pg from "pg";
 import type { AuthConfig } from "../auth/config";
 import { identityIndex, seal, token, unseal } from "../auth/crypto";
@@ -15,13 +16,7 @@ import {
 import { persistAttendanceCandidate } from "./attempts";
 import { attendanceSchedule } from "./evidence";
 
-export type AttendanceQr = {
-  format: "showup.attendance.qr.v1";
-  eventId: string;
-  credential: string;
-  nonce: string;
-  expiresAt: number;
-};
+export type AttendanceQr = PersonalAttendanceQr;
 export type QrInspection = {
   scanId: string;
   eventId: string;
@@ -32,30 +27,9 @@ export type QrInspection = {
 };
 
 export function parseAttendanceQr(value: unknown): AttendanceQr {
-  if (typeof value !== "string" || Buffer.byteLength(value) > 1024)
-    throw new AppFailure(400, "Scan a valid personal attendance QR.");
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    throw new AppFailure(400, "Scan a valid personal attendance QR.");
-  }
-  if (
-    !parsed ||
-    typeof parsed !== "object" ||
-    Array.isArray(parsed) ||
-    Object.keys(parsed).sort().join() !== "credential,eventId,expiresAt,format,nonce" ||
-    parsed.format !== "showup.attendance.qr.v1" ||
-    !isUuid(parsed.eventId) ||
-    typeof parsed.credential !== "string" ||
-    !/^[A-Za-z0-9_-]{43}$/.test(parsed.credential) ||
-    typeof parsed.nonce !== "string" ||
-    !/^[0-9a-f]{64}$/.test(parsed.nonce) ||
-    !Number.isSafeInteger(parsed.expiresAt) ||
-    Number(parsed.expiresAt) < 0
-  )
-    throw new AppFailure(400, "Scan a valid personal attendance QR.");
-  return parsed as AttendanceQr;
+  const parsed = personalAttendanceQr(value);
+  if (!parsed) throw new AppFailure(400, "Scan a valid personal attendance QR.");
+  return parsed;
 }
 
 function qrIndex(config: AuthConfig, payload: AttendanceQr) {

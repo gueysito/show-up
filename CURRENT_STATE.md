@@ -20,14 +20,14 @@ private invitations and host management pass isolated-account checks. Funding an
 - P5: finalized-header pairs, exact asset facts, signed historical delivery and bounded nonce/blockhash recovery pass isolated checks. Routes remain unqualified.
 - Own financial records bind reconciliation to the original approval; source failures/conflicts preserve obligations and keep escrow unconfirmed.
 - Own-data export, account/session-bound deletion and bounded private-receipt retention pass isolated checks; unqualified obligations retain restricted recovery access. Qualified clearance remains incomplete.
-- Online code entry preserves retry operations and pending status; host codes, bounded attempts and personal QR/staff confirmation protocols pass isolated checks. Live qualification and camera UI remain incomplete.
-- 72 unit, 159 PostgreSQL and 32 Chromium checks/build pass; 35 sandbox/eight Node replays and four attended/outage app cases remain verified. Detailed revisions and CI results live in the plan/verification links.
+- Online code entry preserves retry operations and pending status; host codes, bounded attempts and personal QR display/staff confirmation protocols pass isolated checks. Live qualification and staff camera remain incomplete.
+- 72 unit, 159 PostgreSQL and 36 Chromium checks/build pass; 35 sandbox/eight Node replays and four attended/outage app cases remain verified. Detailed revisions and CI results live in the plan/verification links.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-A2 personal QR/staff camera, A3 complete intake-health coverage and A4 mobile integration, while I4 real-route integration and qualified privacy clearance remain gated;
+A2 staff camera, A3 complete intake-health coverage and A4 mobile integration, while I4 real-route integration and qualified privacy clearance remain gated;
 continue P5 source-to-witness integration and qualified provider/asset experiments within their gates.
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;

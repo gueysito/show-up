@@ -10,6 +10,7 @@ import {
   type OwnFinancialRecord,
 } from "../../../server/commitments/records";
 import { AttendanceCodeEntry } from "../../../components/access/attendance-code-entry";
+import { AttendancePersonalQr } from "../../../components/access/attendance-personal-qr";
 
 export const dynamic = "force-dynamic";
 function amount(value: string, record: OwnFinancialRecord) {
@@ -92,6 +93,13 @@ export default async function CommitmentsPage({
                     window={record.attendanceWindow}
                     timeZone={record.terms.timeZone}
                   />
+                )}
+              {activeAccount &&
+                record.authorizedAt &&
+                record.eventState === "published" &&
+                !record.attendance &&
+                record.attendanceWindow?.mode === "physical" && (
+                  <AttendancePersonalQr eventId={record.eventId} consentId={record.id} />
                 )}
               {record.attendance && (
                 <section aria-label="Attendance evidence status">

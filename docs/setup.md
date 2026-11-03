@@ -34,7 +34,7 @@ It requires the public npm registry. esbuild, fsevents and unrs-resolver
 lifecycle scripts remain blocked; platform packages supply the needed binaries.
 No scaffold or downloaded package runner is used.
 
-The latest November 2 audit has **0 high/critical and 19 moderate development advisories**,
+The November 3 QR dependency audit has **0 high/critical and 17 moderate development package entries**,
 all originating in minimatch's glob denial-of-service issue
 [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
 These tooling paths parse repository lint patterns, not event input. The runtime
@@ -429,10 +429,33 @@ attendance override is provided.
 
 `POST /api/attendance/qr` accepts only the closed issue/scan/confirm actions and
 stays unavailable without qualified evidence. Positive engineering checks run
-backend-only in `showup_test`; no QR display/camera interface or real attendance
-is enabled. Pending candidates remain unconfirmed. Own export includes QR/scan
+in `showup_test`; positive browser packets are explicit backend fixtures. The
+personal display below is implemented; staff camera and real attendance remain
+incomplete. Pending candidates remain unconfirmed. Own export includes QR/scan
 metadata without capabilities or another attendee's identity; deletion clears
 ephemeral QR/scans and preserves necessary original financial candidates.
+
+### Personal QR display
+
+After rebuilding, an active account's approved, published physical authorization
+shows **Show your personal QR to staff** in **Account → Financial authorizations**.
+Request the QR when staff are ready. The displayed capability stays in memory and
+canvas pixels only; no URL, storage, download, third-party image or identity is
+used. The canvas clears at expiry, page hide, tab hiding and unmount. Restored
+pages reload. Unknown responses preserve the operation for explicit retry; a
+verified expired acknowledgement ends that operation without displaying it.
+A displayed QR never confirms attendance, funding or a booked seat.
+
+The exact local codec pins are `qrcode-generator@2.0.4` and `qr-scanner@1.4.2`,
+with blocked lifecycle scripts and no new high/critical or runtime advisories.
+[Encoder API](https://kazuhikoarase.github.io/qrcode-generator/js/) and
+[scanner source](https://github.com/nimiq/qr-scanner/tree/v1.4.2) describe local
+encoding/decoding. The server and browser share the bounded opaque-payload parser.
+Changed-boundary checks cover foreign/confirmed-looking replies, same-operation
+replay, expiry, capability clearing, restricted-account exclusion and closed
+actual HTTP admission. Browser success packets use synthetic backend fixtures;
+mobile layout is Chromium emulation, not actual-phone/camera evidence. The owner
+app is not rebuilt or changed by these isolated checks.
 
 ### Frozen sandbox attendance evidence
 
