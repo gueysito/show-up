@@ -332,7 +332,7 @@ identity is deleted; completion has an authenticated 15-minute receipt. Otherwis
 original proofs, event credentials and necessary records remain; the same linked
 provider restores restricted export/history access, with new activity/linking disabled.
 No browser payment flag, expiry or unqualified observation can clear that hold.
-Retention automation and clearance of qualified settled obligations remain incomplete.
+Clearance of qualified settled obligations remains incomplete.
 Agent erasure checks use fictional accounts in `showup_test`, never the owner's
 linked development account. A branch push neither migrates nor restarts that app.
 
@@ -340,6 +340,36 @@ Deletion confirmation expires after five minutes and is bound to the account,
 exact session and operation that opened it. Switching accounts, signing in again
 or using an old confirmation cannot delete the replacement account. **Reload deletion
 confirmation** shows the current account reference and clears the typed acknowledgment.
+
+### Private receipt retention
+
+Migration `012-private-receipt-retention.sql` enables bounded worker maintenance.
+Independent wallet-control challenges and copied control receipts expire seven days
+after the challenge deadline. Other transport receipt payloads, audit entries and
+completed deletion receipts expire after 90 days. Minimal operation/request barriers
+remain so an old retry cannot repeat an effect; expired replies return 410.
+Original financial approvals, watch obligations and pending deletion holds remain.
+Event-bound attendance/quiz material needs qualified settlement before its separate
+seven-day purge; that integration remains incomplete.
+
+For the private development app, apply migrations through the non-executing private
+configuration parser, then run the native worker in another terminal:
+
+```sh
+npm run db:migrate:private
+npm run worker:private
+```
+
+These commands require the existing owner-only `.env.auth`, its original encryption
+key and a loopback development database. They neither source the file nor create keys.
+The migration child receives no encryption key; the worker receives no social-provider
+or identity-index credentials. A missing/wrong key preserves unreadable legacy material
+and reports a generic maintenance failure. Do not regenerate keys to resolve it.
+The worker sweeps at startup and once per minute, at most 100 records per table per
+transaction. The ordinary Compose worker cannot classify recent legacy encrypted
+control receipts without this private configuration. Both workers can run concurrently.
+Agent verification uses only disposable keys/database records; these operator commands
+have not migrated or started maintenance against the owner's linked account.
 
 ## Local contract sandbox
 

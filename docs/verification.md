@@ -1073,6 +1073,22 @@ failure three times. Waiting for visible signed-out content passes five repetiti
 and all 24 Chromium scenarios, retaining logout denial and Back privacy assertions.
 Focused format/lint checks pass; application code is unchanged by this repair.
 
+## I5 private receipt retention checkpoint November 2
+
+- Format/lint/types and 60 unit checks pass; all 71 disposable PostgreSQL checks pass.
+  Six new scenarios cover actual worker startup/clean shutdown, seven-day boundary
+  equality, schema rollback/atomic erasure, preserved replay barriers and financial
+  originals, missing-key progress, concurrent bounded workers and wrong-key rollback.
+- Isolated production build and all 24 Chromium scenarios pass. Nine retention code
+  inputs match the build snapshot; the logout-history repair is also included in
+  the browser run. Existing 35 sandbox/seven Node evidence is unchanged.
+- Worker maintenance retires independent control material after expiry plus seven
+  days and ordinary transport/audit/completed-deletion receipts after 90 days. It
+  retains operation barriers, pending holds, original financial proofs and watched
+  debt. Event-bound material purge after qualified settlement remains incomplete.
+  The private launcher reuses the existing parser/key without executing credentials;
+  no owner database migration, deletion, worker start or credential read occurred.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

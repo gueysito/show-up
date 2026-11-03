@@ -29,7 +29,9 @@
     "supply-chain:check": "node scripts/check-supply-chain.mjs",
     "contracts:prepare": "sh scripts/contracts.sh prepare && node scripts/prepare-contracts.mjs && sh scripts/contracts.sh fetch",
     "contracts:check": "node scripts/check-contract-supply-chain.mjs && sh scripts/contracts.sh format-check && sh scripts/contracts.sh lint && sh scripts/contracts.sh lint-tests && sh scripts/contracts.sh wasm && sh scripts/contracts.sh test && node scripts/check-draw-proof.mjs && node --import tsx scripts/check-custody-images.ts && node --import tsx scripts/check-asset-observations.ts && node --import tsx scripts/check-custody-recovery.ts && node --import tsx scripts/check-custody-signatures.ts && node --import tsx scripts/check-settlement-state.ts && node --import tsx scripts/check-financial-consent.ts",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:unit"
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm run test:unit",
+    "worker:private": "node --import tsx scripts/start-private-worker.ts",
+    "db:migrate:private": "node --import tsx scripts/start-private-worker.ts --migrate"
   },
   "dependencies": {
     "drizzle-orm": "0.45.4",

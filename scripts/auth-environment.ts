@@ -61,3 +61,35 @@ export function tunnelEnvironment(
     throw new Error("Set SHOWUP_TELEGRAM_CLIENT_ID and SHOWUP_TELEGRAM_CLIENT_SECRET in .env.auth");
   return env;
 }
+
+export function privateWorkerEnvironment(
+  configured: Record<string, string | undefined>,
+  inherited: Record<string, string | undefined> = process.env,
+) {
+  const env: NodeJS.ProcessEnv = {
+    ...inherited,
+    NODE_ENV: "production",
+    SHOWUP_ENV: configured.SHOWUP_ENV,
+    DATABASE_URL: configured.DATABASE_URL,
+    SHOWUP_IDENTITY_KEY: configured.SHOWUP_IDENTITY_KEY,
+    SHOWUP_AUTH: "0",
+    SHOWUP_HARNESS: "0",
+  };
+  for (const name of [
+    "SHOWUP_IDENTITY_INDEX_KEY",
+    "SHOWUP_GOOGLE_CLIENT_ID",
+    "SHOWUP_GOOGLE_CLIENT_SECRET",
+    "SHOWUP_TELEGRAM_CLIENT_ID",
+    "SHOWUP_TELEGRAM_CLIENT_SECRET",
+  ])
+    delete env[name];
+  if (
+    databaseConfig(env).purpose !== "development" ||
+    !["localhost", "127.0.0.1"].includes(new URL(env.DATABASE_URL!).hostname) ||
+    !/^[0-9a-f]{64}$/.test(env.SHOWUP_IDENTITY_KEY ?? "")
+  )
+    throw new Error(
+      "Private worker requires the local development database and existing encryption key",
+    );
+  return env;
+}

@@ -4,6 +4,7 @@ import { hash, seal, unseal } from "./crypto";
 import { transaction } from "../db/client";
 import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
+import { controlReceiptDeadline } from "../privacy/retention";
 
 export type Actor = { id: string; roles: string[] };
 
@@ -44,6 +45,11 @@ export async function mutate<T>(
           409,
           "This operation reference was already used for a different request.",
         );
+      if (row.payload_retired_at)
+        throw new AppFailure(
+          410,
+          "This operation's private receipt has expired. Review current records before starting another operation.",
+        );
       return unseal(encryptionKey, context, row.encrypted_receipt) as T;
     }
     const roles = await client.query("SELECT role FROM app_roles WHERE account_id=$1", [actorId]);
@@ -52,9 +58,17 @@ export async function mutate<T>(
       roles: roles.rows.map((row) => row.role as string),
     });
     await client.query(
-      `INSERT INTO app_mutations (operation_id,actor_id,request_hash,encrypted_receipt)
-      VALUES ($1,$2,$3,$4)`,
-      [operationId, actorId, requestHash, seal(encryptionKey, context, result)],
+      `INSERT INTO app_mutations (operation_id,actor_id,request_hash,encrypted_receipt,payload_expires_at)
+      VALUES ($1,$2,$3,$4,COALESCE($5::timestamptz,clock_timestamp()+interval '90 days'))`,
+      [
+        operationId,
+        actorId,
+        requestHash,
+        seal(encryptionKey, context, result),
+        action === "wallet.challenge"
+          ? (controlReceiptDeadline(result)?.toISOString() ?? null)
+          : null,
+      ],
     );
     await client.query("INSERT INTO app_audit (id,actor_id,action) VALUES ($1,$2,$3)", [
       randomUUID(),
