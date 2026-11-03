@@ -5,6 +5,7 @@ import { hasRole, mutate, type Actor } from "../auth/mutations";
 import { isUuid, type DraftSave } from "./drafts";
 import { AppFailure } from "../http/security";
 import { participantCredential } from "./credentials";
+import { requireUnfrozenPublication } from "./publication-lock";
 
 type AccountEvent = {
   id: string;
@@ -67,6 +68,7 @@ export async function saveAccountDraft(
           409,
           "Published material terms are locked. Duplicate this event to change them.",
         );
+      if (row) await requireUnfrozenPublication(client, input.id);
       if ((row?.revision ?? 0) !== input.revision)
         throw new AppFailure(
           409,

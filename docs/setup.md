@@ -334,6 +334,19 @@ a save; stale revisions require reload. Validation alone does not qualify fundin
 escrow, execution reserves, sponsor rewards, NFT custody, draw recovery or staff
 eligibility. The checklist explains those prerequisites; publication stays disabled.
 
+The native disposable integration now prepares one encrypted publication image
+from the saved revision and fixed staff roster (`029-event-publication-images.sql`).
+Its salted material commitment is included in the contract rules hash; description
+corrections remain separate. Prepared terms and exclusions stay frozen while the
+original contract outcome is reconciled. The host checklist shows a pending image
+when one exists; it cannot enable live publication. Backend observation requires
+the exact original profile, rules and contract state. Deletion keeps unresolved
+publication credentials under the forward `030-publication-deletion-hold.sql`
+constraint. Own export includes scoped metadata, excluding the private image/salt.
+See [ADR-0005](adr/0005-publication-material-commitment.md). This integrates native
+principal-only sandbox events; prize/reserve qualification and all live routes
+remain incomplete.
+
 ## Financial-consent preparation
 
 Internal financial-consent storage also requires `006-commitment-consent.sql` via
@@ -848,8 +861,12 @@ an explicit Rust sandbox test. Original app financial consent is signed by the
 generated sandbox wallet and actually funds escrow. A normalized host-code attempt
 or a scoped validator invitation/QR scan/explicit confirmation persists the exact
 candidate then accepted by the contract; both modes pay all principal back.
-The app publication/account setup is an engineering fixture. The script neither
-loads `.env.auth` nor signs on a public network; it refuses any other database URL.
+Account identities remain disposable fixtures. Event creation uses the normal
+draft service and staff invitations; application publication is now reconciled
+from the actual sandbox contract against its frozen image rather than a raw
+published-state SQL update. This does not qualify a live source or full admission
+coverage. The script neither loads `.env.auth` nor signs on a public network;
+it refuses any other database URL.
 Private phase frames/results live in ignored `contracts/.cache/app-bridge/`.
 The ordinary contract suite leaves this peer-dependent test ignored; CI executes
 it separately with its test database. No worker completeness, browser QR/camera,

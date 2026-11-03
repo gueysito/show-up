@@ -106,6 +106,13 @@ impl Escrow {
             "Rules hash does not match frozen terms"
         );
         require!(
+            terms
+                .app_rules_hash
+                .as_ref()
+                .is_none_or(|value| valid_id(value)),
+            "Invalid application rules commitment"
+        );
+        require!(
             terms.mode == "online" || terms.mode == "physical",
             "Invalid mode"
         );

@@ -16,6 +16,13 @@ export type PublicationReadiness = {
   eventState: string;
   checkedAt: string;
   publicationAllowed: false;
+  preparation?: {
+    imageHash: string;
+    revision: number;
+    state: "awaiting_observation" | "sandbox_observed";
+    observedAt: string | null;
+    sourceQualified: false;
+  };
   checks: PublicationCheck[];
 };
 
@@ -126,12 +133,29 @@ export async function readPublicationReadiness(
         "This draft changed. Reload the saved revision before checking publication.",
       );
     const now = Date.now();
+    const image = (
+      await client.query(
+        "SELECT image_hash,draft_revision,observed_at FROM app_publication_images WHERE event_id=$1",
+        [event.id],
+      )
+    ).rows[0];
     return {
       eventId: event.id,
       revision: event.revision,
       eventState: event.state,
       checkedAt: new Date(now).toISOString(),
       publicationAllowed: false,
+      ...(image && {
+        preparation: {
+          imageHash: image.image_hash as string,
+          revision: image.draft_revision as number,
+          state: image.observed_at
+            ? ("sandbox_observed" as const)
+            : ("awaiting_observation" as const),
+          observedAt: image.observed_at?.toISOString() ?? null,
+          sourceQualified: false as const,
+        },
+      }),
       checks: publicationChecks(event.data, now),
     };
   });

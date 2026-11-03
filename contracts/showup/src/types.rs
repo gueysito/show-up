@@ -37,6 +37,8 @@ pub struct Authorization {
 pub struct Terms {
     pub event: String,
     pub rules_hash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub app_rules_hash: Option<String>,
     pub host: AccountId,
     pub mode: String,
     pub capacity: u32,

@@ -97,9 +97,18 @@ export async function requestAccountDeletion(
         actor.id,
       ])
     ).rowCount;
+    const publication = (
+      await client.query(
+        `SELECT 1 FROM app_publication_images p JOIN app_events e ON e.id=p.event_id
+         WHERE p.observed_at IS NULL AND (e.owner_id=$1 OR EXISTS
+         (SELECT 1 FROM app_event_validators v WHERE v.event_id=e.id AND v.account_id=$1 AND v.revoked_at IS NULL)) LIMIT 1`,
+        [actor.id],
+      )
+    ).rowCount;
     const holdReasons = [
       ...(financial ? ["financial_reconciliation"] : []),
       ...(hosted ? ["published_event_obligations"] : []),
+      ...(publication ? ["publication_reconciliation"] : []),
     ];
     const row = (
       await client.query(
@@ -134,7 +143,7 @@ export async function requestAccountDeletion(
     // disabled/restricted account immediately loses all validator authority.
     const draftAssignments = await client.query(
       `SELECT e.id FROM app_events e JOIN app_event_validators v ON v.event_id=e.id
-      WHERE v.account_id=$1 AND e.state='draft' ORDER BY e.id FOR UPDATE OF e`,
+      WHERE v.account_id=$1 AND e.state='draft' AND NOT EXISTS(SELECT 1 FROM app_publication_images p WHERE p.event_id=e.id) ORDER BY e.id FOR UPDATE OF e`,
       [actor.id],
     );
     const changedEvents = draftAssignments.rows.map((row) => row.id);
@@ -152,6 +161,7 @@ export async function requestAccountDeletion(
     );
     await client.query(
       `DELETE FROM app_event_credentials p WHERE p.account_id=$1 AND NOT EXISTS
+      (SELECT 1 FROM app_publication_images i WHERE i.event_id=p.event_id) AND NOT EXISTS
       (SELECT 1 FROM app_commitment_consents c WHERE c.account_id=p.account_id AND c.event_id=p.event_id AND c.authorized_at IS NOT NULL)
       AND NOT EXISTS (SELECT 1 FROM app_event_validators v JOIN app_events e ON e.id=v.event_id
       WHERE v.account_id=p.account_id AND v.event_id=p.event_id AND v.revoked_at IS NULL AND e.state<>'draft')`,
@@ -166,7 +176,10 @@ export async function requestAccountDeletion(
       (SELECT 1 FROM app_commitment_consents c WHERE c.account_id=a.account_id AND c.event_id=a.event_id AND c.authorized_at IS NOT NULL)`,
       [actor.id],
     );
-    await client.query("DELETE FROM app_events WHERE owner_id=$1 AND state='draft'", [actor.id]);
+    await client.query(
+      "DELETE FROM app_events e WHERE owner_id=$1 AND state='draft' AND NOT EXISTS(SELECT 1 FROM app_publication_images p WHERE p.event_id=e.id)",
+      [actor.id],
+    );
     await client.query(
       "INSERT INTO app_audit(id,actor_id,action) VALUES ($1,$2,'privacy.deletion-requested')",
       [randomUUID(), actor.id],

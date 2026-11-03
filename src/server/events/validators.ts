@@ -3,6 +3,7 @@ import { hasRole, mutate, type Actor } from "../auth/mutations";
 import { transaction } from "../db/client";
 import { isUuid } from "./drafts";
 import { AppFailure } from "../http/security";
+import { requireUnfrozenPublication } from "./publication-lock";
 
 export type EventValidator = {
   id: string;
@@ -27,7 +28,7 @@ async function eventAuthority(
   hasRole(actor, "host", "admin");
   const row = (
     await client.query(
-      `SELECT id,owner_id,state,revision FROM app_events WHERE id=$1 FOR ${lock}`,
+      `SELECT e.id,e.owner_id,e.state,e.revision,EXISTS(SELECT 1 FROM app_publication_images p WHERE p.event_id=e.id) AS publication_pending FROM app_events e WHERE e.id=$1 FOR ${lock} OF e`,
       [eventId],
     )
   ).rows[0];
@@ -66,7 +67,7 @@ export async function readEventValidators(
     return {
       eventId,
       revision: event.revision,
-      frozen: event.state !== "draft",
+      frozen: event.state !== "draft" || event.publication_pending,
       validators: validators.rows.map((row) => ({
         ...row,
         assignedAt: row.assignedAt.toISOString(),
@@ -95,6 +96,7 @@ export async function removeEventValidator(
       const event = await eventAuthority(client, actor, input.eventId, "UPDATE");
       if (event.state !== "draft")
         throw new AppFailure(409, "Validator assignments are fixed at publication.");
+      await requireUnfrozenPublication(client, input.eventId);
       const validator = (
         await client.query(
           "SELECT id,revoked_at FROM app_event_validators WHERE id=$1 AND event_id=$2 FOR UPDATE",

@@ -98,6 +98,13 @@ export function EventActions({
           {!dirty && readiness?.revision === revision && (
             <section aria-label="Saved publication requirements">
               <p>{`Checked saved revision ${readiness.revision} at ${readiness.checkedAt}. This check does not publish or fund the event.`}</p>
+              {readiness.preparation && (
+                <p>
+                  {readiness.preparation.state === "awaiting_observation"
+                    ? `Revision ${readiness.preparation.revision} has a frozen publication request awaiting its original contract outcome. Keep this event for reconciliation; duplicate it to change material rules.`
+                    : "Publication was observed in the disposable sandbox. This does not qualify live publication or deposits."}
+                </p>
+              )}
               <ul>
                 {readiness.checks.map((check) => (
                   <li key={check.id}>

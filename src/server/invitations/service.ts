@@ -5,6 +5,7 @@ import { hash, token } from "../auth/crypto";
 import { hasRole, mutate, type Actor } from "../auth/mutations";
 import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
+import { requireUnfrozenPublication } from "../events/publication-lock";
 import { participantCredential } from "../events/credentials";
 
 type InvitationInput = { kind: "host" | "event" | "validator"; eventId?: string };
@@ -55,6 +56,7 @@ export async function issueInvitation(
         const event = await eventAuthority(client, actor, input.eventId!);
         const now = await databaseNow(client);
         if (input.kind === "validator") {
+          await requireUnfrozenPublication(client, input.eventId!);
           if (event.state !== "draft" || event.registration_closes_at.getTime() <= now)
             throw new AppFailure(409, "Assign validators to a future draft before publication.");
           expiry = new Date(Math.min(now + 15 * 86400_000, event.registration_closes_at.getTime()));
@@ -163,6 +165,7 @@ export async function redeemInvitation(
             [row.event_id],
           )
         ).rows[0];
+        await requireUnfrozenPublication(client, row.event_id);
         if (
           !event ||
           event.state !== "draft" ||

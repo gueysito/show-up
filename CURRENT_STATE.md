@@ -11,7 +11,7 @@ private invitations and host management pass isolated-account checks. Funding an
 - I1: actual Google/Telegram sign-in, linking and logout/re-sign-in verified in the development pilot; encrypted identities, revocable HTTPS sessions and local admin bootstrap.
 - I2: role-scoped invitations, explicit consent, atomic redemption and unused-link revocation/expiry.
 - I3 private account drafts: save/reopen/edit/duplicate, ownership checks and locked material terms.
-- Saved-revision publication requirements distinguish validated rules from unverified escrow, reserves, prizes and eligibility; publication stays disabled.
+- Native sandbox publication binds saved material rules and fixed staff to one encrypted image and actual contract observation; live publication/reserves/prizes remain unqualified.
 - I4 wallet control, native sandbox financial proof and durable reconciliation: stable encrypted event credentials, exact consent-to-contract mapping and source-key/amount binding. Conflicts preserve debt; no live route is enabled.
 - Local NEAR sandbox: intake, receipt, closing, timed abort and principal boundaries survive actual kills; code/staff QR candidates and frozen checkpoints with unmeasured signed coverage fixtures reach actual attendance/close and full test-token principal return.
 - P2 read-only pricing: pinned real-provider signature verification, strict request/principal checks and bounded transport; no payment instruction or enrollment.
@@ -42,5 +42,5 @@ No merge, general hosting, public signing/deployment, paid purchase or spending 
 Actual-wallet/phone journeys, real attributable funding/publication, integrated wallet commitments,
 settlement-dependent retention, qualified deletion/recovery and qualified attendee/staff attendance. Contract evidence uses local test tokens;
 external routes, live draw recovery, typed custody signing and observers remain unqualified.
-Published-state tests are fixtures. Rewards/claims/reporting/release stay in milestones 5–7.
+Native publication has actual sandbox evidence; browser published-state records remain fixtures. Rewards/claims/reporting/release stay in milestones 5–7.
 No mainnet, real-phone or full halfway completion is claimed.

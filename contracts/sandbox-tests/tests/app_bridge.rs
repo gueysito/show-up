@@ -132,20 +132,37 @@ async fn application_attendance_round_trip() {
             };
             let channel = channel_name.as_str();
             let mut f = Fixture::with_financial_consent().await;
-            let setup = exchange(&root, channel, "setup", &json!({"mode":mode}));
             let mut terms = f.view("get_event", json!({"event":f.event})).await["terms"].clone();
-            f.event = setup["event"].as_str().unwrap().to_owned();
-            assert!(f.event.len() == 64 && f.event.bytes().all(|b| b.is_ascii_hexdigit()));
             f.start = f.timestamp().await + 120_000;
             f.end = f.start + 1_800_000;
-            terms["event"] = json!(f.event);
             terms["mode"] = json!(mode);
             terms["start_ms"] = json!(f.start);
             terms["end_ms"] = json!(f.end);
-            terms["excluded"] = setup["excluded"].clone();
             terms["wallet_consent_origin"] = json!("https://localhost:3444");
+            terms["draw_policy"] = Value::Null;
+            let profile = json!({"environment":"sandbox","domain":"showup.sandbox.authorization.v1",
+                "deployment":f.escrow.id(),"token":f.token.id(),"manifest":"local-v1",
+                "escrowCodeHash":bs58::encode(Sha256::digest(f.escrow.view_code().await.unwrap())).into_string(),
+                "tokenCodeHash":bs58::encode(Sha256::digest(f.token.view_code().await.unwrap())).into_string()});
+            let setup = exchange(
+                &root,
+                channel,
+                "setup",
+                &json!({"mode":mode,"profile":profile,"template":terms}),
+            );
+            terms = setup["terms"].clone();
+            f.event = terms["event"].as_str().unwrap().to_owned();
+            assert!(f.event.len() == 64 && f.event.bytes().all(|b| b.is_ascii_hexdigit()));
+            assert_eq!(terms["start_ms"], f.start);
+            assert_eq!(terms["end_ms"], f.end);
+            assert_eq!(terms["host"], f.host.id().as_str());
+            assert_eq!(terms["mode"], mode);
+            assert_eq!(terms["capacity"], 1);
+            assert_eq!(terms["principal"], "5000000");
+            assert_eq!(terms["sponsor_budget"], "0");
+            assert_eq!(terms["app_rules_hash"].as_str().unwrap().len(), 64);
             f.rules_hash = f.rules_commitment(&terms);
-            terms["rules_hash"] = json!(f.rules_hash);
+            assert_eq!(terms["rules_hash"], f.rules_hash);
             f.escrow
                 .call("create_event")
                 .args_json(json!({"terms":terms}))
@@ -162,13 +179,26 @@ async fn application_attendance_round_trip() {
                 .unwrap()
                 .into_result()
                 .unwrap();
+            let publication_block = f.worker.view_block().await.unwrap();
+            let published_at = publication_block.timestamp() / 1_000_000;
+            let publication_event: Value = f
+                .escrow
+                .view("get_event")
+                .args_json(json!({"event":f.event}))
+                .block_hash(*publication_block.hash())
+                .await
+                .unwrap()
+                .json()
+                .unwrap();
+            let publication = json!({"profile":profile,"event":publication_event,
+                "block":{"height":publication_block.height().to_string(),"hash":publication_block.hash().to_string(),"timestampMs":published_at}});
             let issued = f.timestamp().await;
             let prepared = exchange(
                 &root,
                 channel,
                 "consent",
                 &json!({"terms":terms,"deployment":f.escrow.id(),"token":f.token.id(),
-            "wallet":f.alice.id(),"issuedAt":issued,"publishedAt":issued,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes())}),
+            "wallet":f.alice.id(),"issuedAt":issued,"publishedAt":published_at,"publication":publication,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes())}),
             );
             let wallet_proof = financial_signature(&f.alice, &prepared);
             let response = exchange(&root, channel, "signature", &wallet_proof);
@@ -293,7 +323,7 @@ async fn application_attendance_round_trip() {
             let boundary = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),"manifest":"local-v1",
             "event":f.event,"rules_hash":f.rules_hash,"ledger_version":u64::MAX,"complete_through_ms":f.end-900_000,"expires_ms":f.end+2_100_000});
             let closing_source = snapshot(&f, &auth).await;
-            let coverage = fixture_intake_coverage(&f, mode, issued, &closing_source);
+            let coverage = fixture_intake_coverage(&f, mode, published_at, &closing_source);
             let reconciled = exchange(
                 &root,
                 channel,

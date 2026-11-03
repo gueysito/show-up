@@ -10,6 +10,13 @@ import { consentTerms } from "../tests/fixtures/consent";
 import { authConfig } from "../src/server/auth/config";
 import { hash, seal, unseal } from "../src/server/auth/crypto";
 import { participantCredential } from "../src/server/events/credentials";
+import { saveAccountDraft } from "../src/server/events/accounts";
+import {
+  prepareSandboxPublication,
+  observeSandboxPublication,
+  type SandboxPublicationProfile,
+  type SandboxPublicationSource,
+} from "../src/server/events/publication-image";
 import { issueInvitation, redeemInvitation } from "../src/server/invitations/service";
 import { createCommitmentConsent, consentWalletMessage } from "../src/server/commitments/consent";
 import {
@@ -110,6 +117,7 @@ type Published = {
   issuedAt: number;
   publishedAt: number;
   evidencePublicKey: string;
+  publication: SandboxPublicationSource;
 };
 const results: {
   mode: string;
@@ -152,7 +160,11 @@ try {
   );
   for (const { scenario, mode } of cases) {
     const channel = scenario === "outage" ? `${mode}-outage` : mode;
-    await receive(channel, "setup");
+    const opening = await receive<{
+      mode: string;
+      profile: SandboxPublicationProfile;
+      template: { start_ms: number; end_ms: number } & Record<string, unknown>;
+    }>(channel, "setup");
     const f = await accountFixtures([[], ["host"], []]);
     try {
       // Generated test keys encrypt only this run's disposable PostgreSQL records.
@@ -170,13 +182,18 @@ try {
           title: `Fictional application sandbox ${mode}`,
           commitment: "5.00",
           capacity: 1,
+          venue: mode === "physical" ? "Fictional sandbox venue" : "",
           sponsorBudget: "0",
           access: "open" as const,
+          startsAt: new Date(opening.template.start_ms).toISOString(),
+          endsAt: new Date(opening.template.end_ms).toISOString(),
         };
-      await f.pool.query(
-        "INSERT INTO app_events(id,owner_id,revision,data,registration_closes_at) VALUES($1,$2,1,$3,$4)",
-        [eventId, f.accounts[1].id, draft, new Date(draft.startsAt)],
-      );
+      await saveAccountDraft(f.pool, config.encryptionKey, hash(f.accounts[1].value), {
+        id: eventId,
+        revision: 0,
+        operationId: randomUUID(),
+        data: draft,
+      });
       const credentials: string[] = [];
       const client = await f.pool.connect();
       let attendee: string;
@@ -223,24 +240,40 @@ try {
           staffClient.release();
         }
       }
-      await send(channel, "setup", {
-        event: contractReference(eventId),
-        excluded: credentials.map(contractReference),
-      });
+      const revision = (
+        await f.pool.query("SELECT revision FROM app_events WHERE id=$1", [eventId])
+      ).rows[0].revision;
+      const publication = await prepareSandboxPublication(
+        f.pool,
+        config,
+        hash(f.accounts[1].value),
+        {
+          operationId: randomUUID(),
+          eventId,
+          revision,
+          profile: opening.profile,
+          template: opening.template,
+        },
+      );
+      assert.deepEqual(
+        publication.terms.excluded as string[],
+        credentials.map(contractReference).sort(),
+      );
+      await send(channel, "setup", { terms: publication.terms, imageHash: publication.imageHash });
       const published = await receive<Published>(channel, "consent"),
         material = published.terms;
-      draft.startsAt = new Date(material.start_ms).toISOString();
-      draft.endsAt = new Date(material.end_ms).toISOString();
-      await f.pool.query(
-        `UPDATE app_events SET data=$2,state='published',rules_hash=$3,registration_closes_at=$4,published_at=$5 WHERE id=$1`,
-        [
-          eventId,
-          draft,
-          material.rules_hash,
-          new Date(material.start_ms),
-          new Date(published.publishedAt),
-        ],
+      await observeSandboxPublication(
+        f.pool,
+        config,
+        eventId,
+        publication.imageHash,
+        published.publication,
       );
+      const publishedRow = (
+        await f.pool.query("SELECT state,rules_hash FROM app_events WHERE id=$1", [eventId])
+      ).rows[0];
+      assert.equal(publishedRow.state, "published");
+      assert.equal(publishedRow.rules_hash, material.rules_hash);
       const terms = consentTerms("near", published.wallet, published.issuedAt),
         profile = { environment: "sandbox" as const, manifest: "local-v1", token: published.token };
       Object.assign(terms, {
