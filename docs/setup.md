@@ -367,6 +367,15 @@ original NEP-413 signature and strips the returned proof from the address bar;
 not register the wallet for an event or authorize funds. Actual mobile wallet
 return and real routes remain owner/device gates.
 
+Wallet choices now survive a full-document return in the same tab. The verification
+link retains only opaque wallet IDs in `sessionStorage`, scoped by a server-derived
+private account/event/rules reference. Restoring is limited to 30 minutes and the
+account's currently verified wallets, including the same-network refund constraint.
+Editing or starting a fresh review clears this temporary record; closing the tab
+also discards it. It contains no address, login token, quote, signature or approval.
+Restoration does not restore a previous review result: the server must check the
+current wallets/rules again. There is no database migration or change to app keys.
+
 Internal financial-consent storage also requires `006-commitment-consent.sql` via
 the normal migration command. It adds a new table; it does not rewrite accounts,
 wallets or application keys. The consent service currently has no HTTP endpoint or

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { CommitmentWalletReview } from "../../../../components/access/commitment-review";
 import { authConfig } from "../../../../server/auth/config";
 import { findSession, sessionCookie } from "../../../../server/auth/sessions";
-import { hash } from "../../../../server/auth/crypto";
+import { hash, identityIndex } from "../../../../server/auth/crypto";
 import { createDatabase } from "../../../../server/db/client";
 import { readEventEntry, type EventEntry } from "../../../../server/events/entry";
 import { AppFailure } from "../../../../server/http/security";
@@ -17,13 +17,21 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
   if (!config) notFound();
   const { pool } = createDatabase();
   let event: EventEntry | null = null,
-    wallets: OwnWallet[] = [];
+    wallets: OwnWallet[] = [],
+    selectionScope: string | undefined;
   try {
     const value = (await cookies()).get(sessionCookie)?.value;
     event = await readEventEntry(pool, config, id, value ? hash(value) : undefined);
     const session = await findSession(pool, value);
-    if (session && event.viewer === "attendee" && event.registration !== "closed")
+    if (session && event.viewer === "attendee" && event.registration !== "closed") {
       wallets = await listOwnWallets(pool, config, session.accountId);
+      // A private form namespace only, never an authentication/funding capability.
+      selectionScope = identityIndex(
+        config.indexKey,
+        "showup.commitment-review.form.v1",
+        JSON.stringify([session.accountId, id, event.rulesHash]),
+      );
+    }
   } catch (failure) {
     if (failure instanceof AppFailure && failure.status === 404) notFound();
     event = null;
@@ -62,7 +70,13 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
             Review wallet destinations first. A separately verified quote must disclose amounts,
             fees and expiry before financial approval. Deposits are currently closed.
           </p>
-          <CommitmentWalletReview eventId={id} rulesHash={event.rulesHash} wallets={wallets} />
+          <CommitmentWalletReview
+            key={selectionScope}
+            eventId={id}
+            rulesHash={event.rulesHash}
+            wallets={wallets}
+            selectionScope={selectionScope}
+          />
         </>
       )}
     </main>

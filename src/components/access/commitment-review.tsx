@@ -1,36 +1,108 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
 import type { OwnWallet } from "../../server/wallets/service";
 import type { CommitmentReview } from "../../server/commitments/review";
+
+type WalletSelection = { source: string; refund: string; payout: string };
+const purposes = ["source", "refund", "payout"] as const;
+const emptySelection = (): WalletSelection => ({ source: "", refund: "", payout: "" });
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+function storedSelection(key: string | null): string | null {
+  if (!key) return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw || raw.length > 512) return null;
+    const value = JSON.parse(raw);
+    if (
+      !value ||
+      typeof value !== "object" ||
+      Object.keys(value).sort().join() !== "expiresAt,payout,refund,source" ||
+      !Number.isSafeInteger(value.expiresAt) ||
+      value.expiresAt <= Date.now() ||
+      purposes.some((purpose) => typeof value[purpose] !== "string" || value[purpose].length > 36)
+    )
+      return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}
+function restoreSelection(raw: string | null, wallets: OwnWallet[]): WalletSelection {
+  const selection = emptySelection();
+  if (!raw) return selection;
+  const value = JSON.parse(raw) as WalletSelection;
+  for (const purpose of purposes)
+    if (wallets.some((wallet) => wallet.id === value[purpose])) selection[purpose] = value[purpose];
+  const source = wallets.find((wallet) => wallet.id === selection.source),
+    refund = wallets.find((wallet) => wallet.id === selection.refund);
+  if (!source || source.network !== refund?.network) selection.refund = "";
+  return selection;
+}
 
 export function CommitmentWalletReview({
   eventId,
   rulesHash,
   wallets,
+  selectionScope,
 }: {
   eventId: string;
   rulesHash: string;
   wallets: OwnWallet[];
+  selectionScope?: string;
 }) {
-  const [selection, setSelection] = useState({ source: "", refund: "", payout: "" });
+  const storageKey = selectionScope ? `showup.commitment-choices.v1:${selectionScope}` : null;
+  const readSelection = useCallback(() => storedSelection(storageKey), [storageKey]);
+  const savedSelection = useSyncExternalStore(subscribe, readSelection, () => null);
+  const [editedSelection, setSelection] = useState<WalletSelection | null>(null);
+  const selection = editedSelection ?? restoreSelection(savedSelection, wallets);
   const [review, setReview] = useState<CommitmentReview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const source = wallets.find((wallet) => wallet.id === selection.source);
+  function clearSavedSelection() {
+    try {
+      if (storageKey) sessionStorage.removeItem(storageKey);
+    } catch {
+      /* Optional tab state. */
+    }
+  }
+  function rememberSelection(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (busy) {
+      event.preventDefault();
+      return;
+    }
+    // Opaque own-wallet IDs only. Never retain an address, quote, signature,
+    // financial approval or payment instruction in browser storage.
+    try {
+      if (storageKey && Object.values(selection).some(Boolean))
+        sessionStorage.setItem(
+          storageKey,
+          JSON.stringify({ ...selection, expiresAt: Date.now() + 30 * 60_000 }),
+        );
+    } catch {
+      /* Wallet verification remains available when tab storage is blocked. */
+    }
+  }
   function choose(purpose: keyof typeof selection, id: string) {
+    clearSavedSelection();
     setReview(null);
     setError("");
-    setSelection((old) => ({
-      ...old,
+    setSelection({
+      ...selection,
       [purpose]: id,
       ...(purpose === "source" ? { refund: "" } : {}),
-    }));
+    });
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSelection(selection);
+    clearSavedSelection();
     setBusy(true);
     setReview(null);
     setError("");
@@ -63,10 +135,20 @@ export function CommitmentWalletReview({
         review separately. Wallet control does not approve a deposit.
       </p>
       <p>
-        <Link href={`/account/wallets?event=${eventId}`} prefetch={false}>
+        <Link
+          href={`/account/wallets?event=${eventId}`}
+          prefetch={false}
+          onClick={rememberSelection}
+          aria-disabled={busy}
+        >
           Verify another wallet for this event
         </Link>
       </p>
+      {editedSelection === null && savedSelection && Object.values(selection).some(Boolean) && (
+        <p role="status">
+          Your previous wallet choices were restored. Review them again before financial approval.
+        </p>
+      )}
       {!wallets.length ? (
         <p>No verified wallets are saved on this account. Verify a wallet before continuing.</p>
       ) : (

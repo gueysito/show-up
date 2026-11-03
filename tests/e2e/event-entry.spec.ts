@@ -116,6 +116,42 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     await page
       .getByLabel("Principal payout wallet", { exact: true })
       .selectOption(verifiedWallets[3].id);
+    await page.getByRole("link", { name: "Verify another wallet for this event" }).click();
+    await expect(page.getByRole("heading", { name: "Your wallets", exact: true })).toBeVisible();
+    // A real wallet redirect replaces the document. Reload this isolated wallet
+    // page to prove choices survive that boundary rather than router memory.
+    await page.reload();
+    await page.getByRole("link", { name: "Return to this event's commitment review" }).click();
+    await expect(page.getByLabel("Source wallet", { exact: true })).toHaveValue(
+      verifiedWallets[1].id,
+    );
+    await expect(page.getByLabel("Source-refund wallet", { exact: true })).toHaveValue(
+      verifiedWallets[1].id,
+    );
+    await expect(page.getByLabel("Principal payout wallet", { exact: true })).toHaveValue(
+      verifiedWallets[3].id,
+    );
+    await expect(page.getByRole("status")).toContainText(
+      "Your previous wallet choices were restored",
+    );
+    const cached = await page.evaluate(() =>
+      Object.entries(sessionStorage)
+        .filter(([key]) => key.startsWith("showup.commitment-choices.v1:"))
+        .map(([, value]) => JSON.parse(value)),
+    );
+    expect(cached).toHaveLength(1);
+    expect(Object.keys(cached[0]).sort()).toEqual(["expiresAt", "payout", "refund", "source"]);
+    expect(cached[0]).toMatchObject({
+      source: verifiedWallets[1].id,
+      refund: verifiedWallets[1].id,
+      payout: verifiedWallets[3].id,
+    });
+    expect((await page.content()).includes(config.indexKey)).toBe(false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.screenshot({
+      path: testInfo.outputPath("commitment-restored-mobile.png"),
+      fullPage: true,
+    });
     await page.getByRole("button", { name: "Review destinations and fee availability" }).click();
     const review = page.getByRole("region", { name: "Reviewed commitment destinations" });
     await expect(review).toContainText("No qualified quote");
@@ -123,6 +159,14 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     await expect(
       review.getByRole("button", { name: "Approve financial terms · verified quote required" }),
     ).toBeDisabled();
+    expect(
+      await page.evaluate(
+        () =>
+          Object.keys(sessionStorage).filter((key) =>
+            key.startsWith("showup.commitment-choices.v1:"),
+          ).length,
+      ),
+    ).toBe(0);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
