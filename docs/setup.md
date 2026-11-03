@@ -314,6 +314,17 @@ or paused source checks. Conflicts preserve the recorded obligations; unqualifie
 observations never become confirmed escrow or funded seats. No watch-creation or
 refresh endpoint is exposed to browsers.
 
+## Private account export
+
+After rebuilding, choose **Account → Your data and export → Download your data as JSON**.
+The attachment contains that account's linked identity IDs, wallet addresses, original
+financial approvals/own observations, authored events and answers, invitation/access
+metadata and audit records. It excludes session/capability tokens, OAuth material,
+blind indexes, ephemeral challenges and other accounts. Keep the downloaded file private.
+Exports are limited to three per account per hour; cross-site requests and account-ID
+filters are rejected. On-chain records cannot be erased. Deletion requests and their
+restricted recovery workflow remain the next implementation step.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet

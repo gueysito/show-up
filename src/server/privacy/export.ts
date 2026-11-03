@@ -1,0 +1,149 @@
+import type pg from "pg";
+import type { AuthConfig } from "../auth/config";
+import { unseal } from "../auth/crypto";
+import { transaction } from "../db/client";
+import { canonicalHash } from "../protocol/canonical";
+import type { CommitmentConsent } from "../commitments/consent";
+import type { WalletSignature } from "../wallets/proof";
+import type { OwnWallet } from "../wallets/service";
+import { requirePrivacyActor } from "./access";
+import { settlementWatchSnapshot } from "../commitments/reconciliation";
+
+// Export owned product data, excluding security tokens, blind indexes and challenges.
+export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHash: string) {
+  return transaction(pool, async (client) => {
+    await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+    const actor = await requirePrivacyActor(client, sessionHash);
+    const [identities, roles, wallets, consents, events, issued, redeemed, access, audit, watches] =
+      [
+        await client.query(
+          "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
+          [actor.id],
+        ),
+        await client.query("SELECT role FROM app_roles WHERE account_id=$1 ORDER BY role", [
+          actor.id,
+        ]),
+        await client.query(
+          "SELECT id,encrypted_wallet,revoked_at FROM app_wallets WHERE account_id=$1 ORDER BY created_at,id",
+          [actor.id],
+        ),
+        await client.query(
+          "SELECT * FROM app_commitment_consents WHERE account_id=$1 ORDER BY created_at,id",
+          [actor.id],
+        ),
+        await client.query(
+          "SELECT id,revision,data,state,rules_hash,published_at,updated_at FROM app_events WHERE owner_id=$1 ORDER BY updated_at,id",
+          [actor.id],
+        ),
+        await client.query(
+          "SELECT id,kind,event_id,expires_at,revoked_at,redeemed_at,created_at FROM app_invitations WHERE issuer_id=$1 ORDER BY created_at,id",
+          [actor.id],
+        ),
+        await client.query(
+          "SELECT id,kind,event_id,redeemed_at FROM app_invitations WHERE redeemed_by=$1 ORDER BY redeemed_at,id",
+          [actor.id],
+        ),
+        await client.query(
+          "SELECT event_id,granted_at FROM app_event_access WHERE account_id=$1 ORDER BY granted_at,event_id",
+          [actor.id],
+        ),
+        await client.query(
+          "SELECT id,action,entity_id,created_at FROM app_audit WHERE actor_id=$1 ORDER BY created_at,id",
+          [actor.id],
+        ),
+        await client.query(
+          `SELECT l.consent_id,w.* FROM app_commitment_settlement_links l
+          JOIN app_commitment_consents c ON c.id=l.consent_id JOIN app_settlement_watches w ON w.id=l.watch_id
+          WHERE c.account_id=$1`,
+          [actor.id],
+        ),
+      ];
+    return {
+      format: "showup.own-data.v1",
+      exportedAt: new Date().toISOString(),
+      account: { id: actor.id, state: actor.state, createdAt: actor.createdAt.toISOString() },
+      linkedIdentities: identities.rows.map((row) => {
+        const identity = unseal(
+          config.encryptionKey,
+          `identity:${row.identity_hash}`,
+          row.encrypted_identity,
+        ) as { issuer: string; subject: string };
+        return {
+          provider: row.provider,
+          issuer: identity.issuer,
+          subject: identity.subject,
+          linkedAt: row.created_at.toISOString(),
+        };
+      }),
+      roles: roles.rows.map((row) => row.role as string),
+      wallets: wallets.rows.map((row) => {
+        const wallet = unseal(
+          config.encryptionKey,
+          `wallet:${actor.id}:${row.id}`,
+          row.encrypted_wallet,
+        ) as OwnWallet;
+        return {
+          id: row.id,
+          network: wallet.network,
+          address: wallet.address,
+          verifiedAt: wallet.verifiedAt,
+          revokedAt: row.revoked_at?.toISOString() ?? null,
+        };
+      }),
+      financialAuthorizations: consents.rows.map((row) => {
+        const { consent } = unseal(
+          config.encryptionKey,
+          `commitment-consent:${actor.id}:${row.id}`,
+          row.encrypted_consent,
+        ) as { consent: CommitmentConsent };
+        if (canonicalHash(consent) !== row.consent_hash)
+          throw new Error("Financial export integrity failure");
+        const approved = row.encrypted_proof
+          ? (unseal(
+              config.encryptionKey,
+              `commitment-proof:${actor.id}:${row.id}`,
+              row.encrypted_proof,
+            ) as { proof: WalletSignature })
+          : null;
+        return {
+          consent,
+          proof: approved?.proof ?? null,
+          preparedAt: row.created_at.toISOString(),
+          approvedAt: row.authorized_at?.toISOString() ?? null,
+          escrowConfirmed: false,
+          fundingAllowed: false,
+        };
+      }),
+      reconciliation: watches.rows.map((row) => {
+        const snapshot = settlementWatchSnapshot(config, row),
+          facts = snapshot.facts;
+        return {
+          consentId: row.consent_id,
+          available: snapshot.available,
+          paused: snapshot.paused,
+          lastAttemptAt: row.last_attempt_at,
+          lastSuccessAt: row.last_success_at,
+          block: facts?.block ?? null,
+          registrationState: facts?.registration?.state ?? null,
+          principal: facts?.principal ?? null,
+          returned: facts?.returned ?? null,
+          sourceQualified: false,
+          escrowConfirmed: false,
+        };
+      }),
+      hostedEvents: events.rows,
+      invitationsIssued: issued.rows,
+      invitationsRedeemed: redeemed.rows,
+      eventAccess: access.rows,
+      audit: audit.rows,
+      excludedSecurityMaterial: [
+        "Session and capability tokens",
+        "OAuth credentials and login attempts",
+        "Blind identity/wallet indexes",
+        "Ephemeral control challenges",
+      ],
+      notice:
+        "This export contains private identity, wallet and event data. On-chain records cannot be erased. Approved terms do not confirm escrow or a funded seat.",
+    };
+  });
+}

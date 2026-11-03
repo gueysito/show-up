@@ -1014,6 +1014,24 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   source qualification or deployment occurred. Existing contract/provider/device
   limits remain. I5 privacy and attendance interfaces remain incomplete.
 
+## I5 private account export checkpoint November 2
+
+- Format/lint/types and 56 unit checks pass; all 60 disposable PostgreSQL checks pass.
+  Own exported identities, wallets, original signatures/terms and authored answers
+  remain account-scoped. Restricted deletion-state reads cannot regain normal money
+  authority; disabled/revoked sessions fail. A consistent database snapshot uses
+  sequential reads on one connection without driver queue warnings.
+- Isolated production build and all 21 Chromium scenarios pass; nine code inputs
+  match that snapshot. Actual JSON attachment, private headers, other-account isolation,
+  cross-site/filter/write rejection, shared three-per-hour limit, mobile keyboard/reflow
+  and logout denial pass. Mobile capture inspected; no auth/proof/watch internals
+  appear in client bundles. Current public npm runtime audit: zero vulnerabilities.
+- New since the walkthrough: **Account → Your data and export → Download your data
+  as JSON** returns private own records, including explicit unconfirmed escrow.
+  Only fictional records were exported during agent verification. No real credential,
+  owner identity/database, on-chain record or deployed app was changed. Account deletion,
+  qualified payment recovery and attendance interfaces remain incomplete.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

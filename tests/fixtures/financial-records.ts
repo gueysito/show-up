@@ -1,7 +1,8 @@
 import { generateKeyPairSync, randomUUID, sign } from "node:crypto";
 import { Wallet } from "ethers";
 import { emptyDraft } from "../../src/domain/event-draft";
-import { authConfig } from "../../src/server/auth/config";
+import { authConfig, issuers } from "../../src/server/auth/config";
+import { establishIdentity } from "../../src/server/auth/identities";
 import { hash } from "../../src/server/auth/crypto";
 import {
   acceptCommitmentConsent,
@@ -32,8 +33,8 @@ export async function financialFixtures(network: "base" | "near" = "base") {
       SHOWUP_IDENTITY_KEY: process.env.SHOWUP_E2E_ENCRYPTION_KEY,
       SHOWUP_IDENTITY_INDEX_KEY: process.env.SHOWUP_E2E_INDEX_KEY,
     })!;
-    const wallet = Wallet.createRandom(),
-      session = hash(fixtures.accounts[0].value);
+    const wallet = Wallet.createRandom();
+    let session = hash(fixtures.accounts[0].value);
     const near = generateKeyPairSync("ed25519"),
       publicKey = `ed25519:${encodeBase58(Buffer.from(near.publicKey.export({ format: "jwk" }).x!, "base64url"))}`;
     const address = network === "near" ? "fictional-wallet.near" : wallet.address;
@@ -171,7 +172,19 @@ export async function financialFixtures(network: "base" | "near" = "base") {
       };
       await refreshSettlementWatch(fixtures.pool, config, watchId, transport);
     }
-    return { ...fixtures, title, consent, watch };
+    async function linkFictionalIdentity(subject: string) {
+      const result = await establishIdentity(
+        fixtures.pool,
+        config,
+        "telegram",
+        { issuer: issuers.telegram, subject },
+        session,
+        session,
+      );
+      fixtures.accounts[0].value = result.value;
+      session = hash(result.value);
+    }
+    return { ...fixtures, title, consent, watch, linkFictionalIdentity };
   } catch (error) {
     await fixtures.cleanup();
     throw error;

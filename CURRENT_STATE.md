@@ -19,13 +19,14 @@ private invitations and host management pass isolated-account checks. Funding an
 - Native NFT prototype: exact receipt/publication gate, fixed delivery/return with retry, draft/outage recovery and recomputed material-terms commitments.
 - P5: finalized-header pairs, exact asset facts, signed historical delivery and bounded nonce/blockhash recovery pass isolated checks. Routes remain unqualified.
 - Own financial records bind reconciliation to the original approval; source failures/conflicts preserve obligations and keep escrow unconfirmed.
-- 56 unit, 58 PostgreSQL and 20 Chromium checks/build pass; unchanged 35 sandbox/seven Node replays remain verified. Native financial binding `01cf30b` has both CI jobs passing.
+- Own-data JSON export excludes other accounts and security material; deletion/recovery workflow remains incomplete.
+- 56 unit, 60 PostgreSQL and 21 Chromium checks/build pass; unchanged 35 sandbox/seven Node replays remain verified. Reconciliation binding `0bdf674` passed CI.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-I5 own-data export/deletion/recovery and A1–A4 attendance interfaces while I4 real-route integration remains gated;
+I5 deletion/recovery and A1–A4 attendance interfaces while I4 real-route integration remains gated;
 continue P5 source-to-witness integration and qualified provider/asset experiments within their gates.
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;
@@ -35,7 +36,7 @@ No merge, general hosting, public signing/deployment, paid purchase or spending 
 ## Unimplemented or unverified
 
 Actual-wallet/phone journeys, real attributable funding/publication, integrated wallet commitments,
-privacy operations and attendance interfaces. Contract evidence uses local test tokens;
+deletion/recovery operations and attendance interfaces. Contract evidence uses local test tokens;
 external routes, live draw recovery, typed custody signing and observers remain unqualified.
 Published-state tests are fixtures. Rewards/claims/reporting/release stay in milestones 5–7.
 No mainnet, real-phone or full halfway completion is claimed.

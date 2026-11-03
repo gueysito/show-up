@@ -30,6 +30,7 @@ import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { requireFundingRoute } from "../../src/server/protocol/manifest";
 import { networkManifest } from "../../src/server/protocol/manifest";
 import { refreshSettlementWatch } from "../../src/server/commitments/reconciliation";
+import { exportOwnData } from "../../src/server/privacy/export";
 import { nearMessageDigest } from "../../src/server/wallets/proof";
 import { acceptWalletProof, issueWalletChallenge } from "../../src/server/wallets/service";
 
@@ -116,6 +117,25 @@ test("financial history and accepted contract preparation stay account scoped ac
     expected,
   );
   const history = await listOwnFinancialRecords(pool, config, fresh.session);
+  const exported = await exportOwnData(pool, config, fresh.session);
+  assert.equal(exported.account.id, f.actor.accountId);
+  assert.equal(exported.linkedIdentities[0].subject, f.actor.subject);
+  assert.equal(exported.wallets[0].address, consent.terms.source.address);
+  assert.deepEqual(exported.financialAuthorizations[0].consent, consent);
+  assert.deepEqual(exported.financialAuthorizations[0].proof, proof);
+  assert.equal(exported.financialAuthorizations[0].escrowConfirmed, false);
+  const encoded = JSON.stringify(exported);
+  for (const privateValue of [f.host.subject, f.host.accountId, fresh.value, fresh.session])
+    assert.equal(encoded.includes(privateValue), false);
+  for (const privateField of [
+    "identity_hash",
+    "wallet_index",
+    "token_hash",
+    "encrypted_identity",
+    "encrypted_consent",
+    "encrypted_proof",
+  ])
+    assert.equal(encoded.includes(privateField), false);
   assert.equal(history.records.length, 1);
   assert.deepEqual(history.records[0].terms, consent.terms);
   assert.equal(history.records[0].escrowState, "not_confirmed");
@@ -680,6 +700,11 @@ test("NEAR financial consent independently rechecks current full-access membersh
   assert.equal(unavailable.escrowState, "not_confirmed");
   assert.equal(unavailable.reconciliation.sourceQualified, false);
   assert.equal(Object.hasOwn(unavailable.reconciliation, "context"), false);
+  const exported = await exportOwnData(pool, config, f.actor.session);
+  assert.equal(exported.reconciliation.length, 1);
+  assert.equal(exported.reconciliation[0].consentId, consent.id);
+  assert.equal(exported.reconciliation[0].available, false);
+  assert.equal(Object.hasOwn(exported.reconciliation[0], "funded"), false);
 });
 
 test("consent migration rolls back without erasing existing accounts or events", async () => {

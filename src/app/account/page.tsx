@@ -66,6 +66,11 @@ export default async function AccountPage({
             </Link>
           </p>
           <p>
+            <Link href="/account/privacy" prefetch={false}>
+              Your data and export
+            </Link>
+          </p>
+          <p>
             Linking verifies the second identity and keeps this account. Matching emails or
             usernames never merge accounts.
           </p>
