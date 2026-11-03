@@ -66,6 +66,19 @@ The finite remaining deliverables below decompose existing packages, not new sta
 | A1–A4 | Ordinary optional bot opt-in, event links and sender/prompt-bound code replies on the shared attendance boundary; integrate existing attendance/coverage status and silent mobile/closed controls. | 1–2 days | Bot API credential and explicit message/ingress approval; qualified source/coverage evidence; actual iOS/Android camera, wallet return and audio checks. |
 | Existing integration exit | One combined host/attendee walkthrough for both modes, focused gap fixes, required CI and a concrete owner handoff. | 0.5–1 day | Owner/device and public-provider evidence listed above; no full milestone-4 claim without it. |
 
+Local delivery progress: `8ca2941` binds saved drafts/staff to actual native sandbox
+publication; `3f21725` connects event wallet/destination review and the signed NEAR
+return context. This checkpoint connects the existing recovery journal to own
+history, displays source-observed release/cancellation/abort and the release deadline,
+and names actual deletion holds. Focused original principal/consent checks and
+affected financial-history/privacy browser journeys validate the projection without
+new kill variants or rerunning unchanged contract proofs. It never confirms a real
+payment or clears an obligation. Next local work: native user-release request binding,
+then the combined two-mode walkthrough and exact owner handoff. Qualified quotes,
+real funding/returns, source coverage, provider activation and devices remain external
+evidence gates. [Wallet-review CI](https://github.com/gueysito/show-up/actions/runs/41690979115)
+is running; no full milestone-4 completion is claimed.
+
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and
 remaining local UI work can progress while external gates stay closed. Finish the

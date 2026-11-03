@@ -90,6 +90,39 @@ export default async function CommitmentsPage({
                   : "Prepared terms · approval not recorded"}
               </p>
               <p>Escrow not confirmed. No funded seat is shown for this authorization.</p>
+              {record.principalRecovery && (
+                <section aria-label="Principal recovery status">
+                  <h3>Original principal recovery</h3>
+                  <p>
+                    {record.principalRecovery.status === "observed"
+                      ? "A sandbox return observation is recorded. Real payment remains unconfirmed."
+                      : record.principalRecovery.status === "conflict"
+                        ? "Conflicting source records paused recovery. The original obligation remains owed."
+                        : record.principalRecovery.status === "broadcast_unknown"
+                          ? "Submission acknowledgement is unknown. Recovery checks the original request before another transfer."
+                          : record.principalRecovery.status === "pending_transfer"
+                            ? "The original transfer is pending. No second payment is confirmed."
+                            : record.principalRecovery.status === "unavailable"
+                              ? "Source records are unavailable. The original request and obligation remain retained."
+                              : record.principalRecovery.status === "awaiting_liability"
+                                ? "Waiting for the contract's original return obligation. No return is confirmed."
+                                : "The original recovery request is queued or processing. No return is confirmed."}
+                  </p>
+                  {record.principalRecovery.lastEffect === "fail_neutral" && (
+                    <p>
+                      Recovery is reconciling the contract&apos;s fail-neutral abort before
+                      principal withdrawal. It does not classify an outage as a no-show.
+                    </p>
+                  )}
+                  <p>{`Last recovery update: ${record.principalRecovery.updatedAt}.`}</p>
+                  <details>
+                    <summary>Original recovery reference</summary>
+                    <p style={{ overflowWrap: "anywhere" }}>
+                      {record.principalRecovery.requestReference}
+                    </p>
+                  </details>
+                </section>
+              )}
               {activeAccount &&
                 record.authorizedAt &&
                 record.eventState === "published" &&
@@ -128,6 +161,19 @@ export default async function CommitmentsPage({
               {record.reconciliation.status !== "not_linked" && (
                 <section aria-label="Reconciliation status">
                   <h3>Financial record checks</h3>
+                  {(record.reconciliation.eventState === "cancelled" ||
+                    record.reconciliation.eventState === "aborted" ||
+                    record.reconciliation.registrationState === "released") && (
+                    <p>
+                      {`${
+                        record.reconciliation.registrationState === "released"
+                          ? "Source records show a released commitment."
+                          : record.reconciliation.eventState === "cancelled"
+                            ? "Source records show host cancellation."
+                            : "Source records show event abort."
+                      } Return obligations remain tied to the original approved destinations; this unqualified observation does not confirm payment.`}
+                    </p>
+                  )}
                   <p>
                     {record.reconciliation.status === "paused"
                       ? "Conflicting source records paused this check. Existing obligations remain recorded."
@@ -144,6 +190,23 @@ export default async function CommitmentsPage({
                     <p>{`Observed source return still owed: ${amount(record.reconciliation.returnedRemaining, record)}. This is an unqualified observation, not a payment receipt.`}</p>
                   )}
                   <p>{`Last successful source check: ${record.reconciliation.lastSuccessAt ?? "Not recorded"}.`}</p>
+                </section>
+              )}
+              {record.authorizedAt && (
+                <section aria-label="Release and recovery availability">
+                  <h3>Release and return</h3>
+                  <p>{`Timely release must be accepted before ${new Intl.DateTimeFormat("en-US", { dateStyle: "full", timeStyle: "short", timeZone: record.terms.timeZone }).format(new Date(record.terms.registrationClosesAt - 600_000))} (${record.terms.timeZone}). A deletion request does not release a commitment.`}</p>
+                  <button type="button" className="secondary-button" disabled>
+                    Release commitment · qualified route required
+                  </button>
+                  <p>
+                    Release and return submission remain unavailable until the original route is
+                    qualified. Unresolved records and recovery access remain retained even after
+                    logout or a deletion request.
+                  </p>
+                  <Link href="/account/privacy" prefetch={false}>
+                    Review retained data and deletion status
+                  </Link>
                 </section>
               )}
               {record.terms.environment === "sandbox" && (

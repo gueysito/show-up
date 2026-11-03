@@ -14,6 +14,7 @@ import { AppFailure } from "../../src/server/http/security";
 import { exportOwnData } from "../../src/server/privacy/export";
 import { requestAccountDeletion } from "../../src/server/privacy/deletion";
 import { confirmedDeletion } from "../fixtures/deletion";
+import { listOwnFinancialRecords } from "../../src/server/commitments/records";
 
 const status = (code: number) => (error: unknown) =>
   error instanceof AppFailure && error.status === code;
@@ -122,6 +123,11 @@ test("principal recovery uses only the original approved liability and persists 
     assert.deepEqual(await f.run(), result);
     assert.equal((await f.row()).encrypted_request, before.encrypted_request);
     assert.equal(f.counts().submissions, 1);
+    const own = (await listOwnFinancialRecords(f.pool, f.config, f.session)).records[0];
+    assert.equal(own.principalRecovery?.status, "observed");
+    assert.equal(own.principalRecovery?.requestReference, (await f.row()).request_hash);
+    assert.equal(own.principalRecovery?.paymentConfirmed, false);
+    assert.equal(own.principalRecovery?.sourceQualified, false);
   } finally {
     await f.cleanup();
   }

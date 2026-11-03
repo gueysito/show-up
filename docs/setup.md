@@ -418,6 +418,17 @@ or paused source checks. Conflicts preserve the recorded obligations; unqualifie
 observations never become confirmed escrow or funded seats. No watch-creation or
 refresh endpoint is exposed to browsers.
 
+Own history now also shows the existing principal-recovery journal's queued,
+unknown-acknowledgement, pending, unavailable, conflict or observed status and its
+original request reference. Fail-neutral recovery remains distinct from no-show
+classification. Release/cancellation/abort observations keep the original approved
+destinations; none is a qualified payment receipt. The release section shows the
+strict start-minus-ten-minute deadline and remains disabled until its route is
+qualified. The data page names the actual financial, published-event or pending
+publication hold. Sandbox observations never clear those holds. Native application
+user-release request binding and qualified settlement-dependent purge remain
+incomplete; existing principal return and contract release proofs are retained.
+
 The shared attendance packet builder accepts only explicit sandbox context and
 validated funded contract state. It binds the original event, participant, rules,
 proof class, server receipt time, nonce and bounded expiry; its result stays

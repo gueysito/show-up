@@ -47,7 +47,18 @@ export type OwnReconciliation = {
   block: { height: string; hash: string; timestampMs: number } | null;
   principalRemaining: string | null;
   returnedRemaining: string | null;
+  eventState: string | null;
+  registrationState: string | null;
   sourceQualified: false;
+};
+
+export type OwnPrincipalRecovery = {
+  status: string;
+  lastEffect: "withdraw" | "fail_neutral" | null;
+  updatedAt: string;
+  requestReference: string;
+  sourceQualified: false;
+  paymentConfirmed: false;
 };
 
 export type OwnFinancialRecord = {
@@ -63,6 +74,7 @@ export type OwnFinancialRecord = {
   reconciliation: OwnReconciliation;
   attendance: OwnAttendanceCandidate | null;
   attendanceWindow: OwnAttendanceWindow | null;
+  principalRecovery: OwnPrincipalRecovery | null;
 };
 export async function listOwnFinancialRecords(
   pool: pg.Pool,
@@ -111,6 +123,12 @@ export async function listOwnFinancialRecords(
       [rows.map((row) => row.id)],
     );
     const linked = new Map(observations.rows.map((row) => [row.consent_id, row]));
+    const recoveries = await client.query(
+      `SELECT consent_id,state,last_effect,updated_at,request_hash FROM app_principal_recoveries
+       WHERE consent_id=ANY($1::uuid[])`,
+      [rows.map((row) => row.id)],
+    );
+    const recovery = new Map(recoveries.rows.map((row) => [row.consent_id, row]));
     const candidates = await client.query(
       "SELECT * FROM app_attendance_candidates WHERE account_id=$1 AND consent_id=ANY($2::uuid[])",
       [actor, rows.map((row) => row.id)],
@@ -145,6 +163,8 @@ export async function listOwnFinancialRecords(
         block: snapshot?.facts?.block ?? null,
         principalRemaining: snapshot?.facts?.principal?.remaining ?? null,
         returnedRemaining: snapshot?.facts?.returned?.remaining ?? null,
+        eventState: snapshot?.facts?.eventState ?? null,
+        registrationState: snapshot?.facts?.registration?.state ?? null,
         sourceQualified: false,
       };
       return {
@@ -160,6 +180,16 @@ export async function listOwnFinancialRecords(
         reconciliation,
         attendance: attendance.get(row.id) ?? null,
         attendanceWindow: attendanceWindow(row),
+        principalRecovery: recovery.has(row.id)
+          ? {
+              status: recovery.get(row.id)!.state as string,
+              lastEffect: recovery.get(row.id)!.last_effect as OwnPrincipalRecovery["lastEffect"],
+              updatedAt: recovery.get(row.id)!.updated_at.toISOString(),
+              requestReference: recovery.get(row.id)!.request_hash as string,
+              sourceQualified: false as const,
+              paymentConfirmed: false as const,
+            }
+          : null,
       };
     });
     return { records, nextCursor: result.rows.length > 50 ? rows.at(-1)!.id : null };

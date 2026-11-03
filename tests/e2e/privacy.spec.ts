@@ -96,6 +96,9 @@ test("deletion with an approved record rotates sessions, preserves recovery data
     await expect(page.getByRole("region", { name: "Deletion request status" })).toContainText(
       "New account activity is disabled",
     );
+    await expect(page.getByRole("list", { name: "Unresolved deletion obligations" })).toContainText(
+      "Original financial approvals still require qualified settlement and return evidence",
+    );
     expect((await oldContext.request.get("https://localhost:3444/api/commitments")).status()).toBe(
       401,
     );

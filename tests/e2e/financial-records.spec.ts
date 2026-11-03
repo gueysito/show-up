@@ -61,6 +61,17 @@ test("own financial approvals persist without claiming escrow, and private histo
     await page.getByRole("link", { name: "Review your financial authorizations" }).click();
     await expect(page.getByRole("heading", { name: f.title })).toBeVisible();
     await expect(page.getByText("Financial terms approved", { exact: true })).toBeVisible();
+    // Recovery transport metadata fixture only, never a live transfer or payment receipt.
+    await f.pool.query(
+      "INSERT INTO app_principal_recoveries(consent_id,request_hash,encrypted_request,state,last_effect) VALUES($1,$2,$3,'broadcast_unknown','withdraw')",
+      [f.consent.id, "e".repeat(64), "engineering-recovery-fixture"],
+    );
+    await page.reload();
+    const recovery = page.getByRole("region", { name: "Principal recovery status" });
+    await expect(recovery).toContainText("Submission acknowledgement is unknown");
+    await expect(
+      page.getByRole("button", { name: "Release commitment · qualified route required" }),
+    ).toBeDisabled();
     await expect(
       page.getByText("Escrow not confirmed. No funded seat is shown for this authorization."),
     ).toBeVisible();
@@ -72,6 +83,9 @@ test("own financial approvals persist without claiming escrow, and private histo
     expect(response.headers()["access-control-allow-origin"]).toBeUndefined();
     const record = (await response.json()).records[0];
     expect(record.fundingAllowed).toBe(false);
+    expect(record.principalRecovery.paymentConfirmed).toBe(false);
+    expect(record.principalRecovery.sourceQualified).toBe(false);
+    expect(record.principalRecovery.encrypted_request).toBeUndefined();
     for (const key of ["proof", "message", "nonce", "accountId"])
       expect(record[key]).toBeUndefined();
     for (const query of [

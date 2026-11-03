@@ -78,6 +78,21 @@ export default async function PrivacyPage() {
                 reconciled. This does not erase debt or confirm a payment.
               </p>
               <p>{`Requested at ${deletion.requestedAt}. Reference: ${deletion.id}.`}</p>
+              <ul aria-label="Unresolved deletion obligations">
+                {deletion.holdReasons.map((reason) => (
+                  <li key={reason}>
+                    {reason === "publication_reconciliation"
+                      ? "A frozen publication request still needs its original contract outcome reconciled."
+                      : reason === "published_event_obligations"
+                        ? "Published event obligations still require qualified settlement and return evidence."
+                        : "Original financial approvals still require qualified settlement and return evidence."}
+                  </li>
+                ))}
+              </ul>
+              <p>
+                Sandbox observations and provider status hints cannot clear these obligations or
+                authorize deletion of recovery records.
+              </p>
               <p>
                 Use the same linked provider to restore this restricted access after logout. New
                 linking, roles, wallets, events and commitments are disabled.
