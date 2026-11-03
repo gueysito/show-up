@@ -1,12 +1,12 @@
 import { compareFinalizedHeads } from "../protocol/finalized-heads";
 import { record } from "../protocol/quote-signature";
 import { ReadOnlyRpc, unsigned } from "../protocol/rpc";
-import type { WalletChallenge, WalletSignature } from "./proof";
+import type { WalletMessage, WalletSignature } from "./proof";
 
 export class NearFullAccessRequired extends Error {}
 
 export async function requireNearFullAccess(
-  challenge: WalletChallenge,
+  challenge: WalletMessage,
   proof: WalletSignature,
   transport: typeof fetch = fetch,
 ) {

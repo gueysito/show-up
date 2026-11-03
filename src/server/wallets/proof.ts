@@ -19,6 +19,10 @@ export type WalletChallenge = {
   expiresAt: number;
 };
 export type WalletSignature = { signature: string; publicKey?: string; accountId?: string };
+export type WalletMessage = Pick<
+  WalletChallenge,
+  "network" | "address" | "message" | "nonce" | "recipient" | "callbackUrl"
+>;
 
 export function walletAddress(network: Network, value: string): string {
   if (!walletNetworks.includes(network) || typeof value !== "string" || value.length > 128)
@@ -93,7 +97,7 @@ function base64(value: string, size: number) {
 
 function borshString(value: string) {
   const bytes = Buffer.from(value, "utf8");
-  if (bytes.length > 2048) throw new Error("Wallet message bounds");
+  if (bytes.length > 8192) throw new Error("Wallet message bounds");
   const length = Buffer.alloc(4);
   length.writeUInt32LE(bytes.length);
   return Buffer.concat([length, bytes]);
@@ -101,7 +105,9 @@ function borshString(value: string) {
 
 // NEP-413: little-endian u32 tag, string, fixed 32-byte nonce, string,
 // Option<string> callback URL. Sign SHA-256 of these bytes, never a transaction.
-export function nearMessageDigest(challenge: WalletChallenge): Buffer {
+export function nearMessageDigest(
+  challenge: Pick<WalletMessage, "message" | "nonce" | "recipient" | "callbackUrl">,
+): Buffer {
   const tag = Buffer.alloc(4);
   tag.writeUInt32LE(2 ** 31 + 413);
   return createHash("sha256")
@@ -146,6 +152,25 @@ export function verifyWalletSignature(
     )
       return false;
     base64(challenge.nonce, 32);
+    return verifyWalletMessageSignature(challenge, proof);
+  } catch {
+    return false;
+  }
+}
+
+// Signature primitive only. Callers must reconstruct their own purpose-specific
+// message and enforce origin, nonce, owner, expiry and NEAR FullAccess membership.
+export function verifyWalletMessageSignature(
+  challenge: WalletMessage,
+  proof: WalletSignature,
+): boolean {
+  try {
+    if (
+      challenge.address !== walletAddress(challenge.network, challenge.address) ||
+      typeof challenge.message !== "string" ||
+      Buffer.byteLength(challenge.message) > 8192
+    )
+      return false;
     const fields = Object.keys(proof).sort();
     if (challenge.network === "base" || challenge.network === "ethereum") {
       if (

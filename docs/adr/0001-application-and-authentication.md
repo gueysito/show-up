@@ -2,7 +2,9 @@
 
 Status: Accepted by the owner on October 29, 2026. Local framework foundation
 implemented November 2. Identity/session/linking code has isolated protocol,
-database and browser evidence; live provider verification remains pending.
+database and browser evidence. Owner verification on November 2 confirms actual
+Google/Telegram sign-in, explicit linking and return to the same account through
+the approved development tunnel; actual-phone and production release checks remain open.
 
 ## Decision
 
@@ -18,8 +20,8 @@ login, sessions, and linking is normal implementation work, not an unresolved
 stack decision. Hosting was subsequently settled as Railway with Docker Compose
 local setup in [PRD section 16.5](../prd.md#165-runtime-and-exposure). Exact versions
 are pinned in the manifest and [setup](../setup.md). The expanded November 2
-halfway goal approves identity implementation. Provider registration/credentials
-and live verification remain separate prerequisites.
+halfway goal approves identity implementation. Provider registration and desktop
+development verification are complete; phone and release checks remain prerequisites.
 
 ## Invariants
 
@@ -58,7 +60,8 @@ No additional hosted identity provider is required by this architecture.
 
 Implementation pins openid-client v6.8.8 with a reviewed frozen dependency graph.
 Signed OIDC exchanges, database races, encryption and HTTPS session/logout controls
-have isolated fixture evidence. No live login is verified. Both live provider journeys, session
-restoration/revocation, invalid and replayed callbacks, explicit linking,
-conflicting ownership, and phone redirects as described in the technical scope.
+have isolated fixture evidence. Owner checks additionally verify both real provider
+journeys, refresh, logout/re-sign-in, explicit linking and the same linked account.
+Phone redirects and production release verification remain open, as described
+in the technical scope and the current tracker.
 Run dependency and security checks when selecting and implementing exact versions.

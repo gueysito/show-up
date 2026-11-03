@@ -157,7 +157,8 @@ test("NEAR wallet binding requires the same finalized FullAccess key at both fix
     publicKey: `ed25519:${encodeBase58(randomBytes(32))}`,
     accountId: challenge.address,
   };
-  const block = encodeBase58(Buffer.alloc(32, 7));
+  const block = encodeBase58(Buffer.alloc(32, 7)),
+    timestamp = Date.now() - 1000;
   let mode = "valid";
   let queries = 0;
   const transport: typeof fetch = async (url, options) => {
@@ -171,7 +172,9 @@ test("NEAR wallet binding requires the same finalized FullAccess key at both fix
         header: {
           height: 100,
           hash: mode === "fork" && second ? encodeBase58(Buffer.alloc(32, 8)) : block,
-          timestamp_nanosec: (BigInt(Date.now() - 1000) * 1_000_000n).toString(),
+          timestamp_nanosec: (
+            BigInt(timestamp + (mode === "wrong-time" && second ? 1 : 0)) * 1_000_000n
+          ).toString(),
         },
       };
     else {
@@ -204,7 +207,14 @@ test("NEAR wallet binding requires the same finalized FullAccess key at both fix
   const accepted = await requireNearFullAccess(challenge, proof, transport);
   assert.equal(accepted.blockHash, block);
   assert.equal(queries, 2);
-  for (const variant of ["missing", "function-call", "wrong-bank", "wrong-chain", "fork"]) {
+  for (const variant of [
+    "missing",
+    "function-call",
+    "wrong-bank",
+    "wrong-chain",
+    "fork",
+    "wrong-time",
+  ]) {
     mode = variant;
     await assert.rejects(() => requireNearFullAccess(challenge, proof, transport), variant);
   }

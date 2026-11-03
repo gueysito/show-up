@@ -876,6 +876,26 @@ MyNearWallet signing/return, live NEAR account membership and phones remain unve
 This completes the wallet-control subset of I4; financial consent, capacity, escrow,
 I5 and attendance remain incomplete. No route or full halfway completion is claimed.
 
+## I4 financial consent checkpoint November 2
+
+- `npm run check`: 48 unit tests, format, lint and types pass. All four disposable
+  wallet families bind the complete financial message; even reconstructed messages
+  with changed destinations/fees/rules fail without fresh wallet approval.
+- Disposable test database, `npm run test:integration`: 43 checks pass, including
+  immutable encrypted consent, lost-response replay, account/session/ID swaps,
+  concurrent consumption, event/wallet revocation, expiry, fresh NEAR FullAccess
+  checks and transactional migration rollback. Consent creates no reservation or seat.
+- Isolated production build and all 18 Chromium scenarios pass, including existing
+  account/host/wallet journeys. No new consent UI is claimed. Shared signature refactor retains the independent
+  Rust NEP-413 vector; fixtures now keep one timestamp per block hash and explicitly
+  reject conflicting timestamps, following the [NEAR block RPC](https://docs.near.org/api/rpc/block-chunk).
+- Security review checked ownership, session/operation replay, strict schemas, exact
+  integer bounds, parameterized SQL, encryption/AAD, rates and post-read expiry.
+  No endpoint, CORS change, dependency, transaction, broadcast or running-tunnel change.
+- This is an internal consent/storage seam. Caller-supplied quote hashes are not
+  route qualification; contract enforcement, capacity/escrow integration, consent UI,
+  real wallets, actual provider/funding and phones remain incomplete or externally gated.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

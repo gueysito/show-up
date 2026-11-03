@@ -253,6 +253,19 @@ disabled. Agent browser evidence uses disposable in-memory wallets and test acco
 The NEAR redirect was inspected without contacting MyNearWallet; actual wallet
 approval/return, live NEAR membership and phone behavior remain owner/provider gates.
 
+## Financial-consent preparation
+
+Internal financial-consent storage also requires `006-commitment-consent.sql` via
+the normal migration command. It adds a new table; it does not rewrite accounts,
+wallets or application keys. The consent service currently has no HTTP endpoint or
+wallet-return page. Its preparation seam binds verified own-wallet records to
+published event terms and explicit integer fee limits; accepting its signature
+stores `user_authorized`, with no reservation, enrollment or provider call.
+Quote hashes supplied to this internal seam are not authenticated provider evidence.
+The future funding adapter must qualify the quote, source and attributable escrow
+before it can issue instructions or book capacity. Browser control proofs cannot
+substitute for this separate financial signature. Unverified routes stay disabled.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet
