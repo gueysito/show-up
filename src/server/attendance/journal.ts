@@ -15,6 +15,12 @@ import { attendanceCandidateMaterial } from "./attempts";
 import { attendanceSchedule, verifyAttendancePacket } from "./evidence";
 import { attendanceCheckpointWire, type AttendanceCheckpoint } from "./checkpoint-wire";
 import { knownAttendanceIntake } from "./intake";
+import {
+  intakeCoverageProfile,
+  verifyIntakeCoverage,
+  type IntakeCoverageProfile,
+  type SignedIntakeCoverage,
+} from "./coverage";
 
 type Keys = Pick<AuthConfig, "encryptionKey" | "origin">;
 type CandidateEntry = { id: string; hash: string; contextHash: string; receiptHash: string };
@@ -25,6 +31,7 @@ type FrozenManifest = {
   frozenFacts: Facts;
   items: CandidateEntry[];
   knownIntake?: Awaited<ReturnType<typeof knownAttendanceIntake>>;
+  coverageProfile?: IntakeCoverageProfile;
 };
 type Facts = ReturnType<typeof validateSettlementState>;
 type AcceptedEvidence = { candidateId: string; receipt: unknown; proof: string };
@@ -34,6 +41,7 @@ type CheckpointBundle = {
   packet: { checkpoint: AttendanceCheckpoint; wire: string };
   accepted: AcceptedEvidence[];
   observations: Facts[];
+  coverage?: SignedIntakeCoverage;
 };
 
 export function attendanceCheckpointMaterial(
@@ -61,6 +69,15 @@ export function attendanceCheckpointMaterial(
     bundle.packet.checkpoint.complete_through_ms !== Number(barrier.complete_through_ms)
   )
     throw new Error("Attendance checkpoint integrity failure");
+  if (!frozen.coverageProfile)
+    throw new AppFailure(409, "Frozen intake coverage profile unavailable.");
+  verifyIntakeCoverage(
+    frozen.coverageProfile,
+    frozen.knownIntake ?? null,
+    bundle.coverage,
+    frozen.evidencePublicKey,
+    bundle.observations[0].block.timestampMs,
+  );
   return { bundle, frozen };
 }
 
@@ -127,6 +144,11 @@ async function lockedEvent(
     facts,
     terms,
     schedule: attendanceSchedule(Number(terms.start_ms), Number(terms.end_ms)),
+    coverageProfile: intakeCoverageProfile(
+      source,
+      event.published_at?.getTime(),
+      event.registration_closes_at?.getTime(),
+    ),
   };
 }
 function manifest(config: Keys, row: Record<string, unknown>): FrozenManifest {
@@ -175,7 +197,7 @@ export async function freezeAttendanceEvidence(
     throw new AppFailure(400, "Use the frozen sandbox evidence authority.");
   return transaction(pool, async (client) => {
     await sandboxDatabase(client, config, source);
-    const { facts, schedule } = await lockedEvent(client, eventId, source);
+    const { facts, schedule, coverageProfile } = await lockedEvent(client, eventId, source);
     if (
       !Number.isSafeInteger(now) ||
       now < schedule.evidenceThrough ||
@@ -228,6 +250,7 @@ export async function freezeAttendanceEvidence(
       frozenFacts: facts,
       items,
       knownIntake,
+      coverageProfile,
     };
     const row = (
       await client.query(
@@ -274,6 +297,7 @@ export async function prepareAttendanceCheckpoint(
     eventId: string;
     sources: SandboxAttendanceObservation[];
     accepted: AcceptedEvidence[];
+    coverage?: unknown;
   },
   now = Date.now(),
 ) {
@@ -285,7 +309,7 @@ export async function prepareAttendanceCheckpoint(
   return transaction(pool, async (client) => {
     const anchor = sources[0];
     await sandboxDatabase(client, config, anchor);
-    const { facts, schedule } = await lockedEvent(client, input.eventId, anchor);
+    const { facts, schedule, coverageProfile } = await lockedEvent(client, input.eventId, anchor);
     const barrier = (
       await client.query(
         "SELECT * FROM app_attendance_evidence_barriers WHERE event_id=$1 FOR UPDATE",
@@ -299,10 +323,22 @@ export async function prepareAttendanceCheckpoint(
       );
     const frozen = manifest(config, barrier);
     if (
+      !frozen.coverageProfile ||
+      canonicalJson(frozen.coverageProfile) !== canonicalJson(coverageProfile)
+    )
+      throw new AppFailure(409, "The frozen intake coverage profile differs from this event.");
+    if (
       canonicalJson(await knownAttendanceIntake(client, input.eventId)) !==
       canonicalJson(frozen.knownIntake ?? null)
     )
       throw new AppFailure(409, "The frozen intake journal changed before normal closing.");
+    const coverage = verifyIntakeCoverage(
+      coverageProfile,
+      frozen.knownIntake ?? null,
+      input.coverage,
+      frozen.evidencePublicKey,
+      anchor.block.timestampMs,
+    );
     if (frozen.contextHash !== eventContext(anchor, frozen.evidencePublicKey))
       throw new AppFailure(409, "The frozen evidence context changed.");
     const previous = frozen.frozenFacts;
@@ -450,6 +486,7 @@ export async function prepareAttendanceCheckpoint(
       packet,
       accepted,
       observations: observations.map((value) => value.facts),
+      coverage,
     };
     await client.query(
       `INSERT INTO app_attendance_checkpoints(id,event_id,checkpoint_hash,observed_height,observed_hash,ledger_version,encrypted_checkpoint)
@@ -484,6 +521,13 @@ export async function prepareAttendanceCheckpoint(
       stored.packet.checkpoint.ledger_version !== row.ledger_version
     )
       throw new Error("Attendance checkpoint integrity failure");
+    verifyIntakeCoverage(
+      coverageProfile,
+      frozen.knownIntake ?? null,
+      stored.coverage,
+      frozen.evidencePublicKey,
+      stored.observations[0].block.timestampMs,
+    );
     return { id: row.id as string, ...stored.packet };
   });
 }

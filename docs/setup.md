@@ -500,7 +500,7 @@ normal evidence HTTP stays closed. Isolated tests do not rebuild the owner app.
 
 ### Known attendance intake
 
-Migrations 023–024 journal authenticated in-window attendance work before the
+Migrations 023–025 journal authenticated in-window attendance work before the
 candidate transaction. Code submissions and QR issue/scan/confirm actions retain
 only actor-scoped hashes, action/time and completion metadata. The exact original
 mutation receipt can drain interrupted retries after a process kill. Normal
@@ -526,6 +526,25 @@ Requests lost before this boundary and service/network coverage still need an
 independent qualified witness. Missing coverage is not proof of a healthy service.
 No HTTP field, test flag, source status or accepted-candidate count qualifies a
 live normal checkpoint. Actual evidence HTTP and public signing stay disabled.
+
+### Signed intake coverage
+
+Normal checkpoint preparation also requires coverage signed by the frozen evidence
+authority for the exact event/profile and known-intake digest. Admission covers
+publication through registration close, fixed at event start. Online mode requires
+host-code and entry coverage; physical mode requires QR issue, scan and presence
+confirmation coverage. Each logical channel includes all enabled ingress for it.
+At most 128 intervals/32 KiB may claim coverage: no gaps/overlaps, missing channels,
+regressing or unresolved counters, reported failures, future observations or
+extended expiry. Counters remain exact through `u64`; one channel cannot hide
+known work on another. The signed packet persists with the immutable checkpoint
+and is reverified before closing; missing legacy coverage cannot enable signing.
+
+Node/PostgreSQL and independent Rust sandbox fixtures sign **unmeasured claims**
+only to exercise validation, restart and contract conformance. A valid signature
+is not measurement or producer qualification. A qualified collector, verified
+publication/route inventory and deployment evidence remain required; actual
+HTTP evidence and public signing stay closed. See [ADR-0004](adr/0004-attendance-intake-boundary.md).
 
 ### Frozen sandbox attendance evidence
 

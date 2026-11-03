@@ -8,6 +8,7 @@ import {
 } from "../../src/server/attendance/journal";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { runSandboxAttendanceDelivery } from "../../src/worker/attendance";
+import { fixtureIntakeCoveragePacket, signFixtureCoverage } from "./intake-coverage";
 export async function checkpointFixture(
   withCandidate = true,
   withQuiz = false,
@@ -58,12 +59,34 @@ export async function checkpointFixture(
   }
   const freeze = (source = observed, now = at, authority = publicKey) =>
     freezeAttendanceEvidence(f.pool, f.config, f.eventId, source, authority, now);
-  const prepare = (sources = [observed], evidence = accepted, now = at) =>
+  const coverage = async (source = observed) =>
+    signFixtureCoverage(
+      await fixtureIntakeCoveragePacket(f.pool, f.eventId, source),
+      key.privateKey,
+    );
+  const prepare = async (sources = [observed], evidence = accepted, now = at) =>
     prepareAttendanceCheckpoint(
       f.pool,
       f.config,
-      { eventId: f.eventId, sources, accepted: evidence },
+      {
+        eventId: f.eventId,
+        sources,
+        accepted: evidence,
+        coverage: sources.length ? await coverage(sources[0]) : undefined,
+      },
       now,
     );
-  return { ...f, row, candidate, observed, at, accepted, publicKey, key, freeze, prepare };
+  return {
+    ...f,
+    row,
+    candidate,
+    observed,
+    at,
+    accepted,
+    publicKey,
+    key,
+    freeze,
+    prepare,
+    coverage,
+  };
 }

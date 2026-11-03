@@ -35,6 +35,15 @@ Counting only candidates cannot distinguish that interrupted intake from absence
   work remain for reconciliation. Account erasure cannot erase the health aggregate.
 - Accepted candidates and this known-intake journal are insufficient to sign a
   live completeness claim. Independent ingress/service coverage remains required.
+- Normal checkpoint preparation additionally requires bounded coverage signed by
+  the frozen evidence authority for the exact publication, registration and
+  attendance windows. Every mode-specific channel must be present, contiguous,
+  resolved and free of reported failures, with nonregressing exact counters and
+  at least its known intake. I4 fixes registration close at event start.
+- A valid signature authenticates a collector's claim; it does not qualify its
+  measurements. All enabled ingress behind each logical channel must be measured.
+  New transports require renewed deployment/collector qualification. No HTTP
+  parameter, health boolean or signed test fixture can enable a live route.
 
 ## Consequences
 
@@ -52,8 +61,10 @@ closing. No live source qualification, public signing or route enablement follow
 
 ## File references and verification
 
-Implementation: `src/server/attendance/intake.ts`, `journal.ts`, migrations 023–024
+Implementation: `src/server/attendance/intake.ts`, `coverage.ts`, `journal.ts`, migrations 023–025
 and the existing attendance mutations. PostgreSQL checks kill actual processes
 before and after candidate commit, recover the original operation, test failure
 latching, actor/timing exclusions, export and bounded retention. These are local
-engineering checks; full ingress coverage and actual-device evidence remain open.
+engineering checks; bounded coverage/signature/gap and frozen checkpoint checks
+include independent Rust/Node fixture bytes. Those fixtures are unmeasured claims;
+qualified ingress collection and actual-device evidence remain open.

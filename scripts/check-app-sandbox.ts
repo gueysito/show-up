@@ -636,6 +636,7 @@ try {
         proof: string;
         evidencePublicKey: string;
         u64BoundaryProof: string;
+        coverage: unknown;
       }>(channel, "reconcile");
       assert.equal(canonicalJson(reconciliation.source.context), canonicalJson(source.context));
       const closingAt = reconciliation.source.block.timestampMs;
@@ -654,6 +655,7 @@ try {
         {
           eventId,
           sources: [reconciliation.source],
+          coverage: reconciliation.coverage,
           accepted: [
             { candidateId: row.id, receipt: reconciliation.receipt, proof: reconciliation.proof },
           ],
@@ -667,6 +669,7 @@ try {
         {
           eventId,
           sources: [reconciliation.source],
+          coverage: reconciliation.coverage,
           accepted: [
             { candidateId: row.id, receipt: reconciliation.receipt, proof: reconciliation.proof },
           ],

@@ -67,7 +67,7 @@ export async function attendanceMutation<T>(
     }
     const event = (
       await client.query(
-        "SELECT owner_id,published_at,data->>'startsAt' AS starts,data->>'endsAt' AS ends FROM app_events WHERE id=$1 FOR SHARE",
+        "SELECT owner_id,published_at,data->>'mode' AS mode,data->>'startsAt' AS starts,data->>'endsAt' AS ends FROM app_events WHERE id=$1 FOR SHARE",
         [eventId],
       )
     ).rows[0];
@@ -98,6 +98,8 @@ export async function attendanceMutation<T>(
         403,
         "Only this event's published host or assigned validator can confirm presence.",
       );
+    if (event.mode !== (action === "attendance.code-attempt" ? "digital" : "physical"))
+      throw new AppFailure(409, "Choose the published attendance mode for this event.");
     const schedule = attendanceSchedule(Date.parse(event.starts), Date.parse(event.ends));
     if (
       action === "attendance.code-attempt" &&
@@ -212,20 +214,46 @@ async function complete(
       );
   });
 }
-export async function knownAttendanceIntake(client: pg.PoolClient, eventId: string) {
+export async function attendanceIntakeSnapshot(client: pg.PoolClient, eventId: string) {
   const row = (
     await client.query("SELECT * FROM app_attendance_intake_events WHERE event_id=$1", [eventId])
   ).rows[0];
   if (!row) return null;
-  if (BigInt(row.pending_count) !== 0n || row.had_unavailable)
+  const channels = { code_entry: "0", qr_issue: "0", qr_scan: "0", presence_confirmation: "0" },
+    names = {
+      "attendance.code-attempt": "code_entry",
+      "attendance.qr-issued": "qr_issue",
+      "attendance.qr-scanned": "qr_scan",
+      "attendance.qr-confirmed": "presence_confirmation",
+    } as const;
+  const counts = await client.query(
+    "SELECT action,count(*) AS count FROM app_attendance_intakes WHERE event_id=$1 GROUP BY action",
+    [eventId],
+  );
+  let total = 0n;
+  for (const count of counts.rows) {
+    const name = names[count.action as keyof typeof names];
+    if (!name) throw new Error("Unknown intake channel");
+    channels[name] = String(count.count);
+    total += BigInt(count.count);
+  }
+  if (total !== BigInt(row.received_count))
+    throw new AppFailure(409, "Complete intake channel metadata is unavailable.");
+  return {
+    revision: String(row.revision),
+    received: String(row.received_count),
+    pending: String(row.pending_count),
+    hadUnavailable: row.had_unavailable as boolean,
+    channels,
+  };
+}
+export async function knownAttendanceIntake(client: pg.PoolClient, eventId: string) {
+  const snapshot = await attendanceIntakeSnapshot(client, eventId);
+  if (!snapshot) return null;
+  if (BigInt(snapshot.pending) !== 0n || snapshot.hadUnavailable)
     throw new AppFailure(
       409,
       "Unresolved intake or a recorded service failure prevents normal closing.",
     );
-  return {
-    revision: String(row.revision),
-    received: String(row.received_count),
-    pending: "0",
-    hadUnavailable: false as const,
-  };
+  return snapshot;
 }

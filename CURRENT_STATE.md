@@ -13,7 +13,7 @@ private invitations and host management pass isolated-account checks. Funding an
 - I3 private account drafts: save/reopen/edit/duplicate, ownership checks and locked material terms.
 - Saved-revision publication requirements distinguish validated rules from unverified escrow, reserves, prizes and eligibility; publication stays disabled.
 - I4 wallet control, native sandbox financial proof and durable reconciliation: stable encrypted event credentials, exact consent-to-contract mapping and source-key/amount binding. Conflicts preserve debt; no live route is enabled.
-- Local NEAR sandbox: intake, receipt, closing, timed abort and principal boundaries survive actual kills; code/staff QR candidates and frozen checkpoints reach actual attendance/close and full test-token principal return.
+- Local NEAR sandbox: intake, receipt, closing, timed abort and principal boundaries survive actual kills; code/staff QR candidates and frozen checkpoints with unmeasured signed coverage fixtures reach actual attendance/close and full test-token principal return.
 - P2 read-only pricing: pinned real-provider signature verification, strict request/principal checks and bounded transport; no payment instruction or enrollment.
 - P4 local signing adapter: fixed EVM/Core images, provider key/address binding, one request per image and verified callback recovery. Live MPC signing remains unverified.
 - Native NFT prototype: exact receipt/publication gate, fixed delivery/return with retry, draft/outage recovery and recomputed material-terms commitments.
@@ -21,13 +21,13 @@ private invitations and host management pass isolated-account checks. Funding an
 - Own financial records bind reconciliation to the original approval; source failures/conflicts preserve obligations and keep escrow unconfirmed.
 - Own-data export, account/session-bound deletion and bounded private-receipt retention pass isolated checks; unqualified obligations retain restricted recovery access. Qualified clearance remains incomplete.
 - Online code entry preserves retry operations and pending status; host codes, bounded attempts and personal QR and staff camera/confirmation pass isolated checks with synthetic video. Live qualification and device evidence remain incomplete.
-- 72 unit, 168 PostgreSQL and 41 Chromium checks/build pass; 35 sandbox/eight Node replays and four attended/outage app cases remain verified. Detailed revisions and CI results live in the plan/verification links.
+- 77 unit, 170 PostgreSQL and 41 Chromium checks/build pass; 35 sandbox/eight Node replays and four attended/outage app cases remain verified. Detailed revisions and CI results live in the plan/verification links.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-A3 independent ingress/service coverage and A4 mobile integration, while I4 real-route integration and qualified privacy clearance remain gated;
+A3 durable ingress/service coverage collection and A4 mobile/bot integration, while I4 real-route integration and qualified privacy clearance remain gated;
 continue P5 source-to-witness integration and qualified provider/asset experiments within their gates.
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;

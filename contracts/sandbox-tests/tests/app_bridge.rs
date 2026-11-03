@@ -76,6 +76,41 @@ fn financial_signature(signer: &Account, input: &Value) -> Value {
     json!({"accountId":signer.id(),"publicKey":key.public_key().to_string(),"signature":STANDARD.encode(signature.to_bytes())})
 }
 
+// Unmeasured coverage fixtures signed only by this disposable sandbox authority.
+// This is protocol conformance evidence, never a live ingress-health claim.
+fn fixture_intake_coverage(f: &Fixture, mode: &str, published: u64, source: &Value) -> Value {
+    let online = mode == "online";
+    let known = json!({"revision":if online {"2"} else {"6"},
+        "received":if online {"1"} else {"3"},"pending":"0","hadUnavailable":false,
+        "channels":{"code_entry":if online {"1"} else {"0"},
+        "qr_issue":if online {"0"} else {"1"},"qr_scan":if online {"0"} else {"1"},
+        "presence_confirmation":if online {"0"} else {"1"}}});
+    let profile = json!({"format":"showup.intake.profile.v1","domain":"showup.sandbox.authorization.v1",
+        "deployment":f.escrow.id(),"manifest":"local-v1","event":f.event,"rulesHash":f.rules_hash,
+        "mode":mode,"publishedAtMs":published,"registrationClosesMs":f.start,
+        "opensAtMs":published.max(f.start-300_000),"cutoffMs":f.end-900_000,"expiresMs":f.end+2_100_000});
+    let channels = if online {
+        vec!["admission", "host_code", "code_entry"]
+    } else {
+        vec!["admission", "qr_issue", "qr_scan", "presence_confirmation"]
+    };
+    let intervals: Vec<Value> = channels.into_iter().map(|channel| {
+        let count = if channel == "admission" || channel == "host_code" {
+            "1"
+        } else {
+            known["channels"][channel].as_str().unwrap()
+        };
+        let trace = json!({"fixture":"unmeasured-intake-coverage","profile":profile,"channel":channel});
+        json!({"channel":channel,"fromMs":if channel=="admission" {published} else {published.max(f.start-300_000)},
+            "throughMs":if channel=="admission" {f.start} else {f.end-900_000},"received":count,"resolved":count,
+            "unavailable":"0","traceHash":format!("{:x}",Sha256::digest(trace.to_string().as_bytes()))})
+    }).collect();
+    let packet = json!({"format":"showup.intake.coverage.v1","profile":profile,
+        "intakeHash":format!("{:x}",Sha256::digest(known.to_string().as_bytes())),"intervals":intervals,
+        "observedAtMs":source["block"]["timestampMs"],"expiresMs":f.end+2_100_000});
+    json!({"packet":packet,"signature":proof(&f.evidence,&packet)})
+}
+
 #[tokio::test]
 #[ignore = "Requires the Node/PostgreSQL peer; run npm run contracts:app-bridge"]
 async fn application_attendance_round_trip() {
@@ -257,11 +292,13 @@ async fn application_attendance_round_trip() {
                 .unwrap();
             let boundary = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),"manifest":"local-v1",
             "event":f.event,"rules_hash":f.rules_hash,"ledger_version":u64::MAX,"complete_through_ms":f.end-900_000,"expires_ms":f.end+2_100_000});
+            let closing_source = snapshot(&f, &auth).await;
+            let coverage = fixture_intake_coverage(&f, mode, issued, &closing_source);
             let reconciled = exchange(
                 &root,
                 channel,
                 "reconcile",
-                &json!({"source":snapshot(&f,&auth).await,
+                &json!({"source":closing_source,"coverage":coverage,
             "receipt":receipt,"proof":signature,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes()),"u64BoundaryProof":proof(&f.evidence,&boundary)}),
             );
             let checkpoint: Value =
