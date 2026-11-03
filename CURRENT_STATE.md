@@ -30,7 +30,7 @@ private invitations and host management pass isolated-account checks. Funding an
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-The bounded native engineering driver is prepared; [the exact plan and funding/approval handoff](docs/plan.md#active-halfway-implementation-goal) are ready.
+Native test NEAR is funded; Circle test USDC awaits CAPTCHA confirmation and [the exact native plan](docs/plan.md#active-halfway-implementation-goal) awaits execution approval.
 Await that public protocol proof before source-dependent publication/quote/funding/clearance integration;
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;

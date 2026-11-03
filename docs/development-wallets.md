@@ -1,6 +1,6 @@
 # Development wallets and faucet setup
 
-Updated November 2, 2026 after the NEAR self-transfer. Public test addresses only. These accounts are dedicated
+Updated November 3, 2026 after the delegated NEAR faucet top-up. Public test addresses only. These accounts are dedicated
 to Showup engineering networks; never fund them with real assets. Key generation
 is not activation, funding, browser import or a tested signing integration.
 
@@ -8,7 +8,7 @@ is not activation, funding, browser import or a tested signing integration.
 
 | Network | Public address | Verified state |
 | --- | --- | --- |
-| NEAR testnet | `showup-dev-14989f.testnet` | Ownership and native self-transfer verified; finalized balance 9.9999553634875 test NEAR; original FullAccess key unchanged |
+| NEAR testnet | `showup-dev-14989f.testnet` | Prior ownership/self-transfer evidence retained; finalized balance 14.9999553634875 test NEAR after the November 3 faucet top-up. No operator key was accessed for funding. |
 | Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Ethereum Sepolia 0.00699987998086555 ETH after native self-transfer, finality pending; Base Sepolia 0.00299941552999982 ETH after finalized native/USDC tests. Last checked test USDC balance: 20 on each chain. |
 | Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Ownership and native self-transfer verified; fee-control retest finalized; balance 4.999915 SOL |
 
@@ -45,8 +45,8 @@ import tutorial. The NEAR testnet wallet import path still needs confirmation.
 ## Funding sequence
 
 1. The named NEAR testnet account is already funded; use it for subsequent requests at the
-   [NEAR faucet](https://near-faucet.io/). The helper created `showup-dev-14989f.testnet` using the existing public key;
-   the web form does not support this wallet's original implicit ID.
+   [official Docs faucet](https://docs.near.org/getting-started/faucet) or [external NEAR faucet](https://near-faucet.io/), respecting their limits. The helper created `showup-dev-14989f.testnet` using the existing public key;
+   the external form does not support this wallet's original implicit ID.
 2. Request devnet SOL at the [Solana Foundation faucet](https://faucet.solana.com/).
    One 1-SOL RPC airdrop was attempted and rejected because the RPC faucet is closed.
    Do not loop requests, evade rate limits or claim successful funding from a UI
@@ -72,6 +72,16 @@ because its input validator only accepts testnet names or 0x-form addresses.
 Use the named account for subsequent NEAR requests/imports.
 
 ## Current funding verification
+
+November 3: the owner delegated free faucet requests in the isolated Brave development
+profile. The official Docs faucet reported success; NEAR archival and FastNEAR
+agreed at finalized block `276103324` (`5zpbP8quGU4FHcnjRPi639gp9qaNGqJkKQEpaHs2rmDn`)
+on **14.9999553634875 test NEAR**, exactly 5 more than the prior balance, and **0
+test USDC** at the pinned engineering token. Native funding is sufficient for the
+prepared experiment. The earlier external 2-NEAR request returned an empty page
+without a confirmed arrival. Circle's NEAR/20-test-USDC form is prepared in the same
+profile; it requires reCAPTCHA and awaits action-time confirmation. No private key
+was loaded, agent-signed public transaction created or application funding route enabled.
 
 At 18:25 UTC on November 1, public RPC checks reconfirmed Ethereum Sepolia chain ID
 11155111 and Base Sepolia 84532. Native balances were 6999999980865550 wei and
