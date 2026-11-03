@@ -7,6 +7,7 @@ import { establishIdentity } from "./identities";
 import type { Session } from "./sessions";
 import { authFailureDetails, type AuthStage } from "./diagnostics";
 import { identityFromVerifiedClaims } from "./provider-identity";
+import { eventLoginReturn } from "./return-path";
 
 export function providerClientAuthentication(provider: Provider, secret: string) {
   // Both fixed issuers advertise POST authentication; preserve their secret bytes over HTTPS.
@@ -35,7 +36,9 @@ export async function beginLogin(
   provider: Provider,
   browser: string,
   linking?: Session,
+  returnTo?: string,
 ) {
+  const returnPath = linking ? null : eventLoginReturn(returnTo);
   await limit(pool, "login-start:global", 100);
   await limit(pool, `login-start:${hash(browser)}`, 10);
   const client = await providerClient(config, provider);
@@ -51,7 +54,7 @@ export async function beginLogin(
       hash(state),
       hash(browser),
       provider,
-      seal(config.encryptionKey, `login:${hash(state)}`, { nonce, verifier }),
+      seal(config.encryptionKey, `login:${hash(state)}`, { nonce, verifier, returnTo: returnPath }),
       linking?.tokenHash ?? null,
     ],
   );
@@ -127,13 +130,15 @@ export async function finishLogin(
     ) as {
       nonce: string;
       verifier: string;
+      returnTo?: string | null;
     };
+    const returnTo = eventLoginReturn(checks.returnTo);
     stage = "discovery";
     const client = await providerClient(config, provider);
     stage = "exchange";
     const identity = await verifyAuthorization(client, url, { ...checks, state });
     stage = "session";
-    return await establishIdentity(
+    const established = await establishIdentity(
       pool,
       config,
       provider,
@@ -141,6 +146,10 @@ export async function finishLogin(
       previousHash,
       attempt.linking_session_hash ?? undefined,
     );
+    return {
+      ...established,
+      returnTo: !established.recoveryOnly && !attempt.linking_session_hash ? returnTo : null,
+    };
   } catch (error) {
     console.error("Sign-in callback failed:", authFailureDetails(stage, error));
     throw error;

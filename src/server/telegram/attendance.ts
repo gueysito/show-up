@@ -16,6 +16,7 @@ import { attendanceSchedule } from "../attendance/evidence";
 import { transaction } from "../db/client";
 import { AppFailure } from "../http/security";
 import { isUuid } from "../events/drafts";
+import { eventHostAlias } from "../events/entry";
 import { telegramSenderHash } from "./connection";
 import type { TelegramBotConfig } from "./config";
 
@@ -72,8 +73,9 @@ export async function prepareTelegramAttendancePrompt(
         "live_code",
         engineering,
       );
-      const event = (await client.query("SELECT data FROM app_events WHERE id=$1", [input.eventId]))
-        .rows[0];
+      const event = (
+        await client.query("SELECT data,owner_id FROM app_events WHERE id=$1", [input.eventId])
+      ).rows[0];
       if (event.data.mode !== "digital")
         throw new AppFailure(409, "Use your personal QR for this in-person event.");
       const prior = (
@@ -94,7 +96,7 @@ export async function prepareTelegramAttendancePrompt(
         consentId: input.consentId,
         code,
         expiresAt,
-        text: `${event.data.title}\nCheck in with the host's current phrase. Reply to this message, or send ${code} followed by the phrase.\nAttendance is confirmed only after verification.\nWebsite: ${config.origin}/account/commitments?event=${input.eventId}`,
+        text: `${event.data.title}\n${eventHostAlias(config, input.eventId, event.owner_id)}\nCheck in with the host's current phrase. Reply to this message, or send ${code} followed by the phrase.\nAttendance is confirmed only after verification.\nWebsite: ${config.origin}/account/commitments?event=${input.eventId}`,
       };
       await client.query(
         `INSERT INTO app_telegram_attendance_prompts(id,connection_id,event_id,consent_id,code_hash,encrypted_prompt,expires_at,created_at)
@@ -271,7 +273,7 @@ export async function submitTelegramAttendanceCode(
     if (!account.rowCount) throw new AppFailure(401, "This account cannot submit new attendance.");
     const prompt = (
       await client.query(
-        `SELECT p.*,c.id AS connection_ref,e.data->>'title' AS event_title FROM app_telegram_attendance_prompts p JOIN app_telegram_connections c ON c.id=p.connection_id
+        `SELECT p.*,c.id AS connection_ref,e.data->>'title' AS event_title,e.owner_id FROM app_telegram_attendance_prompts p JOIN app_telegram_connections c ON c.id=p.connection_id
        JOIN app_events e ON e.id=p.event_id
        WHERE c.account_id=$1 AND c.bot_id=$2 AND c.sender_hash=$3
        AND (($4::bigint IS NOT NULL AND p.message_id=$4) OR
@@ -325,7 +327,7 @@ export async function submitTelegramAttendanceCode(
         ...original,
         event_id: p.event_id,
         consent_id: p.consent_id,
-        event_title: p.event_title,
+        event_title: `${p.event_title} · ${eventHostAlias(config, p.event_id, p.owner_id)}`,
         replayed: Boolean(completed),
         phrase,
       };
@@ -349,7 +351,7 @@ export async function submitTelegramAttendanceCode(
       event_id: p.event_id,
       consent_id: p.consent_id,
       received_ms: String(received),
-      event_title: p.event_title,
+      event_title: `${p.event_title} · ${eventHostAlias(config, p.event_id, p.owner_id)}`,
       replayed: false,
       phrase,
     };

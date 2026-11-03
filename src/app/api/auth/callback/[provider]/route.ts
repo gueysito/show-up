@@ -48,7 +48,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         /* An unavailable invitation never invalidates successful sign-in. */
       }
     }
-    location = reviewInvitation ? "/invite" : "/account?auth=complete";
+    location = reviewInvitation ? "/invite" : (result.returnTo ?? "/account?auth=complete");
   } catch {
     // Provider responses, code, ID token and private claims never enter logs or URLs.
   } finally {

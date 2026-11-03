@@ -5,6 +5,7 @@ import { InvitationManager } from "./invitation-manager";
 import type { PublicationReadiness } from "../../server/events/publication";
 import { HostCodeWindowManager } from "./host-code-window";
 import { EventValidatorManager } from "./event-validators";
+import Link from "next/link";
 
 export function EventActions({
   id,
@@ -112,6 +113,11 @@ export function EventActions({
       )}
       {state === "published" && (
         <div>
+          <p>
+            <Link href={`/events/${id}`} prefetch={false}>
+              Open attendee event page
+            </Link>
+          </p>
           <label htmlFor="copy-description">Correct description only</label>
           <textarea
             id="copy-description"

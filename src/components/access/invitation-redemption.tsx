@@ -33,6 +33,7 @@ export function InvitationRedemption() {
   const [status, setStatus] = useState("Reading invitation…");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(true);
+  const [grantedEvent, setGrantedEvent] = useState<string | null>(null);
   const operationId = useRef<string | null>(null);
   const preparation = useRef<Promise<Response> | null>(null);
   useEffect(() => {
@@ -79,6 +80,7 @@ export function InvitationRedemption() {
       setBusy(true);
       setConsent(false);
       operationId.current = null;
+      setGrantedEvent(null);
       startLoad();
     }
     startLoad();
@@ -100,6 +102,15 @@ export function InvitationRedemption() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Access was not confirmed. Retry.");
+      if (
+        result.kind === "event" &&
+        result.granted === true &&
+        typeof result.eventId === "string" &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          result.eventId,
+        )
+      )
+        setGrantedEvent(result.eventId);
       setInvitation(null);
       setStatus(
         result.kind === "host"
@@ -117,6 +128,13 @@ export function InvitationRedemption() {
   return (
     <section aria-label="Invitation redemption">
       <p role="status">{status}</p>
+      {grantedEvent && (
+        <p>
+          <Link href={`/events/${grantedEvent}`} prefetch={false}>
+            Open your invited event
+          </Link>
+        </p>
+      )}
       {invitation && (
         <>
           {invitation.eventTitle && <p>{`Event: ${invitation.eventTitle}`}</p>}

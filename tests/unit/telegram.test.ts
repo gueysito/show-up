@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { token } from "../../src/server/auth/crypto";
-import { parseTelegramStart } from "../../src/server/telegram/connection";
+import {
+  parseTelegramStart,
+  parseTelegramEventStart,
+  telegramEventDeepLink,
+} from "../../src/server/telegram/connection";
 import { requireTelegramWebhook, telegramBotConfig } from "../../src/server/telegram/config";
 import { telegramPromptTransport } from "../../src/server/telegram/transport";
 import { parseTelegramCodeReply } from "../../src/server/telegram/attendance";
@@ -34,6 +38,18 @@ test("optional bot stays disabled by default; connection starts require authenti
     sender: "987654321",
     token: start,
   });
+  const eventId = "01234567-89ab-4cde-8fab-0123456789ab";
+  assert.equal(
+    telegramEventDeepLink(config.username, eventId),
+    `https://t.me/${config.username}?start=e_${eventId}`,
+  );
+  assert.deepEqual(
+    parseTelegramEventStart({
+      update_id: 44,
+      message: { ...message, text: `/start e_${eventId}` },
+    }),
+    { updateId: 44, sender: "987654321", eventId },
+  );
   assert.deepEqual(
     parseTelegramCodeReply({
       update_id: 43,

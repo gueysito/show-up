@@ -104,6 +104,13 @@ export function parseTelegramStart(update: Record<string, unknown>): TelegramSta
   if (!message || typeof message !== "object" || typeof message.text !== "string") return null;
   const match = /^\/start ([A-Za-z0-9_-]{43})$/.exec(message.text);
   if (!match) return null;
+  return {
+    updateId: Number(update.update_id),
+    sender: privateSender(update, message),
+    token: match[1],
+  };
+}
+function privateSender(update: Record<string, unknown>, message: Record<string, unknown>) {
   const from = message.from as Record<string, unknown> | undefined,
     chat = message.chat as Record<string, unknown> | undefined;
   if (
@@ -126,7 +133,27 @@ export function parseTelegramStart(update: Record<string, unknown>): TelegramSta
   const sender = telegramUserId(from.id);
   if (telegramUserId(chat.id) !== sender)
     throw new AppFailure(400, "Use your own private bot chat.");
-  return { updateId: Number(update.update_id), sender, token: match[1] };
+  return sender;
+}
+export function telegramEventDeepLink(username: string, eventId: string) {
+  if (
+    !/^[A-Za-z][A-Za-z0-9_]{1,28}[Bb][Oo][Tt]$/.test(username) ||
+    !isUuid(eventId) ||
+    eventId.length !== 36
+  )
+    throw new AppFailure(400, "Choose a valid event bot link.");
+  return `https://t.me/${username}?start=e_${eventId}`;
+}
+export function parseTelegramEventStart(update: Record<string, unknown>) {
+  const message = update.message as Record<string, unknown> | undefined;
+  if (!message || typeof message !== "object" || typeof message.text !== "string") return null;
+  const match = /^\/start e_([0-9a-f-]{36})$/i.exec(message.text);
+  if (!match || !isUuid(match[1])) return null;
+  return {
+    updateId: Number(update.update_id),
+    sender: privateSender(update, message),
+    eventId: match[1],
+  };
 }
 // Call only after authenticating the configured Telegram webhook transport.
 export async function consumeTelegramConnection(

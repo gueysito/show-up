@@ -231,6 +231,30 @@ Ctrl+C in the ngrok terminal removes public access; Ctrl+C in the app terminal
 stops its local production server. Other tunnel domains, HTTP browser origins,
 unexpected ports/paths and development-mode use of the public origin are rejected.
 
+## Attendee event entry
+
+After rebuilding, published events have a website entry at `/events/<event-id>`.
+Public events show their terms before sign-in; private events require the owner's,
+invited attendee's, assigned validator's or existing financial account's access.
+Drafts remain private to the host workspace. The page excludes answers, social/
+account identifiers and contributor return addresses. Closed pages retain links
+to owned authorizations and recovery, with an explicit disabled deposit control.
+
+Sign-in from an event returns to that exact event. Only an event UUID path is
+accepted, with no arbitrary origin/query/fragment redirect. Existing pending
+invitation review takes priority; after acceptance, choose **Open your invited
+event**. Restricted recovery never gains new commitment authority. Real-provider
+return to the new page remains an owner walkthrough; registered callback URLs
+and existing application keys are unchanged.
+
+When the optional bot is configured, its ordinary event link selects this same
+website flow. Starting that link neither creates an account nor subscribes to
+messages. A private event's title is not exposed by an anonymous bot welcome.
+The event page and bot prompts use the same event-scoped host alias. Financial
+approval stays on the website. Funding and actual publication remain disabled
+while protocol/route qualification is missing; browser evidence uses explicit
+published-state fixtures, not live escrow.
+
 ## Optional Telegram connection
 
 **Account → Optional Telegram messages** keeps website participation available.

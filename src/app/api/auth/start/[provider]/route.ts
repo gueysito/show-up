@@ -10,6 +10,7 @@ import {
 } from "../../../../../server/auth/sessions";
 import { createDatabase } from "../../../../../server/db/client";
 import { AppFailure, failureResponse, guardRequest } from "../../../../../server/http/security";
+import { eventLoginReturn } from "../../../../../server/auth/return-path";
 
 export async function POST(request: Request, context: { params: Promise<{ provider: string }> }) {
   const { provider } = await context.params;
@@ -22,7 +23,15 @@ export async function POST(request: Request, context: { params: Promise<{ provid
     const jar = await cookies();
     database = createDatabase();
     const session = await findSession(database.pool, jar.get(sessionCookie)?.value);
-    const linking = new URL(request.url).searchParams.get("flow") === "link";
+    const query = new URL(request.url).searchParams;
+    if (
+      [...query.keys()].some((key) => !["flow", "returnTo"].includes(key)) ||
+      query.getAll("returnTo").length > 1 ||
+      query.getAll("flow").length > 1
+    )
+      throw new AppFailure(400, "Choose a sign-in action from Showup.");
+    const linking = query.get("flow") === "link",
+      returnTo = eventLoginReturn(query.get("returnTo"));
     if (linking && !session) throw new AppFailure(401, "Sign in before linking another identity.");
     const browser = token();
     const url = await beginLogin(
@@ -31,6 +40,7 @@ export async function POST(request: Request, context: { params: Promise<{ provid
       provider,
       browser,
       linking ? session! : undefined,
+      returnTo ?? undefined,
     );
     jar.set(browserCookie, browser, { ...cookieOptions, maxAge: 600 });
     return new Response(null, {

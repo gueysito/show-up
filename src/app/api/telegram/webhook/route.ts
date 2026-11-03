@@ -11,12 +11,14 @@ import { requireTelegramWebhook, telegramBotConfig } from "../../../../server/te
 import {
   consumeTelegramConnection,
   parseTelegramStart,
+  parseTelegramEventStart,
 } from "../../../../server/telegram/connection";
 import {
   parseTelegramCodeReply,
   submitTelegramAttendanceCode,
 } from "../../../../server/telegram/attendance";
 import { telegramPromptTransport } from "../../../../server/telegram/transport";
+import { readEventEntry } from "../../../../server/events/entry";
 
 export async function POST(request: Request) {
   let database: ReturnType<typeof createDatabase> | undefined;
@@ -31,12 +33,41 @@ export async function POST(request: Request) {
     const body = await jsonBody(request, 16384),
       receivedAt = Date.now(),
       update = parseTelegramStart(body),
-      reply = update ? null : parseTelegramCodeReply(body);
-    if (!update && !reply) return Response.json({ ok: true });
+      eventStart = update ? null : parseTelegramEventStart(body),
+      reply = update || eventStart ? null : parseTelegramCodeReply(body);
+    if (!update && !eventStart && !reply) return Response.json({ ok: true });
     database = createDatabase();
-    await limit(database.pool, `telegram-update:${bot.id}:${(update ?? reply)!.sender}`, 60);
+    await limit(
+      database.pool,
+      `telegram-update:${bot.id}:${(update ?? eventStart ?? reply)!.sender}`,
+      60,
+    );
     await limit(database.pool, "telegram-update:global", 1200);
-    if (update) {
+    if (eventStart) {
+      if (!telegramPromptTransport(bot)) return Response.json({ ok: true });
+      let event = null;
+      try {
+        event = await readEventEntry(database.pool, config, eventStart.eventId);
+      } catch (error) {
+        if (!(error instanceof AppFailure && error.status === 404)) throw error;
+      }
+      return Response.json({
+        method: "sendMessage",
+        chat_id: eventStart.sender,
+        disable_notification: true,
+        text: `${event ? `${event.data.title}\n${event.hostAlias}\n` : ""}Open this event on the Showup website to sign in and review participation. A private event requires an invited account. Financial approval stays on the website; this link creates no account or message subscription.`,
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "Sign in and review this event",
+                url: `${config.origin}/events/${eventStart.eventId}`,
+              },
+            ],
+          ],
+        },
+      });
+    } else if (update) {
       const connected = await consumeTelegramConnection(database.pool, config, bot, update);
       if (telegramPromptTransport(bot)) {
         const event = connected.eventId
