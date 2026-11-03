@@ -96,3 +96,79 @@ export function settlementFixture(
   };
   return { context, views, block };
 }
+
+// Captures one immutable sample for mock RPC/race checks. No public network.
+export function settlementTransport(
+  input: ReturnType<typeof settlementFixture>,
+  options: {
+    second?: ReturnType<typeof settlementFixture>["views"];
+    fail?: boolean;
+    wait?: () => Promise<void>;
+  } = {},
+): typeof fetch {
+  const sample = structuredClone(input),
+    secondViews = structuredClone(options.second);
+  return async (url, request) => {
+    await options.wait?.();
+    const body = JSON.parse(String(request?.body)),
+      second = new URL(String(url)).hostname.includes("fastnear");
+    if (options.fail)
+      return Response.json({
+        jsonrpc: "2.0",
+        id: body.id,
+        error: { code: -32000, message: "Controlled source outage" },
+      });
+    const { context, block } = sample,
+      views = second && secondViews ? secondViews : sample.views;
+    let result: unknown;
+    if (body.method === "status") result = { chain_id: "mainnet" };
+    else if (body.method === "block")
+      result = {
+        header: {
+          height: Number(block.height),
+          hash: block.hash,
+          timestamp_nanosec: (BigInt(block.timestampMs) * 1_000_000n).toString(),
+        },
+      };
+    else if (body.method === "query" && body.params.block_id === block.hash) {
+      if (body.params.request_type === "view_account")
+        result = {
+          block_hash: block.hash,
+          block_height: Number(block.height),
+          code_hash:
+            body.params.account_id === context.deployment
+              ? context.escrowCodeHash
+              : context.tokenCodeHash,
+        };
+      else {
+        const args = JSON.parse(Buffer.from(body.params.args_base64, "base64").toString());
+        let value: unknown;
+        switch (body.params.method_name) {
+          case "get_event":
+            value = views.event;
+            break;
+          case "get_registration":
+            value = views.registration;
+            break;
+          case "get_liability":
+            value = args.id.endsWith(":principal") ? views.principal : views.returned;
+            break;
+          case "accounting":
+            value = views.accounting;
+            break;
+          case "ft_balance_of":
+            value = views.tokenBalance;
+            break;
+          default:
+            throw new Error("Unexpected mock view");
+        }
+        result = {
+          block_hash: block.hash,
+          block_height: Number(block.height),
+          result: [...Buffer.from(JSON.stringify(value))],
+        };
+      }
+    } else throw new Error("Unexpected mock RPC");
+    return Response.json({ jsonrpc: "2.0", id: body.id, result });
+  };
+}

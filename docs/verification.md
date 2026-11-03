@@ -914,6 +914,26 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   Monotonic persistence, app-to-contract financial binding, consent/escrow interfaces,
   actual source/profile/route qualification and wallet/phone checks remain open.
 
+## I4 durable reconciliation checkpoint November 2
+
+- `npm run check`: 52 unit tests, format, lint and types pass. Disposable test
+  database `npm run test:integration`: all 53 checks pass, including ten journal
+  scenarios for immutable encrypted profiles, retry/restart persistence, u64 values,
+  concurrent/stale refreshes, outage recovery, permanent conflicts, monotonic refund
+  counters, complete-row constraints and transactional schema rollback.
+- A rolled-back probe reproduced PostgreSQL's NULL `CHECK` gap. A forward-only
+  migration adds explicit populated-field counts; the repeated probe and all six
+  partial-state variants now reject. Applied migration history and existing records
+  remain intact; only the disposable test database received these migrations.
+- Independent Node replay of all nine actual sandbox states still passes. The
+  unchanged 18 Chromium/production-build and contract baseline evidence is reused.
+  Both private CI jobs passed for consent `2bd48b0`; state-reader CI is separate.
+- Reviewed immutable context/AAD binding, parameterized writes, lock scope, bounded
+  encrypted current/conflict retention and typed source conflicts. No new endpoint,
+  authority key, public write, worker activation or funding route is introduced.
+  Financial-consent/contract binding, user interfaces, recovery controls and qualified
+  live routes remain incomplete; this backend journal alone cannot enroll anyone.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

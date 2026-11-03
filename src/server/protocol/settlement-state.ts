@@ -1,6 +1,10 @@
 import { canonicalHash, canonicalJson } from "./canonical";
 import { decodeBase58 } from "./encoding";
-import { compareFinalizedHeads, type FinalizedHeader } from "./finalized-heads";
+import {
+  compareFinalizedHeads,
+  FinalizedSourceConflict,
+  type FinalizedHeader,
+} from "./finalized-heads";
 import { record } from "./quote-signature";
 import { integerAmount } from "./one-click";
 import { parseRpcJson, ReadOnlyRpc, unsigned } from "./rpc";
@@ -55,6 +59,10 @@ function destination(value: unknown) {
   return result;
 }
 function context(value: SettlementContext) {
+  exact(
+    value,
+    "authorization,deployment,domain,environment,escrowCodeHash,event,manifest,rulesHash,token,tokenCodeHash",
+  );
   for (const account of [value.deployment, value.token]) walletAddress("near", account);
   for (const hash of [value.escrowCodeHash, value.tokenCodeHash]) decodeBase58(hash, 32);
   if (
@@ -104,6 +112,13 @@ function context(value: SettlementContext) {
     throw new Error("External source attribution remains unqualified");
   return auth;
 }
+
+export function settlementContextHash(value: SettlementContext) {
+  context(value);
+  return canonicalHash(value);
+}
+
+export class SettlementSourceConflict extends Error {}
 function ids(value: unknown) {
   if (!Array.isArray(value) || value.length > 100) throw new Error("Invalid settlement seat count");
   const values = value.map(id);
@@ -327,9 +342,15 @@ export async function compareSettlementState(
     throw new Error("Public settlement reads require an explicit mainnet profile");
   const first = new ReadOnlyRpc("near-public", transport),
     second = new ReadOnlyRpc("near-fastnear", transport);
-  const signal = AbortSignal.timeout(30_000),
-    compared = await compareFinalizedHeads("near", first, second, now, signal),
-    block = compared.block;
+  const signal = AbortSignal.timeout(30_000);
+  const compared = await compareFinalizedHeads("near", first, second, now, signal).catch(
+    (error) => {
+      if (error instanceof FinalizedSourceConflict)
+        throw new SettlementSourceConflict("Finalized settlement sources disagree");
+      throw error;
+    },
+  );
+  const block = compared.block;
   const read = async (client: ReadOnlyRpc) => {
     for (const [account, hash] of [
       [expected.deployment, expected.escrowCodeHash],
@@ -344,10 +365,11 @@ export async function compareSettlementState(
       );
       if (
         value.block_hash !== block.hash ||
-        unsigned(value.block_height, 64).toString() !== block.height ||
-        value.code_hash !== hash
+        unsigned(value.block_height, 64).toString() !== block.height
       )
-        throw new Error("Settlement code or block changed");
+        throw new Error("Settlement code view block changed");
+      if (value.code_hash !== hash)
+        throw new SettlementSourceConflict("Frozen settlement code changed");
     }
     const call = async (account: string, method: string, args: object) =>
       decodeView(
@@ -381,7 +403,7 @@ export async function compareSettlementState(
   };
   const [a, b] = await Promise.all([read(first), read(second)]);
   if (canonicalJson(a) !== canonicalJson(b))
-    throw new Error("Finalized settlement sources disagree");
+    throw new SettlementSourceConflict("Finalized settlement sources disagree");
   return {
     ...a,
     stateHash: canonicalHash(a),

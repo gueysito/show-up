@@ -10,6 +10,8 @@ export type FinalizedHeader = {
   blockHeight?: string;
 };
 
+export class FinalizedSourceConflict extends Error {}
+
 function timestamp(value: unknown, divisor: bigint, now: number, maximumLag: number): number {
   const milliseconds = unsigned(value) / divisor;
   if (milliseconds > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Invalid block time");
@@ -169,7 +171,7 @@ async function compareSources(
     a.timestampMs !== b.timestampMs ||
     a.blockHeight !== b.blockHeight
   )
-    throw new Error("Finalized sources disagree");
+    throw new FinalizedSourceConflict("Finalized sources disagree");
   return {
     network,
     chainId: networkIdentity(network).chainId,

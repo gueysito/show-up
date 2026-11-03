@@ -266,6 +266,14 @@ The future funding adapter must qualify the quote, source and attributable escro
 before it can issue instructions or book capacity. Browser control proofs cannot
 substitute for this separate financial signature. Unverified routes stay disabled.
 
+`007-settlement-reconciliation.sql` and `008-settlement-observation-completeness.sql`
+add the internal encrypted observation journal. Older blocks cannot overwrite newer
+state, identical refreshes reuse the snapshot, and RPC outages preserve pending debt
+while marking it unavailable. Finalized forks, code changes and regressing counters
+latch a pause; later agreement cannot silently clear it. These are restricted backend
+seams with no HTTP endpoint, worker polling activation, own-account binding or live
+funding capability. A journal entry is not a financial authorization or route approval.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet
