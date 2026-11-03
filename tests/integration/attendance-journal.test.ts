@@ -20,12 +20,13 @@ import { parseRpcJson } from "../../src/server/protocol/rpc";
 import { exportOwnData } from "../../src/server/privacy/export";
 import { requestAccountDeletion } from "../../src/server/privacy/deletion";
 import { confirmedDeletion } from "../fixtures/deletion";
+import { runSandboxAttendanceDelivery } from "../../src/worker/attendance";
 
 if (process.env.SHOWUP_ENV !== "test")
   throw new Error("Evidence journal checks require disposable data");
 const status = (code: number) => (error: unknown) =>
   error instanceof AppFailure && error.status === code;
-async function fixture(withCandidate = true, withQuiz = false) {
+async function fixture(withCandidate = true, withQuiz = false, ledgerVersion?: bigint) {
   const f = await attendanceFixtures("digital", withQuiz);
   if (withCandidate) await f.attempt();
   const row = (
@@ -37,7 +38,7 @@ async function fixture(withCandidate = true, withQuiz = false) {
     terms = event.terms as { end_ms: number };
   const at = terms.end_ms - 600_000;
   event.attendance = withCandidate ? 1 : 0;
-  event.ledger_version = withCandidate ? 2 : 1;
+  event.ledger_version = ledgerVersion ?? (withCandidate ? 2 : 1);
   event.ended_ms = at - 300_000;
   (observed.views.registration as { attendance: string | null }).attendance =
     candidate?.packet.classification ?? null;
@@ -57,6 +58,18 @@ async function fixture(withCandidate = true, withQuiz = false) {
         },
       ]
     : [];
+  if (candidate) {
+    const delivered = await runSandboxAttendanceDelivery(f.pool, f.config, row.id, {
+      context: f.source.context,
+      evidencePublicKey: publicKey,
+      read: async () => structuredClone(observed),
+      sign: async () => accepted[0].proof,
+      submit: async () => {
+        throw new Error("Observed fixture receipt must not be submitted again");
+      },
+    });
+    assert.equal(delivered.status, "observed");
+  }
   const freeze = (source = observed, now = at, authority = publicKey) =>
     freezeAttendanceEvidence(f.pool, f.config, f.eventId, source, authority, now);
   const prepare = (sources = [observed], evidence = accepted, now = at) =>
@@ -330,9 +343,8 @@ test("unreconciled quiz, nonlocal origin and live-profile context cannot freeze 
 });
 
 test("unsafe-range u64 ledger versions survive PostgreSQL and bare-number checkpoint wire without rounding", async () => {
-  const f = await fixture();
+  const f = await fixture(true, false, 18446744073709551615n);
   try {
-    (f.observed.views.event as { ledger_version: unknown }).ledger_version = 18446744073709551615n;
     await f.freeze();
     const packet = await f.prepare();
     assert.equal(packet.checkpoint.ledger_version, "18446744073709551615");

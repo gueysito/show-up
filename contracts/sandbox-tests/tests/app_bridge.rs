@@ -126,7 +126,7 @@ async fn application_attendance_round_trip() {
             mode,
             "consent",
             &json!({"terms":terms,"deployment":f.escrow.id(),"token":f.token.id(),
-            "wallet":f.alice.id(),"issuedAt":issued,"publishedAt":issued}),
+            "wallet":f.alice.id(),"issuedAt":issued,"publishedAt":issued,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes())}),
         );
         let wallet_proof = financial_signature(&f.alice, &prepared);
         let response = exchange(&root, mode, "signature", &wallet_proof);
@@ -151,6 +151,14 @@ async fn application_attendance_round_trip() {
         );
         f.advance(receipt["received_ms"].as_u64().unwrap()).await;
         let signature = proof(&f.evidence, &receipt);
+        let permission = exchange(
+            &root,
+            mode,
+            "signed",
+            &json!({"source":snapshot(&f,&auth).await,"receipt":receipt,"proof":signature,
+            "evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes())}),
+        );
+        assert_eq!(permission["submit"], true);
         let accepted = f
             .bob
             .call(f.escrow.id(), "accept_attendance")
@@ -163,6 +171,14 @@ async fn application_attendance_round_trip() {
             .json::<String>()
             .unwrap();
         assert_eq!(accepted, "on_time");
+        let acknowledged = exchange(
+            &root,
+            mode,
+            "accepted",
+            &json!({"source":snapshot(&f,&auth).await,"receipt":receipt,"proof":signature,
+            "evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes())}),
+        );
+        assert_eq!(acknowledged["recovered"], true);
         f.advance(f.end - 600_000 + 1).await;
         f.host
             .call(f.escrow.id(), "record_end")

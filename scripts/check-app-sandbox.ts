@@ -39,6 +39,8 @@ import {
   prepareAttendanceCheckpoint,
 } from "../src/server/attendance/journal";
 import { verifyAttendanceCheckpoint } from "../src/server/attendance/checkpoint-wire";
+import { deliveryProcess } from "./attendance-delivery-peer";
+import type { SandboxAttendanceGateway } from "../src/worker/attendance";
 
 if (
   process.env.SHOWUP_ENV !== "test" ||
@@ -66,11 +68,12 @@ const finished = new Promise<void>((resolve) => {
   });
 });
 let phase = "startup";
-async function receive<T>(mode: string, stage: string): Promise<T> {
+async function receive<T>(mode: string, stage: string, signal?: AbortSignal): Promise<T> {
   phase = `${mode}/${stage}`;
   const path = `${directory}/${mode}.${stage}.request.json`,
     deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
+    signal?.throwIfAborted();
     if (exitCode !== undefined || runnerError)
       throw new Error("Sandbox peer exited before exchange.");
     try {
@@ -100,12 +103,20 @@ type Published = {
   wallet: string;
   issuedAt: number;
   publishedAt: number;
+  evidencePublicKey: string;
 };
 const results: {
   mode: string;
   attendance: string;
   principalPaid: string;
   liveSubmissionAllowed: false;
+  workerRecovery: {
+    signal: "SIGKILL";
+    attempts: number;
+    signatureRequests: number;
+    submissions: number;
+    signedEnvelopePreserved: true;
+  };
 }[] = [];
 try {
   for (const mode of ["online", "physical"] as const) {
@@ -326,7 +337,77 @@ try {
         row.encrypted_candidate,
       ) as AttendanceCandidateInput;
       assert.equal(candidate.packet.classification, "on_time");
-      await send(mode, "funded", { receipt: candidate.packet.receipt });
+      let latest = source,
+        signatureRequests = 0,
+        submissions = 0;
+      const gateway: SandboxAttendanceGateway = {
+        context: source.context,
+        evidencePublicKey: published.evidencePublicKey,
+        read: async () => structuredClone(latest),
+        sign: async (receipt, signal) => {
+          signatureRequests++;
+          await send(mode, "funded", { receipt });
+          const signed = await receive<{
+            source: Snapshot;
+            proof: string;
+            evidencePublicKey: string;
+          }>(mode, "signed", signal);
+          assert.equal(signed.evidencePublicKey, published.evidencePublicKey);
+          latest = signed.source;
+          return signed.proof;
+        },
+        submit: async (receipt, signature, signal) => {
+          submissions++;
+          assert.equal(canonicalJson(receipt), candidate.packet.canonical);
+          assert.equal(
+            verifyAttendancePacket(
+              candidate.packet,
+              receipt,
+              signature,
+              published.evidencePublicKey,
+            ),
+            true,
+          );
+          await send(mode, "signed", { submit: true });
+          latest = (await receive<{ source: Snapshot }>(mode, "accepted", signal)).source;
+        },
+      };
+      const killed = await deliveryProcess(config, row.id, gateway, true);
+      assert.equal(killed.killed, true);
+      const preparedDelivery = (
+        await f.pool.query("SELECT * FROM app_attendance_deliveries WHERE candidate_id=$1", [
+          row.id,
+        ])
+      ).rows[0];
+      assert.equal(preparedDelivery.state, "broadcast_unknown");
+      assert(preparedDelivery.encrypted_signed);
+      // Only the test fixture advances the abandoned lease; production recovery
+      // waits for the worker's bounded lease rather than bypassing its fencing.
+      await f.pool.query(
+        "UPDATE app_attendance_deliveries SET claim_until=clock_timestamp()-interval '1 second' WHERE candidate_id=$1",
+        [row.id],
+      );
+      const resumed = await deliveryProcess(config, row.id, {
+        ...gateway,
+        sign: async () => {
+          throw new Error("Recovery must reuse the stored signature");
+        },
+        submit: async () => {
+          throw new Error("Recovery must observe the actual effect before another submission");
+        },
+      });
+      assert.equal(resumed.status, "observed");
+      assert.equal(signatureRequests, 1);
+      assert.equal(submissions, 1);
+      const recoveredDelivery = (
+        await f.pool.query("SELECT * FROM app_attendance_deliveries WHERE candidate_id=$1", [
+          row.id,
+        ])
+      ).rows[0];
+      assert.equal(recoveredDelivery.encrypted_signed, preparedDelivery.encrypted_signed);
+      assert.equal(recoveredDelivery.signed_hash, preparedDelivery.signed_hash);
+      assert.equal(recoveredDelivery.attempts, 2);
+      await send(mode, "accepted", { recovered: true });
       const reconciliation = await receive<{
         source: Snapshot;
         receipt: unknown;
@@ -448,6 +529,13 @@ try {
         attendance: "on_time",
         principalPaid: "5000000",
         liveSubmissionAllowed: false,
+        workerRecovery: {
+          signal: "SIGKILL",
+          attempts: recoveredDelivery.attempts,
+          signatureRequests,
+          submissions,
+          signedEnvelopePreserved: true,
+        },
       });
       await send(mode, "returned", { verified: true });
       console.log(

@@ -435,6 +435,30 @@ No live outage watermark or submission/recovery worker is enabled. Their packets
 retain `sourceQualified: false` and `liveSubmissionAllowed: false`; qualified
 settlement/purge, camera and device work remain incomplete.
 
+### Sandbox receipt delivery and recovery
+
+Migrations `018-attendance-delivery.sql` and
+`019-attendance-observed-signature.sql` queue existing/new accepted candidates and
+require signed evidence for an observed delivery. The explicit sandbox processor
+stores the immutable signature before submission, uses bounded worker leases and
+checks contract state after an unknown acknowledgment. A replacement worker reuses
+the original receipt/nonce. Transport failure remains retryable; invalid source,
+fork or authority evidence latches a conflict. Expired unobserved receipts require
+reconciliation and cannot produce a normal closing checkpoint.
+
+The same `npm run contracts:app-bridge` command now kills a real delivery process
+after actual contract acceptance and restarts it. Its private `result.json` records
+the signal, two worker attempts, one signing request, one submission and preserved
+signed ciphertext for each mode, followed by closing and full principal return.
+Process messaging preserves full-u64 source values. Own export includes only that
+account's delivery metadata; restricted deletion recovery retains original obligations.
+
+Gateway construction is explicit and limited to localhost/`showup_test` sandbox
+context. Generated fixture encryption material travels over private process IPC;
+operator configuration and wallet key files are unused. No live signing gateway,
+complete intake/outage monitor or closing/principal-recovery daemon is enabled.
+Camera/phone checks, real routes and qualified settlement/purge remain incomplete.
+
 ## Private account export
 
 After rebuilding, choose **Account → Your data and export → Download your data as JSON**.

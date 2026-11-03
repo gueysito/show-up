@@ -78,6 +78,7 @@ export async function persistAttendanceCandidate(
       ],
     )
   ).rows[0];
+  await client.query("INSERT INTO app_attendance_deliveries(candidate_id) VALUES($1)", [id]);
   return attendanceCandidateRecord(config, row);
 }
 

@@ -299,7 +299,10 @@ export async function prepareAttendanceCheckpoint(
       );
     const rows = (
       await client.query(
-        "SELECT * FROM app_attendance_candidates WHERE event_id=$1 ORDER BY id FOR SHARE",
+        `SELECT c.*,d.state AS delivery_state,d.signed_hash AS delivery_signed_hash,
+        d.observed_height AS delivery_height,d.observed_hash AS delivery_hash,d.encrypted_observation AS delivery_observation
+        FROM app_attendance_candidates c LEFT JOIN app_attendance_deliveries d ON d.candidate_id=c.id
+        WHERE c.event_id=$1 ORDER BY c.id FOR SHARE OF c`,
         [input.eventId],
       )
     ).rows;
@@ -330,6 +333,8 @@ export async function prepareAttendanceCheckpoint(
           (value) => value.facts.registrationId === candidate.packet.receipt.registration,
         );
       if (
+        row.delivery_state !== "observed" ||
+        row.delivery_signed_hash !== hash(proof?.proof ?? "") ||
         !original ||
         original.hash !== row.candidate_hash ||
         original.receiptHash !== canonicalHash(candidate.packet.receipt) ||
@@ -354,6 +359,25 @@ export async function prepareAttendanceCheckpoint(
         throw new AppFailure(
           409,
           "A frozen attendance candidate is missing its original accepted evidence.",
+        );
+      const delivered = unseal(
+        config.encryptionKey,
+        `attendance-delivery-observation:${row.id}`,
+        row.delivery_observation,
+      ) as Facts;
+      if (
+        delivered.block.height !== row.delivery_height ||
+        delivered.block.hash !== row.delivery_hash
+      )
+        throw new Error("Attendance delivery observation integrity failure");
+      if (
+        BigInt(observed.facts.block.height) < BigInt(delivered.block.height) ||
+        (observed.facts.block.height === delivered.block.height &&
+          commonFacts(observed.facts) !== commonFacts(delivered))
+      )
+        throw new AppFailure(
+          409,
+          "Closing evidence conflicts with the recorded attendance delivery.",
         );
     }
     const checkpoint: AttendanceCheckpoint = {

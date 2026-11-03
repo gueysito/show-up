@@ -1,0 +1,86 @@
+import { createDatabase } from "../../src/server/db/client";
+import {
+  runSandboxAttendanceDelivery,
+  type SandboxAttendanceGateway,
+} from "../../src/worker/attendance";
+import type { AuthConfig } from "../../src/server/auth/config";
+
+if (
+  process.env.SHOWUP_ENV !== "test" ||
+  process.env.DATABASE_URL !== "postgresql://showup@127.0.0.1:55433/showup_test"
+)
+  throw new Error("Delivery process fixture requires the fixed disposable database");
+type Start = {
+  kind: "start";
+  candidateId: string;
+  config: Pick<AuthConfig, "encryptionKey" | "origin">;
+  context: SandboxAttendanceGateway["context"];
+  evidencePublicKey: string;
+};
+let sequence = 0,
+  started = false;
+const pending = new Map<number, { resolve: (value: unknown) => void; reject: () => void }>();
+function rpc(method: "read" | "sign" | "submit", params: unknown[], signal: AbortSignal) {
+  return new Promise<unknown>((resolve, reject) => {
+    const id = ++sequence;
+    const cancel = () => {
+      pending.delete(id);
+      reject(new Error("Delivery fixture gateway unavailable"));
+    };
+    signal.addEventListener("abort", cancel, { once: true });
+    pending.set(id, {
+      resolve: (value) => {
+        signal.removeEventListener("abort", cancel);
+        resolve(value);
+      },
+      reject: cancel,
+    });
+    process.send?.({ kind: "gateway", id, method, params });
+  });
+}
+process.on("message", async (message: unknown) => {
+  if (!message || typeof message !== "object") return;
+  const response = message as { kind: string; id: number; ok: boolean; value: unknown };
+  if (response.kind === "gateway-result") {
+    const item = pending.get(response.id);
+    pending.delete(response.id);
+    if (response.ok) item?.resolve(response.value);
+    else item?.reject();
+    return;
+  }
+  if (started || response.kind !== "start") return;
+  started = true;
+  const input = message as Start,
+    { pool } = createDatabase();
+  try {
+    if (
+      Object.keys(input.config).sort().join() !== "encryptionKey,origin" ||
+      !/^[0-9a-f]{64}$/.test(input.config.encryptionKey) ||
+      input.config.origin !== "https://localhost:3444"
+    )
+      throw new Error("Invalid generated fixture configuration");
+    const gateway: SandboxAttendanceGateway = {
+      context: input.context,
+      evidencePublicKey: input.evidencePublicKey,
+      read: async (signal) =>
+        (await rpc("read", [], signal)) as Awaited<ReturnType<SandboxAttendanceGateway["read"]>>,
+      sign: async (receipt, signal) => (await rpc("sign", [receipt], signal)) as string,
+      submit: async (receipt, signature, signal) => {
+        await rpc("submit", [receipt, signature], signal);
+      },
+    };
+    const result = await runSandboxAttendanceDelivery(
+      pool,
+      input.config,
+      input.candidateId,
+      gateway,
+    );
+    process.send?.({ kind: "result", result });
+  } catch {
+    process.send?.({ kind: "fixture-error" });
+    process.exitCode = 1;
+  } finally {
+    await pool.end();
+    process.disconnect?.();
+  }
+});
