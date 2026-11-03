@@ -1140,6 +1140,35 @@ can reload while restoring the router. This checks network history navigation;
 [Playwright does not support BFCache verification](https://github.com/microsoft/playwright/blob/main/docs/src/navigations.md).
 Actual BFCache/phone evidence remains an owner/device gate.
 
+## Event validator assignment checkpoint November 3
+
+- Format/lint/types, 66 unit and all 85 disposable PostgreSQL scenarios pass.
+  Eight new scenarios cover explicit scoped consent/replay, stable credentials,
+  fresh host credentials/no copied staff on duplication, pre-publication
+  removal/restoration, stale revisions, publication freeze, approved
+  commitment/validator exclusion, draft cleanup, encrypted identity erasure and
+  preserved minimal published exclusions. Other-account identity survives cleanup.
+  Migration rollback, mutual host/staff deletion and event/invitation ordering pass;
+  a controlled lock reproduced the old invitation-first inversion before repair.
+- Isolated production build and all 26 Chromium scenarios pass. The new actual UI
+  journey checks event/time/grant context, consent, removal, fresh-invitation
+  restoration, stale publication checks, no global host authority, own export,
+  account swaps, frozen/late denial, private headers and mobile reflow. Frozen
+  mobile capture inspected; it contains no invitation capability. All 18 code/test
+  inputs match the snapshot; server credential/index/SQL internals are absent from
+  client bundles. Current runtime npm audit: zero vulnerabilities.
+- New since the walkthrough: **Save an in-person draft → Invite event validator →
+  recipient signs in and accepts → Refresh validator assignments**. Reconnect and
+  reopen the newer revision before editing; remove assignments only before
+  publication. No external message is sent. Agent checks use fictional accounts
+  and an explicit publication fixture; no owner data, private credential file,
+  application key, public transaction or deployed app was changed.
+- This is assignment/app-eligibility evidence. QR issue/scan/presence confirmation,
+  bounded attendee attempts, complete evidence, live contract exclusions, qualified
+  settlement/purge and actual-device checks remain incomplete. Existing Rust/WASM
+  and eight independent Node results are unchanged and reused. Public funding,
+  signing, deployment and messaging gates remain.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

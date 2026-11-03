@@ -4,6 +4,7 @@ import { validateDraft, type EventDraft } from "../../domain/event-draft";
 import { hasRole, mutate, type Actor } from "../auth/mutations";
 import { isUuid, type DraftSave } from "./drafts";
 import { AppFailure } from "../http/security";
+import { participantCredential } from "./credentials";
 
 type AccountEvent = {
   id: string;
@@ -85,6 +86,7 @@ export async function saveAccountDraft(
           [input.id, actor.id, revision, validated.value, validated.value.startsAt],
         );
       }
+      await participantCredential(client, key, actor.id, input.id);
       await savedOutbox(client, input.operationId, input.id, revision);
       return { id: input.id, revision, operationId: input.operationId };
     },
@@ -125,6 +127,7 @@ export async function duplicateAccountEvent(
       VALUES ($1,$2,1,$3,$4) RETURNING updated_at`,
         [id, actor.id, data, data.startsAt],
       );
+      await participantCredential(client, key, actor.id, id);
       await savedOutbox(client, operationId, id, 1);
       return {
         id,

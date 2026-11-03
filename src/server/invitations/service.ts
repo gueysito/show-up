@@ -1,12 +1,13 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { AuthConfig } from "../auth/config";
 import { hash, token } from "../auth/crypto";
 import { hasRole, mutate, type Actor } from "../auth/mutations";
 import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
+import { participantCredential } from "../events/credentials";
 
-type InvitationInput = { kind: "host" | "event"; eventId?: string };
+type InvitationInput = { kind: "host" | "event" | "validator"; eventId?: string };
 
 async function databaseNow(client: pg.PoolClient) {
   return (await client.query("SELECT clock_timestamp() AS now")).rows[0].now.getTime() as number;
@@ -31,8 +32,8 @@ export async function issueInvitation(
   input: InvitationInput,
 ) {
   if (
-    !["host", "event"].includes(input.kind) ||
-    (input.kind === "event" && !isUuid(input.eventId)) ||
+    !["host", "event", "validator"].includes(input.kind) ||
+    (input.kind !== "host" && !isUuid(input.eventId)) ||
     (input.kind === "host" && input.eventId !== undefined)
   )
     throw new AppFailure(400, "Choose a valid invitation scope.");
@@ -52,15 +53,17 @@ export async function issueInvitation(
       } else {
         hasRole(actor, "host", "admin");
         const event = await eventAuthority(client, actor, input.eventId!);
-        if (
-          event.state !== "published" ||
-          event.registration_closes_at.getTime() <= (await databaseNow(client))
-        )
+        const now = await databaseNow(client);
+        if (input.kind === "validator") {
+          if (event.state !== "draft" || event.registration_closes_at.getTime() <= now)
+            throw new AppFailure(409, "Assign validators to a future draft before publication.");
+          expiry = new Date(Math.min(now + 15 * 86400_000, event.registration_closes_at.getTime()));
+        } else if (event.state !== "published" || event.registration_closes_at.getTime() <= now)
           throw new AppFailure(
             409,
             "Event invitations require a published event with open registration.",
           );
-        expiry = event.registration_closes_at;
+        else expiry = event.registration_closes_at;
       }
       const value = token();
       const id = randomUUID();
@@ -99,6 +102,16 @@ export async function redeemInvitation(
     { tokenHash: hash(value), consent },
     "invitation.redeemed",
     async (client, actor) => {
+      // Scope is immutable after issue. Lock the event before the capability,
+      // matching event edits/publication/deletion rather than creating a cycle.
+      const scope = (
+        await client.query("SELECT event_id FROM app_invitations WHERE token_hash=$1", [
+          hash(value),
+        ])
+      ).rows[0];
+      if (!scope) throw new AppFailure(404, "Invitation unavailable.");
+      if (scope.event_id)
+        await client.query("SELECT 1 FROM app_events WHERE id=$1 FOR UPDATE", [scope.event_id]);
       const invitation = await client.query(
         "SELECT * FROM app_invitations WHERE token_hash=$1 FOR UPDATE",
         [hash(value)],
@@ -108,6 +121,19 @@ export async function redeemInvitation(
       if (row.redeemed_by) {
         if (row.redeemed_by !== actor.id)
           throw new AppFailure(409, "This invitation was already redeemed by another account.");
+        if (
+          row.kind === "validator" &&
+          !(
+            await client.query(
+              "SELECT 1 FROM app_event_validators WHERE event_id=$1 AND account_id=$2 AND revoked_at IS NULL",
+              [row.event_id, actor.id],
+            )
+          ).rowCount
+        )
+          throw new AppFailure(
+            410,
+            "This validator assignment was removed. An old invitation cannot restore it.",
+          );
         return { kind: row.kind as string, eventId: row.event_id as string | null, granted: true };
       }
       if (row.revoked_at || row.expires_at.getTime() <= (await databaseNow(client)))
@@ -130,6 +156,63 @@ export async function redeemInvitation(
           VALUES ($1,$2,$3) ON CONFLICT (event_id,account_id) DO NOTHING`,
           [row.event_id, actor.id, row.id],
         );
+      } else if (row.kind === "validator") {
+        const event = (
+          await client.query(
+            "SELECT owner_id,state,registration_closes_at FROM app_events WHERE id=$1 FOR UPDATE",
+            [row.event_id],
+          )
+        ).rows[0];
+        if (
+          !event ||
+          event.state !== "draft" ||
+          event.registration_closes_at.getTime() <= (await databaseNow(client))
+        )
+          throw new AppFailure(
+            410,
+            "Validator assignments are fixed at publication. This draft invitation is closed.",
+          );
+        if (
+          (
+            await client.query(
+              "SELECT 1 FROM app_commitment_consents WHERE event_id=$1 AND account_id=$2 AND authorized_at IS NOT NULL LIMIT 1",
+              [row.event_id, actor.id],
+            )
+          ).rowCount
+        )
+          throw new AppFailure(
+            409,
+            "An account that committed to this event cannot become a validator.",
+          );
+        await participantCredential(client, config.encryptionKey, actor.id, row.event_id);
+        const previous = (
+          await client.query(
+            "SELECT id,revoked_at FROM app_event_validators WHERE event_id=$1 AND account_id=$2 FOR UPDATE",
+            [row.event_id, actor.id],
+          )
+        ).rows[0];
+        if (!previous || previous.revoked_at) {
+          if (previous)
+            await client.query(
+              "UPDATE app_event_validators SET invitation_id=$2,assigned_at=clock_timestamp(),revoked_at=NULL WHERE id=$1",
+              [previous.id, row.id],
+            );
+          else
+            await client.query(
+              "INSERT INTO app_event_validators(id,event_id,account_id,invitation_id,alias) VALUES ($1,$2,$3,$4,$5)",
+              [
+                randomUUID(),
+                row.event_id,
+                actor.id,
+                row.id,
+                `Validator ${randomBytes(8).toString("hex")}`,
+              ],
+            );
+          await client.query(
+            "UPDATE app_events SET revision=revision+1,updated_at=clock_timestamp() WHERE id=$1",
+            [row.event_id],
+          );
+        }
       } else {
         await client.query(
           "INSERT INTO app_roles (account_id,role) VALUES ($1,'host') ON CONFLICT DO NOTHING",
@@ -161,6 +244,15 @@ export async function revokeInvitation(
     { id },
     "invitation.revoked",
     async (client, actor) => {
+      const scope = (
+        await client.query("SELECT kind,event_id FROM app_invitations WHERE id=$1", [id])
+      ).rows[0];
+      if (!scope) throw new AppFailure(404, "Invitation unavailable.");
+      if (scope.kind === "host") hasRole(actor, "admin");
+      else {
+        hasRole(actor, "host", "admin");
+        await eventAuthority(client, actor, scope.event_id);
+      }
       const result = await client.query(
         "SELECT kind,event_id,redeemed_by FROM app_invitations WHERE id=$1 FOR UPDATE",
         [id],

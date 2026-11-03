@@ -75,6 +75,14 @@ export async function requestAccountDeletion(
       input.operationId,
     ]);
     if (used.rowCount) throw new AppFailure(409, "This operation reference was already used.");
+    // All related draft events precede their invitation/assignment rows. Sort the
+    // union so simultaneous host/staff deletion cannot invert two event locks.
+    await client.query(
+      `SELECT e.id FROM app_events e WHERE e.state='draft' AND
+      (e.owner_id=$1 OR EXISTS(SELECT 1 FROM app_event_validators v WHERE v.event_id=e.id AND v.account_id=$1))
+      ORDER BY e.id FOR UPDATE`,
+      [actor.id],
+    );
     // Every currently available route is unqualified. An approved record cannot
     // be erased on the assumption that it was never funded, or on a browser's
     // paid flag. Keep the original proof/credential until qualified reconciliation.
@@ -115,13 +123,31 @@ export async function requestAccountDeletion(
     await client.query("DELETE FROM app_mutations WHERE actor_id=$1", [actor.id]);
     await client.query("DELETE FROM app_wallets WHERE account_id=$1", [actor.id]);
     await client.query("DELETE FROM app_roles WHERE account_id=$1", [actor.id]);
+    // Draft authority can be removed. Published exclusions stay fixed while the
+    // disabled/restricted account immediately loses all validator authority.
+    const draftAssignments = await client.query(
+      `SELECT e.id FROM app_events e JOIN app_event_validators v ON v.event_id=e.id
+      WHERE v.account_id=$1 AND e.state='draft' ORDER BY e.id FOR UPDATE OF e`,
+      [actor.id],
+    );
+    const changedEvents = draftAssignments.rows.map((row) => row.id);
+    await client.query(
+      "DELETE FROM app_event_validators WHERE account_id=$1 AND event_id=ANY($2::uuid[])",
+      [actor.id, changedEvents],
+    );
+    await client.query(
+      "UPDATE app_events SET revision=revision+1,updated_at=clock_timestamp() WHERE id=ANY($1::uuid[])",
+      [changedEvents],
+    );
     await client.query(
       "DELETE FROM app_commitment_consents WHERE account_id=$1 AND authorized_at IS NULL",
       [actor.id],
     );
     await client.query(
       `DELETE FROM app_event_credentials p WHERE p.account_id=$1 AND NOT EXISTS
-      (SELECT 1 FROM app_commitment_consents c WHERE c.account_id=p.account_id AND c.event_id=p.event_id AND c.authorized_at IS NOT NULL)`,
+      (SELECT 1 FROM app_commitment_consents c WHERE c.account_id=p.account_id AND c.event_id=p.event_id AND c.authorized_at IS NOT NULL)
+      AND NOT EXISTS (SELECT 1 FROM app_event_validators v JOIN app_events e ON e.id=v.event_id
+      WHERE v.account_id=p.account_id AND v.event_id=p.event_id AND v.revoked_at IS NULL AND e.state<>'draft')`,
       [actor.id],
     );
     await client.query(

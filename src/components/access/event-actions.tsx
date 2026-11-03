@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { InvitationManager } from "./invitation-manager";
 import type { PublicationReadiness } from "../../server/events/publication";
 import { HostCodeWindowManager } from "./host-code-window";
+import { EventValidatorManager } from "./event-validators";
 
 export function EventActions({
   id,
@@ -131,6 +132,14 @@ export function EventActions({
           <InvitationManager canIssueHost={false} eventId={id} />
           {mode === "digital" && <HostCodeWindowManager key={id} eventId={id} />}
         </div>
+      )}
+      {mode === "physical" && (
+        <EventValidatorManager
+          key={id}
+          eventId={id}
+          draft={(state ?? "draft") === "draft"}
+          dirty={dirty}
+        />
       )}
     </section>
   );

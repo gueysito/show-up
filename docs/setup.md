@@ -342,6 +342,37 @@ This adds host controls, not attendee acceptance, funded seats or live publicati
 Agent browser verification uses explicitly published engineering fixtures in the
 disposable database. Do not create such records in the owner's development account.
 
+### Event validators
+
+Migration `014-event-validators.sql` adds event-scoped assignments and preserves
+the existing host/event invitation scopes. After saving an in-person draft, choose
+**Event validators → Invite event validator**. The private link shows the event,
+planned time and exact grant; its recipient must sign in and explicitly accept.
+It grants no global host, wallet or payment authority. Unused links expire at the
+earlier of 15 days or planned start, and cannot assign staff after publication.
+No message is sent automatically.
+
+**Refresh validator assignments** shows event aliases, not provider IDs or wallets.
+Assignments/removals advance the saved revision; reconnect storage and reopen the
+event before editing its rules or checking publication. An account that already
+approved a commitment cannot become a validator; an assigned validator cannot
+prepare or approve an attendee commitment. Before publication, the host/admin can
+remove an assignment. An old redeemed link cannot restore a removed assignment;
+a fresh invitation and consent are required. Publication fixes the roster.
+
+Own exports include assignment metadata. Deleting a draft clears its invitations,
+assignments and event credentials. Deleting a validator's account removes draft
+authority and off-chain identity; published events retain only minimal fixed
+exclusion metadata/opaque credentials, with no continuing validator authority.
+Other unresolved financial/published-host obligations retain their existing holds.
+No owner account or development database was changed during agent checks.
+
+This implements assignment and app eligibility, not live contract publication,
+personal QR issuance/scanning, presence confirmation or accepted attendance.
+Contract exclusion/publication integration and settlement-dependent purge remain
+unqualified/incomplete. The browser freeze check uses an explicit engineering
+publication fixture, never a product publication or funded seat.
+
 ## Private account export
 
 After rebuilding, choose **Account → Your data and export → Download your data as JSON**.

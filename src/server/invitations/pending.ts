@@ -7,9 +7,10 @@ export const invitationCookie = "__Host-showup-invitation";
 export async function inspectInvitation(pool: pg.Pool, value: string) {
   if (!/^[\w-]{43}$/.test(value)) throw new AppFailure(404, "Invitation unavailable.");
   const result = await pool.query(
-    `SELECT kind,event_id AS "eventId",expires_at AS "expiresAt",
-    (revoked_at IS NOT NULL) AS revoked,(redeemed_at IS NOT NULL) AS redeemed
-    FROM app_invitations WHERE token_hash=$1`,
+    `SELECT i.kind,i.event_id AS "eventId",i.expires_at AS "expiresAt",
+    (i.revoked_at IS NOT NULL) AS revoked,(i.redeemed_at IS NOT NULL) AS redeemed,
+    e.data->>'title' AS "eventTitle",e.data->>'startsAt' AS "startsAt",e.data->>'timeZone' AS "timeZone"
+    FROM app_invitations i LEFT JOIN app_events e ON e.id=i.event_id WHERE i.token_hash=$1`,
     [hash(value)],
   );
   const row = result.rows[0];
@@ -20,6 +21,9 @@ export async function inspectInvitation(pool: pg.Pool, value: string) {
     expiresAt: Date;
     revoked: boolean;
     redeemed: boolean;
+    eventTitle: string | null;
+    startsAt: string | null;
+    timeZone: string | null;
   };
 }
 

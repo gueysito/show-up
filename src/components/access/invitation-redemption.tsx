@@ -9,7 +9,22 @@ type Invitation = {
   expiresAt: string;
   revoked: boolean;
   redeemed: boolean;
+  eventTitle?: string | null;
+  startsAt?: string | null;
+  timeZone?: string | null;
 };
+
+function invitationTime(value: string, timeZone: string) {
+  try {
+    return new Intl.DateTimeFormat("en", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone,
+    }).format(new Date(value));
+  } catch {
+    return "Confirm the planned time with the host";
+  }
+}
 
 export function InvitationRedemption() {
   const [invitation, setInvitation] = useState<Invitation | null>(null);
@@ -89,7 +104,9 @@ export function InvitationRedemption() {
       setStatus(
         result.kind === "host"
           ? "Host access confirmed. Open your host workspace."
-          : "Event access confirmed. No seat is funded or reserved.",
+          : result.kind === "validator"
+            ? "Validator assignment confirmed for this event. It is fixed at publication and grants no funding, payout or host authority."
+            : "Event access confirmed. No seat is funded or reserved.",
       );
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Access was not confirmed. Retry.");
@@ -102,10 +119,16 @@ export function InvitationRedemption() {
       <p role="status">{status}</p>
       {invitation && (
         <>
+          {invitation.eventTitle && <p>{`Event: ${invitation.eventTitle}`}</p>}
+          {invitation.startsAt && (
+            <p>{`Planned start: ${invitationTime(invitation.startsAt, invitation.timeZone ?? "UTC")} (${invitation.timeZone ?? "UTC"})`}</p>
+          )}
           <p>
             {invitation.kind === "host"
               ? "Grant: host access to create and manage your own events."
-              : "Grant: access to one event. Funding and capacity are separate."}
+              : invitation.kind === "validator"
+                ? "Grant: validate physical attendance for one event after publication. You cannot earn this event's attendee rewards. No wallet, funding or host authority is granted."
+                : "Grant: access to one event. Funding and capacity are separate."}
           </p>
           <p>{`Unused link expires: ${new Date(invitation.expiresAt).toLocaleString()}`}</p>
           {invitation.revoked && <p role="alert">This unused link was revoked.</p>}

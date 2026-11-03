@@ -87,7 +87,7 @@ export function DetailsFields({ draft, errors, change }: Props) {
         <Field
           name="venue"
           label="Venue and proof instructions"
-          hint="Plan a staff-validated personal QR check-in. Staff assignment comes later."
+          hint="Plan a personal QR check-in. Invite validators from the saved event before publication."
           errors={errors}
         >
           {(attrs) => (

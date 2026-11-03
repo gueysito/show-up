@@ -27,6 +27,8 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       watches,
       deletion,
       codeWindows,
+      validatorAssignments,
+      hostedValidators,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -76,6 +78,15 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       await client.query(
         `SELECT w.id,w.event_id,w.opened_at,w.expires_at,w.retired_at FROM app_attendance_code_windows w
         JOIN app_events e ON e.id=w.event_id WHERE e.owner_id=$1 ORDER BY w.opened_at,w.id`,
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,event_id,alias,assigned_at,revoked_at FROM app_event_validators WHERE account_id=$1 ORDER BY assigned_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT v.id,v.event_id,v.alias,v.assigned_at,v.revoked_at FROM app_event_validators v
+        JOIN app_events e ON e.id=v.event_id WHERE e.owner_id=$1 ORDER BY v.assigned_at,v.id`,
         [actor.id],
       ),
     ];
@@ -154,6 +165,8 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       }),
       hostedEvents: events.rows,
       hostedCodeWindows: codeWindows.rows,
+      validatorAssignments: validatorAssignments.rows,
+      hostedValidators: hostedValidators.rows,
       invitationsIssued: issued.rows,
       invitationsRedeemed: redeemed.rows,
       eventAccess: access.rows,

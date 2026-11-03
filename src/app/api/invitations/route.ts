@@ -71,7 +71,10 @@ async function handle(request: Request) {
     const operationId = input?.operationId;
     if (typeof operationId !== "string") throw new AppFailure(400, "Missing operation reference.");
     let result: unknown;
-    if (input?.operation === "issue" && (input.kind === "host" || input.kind === "event")) {
+    if (
+      input?.operation === "issue" &&
+      (input.kind === "host" || input.kind === "event" || input.kind === "validator")
+    ) {
       if (input.eventId !== undefined && typeof input.eventId !== "string")
         throw new AppFailure(400, "Invalid event reference.");
       result = await issueInvitation(database.pool, config, session.tokenHash, operationId, {

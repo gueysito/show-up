@@ -8,6 +8,7 @@ import { isUuid } from "../events/drafts";
 import { AppFailure, limit } from "../http/security";
 import { canonicalHash, canonicalJson } from "../protocol/canonical";
 import type { SettlementContext } from "../protocol/settlement-state";
+import { participantCredential } from "../events/credentials";
 import { createSettlementWatchInTransaction } from "./reconciliation";
 import { requireNearFullAccess, NearFullAccessRequired } from "../wallets/near-access";
 import type { OwnWallet } from "../wallets/service";
@@ -25,49 +26,6 @@ import { contractAuthorization } from "./contract-authorization";
 type PreparedTerms = Omit<ConsentTerms, "registration" | "participant" | "reservationExpiresAt">;
 type WalletSelection = { source: string; refund: string; payout: string };
 
-async function participantCredential(
-  client: pg.PoolClient,
-  config: AuthConfig,
-  actor: string,
-  event: string,
-) {
-  const context = `event-credential:${actor}:${event}`;
-  const existing = (
-    await client.query(
-      "SELECT encrypted_credential FROM app_event_credentials WHERE event_id=$1 AND account_id=$2 FOR UPDATE",
-      [event, actor],
-    )
-  ).rows[0];
-  if (existing) {
-    const value = unseal(config.encryptionKey, context, existing.encrypted_credential);
-    if (typeof value !== "string" || !isUuid(value))
-      throw new Error("Event credential integrity failure");
-    return value;
-  }
-  // Preserve the first pre-migration consent's opaque credential when present.
-  const previous = (
-    await client.query(
-      "SELECT id,encrypted_consent FROM app_commitment_consents WHERE event_id=$1 AND account_id=$2 ORDER BY created_at,id LIMIT 1",
-      [event, actor],
-    )
-  ).rows[0];
-  let credential: string = randomUUID();
-  if (previous) {
-    const stored = unseal(
-      config.encryptionKey,
-      `commitment-consent:${actor}:${previous.id}`,
-      previous.encrypted_consent,
-    ) as { consent: CommitmentConsent };
-    if (!isUuid(stored.consent.terms.participant))
-      throw new Error("Event credential integrity failure");
-    credential = stored.consent.terms.participant;
-  }
-  await client.query(
-    "INSERT INTO app_event_credentials (event_id,account_id,encrypted_credential) VALUES ($1,$2,$3)",
-    [event, actor, seal(config.encryptionKey, context, credential)],
-  );
-  return credential;
-}
 type ConsentReceipt = {
   id: string;
   eventId: string;
@@ -102,6 +60,18 @@ async function eligibleEvent(
   const data = event.data as EventDraft;
   if (event.owner_id === actor)
     throw new AppFailure(403, "The host cannot join this event as an eligible attendee.");
+  if (
+    (
+      await client.query(
+        "SELECT 1 FROM app_event_validators WHERE event_id=$1 AND account_id=$2 AND revoked_at IS NULL",
+        [terms.event, actor],
+      )
+    ).rowCount
+  )
+    throw new AppFailure(
+      403,
+      "An assigned validator cannot join this event as an eligible attendee.",
+    );
   if (
     event.state !== "published" ||
     event.rules_hash !== terms.rulesHash ||
@@ -183,7 +153,12 @@ export async function prepareCommitmentConsent(
       }
       await eligibleEvent(client, actor.id, terms, now);
       await requireOwnedWallets(client, config, actor.id, input.wallets, terms);
-      terms.participant = await participantCredential(client, config, actor.id, terms.event);
+      terms.participant = await participantCredential(
+        client,
+        config.encryptionKey,
+        actor.id,
+        terms.event,
+      );
       const consent = createCommitmentConsent(config.origin, terms, now);
       await client.query(
         `INSERT INTO app_commitment_consents (id,account_id,event_id,session_hash,consent_hash,encrypted_consent,signing_expires_at,authorization_expires_at)
@@ -246,8 +221,12 @@ export async function acceptCommitmentConsent(
       await eligibleEvent(client, actor.id, consent.terms, row.time.getTime());
       await requireOwnedWallets(client, config, actor.id, wallets, consent.terms);
       if (
-        (await participantCredential(client, config, actor.id, consent.terms.event)) !==
-        consent.terms.participant
+        (await participantCredential(
+          client,
+          config.encryptionKey,
+          actor.id,
+          consent.terms.event,
+        )) !== consent.terms.participant
       )
         throw new AppFailure(409, "Review a fresh consent for this account's event credential.");
       let access: Awaited<ReturnType<typeof requireNearFullAccess>> | undefined;
@@ -333,7 +312,7 @@ async function loadAcceptedContractWire(
   ) as { consent: CommitmentConsent };
   if (
     canonicalHash(consent) !== row.consent_hash ||
-    (await participantCredential(client, config, accountId, consent.terms.event)) !==
+    (await participantCredential(client, config.encryptionKey, accountId, consent.terms.event)) !==
       consent.terms.participant
   )
     throw new AppFailure(409, "This financial authorization needs review.");

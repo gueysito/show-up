@@ -14,9 +14,13 @@ type Invitation = {
 export function InvitationManager({
   canIssueHost,
   eventId,
+  validatorInvites = false,
+  blocked = false,
 }: {
   canIssueHost: boolean;
   eventId?: string;
+  validatorInvites?: boolean;
+  blocked?: boolean;
 }) {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [url, setUrl] = useState("");
@@ -92,7 +96,7 @@ export function InvitationManager({
           Issue host invitation
         </button>
       )}
-      {eventId && (
+      {eventId && !validatorInvites && (
         <button
           type="button"
           className="secondary-button"
@@ -100,6 +104,16 @@ export function InvitationManager({
           onClick={() => act({ operation: "issue", kind: "event", eventId })}
         >
           Issue attendee invitation
+        </button>
+      )}
+      {eventId && validatorInvites && (
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={busy || blocked}
+          onClick={() => act({ operation: "issue", kind: "validator", eventId })}
+        >
+          Invite event validator
         </button>
       )}
       {url && (
@@ -130,10 +144,14 @@ export function InvitationManager({
       )}
       <ul>
         {invitations
-          .filter((item) => !eventId || item.eventId === eventId)
+          .filter(
+            (item) =>
+              (!eventId || item.eventId === eventId) &&
+              (!validatorInvites || item.kind === "validator"),
+          )
           .map((item) => (
             <li key={item.id}>
-              <p>{`${item.kind === "host" ? "Host" : "Event"} invitation · ${item.redeemed ? "Redeemed" : item.revokedAt ? "Revoked" : "Unused"} · expires ${new Date(item.expiresAt).toLocaleString()}`}</p>
+              <p>{`${item.kind === "host" ? "Host" : item.kind === "validator" ? "Validator" : "Event"} invitation · ${item.redeemed ? "Redeemed" : item.revokedAt ? "Revoked" : "Unused"} · expires ${new Date(item.expiresAt).toLocaleString()}`}</p>
               <button
                 type="button"
                 className="text-button danger"
