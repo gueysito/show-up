@@ -546,6 +546,26 @@ is not measurement or producer qualification. A qualified collector, verified
 publication/route inventory and deployment evidence remain required; actual
 HTTP evidence and public signing stay closed. See [ADR-0004](adr/0004-attendance-intake-boundary.md).
 
+The disposable measurement harness in `scripts/loopback-coverage-proxy.ts` binds
+only loopback and requires `showup_test`; it is not part of the owner's tunnel.
+Migration 026 stores bounded, hash-chained epochs with database-clock observations,
+fixed channel names and HTTP outcomes. Requests are recorded before forwarding;
+truncated responses and interrupted work cannot become completed successes. A
+missed probe interval stays missing after restart. Closed traces use bounded pages;
+an expired abandoned epoch must be fenced before reading. Bodies, cookies, paths,
+account identifiers and wallet/social mappings are not retained. These local traces
+remain unsigned and unqualified; the narrow route inventory and `/account` probe
+do not establish complete ingress, dependency or provider availability.
+Run its five database checks with the fixed disposable environment:
+
+```sh
+node_modules/.bin/tsx --test tests/integration/coverage-*.test.ts
+```
+
+The `coverage-capture` browser-suite check additionally forwards actual host-code
+and closed attendee requests through an isolated production app. No live route,
+owner migration, application key or signing gateway is enabled by this harness.
+
 ### Frozen sandbox attendance evidence
 
 Migration `017-attendance-evidence-barriers.sql` freezes the durable accepted

@@ -21,13 +21,14 @@ private invitations and host management pass isolated-account checks. Funding an
 - Own financial records bind reconciliation to the original approval; source failures/conflicts preserve obligations and keep escrow unconfirmed.
 - Own-data export, account/session-bound deletion and bounded private-receipt retention pass isolated checks; unqualified obligations retain restricted recovery access. Qualified clearance remains incomplete.
 - Online code entry preserves retry operations and pending status; host codes, bounded attempts and personal QR and staff camera/confirmation pass isolated checks with synthetic video. Live qualification and device evidence remain incomplete.
-- 77 unit, 170 PostgreSQL and 41 Chromium checks/build pass; 35 sandbox/eight Node replays and four attended/outage app cases remain verified. Detailed revisions and CI results live in the plan/verification links.
+- Disposable loopback capture records actual HTTP outcomes and restart gaps without bodies/identities; its narrow inventory remains unqualified.
+- 77 unit, 175 PostgreSQL and 42 Chromium-suite checks/build pass; 35 sandbox/eight Node replays and four attended/outage app cases remain verified. Detailed revisions and CI results live in the plan/verification links.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-A3 durable ingress/service coverage collection and A4 mobile/bot integration, while I4 real-route integration and qualified privacy clearance remain gated;
+A4 event-bound optional bot and A3 coverage/source integration, while I4 real-route integration and qualified privacy clearance remain gated;
 continue P5 source-to-witness integration and qualified provider/asset experiments within their gates.
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;
