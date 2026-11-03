@@ -54,6 +54,12 @@ export async function retirePrivacyRecords(
       DELETE FROM app_deletion_requests WHERE account_id IN (SELECT account_id FROM expired)`,
       [now, batchSize],
     );
+    const intakes = await client.query(
+      `WITH expired AS (SELECT id FROM app_attendance_intakes
+      WHERE completed_at<=$1::timestamptz-interval '90 days' ORDER BY completed_at,id LIMIT $2 FOR UPDATE SKIP LOCKED)
+      DELETE FROM app_attendance_intakes WHERE id IN (SELECT id FROM expired)`,
+      [now, batchSize],
+    );
     const rows = (
       await client.query(
         `SELECT * FROM app_mutations WHERE payload_retired_at IS NULL AND
@@ -104,6 +110,7 @@ export async function retirePrivacyRecords(
       audit: audit.rowCount ?? 0,
       challenges: challenges.rowCount ?? 0,
       completedRequests: completed.rowCount ?? 0,
+      intakes: intakes.rowCount ?? 0,
       payloads,
       classified,
       legacyNeedsKey,

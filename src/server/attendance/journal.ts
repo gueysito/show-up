@@ -14,6 +14,7 @@ import type { SandboxAttendanceObservation } from "./admission";
 import { attendanceCandidateMaterial } from "./attempts";
 import { attendanceSchedule, verifyAttendancePacket } from "./evidence";
 import { attendanceCheckpointWire, type AttendanceCheckpoint } from "./checkpoint-wire";
+import { knownAttendanceIntake } from "./intake";
 
 type Keys = Pick<AuthConfig, "encryptionKey" | "origin">;
 type CandidateEntry = { id: string; hash: string; contextHash: string; receiptHash: string };
@@ -23,6 +24,7 @@ type FrozenManifest = {
   evidencePublicKey: string;
   frozenFacts: Facts;
   items: CandidateEntry[];
+  knownIntake?: Awaited<ReturnType<typeof knownAttendanceIntake>>;
 };
 type Facts = ReturnType<typeof validateSettlementState>;
 type AcceptedEvidence = { candidateId: string; receipt: unknown; proof: string };
@@ -193,6 +195,7 @@ export async function freezeAttendanceEvidence(
       manifest(config, previous);
       return barrierSummary(previous);
     }
+    const knownIntake = await knownAttendanceIntake(client, eventId);
     const rows = (
       await client.query(
         "SELECT * FROM app_attendance_candidates WHERE event_id=$1 ORDER BY id FOR SHARE",
@@ -224,6 +227,7 @@ export async function freezeAttendanceEvidence(
       evidencePublicKey,
       frozenFacts: facts,
       items,
+      knownIntake,
     };
     const row = (
       await client.query(
@@ -294,6 +298,11 @@ export async function prepareAttendanceCheckpoint(
         "Freeze accepted attendance candidates before preparing closing evidence.",
       );
     const frozen = manifest(config, barrier);
+    if (
+      canonicalJson(await knownAttendanceIntake(client, input.eventId)) !==
+      canonicalJson(frozen.knownIntake ?? null)
+    )
+      throw new AppFailure(409, "The frozen intake journal changed before normal closing.");
     if (frozen.contextHash !== eventContext(anchor, frozen.evidencePublicKey))
       throw new AppFailure(409, "The frozen evidence context changed.");
     const previous = frozen.frozenFacts;

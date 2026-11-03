@@ -3,7 +3,8 @@ import { personalAttendanceQr, type PersonalAttendanceQr } from "../../domain/at
 import type pg from "pg";
 import type { AuthConfig } from "../auth/config";
 import { identityIndex, seal, token, unseal } from "../auth/crypto";
-import { mutate, type Actor } from "../auth/mutations";
+import type { Actor } from "../auth/mutations";
+import { attendanceMutation } from "./intake";
 import { contractReference } from "../commitments/contract-authorization";
 import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
@@ -132,7 +133,8 @@ export async function issueAttendanceQr(
 ) {
   checkIds(input, ["eventId", "consentId", "operationId"]);
   const received = receivedAttendanceTime(engineering, serverReceivedMs);
-  return mutate(
+  return attendanceMutation(
+    received,
     pool,
     config.encryptionKey,
     sessionHash,
@@ -232,7 +234,8 @@ export async function scanAttendanceQr(
       ])
     ).rows[0];
   if (!peek) throw new AppFailure(404, "Personal QR unavailable.");
-  return mutate(
+  return attendanceMutation(
+    received,
     pool,
     config.encryptionKey,
     sessionHash,
@@ -312,7 +315,8 @@ export async function confirmAttendanceQr(
     )
   ).rows[0];
   if (!peek) throw new AppFailure(404, "Scanned attendance credential unavailable.");
-  return mutate(
+  return attendanceMutation(
+    received,
     pool,
     config.encryptionKey,
     sessionHash,

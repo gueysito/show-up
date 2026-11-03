@@ -2,7 +2,7 @@ import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type pg from "pg";
 import type { AuthConfig } from "../auth/config";
 import { seal, unseal } from "../auth/crypto";
-import { mutate } from "../auth/mutations";
+import { attendanceMutation } from "./intake";
 import { isUuid } from "../events/drafts";
 import { contractReference } from "../commitments/contract-authorization";
 import { AppFailure } from "../http/security";
@@ -140,7 +140,8 @@ export async function attemptAttendanceCode(
   )
     throw new AppFailure(400, "Choose the original private event authorization.");
   const codeIndex = attendanceCodeIndex(config, input.eventId, input.phrase);
-  return mutate(
+  return attendanceMutation(
+    received,
     pool,
     config.encryptionKey,
     sessionHash,

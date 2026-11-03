@@ -38,6 +38,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       attendanceDeliveries,
       hostedAttendanceClosings,
       principalRecoveries,
+      attendanceIntakes,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -139,6 +140,11 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
         WHERE c.account_id=$1 ORDER BY p.updated_at,p.consent_id`,
         [actor.id],
       ),
+      await client.query(
+        `SELECT event_id,action,received_at_ms,completed_at,outcome FROM app_attendance_intakes
+        WHERE account_id=$1 ORDER BY received_at_ms,id`,
+        [actor.id],
+      ),
     ];
     return {
       format: "showup.own-data.v1",
@@ -227,6 +233,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       attendanceDeliveries: attendanceDeliveries.rows,
       hostedAttendanceClosings: hostedAttendanceClosings.rows,
       principalRecoveries: principalRecoveries.rows,
+      attendanceIntakes: attendanceIntakes.rows,
       invitationsIssued: issued.rows,
       invitationsRedeemed: redeemed.rows,
       eventAccess: access.rows,

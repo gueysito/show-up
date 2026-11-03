@@ -498,6 +498,35 @@ imports. No upload, billing, admin override or production debug path is added.
 Broader production security and actual camera/device behavior remain unverified;
 normal evidence HTTP stays closed. Isolated tests do not rebuild the owner app.
 
+### Known attendance intake
+
+Migrations 023–024 journal authenticated in-window attendance work before the
+candidate transaction. Code submissions and QR issue/scan/confirm actions retain
+only actor-scoped hashes, action/time and completion metadata. The exact original
+mutation receipt can drain interrupted retries after a process kill. Normal
+freezing rejects pending work or a latched service failure; later success cannot
+clear a known outage. Out-of-window or foreign work cannot establish that latch.
+Original candidate/operation reads remain available after freezing.
+
+Own export includes only event/action/time/outcome metadata, without an operation
+ID, hash, phrase, QR payload or another actor's record. Completed details retire
+after 90 days in batches using the existing maintenance worker; pending records
+and event aggregates remain for reconciliation. Account erasure cannot erase an
+event's failure aggregate. [ADR-0004](adr/0004-attendance-intake-boundary.md) records
+the transaction and recovery invariants.
+
+Actual process-kill checks cover before candidate commit and after durable
+candidate/receipt commit but before intake acknowledgement. Same-operation
+recovery preserves one candidate and its original ciphertext. The prior journal
+fails this regression. A backend decryption failure remains latched after recovery;
+actor/timing exclusions, own export and bounded retirement pass PostgreSQL checks.
+
+This is a journal of known received work, **not continuous ingress coverage**.
+Requests lost before this boundary and service/network coverage still need an
+independent qualified witness. Missing coverage is not proof of a healthy service.
+No HTTP field, test flag, source status or accepted-candidate count qualifies a
+live normal checkpoint. Actual evidence HTTP and public signing stay disabled.
+
 ### Frozen sandbox attendance evidence
 
 Migration `017-attendance-evidence-barriers.sql` freezes the durable accepted
@@ -516,10 +545,10 @@ now uses this persisted checkpoint for actual sandbox close/return and verifies
 Rust/Node signatures across the full u64 range.
 
 These backend-only functions require localhost, `showup_test` and explicit sandbox
-context. They freeze accepted candidates, not complete transport/intake health.
-No live outage watermark or submission/recovery worker is enabled. Their packets
-retain `sourceQualified: false` and `liveSubmissionAllowed: false`; qualified
-settlement/purge, camera and device work remain incomplete.
+context. They freeze accepted candidates and the known-intake aggregate, not
+complete transport/service coverage. No live outage watermark or live
+submission/recovery worker is enabled. Their packets retain `sourceQualified: false` and `liveSubmissionAllowed: false`.
+Qualified settlement/purge and actual device work remain incomplete.
 
 ### Sandbox receipt delivery and recovery
 
