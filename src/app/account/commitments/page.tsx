@@ -9,6 +9,7 @@ import {
   listOwnFinancialRecords,
   type OwnFinancialRecord,
 } from "../../../server/commitments/records";
+import { AttendanceCodeEntry } from "../../../components/access/attendance-code-entry";
 
 export const dynamic = "force-dynamic";
 function amount(value: string, record: OwnFinancialRecord) {
@@ -22,6 +23,7 @@ export default async function CommitmentsPage({
   const query = await searchParams,
     config = authConfig();
   let signedIn = false,
+    activeAccount = false,
     available = Boolean(config),
     records: OwnFinancialRecord[] = [],
     nextCursor: string | null = null;
@@ -30,6 +32,7 @@ export default async function CommitmentsPage({
     try {
       const session = await findPrivacySession(pool, (await cookies()).get(sessionCookie)?.value);
       signedIn = Boolean(session);
+      activeAccount = session?.state === "active";
       if (session)
         ({ records, nextCursor } = await listOwnFinancialRecords(
           pool,
@@ -77,6 +80,19 @@ export default async function CommitmentsPage({
                   : "Prepared terms · approval not recorded"}
               </p>
               <p>Escrow not confirmed. No funded seat is shown for this authorization.</p>
+              {activeAccount &&
+                record.authorizedAt &&
+                record.eventState === "published" &&
+                !record.attendance &&
+                record.attendanceWindow?.mode === "digital" && (
+                  <AttendanceCodeEntry
+                    key={record.id}
+                    eventId={record.eventId}
+                    consentId={record.id}
+                    window={record.attendanceWindow}
+                    timeZone={record.terms.timeZone}
+                  />
+                )}
               {record.attendance && (
                 <section aria-label="Attendance evidence status">
                   <h3>Attendance not confirmed</h3>

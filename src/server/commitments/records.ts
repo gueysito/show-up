@@ -8,6 +8,32 @@ import { canonicalHash } from "../protocol/canonical";
 import type { CommitmentConsent, ConsentTerms } from "./consent";
 import { settlementWatchSnapshot } from "./reconciliation";
 import { attendanceCandidateRecord, type OwnAttendanceCandidate } from "../attendance/attempts";
+import { attendanceSchedule } from "../attendance/evidence";
+
+export type OwnAttendanceWindow = {
+  mode: "digital" | "physical";
+  opensAt: string;
+  onTimeThrough: string;
+  cutoff: string;
+};
+function attendanceWindow(row: Record<string, unknown>): OwnAttendanceWindow | null {
+  if (row.event_mode !== "digital" && row.event_mode !== "physical") return null;
+  try {
+    const schedule = attendanceSchedule(
+      Date.parse(String(row.event_start)),
+      Date.parse(String(row.event_end)),
+    );
+    return {
+      mode: row.event_mode,
+      opensAt: new Date(schedule.opensAt).toISOString(),
+      onTimeThrough: new Date(schedule.onTimeThrough).toISOString(),
+      cutoff: new Date(schedule.cutoff).toISOString(),
+    };
+  } catch {
+    // A damaged event preview must not hide original financial obligations.
+    return null;
+  }
+}
 
 export type OwnReconciliation = {
   status:
@@ -36,6 +62,7 @@ export type OwnFinancialRecord = {
   fundingAllowed: false;
   reconciliation: OwnReconciliation;
   attendance: OwnAttendanceCandidate | null;
+  attendanceWindow: OwnAttendanceWindow | null;
 };
 export async function listOwnFinancialRecords(
   pool: pg.Pool,
@@ -67,7 +94,8 @@ export async function listOwnFinancialRecords(
       if (!cursor) throw new AppFailure(404, "Private financial history unavailable.");
     }
     const result = await client.query(
-      `SELECT c.*,e.data->>'title' AS event_title,e.state AS event_state
+      `SELECT c.*,e.data->>'title' AS event_title,e.state AS event_state,
+      e.data->>'mode' AS event_mode,e.data->>'startsAt' AS event_start,e.data->>'endsAt' AS event_end
       FROM app_commitment_consents c JOIN app_events e ON e.id=c.event_id WHERE c.account_id=$1
       AND ($2::uuid IS NULL OR (c.created_at,c.id)<(SELECT older.created_at,older.id
         FROM app_commitment_consents older WHERE older.id=$2 AND older.account_id=$1))
@@ -129,6 +157,7 @@ export async function listOwnFinancialRecords(
         fundingAllowed: false as const,
         reconciliation,
         attendance: attendance.get(row.id) ?? null,
+        attendanceWindow: attendanceWindow(row),
       };
     });
     return { records, nextCursor: result.rows.length > 50 ? rows.at(-1)!.id : null };

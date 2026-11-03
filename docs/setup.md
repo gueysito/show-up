@@ -393,6 +393,28 @@ appears in that status. Export includes only one's own candidate summary; pendin
 deletion preserves the original candidate and clears failed-guess counters.
 Qualified settlement clearance and material purge remain incomplete.
 
+### Online attendee code entry
+
+After rebuilding, an active account's approved, published online authorization
+shows **Check in with the event code** in **Account → Financial authorizations**.
+The displayed window uses owned event timing and the original event timezone.
+An unknown response retains the same phrase/operation for explicit retry; no
+browser timestamp or eligibility flag is sent. Only a bound pending receipt can
+show a recorded request, and it never confirms attendance or a deposit.
+Page-hide clears pending input and ignores delayed replies; restored pages reload.
+Restricted deletion recovery keeps financial records without a new entry form.
+Malformed event timing hides the preview while preserving the financial approval.
+
+Agent checks use the actual closed HTTP boundary plus explicit backend-fixture
+packets for positive UI/replay cases. Public funding/evidence stays unavailable;
+these browser fixtures do not qualify a real route. Mobile 390-pixel captures,
+keyboard submission and cleanup handlers are checked; actual-phone BFCache,
+wallet return and audio continuity still need the separate device walkthrough.
+The async cleanup follows [React's guidance](https://react.dev/learn/synchronizing-with-effects).
+Changed-boundary checks cover active-account visibility, owned timing/ID swaps,
+the authenticated and rate-limited POST guard, pending-only responses and type-only
+server imports. No endpoint, dependency or live funding source is added.
+
 ### Physical QR protocol
 
 Migration `016-attendance-qr.sql` adds encrypted personal QR payloads and private
