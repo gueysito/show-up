@@ -2,13 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { personalAttendanceQr } from "../../domain/attendance-qr";
+import type { OwnAttendanceWindow } from "../../server/commitments/records";
+import { AttendanceTimes } from "./event-time";
 
 export function AttendancePersonalQr({
   eventId,
   consentId,
+  window: schedule,
+  timeZone,
 }: {
   eventId: string;
   consentId: string;
+  window: OwnAttendanceWindow;
+  timeZone: string;
 }) {
   const [payload, setPayload] = useState<string | null>(null),
     [busy, setBusy] = useState(false),
@@ -191,6 +197,7 @@ export function AttendancePersonalQr({
         A QR does not confirm your deposit, book a seat or confirm attendance. Never share a
         screenshot.
       </p>
+      <AttendanceTimes schedule={schedule} timeZone={timeZone} />
       {payload && (
         <canvas
           ref={canvas}

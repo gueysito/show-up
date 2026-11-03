@@ -5,6 +5,7 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
 import type { OwnWallet } from "../../server/wallets/service";
 import type { CommitmentReview } from "../../server/commitments/review";
+import { EventTime } from "./event-time";
 
 type WalletSelection = { source: string; refund: string; payout: string };
 const purposes = ["source", "refund", "payout"] as const;
@@ -217,11 +218,7 @@ export function CommitmentWalletReview({
             <dd>No qualified quote</dd>
             <dt>Registration closes</dt>
             <dd>
-              {`${new Intl.DateTimeFormat("en-US", {
-                dateStyle: "full",
-                timeStyle: "short",
-                timeZone: review.timeZone,
-              }).format(new Date(review.registrationClosesAt))} (${review.timeZone})`}
+              <EventTime instant={review.registrationClosesAt} timeZone={review.timeZone} />
             </dd>
           </dl>
           <p role="status">

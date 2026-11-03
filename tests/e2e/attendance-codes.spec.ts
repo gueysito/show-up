@@ -2,7 +2,11 @@ import { expect, test } from "@playwright/test";
 import { accountFixtures } from "../fixtures/accounts";
 import { validDraft } from "../fixtures/draft";
 
-test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
+test.use({
+  baseURL: "https://localhost:3444",
+  ignoreHTTPSErrors: true,
+  timezoneId: "Pacific/Auckland",
+});
 
 test("published engineering fixture: host rotates private code windows and retries an unacknowledged activation once", async ({
   page,
@@ -46,6 +50,14 @@ test("published engineering fixture: host rotates private code windows and retri
     await page.keyboard.press("Enter");
     expect((await opened).status()).toBe(200);
     await expect(codes.getByText("Phrase: Fresh Word", { exact: true })).toBeVisible();
+    const savedWindow = (
+      await (await page.request.get(`/api/attendance/codes?event=${eventId}`)).json()
+    ).window;
+    for (const zone of [draft.timeZone, "Pacific/Auckland"])
+      await expect(codes.locator(`time[data-time-zone="${zone}"]`)).toHaveAttribute(
+        "datetime",
+        new Date(savedWindow.expiresAt).toISOString(),
+      );
     await input.fill("  FRESH  word ");
     await codes.getByRole("button", { name: "Open fresh code window" }).click();
     await expect(codes.getByRole("alert")).toContainText("already used that code");

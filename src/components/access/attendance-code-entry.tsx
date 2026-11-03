@@ -2,19 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { OwnAttendanceWindow } from "../../server/commitments/records";
+import { AttendanceTimes } from "./event-time";
 
 type Attempt = { eventId: string; consentId: string; operationId: string; phrase: string };
 function object(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
-}
-function time(value: string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone,
-  }).format(new Date(value));
 }
 export function AttendanceCodeEntry({
   eventId,
@@ -192,7 +186,7 @@ export function AttendanceCodeEntry({
         Enter the fresh word or phrase announced by your host. Each code lasts at most three
         minutes. The server checks your deposit and event rules before recording a request.
       </p>
-      <p>{`Check-in opens ${time(schedule.opensAt, timeZone)}. On-time entry ends ${time(schedule.onTimeThrough, timeZone)}. Final cutoff ${time(schedule.cutoff, timeZone)} (${timeZone}).`}</p>
+      <AttendanceTimes schedule={schedule} timeZone={timeZone} />
       <p>
         Submitting a code does not confirm your deposit or attendance. A late valid entry keeps
         principal protection under the published rules.

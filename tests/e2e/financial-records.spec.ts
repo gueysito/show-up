@@ -67,6 +67,12 @@ test("own financial approvals persist without claiming escrow, and private histo
     await page.getByRole("link", { name: "Review your financial authorizations" }).click();
     await expect(page.getByRole("heading", { name: f.title })).toBeVisible();
     await expect(page.getByText("Financial terms approved", { exact: true })).toBeVisible();
+    const release = page.getByRole("region", { name: "Release and recovery availability" });
+    for (const zone of [f.consent.terms.timeZone, "Pacific/Auckland"])
+      await expect(release.locator(`time[data-time-zone="${zone}"]`)).toHaveAttribute(
+        "datetime",
+        new Date(f.consent.terms.registrationClosesAt - 600_000).toISOString(),
+      );
     const limits = page.getByRole("region", { name: "Original financial limits" });
     for (const [label, value] of [
       ["Maximum source input", "5.1 USDC"],

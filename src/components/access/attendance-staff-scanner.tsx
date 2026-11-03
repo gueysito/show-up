@@ -5,6 +5,7 @@ import type QrScanner from "qr-scanner";
 import { personalAttendanceQr } from "../../domain/attendance-qr";
 import type { StaffAttendanceEvent } from "../../server/attendance/staff";
 import type { QrInspection } from "../../server/attendance/qr";
+import { AttendanceTimes } from "./event-time";
 
 type Scan = { action: "scan"; eventId: string; operationId: string; payload: string };
 type Confirmation = {
@@ -286,16 +287,11 @@ export function AttendanceStaffScanner({ event }: { event: StaffAttendanceEvent 
       }
     }
   }
-  const time = (value: string) =>
-    new Intl.DateTimeFormat("en-US", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: event.timeZone,
-    }).format(new Date(value));
   return (
     <section aria-label="Staff QR scan controls">
       <h3>Scan and confirm presence</h3>
-      <p>{`Check-in opens ${time(event.opensAt)}. Final cutoff ${time(event.cutoff)} (${event.timeZone}). The server checks the published window.`}</p>
+      <AttendanceTimes schedule={event} timeZone={event.timeZone} />
+      <p>The server checks the published window.</p>
       <p>
         The camera starts only when you choose. Video is processed on this device; no audio is
         requested and no frames are uploaded. It stops after a scan, one minute, tab hiding or

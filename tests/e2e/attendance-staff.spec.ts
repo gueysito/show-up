@@ -4,13 +4,18 @@ import { randomUUID } from "node:crypto";
 import { attendanceFixtures } from "../fixtures/attendance";
 import { syntheticQrCamera } from "../fixtures/camera";
 import { hash } from "../../src/server/auth/crypto";
+import { listStaffAttendanceEvents } from "../../src/server/attendance/staff";
 import {
   issueAttendanceQr,
   scanAttendanceQr,
   confirmAttendanceQr,
 } from "../../src/server/attendance/qr";
 
-test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
+test.use({
+  baseURL: "https://localhost:3444",
+  ignoreHTTPSErrors: true,
+  timezoneId: "Pacific/Auckland",
+});
 function image(payload: string) {
   const qr = qrcode(0, "M");
   qr.addData(payload, "Byte");
@@ -111,6 +116,20 @@ test("synthetic camera and explicit backend packets: scan and presence remain se
     });
     await page.goto(`/account/attendance?event=${f.eventId}`);
     const controls = page.getByRole("region", { name: "Staff QR scan controls" });
+    const schedule = (
+      await listStaffAttendanceEvents(f.pool, hash(f.accounts[2].value), { eventId: f.eventId })
+    ).events[0];
+    for (const [label, instant] of [
+      ["Check-in opens", schedule.opensAt],
+      ["Final cutoff", schedule.cutoff],
+    ])
+      for (const zone of [schedule.timeZone, "Pacific/Auckland"])
+        await expect(
+          controls
+            .getByText(label, { exact: true })
+            .locator("..")
+            .locator(`time[data-time-zone="${zone}"]`),
+        ).toHaveAttribute("datetime", instant);
     expect((await camera(page)).requests).toBe(0);
     await controls.getByRole("button", { name: "Start camera to scan QR" }).click();
     await expect(controls.getByRole("status")).toContainText("not acknowledged");

@@ -482,6 +482,13 @@ cap, USDC routing/delivery caps, zero platform fee and minimum net payout. Quote
 reservation-limit and funding-authorization expiries are separate, displayed in the
 event timezone and the browser's timezone when different. The browser timezone is
 used only for display. These are original limits; actual charges remain unreconciled.
+The event page, registration review and release deadline use the same two-zone
+display, with seconds and the original UTC instant in each `time` element. Digital
+and personal-QR check-in show opening, on-time grace and final cutoff; staff scan
+controls and the host's code closing time also show event and browser timezones.
+This extends display wiring under PRD §7 without changing any server window,
+eligibility rule or closed funding/attendance gate. The browser timezone is never
+transmitted or saved.
 There is still no HTTP operation for signing, paying or submitting a contract packet.
 Browser checks generate disposable per-run fixture keys, shared only with isolated
 test workers; they never load the operator's credential configuration.
@@ -597,7 +604,8 @@ Qualified settlement clearance and material purge remain incomplete.
 
 After rebuilding, an active account's approved, published online authorization
 shows **Check in with the event code** in **Account → Financial authorizations**.
-The displayed window uses owned event timing and the original event timezone.
+The displayed window uses owned event timing, the original event timezone and
+the browser timezone when different.
 An unknown response retains the same phrase/operation for explicit retry; no
 browser timestamp or eligibility flag is sent. Only a bound pending receipt can
 show a recorded request, and it never confirms attendance or a deposit.

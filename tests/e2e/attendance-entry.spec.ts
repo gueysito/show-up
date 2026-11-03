@@ -27,12 +27,24 @@ test("code entry retries the same request after transport failure while actual H
     await expect(entry).toContainText(f.consent.terms.timeZone);
     const window = (await (await page.request.get("/api/commitments")).json()).records[0]
       .attendanceWindow;
-    const opens = new Intl.DateTimeFormat("en-US", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      timeZone: f.consent.terms.timeZone,
-    }).format(new Date(window.opensAt));
-    await expect(entry).toContainText(`Check-in opens ${opens}`);
+    for (const [label, instant] of [
+      ["Check-in opens", window.opensAt],
+      ["On-time entry ends", window.onTimeThrough],
+      ["Final cutoff", window.cutoff],
+    ]) {
+      const row = entry.getByText(label, { exact: true }).locator("..");
+      for (const zone of [f.consent.terms.timeZone, "Pacific/Auckland"]) {
+        const time = row.locator(`time[data-time-zone="${zone}"]`);
+        await expect(time).toHaveAttribute("datetime", instant);
+        await expect(time).toContainText(
+          new Intl.DateTimeFormat("en-US", {
+            dateStyle: "full",
+            timeStyle: "long",
+            timeZone: zone,
+          }).format(new Date(instant)),
+        );
+      }
+    }
     const requests: Record<string, unknown>[] = [];
     await page.route("**/api/attendance/check-in", async (route) => {
       requests.push(route.request().postDataJSON());

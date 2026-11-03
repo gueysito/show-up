@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { formatUsdc } from "../../domain/event-draft";
 import type { ConsentTerms } from "../../server/commitments/consent";
 import { manifestHash, networkIdentity, type Network } from "../../server/protocol/manifest";
-import { BrowserLocalTime } from "./browser-local-time";
+import { EventTime } from "./event-time";
 
 // Display units only. This metadata grants no route or payment authority.
 const nativeCurrency = {
@@ -43,19 +43,7 @@ export function FinancialTermsSummary({ terms }: { terms: ConsentTerms }) {
   const native = nativeCurrency[terms.source.network];
   const gasUnit =
     terms.environment === "mainnet" ? native.symbol : `${terms.environment} test ${native.symbol}`;
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    dateStyle: "full",
-    timeStyle: "long",
-    timeZone: terms.timeZone,
-  });
-  const deadline = (value: number) => (
-    <>
-      <time dateTime={new Date(value).toISOString()} data-time-zone={terms.timeZone}>
-        {`${formatter.format(new Date(value))} (${terms.timeZone})`}
-      </time>
-      <BrowserLocalTime instant={value} eventTimeZone={terms.timeZone} />
-    </>
-  );
+  const deadline = (value: number) => <EventTime instant={value} timeZone={terms.timeZone} />;
   const rows: Array<[string, ReactNode]> = [
     ["Principal", consentMoneyAmount(terms.principal, terms)],
     [

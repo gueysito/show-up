@@ -9,6 +9,7 @@ import { AppFailure } from "../../../server/http/security";
 import { readEventEntry, type EventEntry } from "../../../server/events/entry";
 import { telegramBotConfig } from "../../../server/telegram/config";
 import { telegramEventDeepLink } from "../../../server/telegram/connection";
+import { EventTime } from "../../../components/access/event-time";
 
 export const dynamic = "force-dynamic";
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -38,12 +39,6 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <p>Reload to review the saved event. Deposits remain closed.</p>
       </main>
     );
-  const time = (value: string) =>
-    new Intl.DateTimeFormat("en-US", {
-      dateStyle: "full",
-      timeStyle: "short",
-      timeZone: event.data.timeZone,
-    }).format(new Date(value));
   return (
     <main>
       <Link href="/account" prefetch={false}>
@@ -68,9 +63,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <dt>Mode</dt>
         <dd>{event.data.mode === "digital" ? "Online" : "In person"}</dd>
         <dt>Starts</dt>
-        <dd>{time(event.data.startsAt)}</dd>
+        <dd>
+          <EventTime instant={event.data.startsAt} timeZone={event.data.timeZone} />
+        </dd>
         <dt>Ends</dt>
-        <dd>{time(event.data.endsAt)}</dd>
+        <dd>
+          <EventTime instant={event.data.endsAt} timeZone={event.data.timeZone} />
+        </dd>
         <dt>Event timezone</dt>
         <dd>{event.data.timeZone}</dd>
         <dt>Maximum attendance</dt>

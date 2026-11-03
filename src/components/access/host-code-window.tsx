@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import type { HostCodeWindow } from "../../server/attendance/codes";
+import { EventTime } from "./event-time";
 
-export function HostCodeWindowManager({ eventId }: { eventId: string }) {
+export function HostCodeWindowManager({
+  eventId,
+  timeZone,
+}: {
+  eventId: string;
+  timeZone: string;
+}) {
   const [phrase, setPhrase] = useState("");
   const [current, setCurrent] = useState<HostCodeWindow | null>(null);
   const [busy, setBusy] = useState(false);
@@ -89,7 +96,8 @@ export function HostCodeWindowManager({ eventId }: { eventId: string }) {
       {current && (
         <div aria-label="Last checked code window">
           <p>{`Phrase: ${current.phrase}`}</p>
-          <p>{`Closes: ${new Date(current.expiresAt).toISOString()} (UTC)`}</p>
+          <p>Closes:</p>
+          <EventTime instant={current.expiresAt} timeZone={timeZone} />
           <p>{current.active ? "Open when last checked." : "This code window is closed."}</p>
           <p>
             Refresh with Show current code after changing it in another tab. A displayed phrase does

@@ -9,7 +9,11 @@ import { issueInvitation } from "../../src/server/invitations/service";
 import { accountFixtures } from "../fixtures/accounts";
 import { validDraft } from "../fixtures/draft";
 
-test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
+test.use({
+  baseURL: "https://localhost:3444",
+  ignoreHTTPSErrors: true,
+  timezoneId: "Pacific/Auckland",
+});
 test("event entry: public sign-in context, private invitation-to-event handoff and closed deposits in both modes", async ({
   page,
   context,
@@ -25,10 +29,16 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     SHOWUP_IDENTITY_INDEX_KEY: process.env.SHOWUP_E2E_INDEX_KEY,
   })!;
   const host = hash(f.accounts[0].value),
-    open = { ...validDraft(), title: "Fictional online event entry", access: "open" as const },
+    open = {
+      ...validDraft(),
+      title: "Fictional online event entry",
+      timeZone: "America/Denver",
+      access: "open" as const,
+    },
     privateEvent = {
       ...validDraft(),
       title: "Fictional invited studio",
+      timeZone: "America/Denver",
       mode: "physical" as const,
       venue: "Fictional studio",
       access: "invitation" as const,
@@ -52,6 +62,17 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     }
     await page.goto(`/events/${publicId}`);
     await expect(page.getByRole("heading", { name: open.title })).toBeVisible();
+    for (const [label, instant] of [
+      ["Starts", open.startsAt],
+      ["Ends", open.endsAt],
+    ]) {
+      const row = page.getByText(label, { exact: true }).locator("+ dd");
+      for (const zone of [open.timeZone, "Pacific/Auckland"])
+        await expect(row.locator(`time[data-time-zone="${zone}"]`)).toHaveAttribute(
+          "datetime",
+          instant,
+        );
+    }
     await expect(page.getByRole("button", { name: "Deposits closed", exact: true })).toBeDisabled();
     const google = page.getByRole("button", {
       name: "Sign in with Google and return to this event",
@@ -155,6 +176,12 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     await page.getByRole("button", { name: "Review destinations and fee availability" }).click();
     const review = page.getByRole("region", { name: "Reviewed commitment destinations" });
     await expect(review).toContainText("No qualified quote");
+    const closes = review.getByText("Registration closes", { exact: true }).locator("+ dd");
+    for (const zone of [privateEvent.timeZone, "Pacific/Auckland"])
+      await expect(closes.locator(`time[data-time-zone="${zone}"]`)).toHaveAttribute(
+        "datetime",
+        privateEvent.startsAt,
+      );
     await expect(review).toContainText(verifiedWallets[3].address);
     await expect(
       review.getByRole("button", { name: "Approve financial terms · verified quote required" }),

@@ -18,6 +18,7 @@ export function EventActions({
   setBusy,
   dirty,
   mode,
+  timeZone,
 }: {
   id: string;
   revision: number;
@@ -29,6 +30,7 @@ export function EventActions({
   setBusy: (busy: boolean) => void;
   dirty: boolean;
   mode: "digital" | "physical";
+  timeZone: string;
 }) {
   const [status, setStatus] = useState("");
   const [readiness, setReadiness] = useState<PublicationReadiness | null>(null);
@@ -143,7 +145,9 @@ export function EventActions({
           </button>
           <p role="status">{status}</p>
           <InvitationManager canIssueHost={false} eventId={id} />
-          {mode === "digital" && <HostCodeWindowManager key={id} eventId={id} />}
+          {mode === "digital" && (
+            <HostCodeWindowManager key={id} eventId={id} timeZone={timeZone} />
+          )}
         </div>
       )}
       {mode === "physical" && (

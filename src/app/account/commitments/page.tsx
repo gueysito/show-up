@@ -11,6 +11,7 @@ import {
 import { AttendanceCodeEntry } from "../../../components/access/attendance-code-entry";
 import { AttendancePersonalQr } from "../../../components/access/attendance-personal-qr";
 import { TelegramCheckIn } from "../../../components/access/telegram-check-in";
+import { EventTime } from "../../../components/access/event-time";
 import {
   FinancialTermsSummary,
   consentMoneyAmount,
@@ -147,7 +148,12 @@ export default async function CommitmentsPage({
                 record.eventState === "published" &&
                 !record.attendance &&
                 record.attendanceWindow?.mode === "physical" && (
-                  <AttendancePersonalQr eventId={record.eventId} consentId={record.id} />
+                  <AttendancePersonalQr
+                    eventId={record.eventId}
+                    consentId={record.id}
+                    window={record.attendanceWindow}
+                    timeZone={record.terms.timeZone}
+                  />
                 )}
               {record.attendance && (
                 <section aria-label="Attendance evidence status">
@@ -201,7 +207,12 @@ export default async function CommitmentsPage({
                   {record.releaseRequest && (
                     <p>{`Original release request saved. Release is not confirmed. Request reference: ${record.releaseRequest.operationId}; signing expiry: ${record.releaseRequest.expiresAt}. Reconcile that original action before preparing another request.`}</p>
                   )}
-                  <p>{`Timely release must be accepted before ${new Intl.DateTimeFormat("en-US", { dateStyle: "full", timeStyle: "short", timeZone: record.terms.timeZone }).format(new Date(record.terms.registrationClosesAt - 600_000))} (${record.terms.timeZone}). A deletion request does not release a commitment.`}</p>
+                  <p>Timely release must be accepted before:</p>
+                  <EventTime
+                    instant={record.terms.registrationClosesAt - 600_000}
+                    timeZone={record.terms.timeZone}
+                  />
+                  <p>A deletion request does not release a commitment.</p>
                   <button type="button" className="secondary-button" disabled>
                     Release commitment · qualified route required
                   </button>

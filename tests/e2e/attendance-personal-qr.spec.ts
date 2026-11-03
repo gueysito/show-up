@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import { attendanceFixtures } from "../fixtures/attendance";
 import { issueAttendanceQr } from "../../src/server/attendance/qr";
 
-test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
+test.use({
+  baseURL: "https://localhost:3444",
+  ignoreHTTPSErrors: true,
+  timezoneId: "Pacific/Auckland",
+});
 test("personal QR entry keeps an unknown operation while actual HTTP stays unqualified", async ({
   page,
   context,
@@ -14,6 +18,20 @@ test("personal QR entry keeps an unknown operation while actual HTTP stays unqua
     await page.goto("/account/commitments");
     const section = page.getByRole("region", { name: "Personal attendance QR" }),
       requests: Record<string, unknown>[] = [];
+    const schedule = (await (await page.request.get("/api/commitments")).json()).records[0]
+      .attendanceWindow;
+    for (const [label, instant] of [
+      ["Check-in opens", schedule.opensAt],
+      ["On-time entry ends", schedule.onTimeThrough],
+      ["Final cutoff", schedule.cutoff],
+    ])
+      for (const zone of [f.consent.terms.timeZone, "Pacific/Auckland"])
+        await expect(
+          section
+            .getByText(label, { exact: true })
+            .locator("..")
+            .locator(`time[data-time-zone="${zone}"]`),
+        ).toHaveAttribute("datetime", instant);
     await page.route("**/api/attendance/qr", async (route) => {
       requests.push(route.request().postDataJSON());
       if (requests.length === 1) await route.abort("failed");
