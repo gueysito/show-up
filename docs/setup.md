@@ -401,6 +401,25 @@ construction fixtures omit this policy and remain unqualified for live funding.
 EVM/Solana wire mapping is tested, but their actual escrow/return paths remain gated.
 This checkpoint adds no consent endpoint, wallet-return page, broadcaster or deployment.
 
+The explicit engineering financial profile now uses the existing engineering
+manifest hash, `showup.engineering.authorization.v1`, NEAR `testnet` chain identity
+and **ENGINEERING TEST TOKENS ONLY** warning. The constructor accepts that pinned
+profile alongside the existing sandbox profile; it still rejects a mainnet domain.
+Neither a web request nor an environment toggle creates the engineering profile or
+qualifies funding. Both profile variants now pass actual local reservation,
+funding, release and return with independent Node signature/wire verification.
+This is engineering-domain execution in the disposable local chain, not a public
+deployment or actual testnet transfer.
+
+`compareEngineeringSettlementState` reads only the two fixed testnet candidates
+in `rpc-candidates.v2.json`; v1 remains intact. It requires the engineering profile,
+checks chain identity, finalized common block, frozen code and exact settlement
+state. The mainnet reader rejects engineering inputs. The sources follow current
+[NEAR provider documentation](https://docs.near.org/api/rpc/providers): NEAR archival
+testnet and FastNEAR testnet. One actual read-only header comparison matched;
+operator independence, asset/deployment qualification and funded round trips remain
+unverified. No public signing, key loading, deployment or spending occurred.
+
 After rebuilding, **Account → Review your financial authorizations** shows only that
 account's prepared or approved terms. Approval is separate from escrow confirmation;
 the page and read-only `/api/commitments` never report a funded seat. History uses

@@ -15,7 +15,7 @@ import { TelegramCheckIn } from "../../../components/access/telegram-check-in";
 
 export const dynamic = "force-dynamic";
 function amount(value: string, record: OwnFinancialRecord) {
-  return `${formatUsdc(BigInt(value))} ${record.terms.environment === "sandbox" ? "sandbox token units" : "USDC"}`;
+  return `${formatUsdc(BigInt(value))} ${record.terms.environment === "mainnet" ? "USDC" : record.terms.environment === "engineering" ? "engineering test-token units" : "sandbox token units"}`;
 }
 export default async function CommitmentsPage({
   searchParams,

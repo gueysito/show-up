@@ -31,6 +31,19 @@ fn string(output: &mut Vec<u8>, value: &str) {
 }
 
 async fn prepared(f: &Fixture, number: u64, signer: &Account) -> Value {
+    let (environment, chain_id, warning) = if f.domain == "showup.engineering.authorization.v1" {
+        (
+            "engineering",
+            "testnet",
+            "ENGINEERING TEST TOKENS ONLY. No mainnet funds or qualified funding route is authorized.",
+        )
+    } else {
+        (
+            "sandbox",
+            "sandbox",
+            "DISPOSABLE SANDBOX TOKENS ONLY. No real USDC or live funding route is authorized.",
+        )
+    };
     let mut auth = f.authorization(number, f.alice.id().as_str()).await;
     let issued = f.timestamp().await;
     let mut nonce = [0u8; 32];
@@ -38,8 +51,8 @@ async fn prepared(f: &Fixture, number: u64, signer: &Account) -> Value {
         .unwrap()
         .read_exact(&mut nonce)
         .unwrap();
-    let source = json!({"network":"near","chainId":"sandbox","address":f.alice.id()});
-    let terms = json!({"environment":"sandbox","manifest":"local-v1","deployment":f.escrow.id(),
+    let source = json!({"network":"near","chainId":chain_id,"address":f.alice.id()});
+    let terms = json!({"environment":environment,"manifest":f.manifest,"deployment":f.escrow.id(),
         "event":uuid(1),"rulesHash":f.rules_hash,"registration":uuid(number),"participant":uuid(number+1000),
         "timeZone":"America/Denver","source":source,"refund":source,"payout":source,
         "inputAsset":{"contract":f.token.id(),"decimals":6},"maximumInput":"5100000","principal":"5000000",
@@ -51,7 +64,7 @@ async fn prepared(f: &Fixture, number: u64, signer: &Account) -> Value {
     let terms_hash = hash(&terms);
     let message = [
         "Showup event financial consent v1".to_string(),
-        "DISPOSABLE SANDBOX TOKENS ONLY. No real USDC or live funding route is authorized.".into(),
+        warning.into(),
         "Website: https://localhost:3443".into(),
         "Authorize only the event and limits below. A separate wallet transaction is required to transfer funds.".into(),
         "A signature, quote or reservation creates no funded seat. Enrollment requires actual attributable escrow.".into(),
@@ -82,7 +95,7 @@ async fn prepared(f: &Fixture, number: u64, signer: &Account) -> Value {
     let proof = json!({"accountId":f.alice.id(),"publicKey":key.public_key().to_string(),"signature":STANDARD.encode(signature.to_bytes())});
     auth["wallet_tag"] = json!(hash(
         &json!({"format":"showup.funding.wallet.v1","deployment":f.escrow.id(),
-        "environment":"sandbox","manifest":"local-v1","event":f.event,"family":"near","address":f.alice.id()})
+        "environment":environment,"manifest":f.manifest,"event":f.event,"family":"near","address":f.alice.id()})
     ));
     auth["nonce"] = json!(hash(
         &json!({"format":"showup.commitment.nonce.v1","id":consent_id,"nonce":encoded_nonce})
@@ -115,8 +128,8 @@ async fn exported(f: &Fixture, auth: &Value, stage: &str) -> Value {
         .unwrap()
         .json()
         .unwrap();
-    json!({"stage":stage,"context":{"environment":"sandbox","deployment":f.escrow.id(),"token":f.token.id(),
-        "domain":"showup.sandbox.authorization.v1","manifest":"local-v1","event":f.event,"rulesHash":f.rules_hash,
+    json!({"stage":stage,"context":{"environment":if f.domain=="showup.engineering.authorization.v1" {"engineering"} else {"sandbox"},"deployment":f.escrow.id(),"token":f.token.id(),
+        "domain":f.domain,"manifest":f.manifest,"event":f.event,"rulesHash":f.rules_hash,
         "escrowCodeHash":bs58::encode(Sha256::digest(f.escrow.view_code().await.unwrap())).into_string(),
         "tokenCodeHash":bs58::encode(Sha256::digest(f.token.view_code().await.unwrap())).into_string(),"authorization":auth},
         "block":{"height":block.height().to_string(),"hash":block.hash().to_string(),"timestampMs":block.timestamp()/1_000_000},
@@ -130,45 +143,55 @@ async fn exported(f: &Fixture, auth: &Value, stage: &str) -> Value {
 #[tokio::test]
 async fn native_financial_consent_survives_reservation_expiry_and_binds_actual_escrow_and_principal_return()
  {
-    let f = Fixture::with_financial_consent().await;
-    let auth = prepared(&f, 800, &f.alice).await;
-    f.bob
-        .call(f.escrow.id(), "reserve")
-        .args_json(json!({"authorization":auth,"proof":proof(&f.credential,&auth)}))
-        .transact()
-        .await
-        .unwrap()
-        .into_result()
+    for engineering in [false, true] {
+        let f = if engineering {
+            Fixture::with_engineering_financial_consent().await
+        } else {
+            Fixture::with_financial_consent().await
+        };
+        let auth = prepared(&f, 800, &f.alice).await;
+        f.bob
+            .call(f.escrow.id(), "reserve")
+            .args_json(json!({"authorization":auth,"proof":proof(&f.credential,&auth)}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let mut vectors = vec![exported(&f, &auth, "reserved").await];
+        f.advance(auth["reservation_ms"].as_u64().unwrap() + 1)
+            .await;
+        assert_eq!(f.fund(&f.alice, &auth, 5_000_000).await, "5000000");
+        assert_eq!(
+            f.view("get_registration", json!({"registration":id(800)}))
+                .await["state"],
+            "funded"
+        );
+        vectors.push(exported(&f, &auth, "funded_after_reservation").await);
+        f.release(&auth).await;
+        vectors.push(exported(&f, &auth, "released").await);
+        f.bob
+            .call(f.escrow.id(), "withdraw")
+            .args_json(json!({"id":format!("{}:principal",id(800))}))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        assert_eq!(f.balance(f.alice.id().as_str()).await, 100_000_000);
+        assert_eq!(f.liability(800, "principal").await["paid"], "5000000");
+        vectors.push(exported(&f, &auth, "paid_principal").await);
+        std::fs::write(
+            if engineering {
+                "/cache/engineering-financial-consent-public.json"
+            } else {
+                "/cache/financial-consent-public.json"
+            },
+            serde_json::to_vec_pretty(&vectors).unwrap(),
+        )
         .unwrap();
-    let mut vectors = vec![exported(&f, &auth, "reserved").await];
-    f.advance(auth["reservation_ms"].as_u64().unwrap() + 1)
-        .await;
-    assert_eq!(f.fund(&f.alice, &auth, 5_000_000).await, "5000000");
-    assert_eq!(
-        f.view("get_registration", json!({"registration":id(800)}))
-            .await["state"],
-        "funded"
-    );
-    vectors.push(exported(&f, &auth, "funded_after_reservation").await);
-    f.release(&auth).await;
-    vectors.push(exported(&f, &auth, "released").await);
-    f.bob
-        .call(f.escrow.id(), "withdraw")
-        .args_json(json!({"id":format!("{}:principal",id(800))}))
-        .max_gas()
-        .transact()
-        .await
-        .unwrap()
-        .into_result()
-        .unwrap();
-    assert_eq!(f.balance(f.alice.id().as_str()).await, 100_000_000);
-    assert_eq!(f.liability(800, "principal").await["paid"], "5000000");
-    vectors.push(exported(&f, &auth, "paid_principal").await);
-    std::fs::write(
-        "/cache/financial-consent-public.json",
-        serde_json::to_vec_pretty(&vectors).unwrap(),
-    )
-    .unwrap();
+    }
 }
 
 #[tokio::test]

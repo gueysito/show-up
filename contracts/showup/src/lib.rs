@@ -55,8 +55,11 @@ impl Escrow {
         evidence_key: Base64VecU8,
     ) -> Self {
         require!(
-            domain == "showup.sandbox.authorization.v1",
-            "Prototype is sandbox-only"
+            domain == "showup.sandbox.authorization.v1"
+                || (domain == "showup.engineering.authorization.v1"
+                    && manifest
+                        == "c051ff3fff68cfcdb1efdacc280882c5e0c185cc23e78319f4eb77a3c1ab8cdc"),
+            "Prototype requires a sandbox or pinned engineering profile"
         );
         let credential_key: [u8; 32] = credential_key.0.try_into().expect("Credential key length");
         let evidence_key: [u8; 32] = evidence_key.0.try_into().expect("Evidence key length");

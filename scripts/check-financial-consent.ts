@@ -1,22 +1,27 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { contractAuthorization } from "../src/server/commitments/contract-authorization";
-import {
-  verifyCommitmentConsent,
-  type SandboxConsentProfile,
-} from "../src/server/commitments/consent";
+import { verifyCommitmentConsent, type ConsentProfile } from "../src/server/commitments/consent";
 import { validateSettlementState } from "../src/server/protocol/settlement-state";
 
-const bytes = await readFile("contracts/.cache/financial-consent-public.json");
-if (bytes.length > 262144) throw new Error("Oversized public financial vectors");
-const vectors = JSON.parse(bytes.toString("utf8"));
-if (!Array.isArray(vectors) || vectors.length !== 4)
-  throw new Error("Missing actual financial-consent sandbox vectors");
+const vectors = [];
+for (const path of [
+  "contracts/.cache/financial-consent-public.json",
+  "contracts/.cache/engineering-financial-consent-public.json",
+]) {
+  const bytes = await readFile(path);
+  if (bytes.length > 262144) throw new Error("Oversized public financial vectors");
+  const parsed = JSON.parse(bytes.toString("utf8"));
+  if (!Array.isArray(parsed) || parsed.length !== 4)
+    throw new Error("Missing actual financial-consent vectors");
+  vectors.push(...parsed);
+}
 for (const vector of vectors) {
   const auth = vector.context.authorization;
   const envelope = JSON.parse(auth.wallet_consent);
-  const profile: SandboxConsentProfile = {
-    environment: "sandbox",
+  assert(["sandbox", "engineering"].includes(vector.context.environment));
+  const profile: ConsentProfile = {
+    environment: vector.context.environment,
     manifest: vector.context.manifest,
     token: vector.context.token,
   };
@@ -75,5 +80,5 @@ for (const vector of vectors) {
   );
 }
 console.log(
-  "PASS: independent Node financial signatures/wire and four actual sandbox reservation, funding, release and return states",
+  "PASS: independent Node verifies sandbox and pinned engineering-domain financial signatures/wire across actual local reservation, funding, release and return states",
 );

@@ -9,10 +9,16 @@ import { record } from "./quote-signature";
 import { integerAmount } from "./one-click";
 import { parseRpcJson, ReadOnlyRpc, unsigned } from "./rpc";
 import { walletAddress } from "../wallets/proof";
-import { manifestHash, networkManifest, type Network } from "./manifest";
+import {
+  engineeringManifest,
+  engineeringManifestHash,
+  manifestHash,
+  networkManifest,
+  type Network,
+} from "./manifest";
 
 export type SettlementContext = {
-  environment: "mainnet" | "sandbox";
+  environment: "mainnet" | "sandbox" | "engineering";
   deployment: string;
   token: string;
   domain: string;
@@ -66,7 +72,7 @@ function context(value: SettlementContext) {
   for (const account of [value.deployment, value.token]) walletAddress("near", account);
   for (const hash of [value.escrowCodeHash, value.tokenCodeHash]) decodeBase58(hash, 32);
   if (
-    !["mainnet", "sandbox"].includes(value.environment) ||
+    !["mainnet", "sandbox", "engineering"].includes(value.environment) ||
     typeof value.domain !== "string" ||
     !value.domain ||
     value.domain.length > 128 ||
@@ -76,6 +82,12 @@ function context(value: SettlementContext) {
   )
     throw new Error("Invalid settlement context");
   id(value.event);
+  if (
+    value.environment === "engineering" &&
+    (value.domain !== engineeringManifest.signingDomain ||
+      value.manifest !== engineeringManifestHash)
+  )
+    throw new Error("Engineering settlement profile does not match the frozen manifest");
   id(value.rulesHash);
   if (
     value.environment === "mainnet" &&
@@ -349,20 +361,50 @@ export async function compareSettlementState(
   transport: typeof fetch = fetch,
   now = Date.now(),
 ) {
+  return compareNativeSettlementState(input, transport, now, "mainnet");
+}
+
+// Explicit read-only engineering profile. It cannot activate an app route,
+// construct a signer, or qualify operator independence and actual asset delivery.
+export async function compareEngineeringSettlementState(
+  input: SettlementContext,
+  transport: typeof fetch = fetch,
+  now = Date.now(),
+) {
+  return compareNativeSettlementState(input, transport, now, "engineering");
+}
+
+async function compareNativeSettlementState(
+  input: SettlementContext,
+  transport: typeof fetch,
+  now: number,
+  environment: "mainnet" | "engineering",
+) {
   const expected = structuredClone(input);
   context(expected);
-  if (expected.environment !== "mainnet")
-    throw new Error("Public settlement reads require an explicit mainnet profile");
-  const first = new ReadOnlyRpc("near-public", transport),
-    second = new ReadOnlyRpc("near-fastnear", transport);
+  if (expected.environment !== environment)
+    throw new Error("Public settlement reads require the exact explicit network profile");
+  const first = new ReadOnlyRpc(
+      environment === "mainnet" ? "near-public" : "near-testnet-archival",
+      transport,
+    ),
+    second = new ReadOnlyRpc(
+      environment === "mainnet" ? "near-fastnear" : "near-testnet-fastnear",
+      transport,
+    );
   const signal = AbortSignal.timeout(30_000);
-  const compared = await compareFinalizedHeads("near", first, second, now, signal).catch(
-    (error) => {
-      if (error instanceof FinalizedSourceConflict)
-        throw new SettlementSourceConflict("Finalized settlement sources disagree");
-      throw error;
-    },
-  );
+  const compared = await compareFinalizedHeads(
+    "near",
+    first,
+    second,
+    now,
+    signal,
+    environment,
+  ).catch((error) => {
+    if (error instanceof FinalizedSourceConflict)
+      throw new SettlementSourceConflict("Finalized settlement sources disagree");
+    throw error;
+  });
   const block = compared.block;
   const read = async (client: ReadOnlyRpc) => {
     for (const [account, hash] of [

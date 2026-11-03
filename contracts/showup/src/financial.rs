@@ -1,4 +1,4 @@
-//! Native sandbox financial-consent enforcement. No external funding route.
+//! Explicit native non-production financial consent. No external funding route.
 use crate::*;
 use near_sdk::base64::{Engine, engine::general_purpose::STANDARD};
 use near_sdk::serde_json::{Map, Value, json};
@@ -88,11 +88,11 @@ fn base64<const N: usize>(value: &Value) -> [u8; N] {
     );
     bytes.try_into().expect("Financial byte length")
 }
-fn wallet(value: &Value, expected: &Destination, token: &AccountId) {
+fn wallet(value: &Value, expected: &Destination, token: &AccountId, chain_id: &str) {
     let value = object(value, "address,chainId,network");
     require!(
         text(&value["network"]) == "near"
-            && text(&value["chainId"]) == "sandbox"
+            && text(&value["chainId"]) == chain_id
             && expected.network == "near"
             && expected.asset == token.as_str()
             && text(&value["address"]) == expected.address,
@@ -102,6 +102,21 @@ fn wallet(value: &Value, expected: &Destination, token: &AccountId) {
 
 impl Escrow {
     pub(crate) fn check_financial_consent(&self, auth: &Authorization) -> Option<FundingConsent> {
+        let (environment, chain_id, warning) = if self.domain
+            == "showup.engineering.authorization.v1"
+        {
+            (
+                "engineering",
+                "testnet",
+                "ENGINEERING TEST TOKENS ONLY. No mainnet funds or qualified funding route is authorized.",
+            )
+        } else {
+            (
+                "sandbox",
+                "sandbox",
+                "DISPOSABLE SANDBOX TOKENS ONLY. No real USDC or live funding route is authorized.",
+            )
+        };
         let event = self.events.get(&auth.event).expect("Unknown event");
         let Some(origin) = &event.terms.wallet_consent_origin else {
             require!(
@@ -137,7 +152,7 @@ impl Escrow {
             "authorizationExpiresAt,deployment,environment,event,inputAsset,manifest,maximumInput,participant,payout,payoutMinimum,principal,quoteExpiresAt,quoteHash,refund,registration,registrationClosesAt,reservationExpiresAt,routingFeeMaximum,rulesHash,source,sourceGasMaximum,timeZone,withdrawalFeeMaximum",
         );
         require!(
-            text(&terms["environment"]) == "sandbox"
+            text(&terms["environment"]) == environment
                 && text(&terms["manifest"]) == self.manifest
                 && text(&terms["deployment"]) == env::current_account_id().as_str()
                 && reference(&terms["event"]) == auth.event
@@ -146,9 +161,9 @@ impl Escrow {
                 && reference(&terms["participant"]) == auth.participant,
             "Financial deployment or registration binding changed"
         );
-        wallet(&terms["source"], &auth.source, &self.token);
-        wallet(&terms["refund"], &auth.refund, &self.token);
-        wallet(&terms["payout"], &auth.payout, &self.token);
+        wallet(&terms["source"], &auth.source, &self.token, chain_id);
+        wallet(&terms["refund"], &auth.refund, &self.token, chain_id);
+        wallet(&terms["payout"], &auth.payout, &self.token, chain_id);
         let input = object(&terms["inputAsset"], "contract,decimals");
         require!(
             text(&input["contract"]) == self.token.as_str() && number(&input["decimals"]) == 6,
@@ -207,7 +222,7 @@ impl Escrow {
         require!(
             auth.wallet_tag
                 == hash(&json!({"format":"showup.funding.wallet.v1",
-            "deployment":auth.deployment,"environment":"sandbox","manifest":self.manifest,
+            "deployment":auth.deployment,"environment":environment,"manifest":self.manifest,
             "event":auth.event,"family":"near","address":auth.source.address})),
             "Financial wallet tag changed"
         );
@@ -225,7 +240,7 @@ impl Escrow {
         let terms_json = String::from_utf8(canonical::bytes(&consent["terms"])).unwrap();
         let message = [
             "Showup event financial consent v1".to_string(),
-            "DISPOSABLE SANDBOX TOKENS ONLY. No real USDC or live funding route is authorized.".into(),
+            warning.into(),
             format!("Website: {origin}"),
             "Authorize only the event and limits below. A separate wallet transaction is required to transfer funds.".into(),
             "A signature, quote or reservation creates no funded seat. Enrollment requires actual attributable escrow.".into(),

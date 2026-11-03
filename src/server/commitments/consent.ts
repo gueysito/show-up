@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { canonicalHash, canonicalJson } from "../protocol/canonical";
 import {
   engineeringManifest,
+  engineeringManifestHash,
   manifestHash,
   networkIdentity,
   type Network,
@@ -15,8 +16,14 @@ import {
 
 export type ConsentWallet = { network: Network; chainId: string; address: string };
 export type SandboxConsentProfile = { environment: "sandbox"; manifest: string; token: string };
+export type EngineeringConsentProfile = {
+  environment: "engineering";
+  manifest: string;
+  token: string;
+};
+export type ConsentProfile = SandboxConsentProfile | EngineeringConsentProfile;
 export type ConsentTerms = {
-  environment: "mainnet" | "sandbox";
+  environment: "mainnet" | "sandbox" | "engineering";
   manifest: string;
   deployment: string;
   event: string;
@@ -61,27 +68,28 @@ function exact(value: object, keys: string) {
   )
     throw new Error("Unexpected consent fields");
 }
-export function consentNetwork(network: Network, profile?: SandboxConsentProfile) {
+export function consentNetwork(network: Network, profile?: ConsentProfile) {
   if (!profile) return networkIdentity(network);
   exact(profile, "environment,manifest,token");
   if (
-    profile.environment !== "sandbox" ||
+    !["sandbox", "engineering"].includes(profile.environment) ||
+    (profile.environment === "engineering" && profile.manifest !== engineeringManifestHash) ||
     typeof profile.manifest !== "string" ||
     !profile.manifest ||
     profile.manifest.length > 128 ||
     walletAddress("near", profile.token) !== profile.token
   )
-    throw new Error("Invalid explicit sandbox consent profile");
+    throw new Error("Invalid explicit non-production consent profile");
   const entry = engineeringManifest.networks.find((item) => item.id === network);
   if (!entry) throw new Error("Unsupported sandbox consent network");
   return {
-    chainId: network === "near" ? "sandbox" : entry.chainId,
+    chainId: network === "near" && profile.environment === "sandbox" ? "sandbox" : entry.chainId,
     assets: [
       { id: "usdc", contract: network === "near" ? profile.token : entry.usdc, decimals: 6 },
     ],
   };
 }
-function wallet(value: ConsentWallet, profile?: SandboxConsentProfile) {
+function wallet(value: ConsentWallet, profile?: ConsentProfile) {
   exact(value, "address,chainId,network");
   if (
     value.chainId !== consentNetwork(value.network, profile).chainId ||
@@ -93,7 +101,7 @@ function wallet(value: ConsentWallet, profile?: SandboxConsentProfile) {
 export function validateConsentTerms(
   terms: ConsentTerms,
   issuedAt: number,
-  profile?: SandboxConsentProfile,
+  profile?: ConsentProfile,
 ) {
   exact(
     terms,
@@ -163,7 +171,11 @@ function message(consent: Omit<CommitmentConsent, "message">) {
     "Showup event financial consent v1",
     ...(consent.terms.environment === "sandbox"
       ? ["DISPOSABLE SANDBOX TOKENS ONLY. No real USDC or live funding route is authorized."]
-      : []),
+      : consent.terms.environment === "engineering"
+        ? [
+            "ENGINEERING TEST TOKENS ONLY. No mainnet funds or qualified funding route is authorized.",
+          ]
+        : []),
     `Website: ${consent.origin}`,
     "Authorize only the event and limits below. A separate wallet transaction is required to transfer funds.",
     "A signature, quote or reservation creates no funded seat. Enrollment requires actual attributable escrow.",
@@ -186,7 +198,7 @@ export function createCommitmentConsent(
   origin: string,
   terms: ConsentTerms,
   now = Date.now(),
-  profile?: SandboxConsentProfile,
+  profile?: ConsentProfile,
 ): CommitmentConsent {
   if (new URL(origin).protocol !== "https:" || new URL(origin).origin !== origin)
     throw new Error("Consent requires the fixed HTTPS application origin");
@@ -222,7 +234,7 @@ export function verifyCommitmentConsent(
   proof: WalletSignature,
   origin: string,
   now = Date.now(),
-  profile?: SandboxConsentProfile,
+  profile?: ConsentProfile,
 ): boolean {
   try {
     exact(consent, "format,id,issuedAt,message,nonce,origin,signingExpiresAt,terms,termsHash");
@@ -255,7 +267,7 @@ export function assessPayout(
   gross: string,
   actualFee: string,
   routeMinimum: string,
-  profile?: SandboxConsentProfile,
+  profile?: ConsentProfile,
 ) {
   validateConsentTerms(consent.terms, consent.issuedAt, profile);
   const amount = integerAmount(gross),

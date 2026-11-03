@@ -21,6 +21,8 @@ pub struct Fixture {
     pub end: u64,
     pub event: String,
     pub rules_hash: String,
+    pub domain: String,
+    pub manifest: String,
     _node: near_sandbox::Sandbox,
 }
 
@@ -67,16 +69,16 @@ impl Fixture {
     pub fn rules_commitment(&self, terms: &Value) -> String {
         let mut terms = terms.clone();
         terms.as_object_mut().unwrap().remove("rules_hash");
-        let context = json!({"format":"showup.event.rules.v1","authorization_domain":"showup.sandbox.authorization.v1",
-            "deployment":self.escrow.id(),"manifest":"local-v1","settlement_token":self.token.id(),"terms":terms});
+        let context = json!({"format":"showup.event.rules.v1","authorization_domain":self.domain,
+            "deployment":self.escrow.id(),"manifest":self.manifest,"settlement_token":self.token.id(),"terms":terms});
         format!("{:x}", Sha256::digest(context.to_string()))
     }
     pub async fn close_for_draw(&self) {
         let auth = self.authorization(110, self.alice.id().as_str()).await;
         self.fund(&self.alice, &auth, 5_000_000).await;
         self.advance(self.start).await;
-        let receipt = json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
-            "manifest":"local-v1","event":self.event,"rules_hash":self.rules_hash,"registration":auth["registration"],
+        let receipt = json!({"domain":self.domain,"deployment":self.escrow.id(),
+            "manifest":self.manifest,"event":self.event,"rules_hash":self.rules_hash,"registration":auth["registration"],
             "participant":auth["participant"],"proof_class":"live_code","received_ms":self.start,
             "nonce":id(8100),"expires_ms":self.end-600_000});
         self.alice
@@ -97,8 +99,8 @@ impl Fixture {
             .into_result()
             .unwrap();
         let event = self.view("get_event", json!({"event":self.event})).await;
-        let checkpoint = json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
-            "manifest":"local-v1","event":self.event,"rules_hash":self.rules_hash,"ledger_version":event["ledger_version"],
+        let checkpoint = json!({"domain":self.domain,"deployment":self.escrow.id(),
+            "manifest":self.manifest,"event":self.event,"rules_hash":self.rules_hash,"ledger_version":event["ledger_version"],
             "complete_through_ms":self.end-900_000,"expires_ms":self.end+2_100_000});
         self.bob
             .call(self.escrow.id(), "close")
@@ -160,7 +162,27 @@ impl Fixture {
             None,
             false,
             true,
-            Some("https://localhost:3443"),
+            Some((
+                "https://localhost:3443",
+                "showup.sandbox.authorization.v1",
+                "local-v1",
+            )),
+        )
+        .await
+    }
+    pub async fn with_engineering_financial_consent() -> Self {
+        Self::build(
+            1,
+            "online",
+            0,
+            None,
+            false,
+            true,
+            Some((
+                "https://localhost:3443",
+                "showup.engineering.authorization.v1",
+                "c051ff3fff68cfcdb1efdacc280882c5e0c185cc23e78319f4eb77a3c1ab8cdc",
+            )),
         )
         .await
     }
@@ -171,8 +193,12 @@ impl Fixture {
         custody: Option<Value>,
         native: bool,
         observed: bool,
-        financial_origin: Option<&str>,
+        financial_profile: Option<(&str, &str, &str)>,
     ) -> Self {
+        let (financial_origin, domain, manifest) = match financial_profile {
+            Some((origin, domain, manifest)) => (Some(origin), domain, manifest),
+            None => (None, "showup.sandbox.authorization.v1", "local-v1"),
+        };
         let (worker, node) = start_node().await;
         let wasm = "/cache/target/wasm32-unknown-unknown/release";
         let escrow = worker
@@ -198,8 +224,8 @@ impl Fixture {
             .unwrap()
             .into_result()
             .unwrap();
-        escrow.call("new").args_json(json!({"token":token.id(), "domain":"showup.sandbox.authorization.v1",
-            "manifest":"local-v1", "credential_key":STANDARD.encode(credential.verifying_key().to_bytes()),
+        escrow.call("new").args_json(json!({"token":token.id(), "domain":domain,
+            "manifest":manifest, "credential_key":STANDARD.encode(credential.verifying_key().to_bytes()),
             "evidence_key":STANDARD.encode(evidence.verifying_key().to_bytes())}))
             .transact().await.unwrap().into_result().unwrap();
         for account in [escrow.id(), host.id(), alice.id(), bob.id()] {
@@ -240,6 +266,8 @@ impl Fixture {
             end,
             event,
             rules_hash: String::new(),
+            domain: domain.to_owned(),
+            manifest: manifest.to_owned(),
             _node: node,
         };
         let mut terms = json!({"event":fixture.event,"rules_hash":id(2),"host":fixture.host.id(),"mode":mode,
@@ -303,7 +331,7 @@ impl Fixture {
         let policy = &item["terms"]["custody_proof_policy"];
         let network = policy["network"].as_str().unwrap();
         let current = self.timestamp().await;
-        json!({"format":"showup.asset.observation.v2","domain":"showup.sandbox.authorization.v1",
+        json!({"format":"showup.asset.observation.v2","domain":self.domain,
             "deployment":self.escrow.id(),"manifest":"showup-engineering-2026-11-02-v1",
             "event":self.event,"rules_hash":self.rules_hash,"network":network,
             "chain_id":match network {"base"=>"84532","ethereum"=>"11155111",_=>"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"},
@@ -351,8 +379,8 @@ impl Fixture {
     }
     pub async fn authorization(&self, number: u64, address: &str) -> Value {
         let now = self.timestamp().await;
-        json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
-            "manifest":"local-v1","event":self.event,"rules_hash":self.rules_hash,"registration":id(number),
+        json!({"domain":self.domain,"deployment":self.escrow.id(),
+            "manifest":self.manifest,"event":self.event,"rules_hash":self.rules_hash,"registration":id(number),
             "participant":id(number+1000),"wallet_tag":id(number+2000),"principal":"5000000",
             "source":self.destination(address),"refund":self.destination(address),"payout":self.destination(address),"fee_cap":"100000",
             "nonce":id(number+3000),"expires_ms":self.start,"reservation_ms":now+240_000})
@@ -409,8 +437,8 @@ impl Fixture {
         value.parse().unwrap()
     }
     pub async fn release(&self, auth: &Value) {
-        let action = json!({"domain":"showup.sandbox.authorization.v1","deployment":self.escrow.id(),
-            "manifest":"local-v1","event":self.event,"registration":auth["registration"],"participant":auth["participant"],
+        let action = json!({"domain":self.domain,"deployment":self.escrow.id(),
+            "manifest":self.manifest,"event":self.event,"registration":auth["registration"],"participant":auth["participant"],
             "operation":"release","nonce":id(9000),"expires_ms":self.timestamp().await+240_000});
         self.bob
             .call(self.escrow.id(), "release")

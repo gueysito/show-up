@@ -4,15 +4,25 @@ import type {
   SettlementContext,
   SettlementViews,
 } from "../../src/server/protocol/settlement-state";
-import { manifestHash, networkManifest } from "../../src/server/protocol/manifest";
+import {
+  engineeringManifest,
+  engineeringManifestHash,
+  manifestHash,
+  networkManifest,
+} from "../../src/server/protocol/manifest";
 
 export function settlementFixture(
   now = Date.now(),
-  environment: "sandbox" | "mainnet" = "sandbox",
+  environment: SettlementContext["environment"] = "sandbox",
 ) {
   const id = (number: number) => number.toString(16).padStart(64, "0");
   const deployment = "fictional-escrow.near",
-    token = environment === "mainnet" ? networkManifest.settlement.contract : "fictional-usdc.near";
+    token =
+      environment === "mainnet"
+        ? networkManifest.settlement.contract
+        : environment === "engineering"
+          ? engineeringManifest.networks.find((item) => item.id === "near")!.usdc
+          : "fictional-usdc.near";
   const selected = { network: "near", asset: token, address: "fictional-wallet.near" };
   const material = {
     event: id(1),
@@ -32,8 +42,17 @@ export function settlementFixture(
     observer_policy: null,
   };
   const domain =
-      environment === "mainnet" ? networkManifest.signingDomain : "showup.sandbox.authorization.v1",
-    manifest = environment === "mainnet" ? manifestHash : "local-v1";
+      environment === "mainnet"
+        ? networkManifest.signingDomain
+        : environment === "engineering"
+          ? engineeringManifest.signingDomain
+          : "showup.sandbox.authorization.v1",
+    manifest =
+      environment === "mainnet"
+        ? manifestHash
+        : environment === "engineering"
+          ? engineeringManifestHash
+          : "local-v1";
   const rulesHash = canonicalHash({
     format: "showup.event.rules.v1",
     authorization_domain: domain,

@@ -1,11 +1,11 @@
 import { canonicalHash, canonicalJson } from "../protocol/canonical";
-import { networkManifest } from "../protocol/manifest";
+import { engineeringManifest, networkManifest } from "../protocol/manifest";
 import type { WalletSignature } from "../wallets/proof";
 import {
   consentNetwork,
   verifyCommitmentConsent,
   type CommitmentConsent,
-  type SandboxConsentProfile,
+  type ConsentProfile,
 } from "./consent";
 
 // A UUID is an opaque 128-bit event credential. Zero-extension is a bijection,
@@ -24,7 +24,7 @@ export function contractAuthorization(
   consent: CommitmentConsent,
   proof: WalletSignature,
   acceptedAt: number,
-  profile?: SandboxConsentProfile,
+  profile?: ConsentProfile,
 ) {
   if (!verifyCommitmentConsent(consent, proof, origin, acceptedAt, profile))
     throw new Error("The original event financial consent is required");
@@ -39,7 +39,12 @@ export function contractAuthorization(
   if (Buffer.byteLength(envelope) > 12288) throw new Error("Financial consent envelope bounds");
   return {
     authorization: {
-      domain: profile ? "showup.sandbox.authorization.v1" : networkManifest.signingDomain,
+      domain:
+        profile?.environment === "sandbox"
+          ? "showup.sandbox.authorization.v1"
+          : profile?.environment === "engineering"
+            ? engineeringManifest.signingDomain
+            : networkManifest.signingDomain,
       deployment: terms.deployment,
       manifest: terms.manifest,
       event,

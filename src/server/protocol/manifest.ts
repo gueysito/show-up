@@ -7,6 +7,9 @@ export type Network = (typeof requiredNetworks)[number];
 export const networkManifest = mainnet;
 export const engineeringManifest = engineering;
 export const manifestHash = createHash("sha256").update(JSON.stringify(mainnet)).digest("hex");
+export const engineeringManifestHash = createHash("sha256")
+  .update(JSON.stringify(engineering))
+  .digest("hex");
 
 export function networkIdentity(network: string) {
   const entry = mainnet.networks.find((item) => item.id === network);

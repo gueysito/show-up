@@ -5,6 +5,7 @@ import { canonicalHash } from "../../src/server/protocol/canonical";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import {
   compareSettlementState,
+  compareEngineeringSettlementState,
   validateSettlementState,
 } from "../../src/server/protocol/settlement-state";
 
@@ -192,8 +193,9 @@ test("released principal and failed or pending transfers stay recoverable until 
 });
 
 test("fixed settlement sources pin code, every view and token conservation to the same finalized block", async () => {
-  const now = Date.now(),
-    f = settlementFixture(now, "mainnet"); // Mock transport only; never an actual deployment claim.
+  const now = Date.now();
+  let f = settlementFixture(now, "mainnet"),
+    expectedChain = "mainnet"; // Mock transport only.
   let mode = "valid",
     calls = 0;
   const transport: typeof fetch = async (url, options) => {
@@ -203,7 +205,7 @@ test("fixed settlement sources pin code, every view and token conservation to th
     assert.equal(new URL(String(url)).protocol, "https:");
     let result: unknown;
     if (input.method === "status")
-      result = { chain_id: mode === "wrong-chain" ? "testnet" : "mainnet" };
+      result = { chain_id: mode === "wrong-chain" ? "testnet" : expectedChain };
     else if (input.method === "block")
       result = {
         header: {
@@ -307,4 +309,15 @@ test("fixed settlement sources pin code, every view and token conservation to th
     compareSettlementState({ ...f.context, environment: "sandbox" }, transport, now),
   );
   assert.equal(calls, before, "sandbox metadata cannot cause a public RPC call");
+  f = settlementFixture(now, "engineering");
+  expectedChain = "testnet";
+  mode = "valid";
+  const engineering = await compareEngineeringSettlementState(f.context, transport, now);
+  assert.deepEqual(engineering.sourceIds, ["near-testnet-archival", "near-testnet-fastnear"]);
+  assert.equal(engineering.registration?.booked, true);
+  assert.equal(engineering.sourceQualified, false);
+  assert.equal(engineering.fundingAllowed, false);
+  const engineeringCalls = calls;
+  await assert.rejects(compareSettlementState(f.context, transport, now));
+  assert.equal(calls, engineeringCalls, "engineering state cannot enter the mainnet read path");
 });

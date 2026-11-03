@@ -1,5 +1,5 @@
 import { decodeBase58 } from "./encoding";
-import { networkIdentity, type Network } from "./manifest";
+import { engineeringManifest, networkIdentity, type Network } from "./manifest";
 import { record } from "./quote-signature";
 import { ReadOnlyRpc, unsigned } from "./rpc";
 
@@ -52,8 +52,22 @@ function solanaHeader(value: unknown, slot: bigint, now: number): FinalizedHeade
   };
 }
 
-async function head(client: ReadOnlyRpc, network: Network, signal: AbortSignal, now: number) {
-  const expected = networkIdentity(network).chainId;
+function chainId(network: Network, environment: "mainnet" | "engineering") {
+  const entry =
+    environment === "mainnet"
+      ? networkIdentity(network)
+      : engineeringManifest.networks.find((item) => item.id === network);
+  if (!entry) throw new Error("Unsupported RPC chain profile");
+  return entry.chainId;
+}
+async function head(
+  client: ReadOnlyRpc,
+  network: Network,
+  signal: AbortSignal,
+  now: number,
+  environment: "mainnet" | "engineering",
+) {
+  const expected = chainId(network, environment);
   if (network === "base" || network === "ethereum") {
     if (unsigned(await client.read("eth_chainId", [], signal)).toString() !== expected)
       throw new Error("Wrong RPC chain");
@@ -113,8 +127,9 @@ export async function compareFinalizedHeads(
   second: ReadOnlyRpc,
   now = Date.now(),
   signal?: AbortSignal,
+  environment: "mainnet" | "engineering" = "mainnet",
 ) {
-  return compareSources(network, first, second, now, undefined, signal);
+  return compareSources(network, first, second, now, undefined, signal, environment);
 }
 
 // The requested state slot/block must already be finalized by both sources.
@@ -127,8 +142,9 @@ export async function compareFinalizedBlock(
   height: string,
   now = Date.now(),
   signal?: AbortSignal,
+  environment: "mainnet" | "engineering" = "mainnet",
 ) {
-  return compareSources(network, first, second, now, height, signal);
+  return compareSources(network, first, second, now, height, signal, environment);
 }
 
 async function compareSources(
@@ -138,10 +154,13 @@ async function compareSources(
   now: number,
   requestedHeight?: string,
   outerSignal?: AbortSignal,
+  environment: "mainnet" | "engineering" = "mainnet",
 ) {
   if (
     first.endpoint.network !== network ||
     second.endpoint.network !== network ||
+    (first.endpoint.environment ?? "mainnet") !== environment ||
+    (second.endpoint.environment ?? "mainnet") !== environment ||
     first.endpoint.id === second.endpoint.id ||
     first.endpoint.operator === second.endpoint.operator
   )
@@ -150,8 +169,8 @@ async function compareSources(
     ? AbortSignal.any([outerSignal, AbortSignal.timeout(30_000)])
     : AbortSignal.timeout(30_000);
   const heads = await Promise.all([
-    head(first, network, signal, now),
-    head(second, network, signal, now),
+    head(first, network, signal, now, environment),
+    head(second, network, signal, now, environment),
   ]);
   const available =
     BigInt(heads[0].height) < BigInt(heads[1].height)
@@ -174,7 +193,7 @@ async function compareSources(
     throw new FinalizedSourceConflict("Finalized sources disagree");
   return {
     network,
-    chainId: networkIdentity(network).chainId,
+    chainId: chainId(network, environment),
     block: a,
     sourceIds: [first.endpoint.id, second.endpoint.id],
     operatorClaims: [first.endpoint.operator, second.endpoint.operator],
