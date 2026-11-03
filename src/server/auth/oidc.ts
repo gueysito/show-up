@@ -6,6 +6,7 @@ import { hash, seal, token, unseal } from "./crypto";
 import { establishIdentity } from "./identities";
 import type { Session } from "./sessions";
 import { authFailureDetails, type AuthStage } from "./diagnostics";
+import { identityFromVerifiedClaims } from "./provider-identity";
 
 export function providerClientAuthentication(provider: Provider, secret: string) {
   // Both fixed issuers advertise POST authentication; preserve their secret bytes over HTTPS.
@@ -100,7 +101,7 @@ export async function verifyAuthorization(
   const claims = tokens.claims();
   if (!claims?.iss || !claims.sub)
     throw new AppFailure(401, "Provider identity could not be verified.");
-  return { issuer: claims.iss, subject: claims.sub };
+  return identityFromVerifiedClaims(claims);
 }
 
 export async function finishLogin(

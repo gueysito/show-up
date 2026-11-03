@@ -155,11 +155,12 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
           config.encryptionKey,
           `identity:${row.identity_hash}`,
           row.encrypted_identity,
-        ) as { issuer: string; subject: string };
+        ) as { issuer: string; subject: string; telegramUserId?: string };
         return {
           provider: row.provider,
           issuer: identity.issuer,
           subject: identity.subject,
+          ...(identity.telegramUserId ? { telegramUserId: identity.telegramUserId } : {}),
           linkedAt: row.created_at.toISOString(),
         };
       }),

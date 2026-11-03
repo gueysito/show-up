@@ -3,18 +3,24 @@ import type pg from "pg";
 import { transaction } from "../db/client";
 import { AppFailure } from "../http/security";
 import { issuers, type AuthConfig, type Provider } from "./config";
-import { identityIndex, seal } from "./crypto";
+import { identityIndex, seal, unseal } from "./crypto";
 import { newSession } from "./sessions";
+import { telegramUserId, type ProviderIdentity } from "./provider-identity";
 
 export async function establishIdentity(
   pool: pg.Pool,
   config: AuthConfig,
   provider: Provider,
-  identity: { issuer: string; subject: string },
+  identity: ProviderIdentity,
   previousHash?: string,
   linkingHash?: string,
 ) {
   if (identity.issuer !== issuers[provider] || !identity.subject || identity.subject.length > 512)
+    throw new AppFailure(401, "Provider identity could not be verified.");
+  if (
+    identity.telegramUserId !== undefined &&
+    (provider !== "telegram" || telegramUserId(identity.telegramUserId) !== identity.telegramUserId)
+  )
     throw new AppFailure(401, "Provider identity could not be verified.");
   const identityHash = identityIndex(config.indexKey, identity.issuer, identity.subject);
   return transaction(pool, async (client) => {
@@ -36,7 +42,7 @@ export async function establishIdentity(
       linkAccount = linked.rows[0].account_id as string;
     }
     const existing = await client.query(
-      "SELECT account_id FROM app_identities WHERE identity_hash=$1",
+      "SELECT account_id,encrypted_identity FROM app_identities WHERE identity_hash=$1",
       [identityHash],
     );
     let accountId = existing.rows[0]?.account_id as string | undefined;
@@ -73,6 +79,27 @@ export async function establishIdentity(
     // requested. Normal account/money/role guards still require state='active'.
     if (!["active", "deletion_requested"].includes(active.rows[0]?.state))
       throw new AppFailure(403, "Account access is unavailable.");
+    if (existing.rowCount && identity.telegramUserId && active.rows[0].state === "active") {
+      const original = unseal(
+        config.encryptionKey,
+        `identity:${identityHash}`,
+        existing.rows[0].encrypted_identity,
+      ) as ProviderIdentity;
+      if (
+        original.issuer !== identity.issuer ||
+        original.subject !== identity.subject ||
+        (original.telegramUserId !== undefined &&
+          original.telegramUserId !== identity.telegramUserId)
+      )
+        throw new AppFailure(409, "Telegram profile changed. Account linking was preserved.");
+      // Returning verified login may add a missing profile ID to a legacy record.
+      // An absent profile claim never erases it; restricted recovery adds no data.
+      if (!original.telegramUserId)
+        await client.query(
+          "UPDATE app_identities SET encrypted_identity=$2 WHERE identity_hash=$1",
+          [identityHash, seal(config.encryptionKey, `identity:${identityHash}`, identity)],
+        );
+    }
     const value = await newSession(client, accountId, previousHash);
     await client.query("INSERT INTO app_audit (id,actor_id,action) VALUES ($1,$2,$3)", [
       randomUUID(),

@@ -96,7 +96,14 @@ node --import tsx scripts/bootstrap-admin.ts ACCOUNT_REFERENCE
 The anonymous workspace remains separate and cannot be imported into accounts.
 Session cookies require HTTPS, are HttpOnly/SameSite=Lax and store opaque tokens;
 only hashes reach PostgreSQL. Identity mappings use authenticated encryption and
-a separate keyed index. Preserve both application keys while records exist;
+a separate keyed index. Telegram's verified `profile.id` is retained encrypted
+separately from its OIDC `sub` for optional bot identity checks; they are not
+interchangeable. Returning login may add a missing profile ID without changing
+the account; an established profile binding cannot be replaced. Own export
+includes this ID when retained. A legacy record without it remains valid for
+sign-in, and restricted deletion recovery collects no new profile data. This
+grants no bot-message consent. See [Telegram's claims](https://core.telegram.org/bots/telegram-login#available-scopes).
+Preserve both application keys while records exist;
 generating replacements cannot recover encrypted identities. These are application
 keys, not wallet keys. Isolated fixtures do not prove live login or phone callbacks.
 

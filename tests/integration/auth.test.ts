@@ -10,6 +10,7 @@ import { findSession, revokeSession } from "../../src/server/auth/sessions";
 import { createDatabase } from "../../src/server/db/client";
 import { migrate } from "../../src/server/db/migrations";
 import { limit } from "../../src/server/http/security";
+import { exportOwnData } from "../../src/server/privacy/export";
 
 if (process.env.SHOWUP_ENV !== "test")
   throw new Error("Auth tests require the disposable test database");
@@ -110,6 +111,50 @@ test("linking requires the initiating live session, rejects conflicting accounts
     login("telegram", randomUUID(), hash(google.value), hash(google.value)),
     /session expired/,
   );
+});
+
+test("verified Telegram profile IDs enrich legacy identity without changing the account or replacing its binding", async () => {
+  const subject = randomUUID(),
+    first = await login("telegram", subject);
+  const identity = { issuer: issuers.telegram, subject, telegramUserId: "987654321" };
+  const returning = await establishIdentity(pool, config, "telegram", identity, hash(first.value));
+  assert.equal(returning.accountId, first.accountId);
+  const stored = async () =>
+    (
+      await pool.query(
+        "SELECT identity_hash,encrypted_identity FROM app_identities WHERE account_id=$1",
+        [first.accountId],
+      )
+    ).rows[0];
+  const row = await stored();
+  assert.deepEqual(
+    unseal(config.encryptionKey, `identity:${row.identity_hash}`, row.encrypted_identity),
+    identity,
+  );
+  assert.equal(row.encrypted_identity.includes(identity.telegramUserId), false);
+  const exported = await exportOwnData(pool, config, hash(returning.value));
+  assert.equal(exported.linkedIdentities[0].telegramUserId, identity.telegramUserId);
+  await login("telegram", subject);
+  assert.equal((await stored()).encrypted_identity, row.encrypted_identity);
+  await assert.rejects(
+    establishIdentity(pool, config, "telegram", { ...identity, telegramUserId: "987654322" }),
+    /profile changed/,
+  );
+  assert.equal((await findSession(pool, returning.value))?.accountId, first.accountId);
+  assert.equal((await stored()).encrypted_identity, row.encrypted_identity);
+  await assert.rejects(
+    establishIdentity(pool, config, "google", { ...identity, issuer: issuers.google }),
+    /could not be verified/,
+  );
+  await pool.query("UPDATE app_accounts SET state='deletion_requested' WHERE id=$1", [
+    first.accountId,
+  ]);
+  const recovery = await establishIdentity(pool, config, "telegram", {
+    ...identity,
+    telegramUserId: "987654322",
+  });
+  assert.equal(recovery.recoveryOnly, true);
+  assert.equal((await stored()).encrypted_identity, row.encrypted_identity);
 });
 
 test("expiry, account disablement and all-session logout revoke restoration", async () => {
