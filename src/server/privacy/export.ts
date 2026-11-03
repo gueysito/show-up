@@ -14,50 +14,65 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
   return transaction(pool, async (client) => {
     await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
     const actor = await requirePrivacyActor(client, sessionHash);
-    const [identities, roles, wallets, consents, events, issued, redeemed, access, audit, watches] =
-      [
-        await client.query(
-          "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
-          [actor.id],
-        ),
-        await client.query("SELECT role FROM app_roles WHERE account_id=$1 ORDER BY role", [
-          actor.id,
-        ]),
-        await client.query(
-          "SELECT id,encrypted_wallet,revoked_at FROM app_wallets WHERE account_id=$1 ORDER BY created_at,id",
-          [actor.id],
-        ),
-        await client.query(
-          "SELECT * FROM app_commitment_consents WHERE account_id=$1 ORDER BY created_at,id",
-          [actor.id],
-        ),
-        await client.query(
-          "SELECT id,revision,data,state,rules_hash,published_at,updated_at FROM app_events WHERE owner_id=$1 ORDER BY updated_at,id",
-          [actor.id],
-        ),
-        await client.query(
-          "SELECT id,kind,event_id,expires_at,revoked_at,redeemed_at,created_at FROM app_invitations WHERE issuer_id=$1 ORDER BY created_at,id",
-          [actor.id],
-        ),
-        await client.query(
-          "SELECT id,kind,event_id,redeemed_at FROM app_invitations WHERE redeemed_by=$1 ORDER BY redeemed_at,id",
-          [actor.id],
-        ),
-        await client.query(
-          "SELECT event_id,granted_at FROM app_event_access WHERE account_id=$1 ORDER BY granted_at,event_id",
-          [actor.id],
-        ),
-        await client.query(
-          "SELECT id,action,entity_id,created_at FROM app_audit WHERE actor_id=$1 ORDER BY created_at,id",
-          [actor.id],
-        ),
-        await client.query(
-          `SELECT l.consent_id,w.* FROM app_commitment_settlement_links l
+    const [
+      identities,
+      roles,
+      wallets,
+      consents,
+      events,
+      issued,
+      redeemed,
+      access,
+      audit,
+      watches,
+      deletion,
+    ] = [
+      await client.query(
+        "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
+        [actor.id],
+      ),
+      await client.query("SELECT role FROM app_roles WHERE account_id=$1 ORDER BY role", [
+        actor.id,
+      ]),
+      await client.query(
+        "SELECT id,encrypted_wallet,revoked_at FROM app_wallets WHERE account_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT * FROM app_commitment_consents WHERE account_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,revision,data,state,rules_hash,published_at,updated_at FROM app_events WHERE owner_id=$1 ORDER BY updated_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,kind,event_id,expires_at,revoked_at,redeemed_at,created_at FROM app_invitations WHERE issuer_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,kind,event_id,redeemed_at FROM app_invitations WHERE redeemed_by=$1 ORDER BY redeemed_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT event_id,granted_at FROM app_event_access WHERE account_id=$1 ORDER BY granted_at,event_id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,action,entity_id,created_at FROM app_audit WHERE actor_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT l.consent_id,w.* FROM app_commitment_settlement_links l
           JOIN app_commitment_consents c ON c.id=l.consent_id JOIN app_settlement_watches w ON w.id=l.watch_id
           WHERE c.account_id=$1`,
-          [actor.id],
-        ),
-      ];
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,requested_at,completed_at,hold_reasons FROM app_deletion_requests WHERE account_id=$1",
+        [actor.id],
+      ),
+    ];
     return {
       format: "showup.own-data.v1",
       exportedAt: new Date().toISOString(),
@@ -136,6 +151,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       invitationsRedeemed: redeemed.rows,
       eventAccess: access.rows,
       audit: audit.rows,
+      deletionRequest: deletion.rows[0] ?? null,
       excludedSecurityMaterial: [
         "Session and capability tokens",
         "OAuth credentials and login attempts",

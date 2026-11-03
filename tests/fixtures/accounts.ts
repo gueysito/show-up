@@ -72,6 +72,7 @@ export async function accountFixtures(roles: string[][]) {
         `DELETE FROM ${table} WHERE ${["app_mutations", "app_audit"].includes(table) ? "actor_id" : "account_id"}=ANY($1::uuid[])`,
         [ids],
       );
+    await pool.query("DELETE FROM app_deletion_requests WHERE account_id=ANY($1::uuid[])", [ids]);
     await pool.query("DELETE FROM app_accounts WHERE id=ANY($1::uuid[])", [ids]);
     await pool.end();
   }

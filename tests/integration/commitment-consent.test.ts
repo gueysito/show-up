@@ -31,6 +31,7 @@ import { requireFundingRoute } from "../../src/server/protocol/manifest";
 import { networkManifest } from "../../src/server/protocol/manifest";
 import { refreshSettlementWatch } from "../../src/server/commitments/reconciliation";
 import { exportOwnData } from "../../src/server/privacy/export";
+import { requestAccountDeletion } from "../../src/server/privacy/deletion";
 import { nearMessageDigest } from "../../src/server/wallets/proof";
 import { acceptWalletProof, issueWalletChallenge } from "../../src/server/wallets/service";
 
@@ -221,6 +222,7 @@ after(async () => {
       `DELETE FROM ${table} WHERE ${table === "app_mutations" || table === "app_audit" ? "actor_id" : "account_id"}=ANY($1::uuid[])`,
       [ids],
     );
+  await pool.query("DELETE FROM app_deletion_requests WHERE account_id=ANY($1::uuid[])", [ids]);
   await pool.query("DELETE FROM app_accounts WHERE id=ANY($1::uuid[])", [ids]);
   await pool.end();
 });
@@ -705,6 +707,65 @@ test("NEAR financial consent independently rechecks current full-access membersh
   assert.equal(exported.reconciliation[0].consentId, consent.id);
   assert.equal(exported.reconciliation[0].available, false);
   assert.equal(Object.hasOwn(exported.reconciliation[0], "funded"), false);
+  const deletion = await requestAccountDeletion(pool, f.actor.session, {
+    operationId: randomUUID(),
+    confirmation: "DELETE",
+    acknowledgeOnChain: true,
+  });
+  assert.equal(deletion.state, "pending_reconciliation");
+  assert.deepEqual(deletion.holdReasons, ["financial_reconciliation"]);
+  const recovery = hash(deletion.sessionValue!);
+  const retained = (await listOwnFinancialRecords(pool, config, recovery)).records.find(
+    (row) => row.id === consent.id,
+  )!;
+  assert.deepEqual(retained.terms, consent.terms);
+  assert.equal(retained.reconciliation.status, "source_unavailable");
+  assert.equal(
+    (
+      await pool.query("SELECT count(*) FROM app_commitment_settlement_links WHERE consent_id=$1", [
+        consent.id,
+      ])
+    ).rows[0].count,
+    "1",
+  );
+  assert.equal(
+    (await exportOwnData(pool, config, recovery)).financialAuthorizations[0].consent.id,
+    consent.id,
+  );
+  await assert.rejects(
+    prepareOwnContractAuthorization(pool, config, recovery, {
+      operationId: randomUUID(),
+      consentId: consent.id,
+    }),
+    status(401),
+  );
+});
+
+test("financial approval and deletion races preserve accepted proof or erase only the unsigned record", async () => {
+  const f = await fixture(),
+    consent = await f.prepare();
+  const [accepted, deleted] = await Promise.allSettled([
+    f.accept(consent),
+    requestAccountDeletion(pool, f.actor.session, {
+      operationId: randomUUID(),
+      confirmation: "DELETE",
+      acknowledgeOnChain: true,
+    }),
+  ]);
+  assert.equal(deleted.status, "fulfilled");
+  const deletion = (
+    deleted as PromiseFulfilledResult<Awaited<ReturnType<typeof requestAccountDeletion>>>
+  ).value;
+  const saved = (
+    await pool.query("SELECT authorized_at FROM app_commitment_consents WHERE id=$1", [consent.id])
+  ).rows[0];
+  if (accepted.status === "fulfilled") {
+    assert.equal(deletion.state, "pending_reconciliation");
+    assert.equal(Boolean(saved?.authorized_at), true);
+  } else {
+    assert.equal(deletion.state, "completed");
+    assert.equal(Boolean(saved), false);
+  }
 });
 
 test("consent migration rolls back without erasing existing accounts or events", async () => {

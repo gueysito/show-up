@@ -4,6 +4,7 @@ import { authConfig, providers } from "../../server/auth/config";
 import { findSession, sessionCookie } from "../../server/auth/sessions";
 import { createDatabase } from "../../server/db/client";
 import { InvitationManager } from "../../components/access/invitation-manager";
+import { findPrivacySession } from "../../server/privacy/access";
 
 export const dynamic = "force-dynamic";
 
@@ -15,12 +16,17 @@ export default async function AccountPage({
   const query = await searchParams;
   const config = authConfig();
   let session = null;
+  let recovery = false;
   let linked: string[] = [];
   let available = Boolean(config);
   if (config) {
     const { pool } = createDatabase();
     try {
       session = await findSession(pool, (await cookies()).get(sessionCookie)?.value);
+      if (!session)
+        recovery =
+          (await findPrivacySession(pool, (await cookies()).get(sessionCookie)?.value))?.state ===
+          "deletion_requested";
       if (session) {
         const result = await pool.query("SELECT provider FROM app_identities WHERE account_id=$1", [
           session.accountId,
@@ -33,6 +39,32 @@ export default async function AccountPage({
       await pool.end();
     }
   }
+  if (recovery)
+    return (
+      <main>
+        <h1>Restricted recovery access</h1>
+        <p>
+          Account deletion was requested. New linking, roles, wallets, events and commitments are
+          disabled. Records needed to honor existing obligations remain available.
+        </p>
+        <p>
+          <Link href="/account/privacy" prefetch={false}>
+            Your data and deletion status
+          </Link>
+        </p>
+        <p>
+          <Link href="/account/commitments" prefetch={false}>
+            Review your financial authorizations
+          </Link>
+        </p>
+        <form method="post" action="/api/auth/logout">
+          <button className="secondary-button">Log out</button>
+        </form>
+        <form method="post" action="/api/auth/logout?all=1">
+          <button className="text-button">Log out all sessions</button>
+        </form>
+      </main>
+    );
   return (
     <main>
       <Link href="/" className="brand">

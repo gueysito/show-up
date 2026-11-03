@@ -1032,6 +1032,27 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   owner identity/database, on-chain record or deployed app was changed. Account deletion,
   qualified payment recovery and attendance interfaces remain incomplete.
 
+## I5 deletion and restricted recovery checkpoint November 2
+
+- Format/lint/types and 57 unit checks pass. Full 64-scenario disposable PostgreSQL
+  suite passes: explicit confirmation, schema rollback, cross-account operation swaps,
+  erasure of cleared records, preservation of original financial proofs/watch links,
+  approval/deletion races, all-session revocation and same-identity restricted restoration.
+  Disabled accounts still fail; pending accounts cannot link or regain normal authority.
+- Isolated production build and all 23 Chromium scenarios pass; all 20 inputs match
+  the snapshot. Actual controls, authenticated completion/refresh, URL-flag rejection,
+  stale-session denial, Back navigation to account/host, restricted history/export and
+  logout/restoration pass. Pending mobile capture inspected; client bundles omit
+  auth/proof/watch internals. Current dependency evidence is unchanged: zero runtime advisories.
+- New since the walkthrough: **Your data and export → Request account deletion**
+  requires `DELETE` plus acknowledgment. **Destructive agent checks only:** fictional
+  cleared accounts were erased; fictional approved records retained recovery access.
+  Do not use the owner's linked development account for cleanup. No actual owner data,
+  credential, public transaction or deployed app was changed.
+- Current routes remain unqualified, so approved financial and published-event records
+  cannot yet receive qualified deletion clearance. Retention automation, integrated
+  principal-return controls, attendance and real wallet/phone checks remain incomplete.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

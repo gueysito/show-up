@@ -1,8 +1,9 @@
 import { cookies } from "next/headers";
 import { authConfig } from "../../../../server/auth/config";
-import { requireSession, revokeSession, sessionCookie } from "../../../../server/auth/sessions";
+import { revokeSession, sessionCookie } from "../../../../server/auth/sessions";
+import { findPrivacySession } from "../../../../server/privacy/access";
 import { createDatabase } from "../../../../server/db/client";
-import { failureResponse, guardRequest } from "../../../../server/http/security";
+import { AppFailure, failureResponse, guardRequest } from "../../../../server/http/security";
 
 export async function POST(request: Request) {
   let database: ReturnType<typeof createDatabase> | undefined;
@@ -12,10 +13,11 @@ export async function POST(request: Request) {
     guardRequest(request, config.origin);
     database = createDatabase();
     const jar = await cookies();
-    const session = await requireSession(database.pool, jar.get(sessionCookie)?.value);
+    const session = await findPrivacySession(database.pool, jar.get(sessionCookie)?.value);
+    if (!session) throw new AppFailure(401, "Sign in again to continue.");
     await revokeSession(
       database.pool,
-      session,
+      { ...session, roles: [] },
       new URL(request.url).searchParams.get("all") === "1",
     );
     jar.delete(sessionCookie);

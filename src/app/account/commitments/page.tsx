@@ -2,7 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { formatUsdc } from "../../../domain/event-draft";
 import { authConfig } from "../../../server/auth/config";
-import { findSession, sessionCookie } from "../../../server/auth/sessions";
+import { sessionCookie } from "../../../server/auth/sessions";
+import { findPrivacySession } from "../../../server/privacy/access";
 import { createDatabase } from "../../../server/db/client";
 import {
   listOwnFinancialRecords,
@@ -27,7 +28,7 @@ export default async function CommitmentsPage({
   if (config) {
     const { pool } = createDatabase();
     try {
-      const session = await findSession(pool, (await cookies()).get(sessionCookie)?.value);
+      const session = await findPrivacySession(pool, (await cookies()).get(sessionCookie)?.value);
       signedIn = Boolean(session);
       if (session)
         ({ records, nextCursor } = await listOwnFinancialRecords(

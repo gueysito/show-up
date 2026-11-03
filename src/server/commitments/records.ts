@@ -49,7 +49,7 @@ export async function listOwnFinancialRecords(
   return transaction(pool, async (client) => {
     const current = await client.query(
       `SELECT a.id FROM app_sessions s JOIN app_accounts a ON a.id=s.account_id
-      WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND a.state='active' FOR SHARE OF a,s`,
+      WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND a.state IN ('active','deletion_requested') FOR SHARE OF a,s`,
       [session],
     );
     if (!current.rowCount)

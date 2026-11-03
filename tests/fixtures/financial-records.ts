@@ -184,7 +184,18 @@ export async function financialFixtures(network: "base" | "near" = "base") {
       fixtures.accounts[0].value = result.value;
       session = hash(result.value);
     }
-    return { ...fixtures, title, consent, watch, linkFictionalIdentity };
+    async function restoreFictionalIdentity(subject: string) {
+      const result = await establishIdentity(fixtures.pool, config, "telegram", {
+        issuer: issuers.telegram,
+        subject,
+      });
+      if (result.accountId !== fixtures.accounts[0].id)
+        throw new Error("Fixture recovery changed the account");
+      fixtures.accounts[0].value = result.value;
+      session = hash(result.value);
+      return { accountId: result.accountId, recoveryOnly: result.recoveryOnly };
+    }
+    return { ...fixtures, title, consent, watch, linkFictionalIdentity, restoreFictionalIdentity };
   } catch (error) {
     await fixtures.cleanup();
     throw error;

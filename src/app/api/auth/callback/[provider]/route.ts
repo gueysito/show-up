@@ -40,7 +40,8 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete(browserCookie);
     const pending = pendingInvitation(config.encryptionKey, jar.get(invitationCookie)?.value);
     let reviewInvitation = false;
-    if (pending) {
+    if (result.recoveryOnly) jar.delete(invitationCookie);
+    if (pending && !result.recoveryOnly) {
       try {
         reviewInvitation = !(await inspectInvitation(database.pool, pending)).redeemed;
       } catch {

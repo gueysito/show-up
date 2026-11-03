@@ -322,8 +322,19 @@ financial approvals/own observations, authored events and answers, invitation/ac
 metadata and audit records. It excludes session/capability tokens, OAuth material,
 blind indexes, ephemeral challenges and other accounts. Keep the downloaded file private.
 Exports are limited to three per account per hour; cross-site requests and account-ID
-filters are rejected. On-chain records cannot be erased. Deletion requests and their
-restricted recovery workflow remain the next implementation step.
+filters are rejected. On-chain records cannot be erased.
+
+Apply `011-account-deletion-requests.sql` through normal migrations before rebuilding
+the deletion controls. **Request account deletion** requires typing `DELETE` and
+acknowledging the on-chain/recovery limits. It removes unneeded records and revokes
+old sessions. With no approved financial or published-event obligations, off-chain
+identity is deleted; completion has an authenticated 15-minute receipt. Otherwise,
+original proofs, event credentials and necessary records remain; the same linked
+provider restores restricted export/history access, with new activity/linking disabled.
+No browser payment flag, expiry or unqualified observation can clear that hold.
+Retention automation and clearance of qualified settled obligations remain incomplete.
+Agent erasure checks use fictional accounts in `showup_test`, never the owner's
+linked development account. A branch push neither migrates nor restarts that app.
 
 ## Local contract sandbox
 

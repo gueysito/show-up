@@ -69,7 +69,9 @@ export async function establishIdentity(
     const active = await client.query("SELECT state FROM app_accounts WHERE id=$1 FOR UPDATE", [
       accountId,
     ]);
-    if (active.rows[0]?.state !== "active")
+    // A known identity may restore restricted recovery access after deletion was
+    // requested. Normal account/money/role guards still require state='active'.
+    if (!["active", "deletion_requested"].includes(active.rows[0]?.state))
       throw new AppFailure(403, "Account access is unavailable.");
     const value = await newSession(client, accountId, previousHash);
     await client.query("INSERT INTO app_audit (id,actor_id,action) VALUES ($1,$2,$3)", [
@@ -77,6 +79,6 @@ export async function establishIdentity(
       accountId,
       linkingHash ? "identity.linked" : "identity.login",
     ]);
-    return { accountId, value };
+    return { accountId, value, recoveryOnly: active.rows[0].state === "deletion_requested" };
   });
 }

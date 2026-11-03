@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { authConfig } from "../../../server/auth/config";
-import { requireSession, sessionCookie } from "../../../server/auth/sessions";
+import { sessionCookie } from "../../../server/auth/sessions";
+import { findPrivacySession } from "../../../server/privacy/access";
 import { createDatabase } from "../../../server/db/client";
 import { listOwnFinancialRecords } from "../../../server/commitments/records";
 import { AppFailure, failureResponse, guardRequest, limit } from "../../../server/http/security";
@@ -13,10 +14,11 @@ export async function GET(request: Request) {
     if (!config) return new Response(null, { status: 404 });
     guardRequest(request, config.origin, false);
     database = createDatabase();
-    const session = await requireSession(
+    const session = await findPrivacySession(
       database.pool,
       (await cookies()).get(sessionCookie)?.value,
     );
+    if (!session) throw new AppFailure(401, "Sign in again to view your financial records.");
     await limit(database.pool, `financial-records:${session.accountId}`, 60);
     const query = new URL(request.url).searchParams;
     if ([...query.keys()].some((key) => key !== "before") || query.getAll("before").length > 1)
