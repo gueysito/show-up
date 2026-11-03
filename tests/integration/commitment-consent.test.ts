@@ -19,6 +19,7 @@ import { listOwnFinancialRecords } from "../../src/server/commitments/records";
 import { canonicalHash } from "../../src/server/protocol/canonical";
 import {
   acceptCommitmentConsent,
+  bindOwnSettlementWatch,
   prepareCommitmentConsent,
   prepareOwnContractAuthorization,
 } from "../../src/server/commitments/service";
@@ -27,6 +28,8 @@ import { migrate } from "../../src/server/db/migrations";
 import { AppFailure } from "../../src/server/http/security";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { requireFundingRoute } from "../../src/server/protocol/manifest";
+import { networkManifest } from "../../src/server/protocol/manifest";
+import { refreshSettlementWatch } from "../../src/server/commitments/reconciliation";
 import { nearMessageDigest } from "../../src/server/wallets/proof";
 import { acceptWalletProof, issueWalletChallenge } from "../../src/server/wallets/service";
 
@@ -71,6 +74,34 @@ test("financial history and accepted contract preparation stay account scoped ac
   assert.deepEqual(
     await prepareOwnContractAuthorization(pool, config, f.actor.session, input),
     expected,
+  );
+  const auth = expected.authorization;
+  await assert.rejects(
+    bindOwnSettlementWatch(pool, config, f.actor.session, {
+      operationId: randomUUID(),
+      consentId: consent.id,
+      context: {
+        environment: "mainnet",
+        deployment: auth.deployment,
+        token: networkManifest.settlement.contract,
+        domain: auth.domain,
+        manifest: auth.manifest,
+        event: auth.event,
+        rulesHash: auth.rules_hash,
+        escrowCodeHash: encodeBase58(Buffer.alloc(32, 3)),
+        tokenCodeHash: encodeBase58(Buffer.alloc(32, 4)),
+        authorization: auth,
+      },
+    }),
+    status(409),
+  );
+  assert.equal(
+    (
+      await pool.query("SELECT count(*) FROM app_commitment_settlement_links WHERE consent_id=$1", [
+        consent.id,
+      ])
+    ).rows[0].count,
+    "0",
   );
   assert.deepEqual(
     await prepareOwnContractAuthorization(pool, config, f.actor.session, input),
@@ -143,6 +174,14 @@ test("financial history pagination preserves PostgreSQL sub-millisecond ordering
 });
 after(async () => {
   const ids = [...accounts];
+  const watches = await pool.query(
+    `DELETE FROM app_commitment_settlement_links WHERE consent_id IN
+    (SELECT id FROM app_commitment_consents WHERE account_id=ANY($1::uuid[])) RETURNING watch_id`,
+    [ids],
+  );
+  await pool.query("DELETE FROM app_settlement_watches WHERE id=ANY($1::uuid[])", [
+    watches.rows.map((row) => row.watch_id),
+  ]);
   await pool.query("DELETE FROM app_commitment_consents WHERE account_id=ANY($1::uuid[])", [ids]);
   await pool.query("DELETE FROM app_event_access WHERE event_id=ANY($1::uuid[])", [[...events]]);
   await pool.query("DELETE FROM app_event_credentials WHERE event_id=ANY($1::uuid[])", [
@@ -570,6 +609,77 @@ test("NEAR financial consent independently rechecks current full-access membersh
     8,
     "control binding and every financial attempt independently read both sources",
   );
+  const wire = await prepareOwnContractAuthorization(pool, config, f.actor.session, {
+    operationId: randomUUID(),
+    consentId: consent.id,
+  });
+  const context = {
+    environment: "mainnet" as const,
+    deployment: wire.authorization.deployment,
+    token: networkManifest.settlement.contract,
+    domain: wire.authorization.domain,
+    manifest: wire.authorization.manifest,
+    event: wire.authorization.event,
+    rulesHash: wire.authorization.rules_hash,
+    escrowCodeHash: encodeBase58(Buffer.alloc(32, 3)),
+    tokenCodeHash: encodeBase58(Buffer.alloc(32, 4)),
+    authorization: wire.authorization,
+  };
+  const binding = { operationId: randomUUID(), consentId: consent.id, context };
+  await assert.rejects(bindOwnSettlementWatch(pool, config, f.host.session, binding), status(404));
+  const linked = await bindOwnSettlementWatch(pool, config, f.actor.session, binding);
+  assert.deepEqual(await bindOwnSettlementWatch(pool, config, f.actor.session, binding), linked);
+  assert.deepEqual(
+    await bindOwnSettlementWatch(pool, config, f.actor.session, {
+      ...binding,
+      operationId: randomUUID(),
+    }),
+    linked,
+  );
+  const history = await listOwnFinancialRecords(pool, config, f.actor.session);
+  assert.equal(
+    history.records.find((row) => row.id === consent.id)!.reconciliation.status,
+    "awaiting_observation",
+  );
+  assert.equal(history.records[0].fundingAllowed, false);
+  for (const changed of [
+    {
+      ...context,
+      authorization: {
+        ...context.authorization,
+        payout: { ...context.authorization.payout, address: "attacker.near" },
+      },
+    },
+    { ...context, escrowCodeHash: encodeBase58(Buffer.alloc(32, 9)) },
+    { ...context, environment: "sandbox" as const },
+  ])
+    await assert.rejects(
+      bindOwnSettlementWatch(pool, config, f.actor.session, {
+        ...binding,
+        operationId: randomUUID(),
+        context: changed,
+      }),
+      status(409),
+    );
+  assert.equal(
+    (
+      await pool.query("SELECT count(*) FROM app_commitment_settlement_links WHERE consent_id=$1", [
+        consent.id,
+      ])
+    ).rows[0].count,
+    "1",
+  );
+  const offline: typeof fetch = async () => {
+    throw new Error("Controlled unavailable source");
+  };
+  await refreshSettlementWatch(pool, config, linked.watchId, offline);
+  const unavailable = (await listOwnFinancialRecords(pool, config, f.actor.session)).records.find(
+    (row) => row.id === consent.id,
+  )!;
+  assert.equal(unavailable.reconciliation.status, "source_unavailable");
+  assert.equal(unavailable.escrowState, "not_confirmed");
+  assert.equal(unavailable.reconciliation.sourceQualified, false);
+  assert.equal(Object.hasOwn(unavailable.reconciliation, "context"), false);
 });
 
 test("consent migration rolls back without erasing existing accounts or events", async () => {
@@ -581,6 +691,7 @@ test("consent migration rolls back without erasing existing accounts or events",
     await client.query(`SET LOCAL search_path TO ${schema},public`);
     await client.query(await readFile("migrations/006-commitment-consent.sql", "utf8"));
     await client.query(await readFile("migrations/009-event-participant-credentials.sql", "utf8"));
+    await client.query(await readFile("migrations/010-commitment-settlement-links.sql", "utf8"));
     assert(
       (
         await client.query("SELECT to_regclass($1) AS relation", [

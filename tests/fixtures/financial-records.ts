@@ -1,17 +1,24 @@
-import { randomUUID } from "node:crypto";
+import { generateKeyPairSync, randomUUID, sign } from "node:crypto";
 import { Wallet } from "ethers";
 import { emptyDraft } from "../../src/domain/event-draft";
 import { authConfig } from "../../src/server/auth/config";
 import { hash } from "../../src/server/auth/crypto";
 import {
   acceptCommitmentConsent,
+  bindOwnSettlementWatch,
+  prepareOwnContractAuthorization,
   prepareCommitmentConsent,
 } from "../../src/server/commitments/service";
 import { acceptWalletProof, issueWalletChallenge } from "../../src/server/wallets/service";
 import { accountFixtures } from "./accounts";
 import { consentTerms } from "./consent";
+import { consentWalletMessage } from "../../src/server/commitments/consent";
+import { nearMessageDigest, type WalletMessage } from "../../src/server/wallets/proof";
+import { encodeBase58 } from "../../src/server/protocol/encoding";
+import { networkManifest } from "../../src/server/protocol/manifest";
+import { refreshSettlementWatch } from "../../src/server/commitments/reconciliation";
 
-export async function financialFixtures() {
+export async function financialFixtures(network: "base" | "near" = "base") {
   const fixtures = await accountFixtures([[], ["host"], []]);
   try {
     if (
@@ -27,17 +34,56 @@ export async function financialFixtures() {
     })!;
     const wallet = Wallet.createRandom(),
       session = hash(fixtures.accounts[0].value);
+    const near = generateKeyPairSync("ed25519"),
+      publicKey = `ed25519:${encodeBase58(Buffer.from(near.publicKey.export({ format: "jwk" }).x!, "base64url"))}`;
+    const address = network === "near" ? "fictional-wallet.near" : wallet.address;
+    const proof = async (message: WalletMessage) =>
+      network === "near"
+        ? {
+            accountId: address,
+            publicKey,
+            signature: sign(null, nearMessageDigest(message), near.privateKey).toString("base64"),
+          }
+        : { signature: await wallet.signMessage(message.message) };
+    const timestamp = Date.now(),
+      block = encodeBase58(Buffer.alloc(32, 7));
+    const membership: typeof fetch = async (_url, request) => {
+      const body = JSON.parse(String(request?.body));
+      const result =
+        body.method === "status"
+          ? { chain_id: "mainnet" }
+          : body.method === "block"
+            ? {
+                header: {
+                  hash: block,
+                  height: 100,
+                  timestamp_nanosec: (BigInt(timestamp) * 1_000_000n).toString(),
+                },
+              }
+            : {
+                block_hash: block,
+                block_height: 100,
+                keys: [{ public_key: publicKey, access_key: { permission: "FullAccess" } }],
+              };
+      return Response.json({ jsonrpc: "2.0", id: body.id, result });
+    };
     const challenge = await issueWalletChallenge(fixtures.pool, config, session, {
       operationId: randomUUID(),
-      network: "base",
-      address: wallet.address,
+      network,
+      address,
     });
-    const saved = await acceptWalletProof(fixtures.pool, config, session, {
-      operationId: randomUUID(),
-      challengeId: challenge.id,
-      proof: { signature: await wallet.signMessage(challenge.message) },
-    });
-    const terms = consentTerms("base", wallet.address, Date.now());
+    const saved = await acceptWalletProof(
+      fixtures.pool,
+      config,
+      session,
+      {
+        operationId: randomUUID(),
+        challengeId: challenge.id,
+        proof: await proof(challenge),
+      },
+      membership,
+    );
+    const terms = consentTerms(network, address, Date.now());
     const title = `Fictional private financial event ${randomUUID()}`;
     // Published engineering fixture only; normal publication and funding remain disabled.
     await fixtures.pool.query(
@@ -63,12 +109,69 @@ export async function financialFixtures() {
       terms,
       wallets: { source: saved.id, refund: saved.id, payout: saved.id },
     });
-    await acceptCommitmentConsent(fixtures.pool, config, session, {
-      operationId: randomUUID(),
-      consentId: consent.id,
-      proof: { signature: await wallet.signMessage(consent.message) },
-    });
-    return { ...fixtures, title, consent };
+    await acceptCommitmentConsent(
+      fixtures.pool,
+      config,
+      session,
+      {
+        operationId: randomUUID(),
+        consentId: consent.id,
+        proof: await proof(consentWalletMessage(consent)),
+      },
+      membership,
+    );
+    let watchId: string | undefined;
+    async function watch(mode: "awaiting" | "unavailable" | "conflict") {
+      if (network !== "near") throw new Error("Only native reconciliation is implemented");
+      if (!watchId) {
+        const wire = await prepareOwnContractAuthorization(fixtures.pool, config, session, {
+          operationId: randomUUID(),
+          consentId: consent.id,
+        });
+        const context = {
+          environment: "mainnet" as const,
+          deployment: wire.authorization.deployment,
+          token: networkManifest.settlement.contract,
+          domain: wire.authorization.domain,
+          manifest: wire.authorization.manifest,
+          event: wire.authorization.event,
+          rulesHash: wire.authorization.rules_hash,
+          escrowCodeHash: encodeBase58(Buffer.alloc(32, 3)),
+          tokenCodeHash: encodeBase58(Buffer.alloc(32, 4)),
+          authorization: wire.authorization,
+        };
+        watchId = (
+          await bindOwnSettlementWatch(fixtures.pool, config, session, {
+            operationId: randomUUID(),
+            consentId: consent.id,
+            context,
+          })
+        ).watchId;
+      }
+      if (mode === "awaiting") return;
+      const transport: typeof fetch = async (url, request) => {
+        if (mode === "unavailable") throw new Error("Controlled unavailable source");
+        const body = JSON.parse(String(request?.body));
+        return Response.json({
+          jsonrpc: "2.0",
+          id: body.id,
+          result:
+            body.method === "status"
+              ? { chain_id: "mainnet" }
+              : {
+                  header: {
+                    height: 100,
+                    hash: encodeBase58(
+                      Buffer.alloc(32, new URL(String(url)).hostname.includes("fastnear") ? 8 : 7),
+                    ),
+                    timestamp_nanosec: (BigInt(timestamp) * 1_000_000n).toString(),
+                  },
+                },
+        });
+      };
+      await refreshSettlementWatch(fixtures.pool, config, watchId, transport);
+    }
+    return { ...fixtures, title, consent, watch };
   } catch (error) {
     await fixtures.cleanup();
     throw error;

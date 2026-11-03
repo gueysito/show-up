@@ -998,6 +998,22 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   No private answers or wallet directory appear in the response. Native/sandbox and
   provider/device limits from the preceding checkpoints remain in force.
 
+## I4 owned reconciliation binding checkpoint November 2
+
+- Format/lint/types and 56 unit checks pass. Full 58-check PostgreSQL suite plus the
+  final 11-check consent subset pass: atomic linkage/replay, ownership, unchanged
+  destinations, profile/code-hash replacement rejection, external-source rejection,
+  source outage and migration rollback. An invalid binding leaves no linked watch.
+- Isolated production build and all 20 Chromium scenarios pass; nine code inputs
+  match the snapshot and no auth/proof/watch internals appear in client bundles.
+  The new controlled-source journey shows waiting → unavailable → persistent pause;
+  refresh and another failed read preserve the pause and explicit unconfirmed escrow.
+  Mobile capture inspected. Own responses omit full context and other registrations.
+- Apply migration 010 before reading history in a rebuilt app. No owner database
+  migration, credential access, public transaction, new browser signing/funding API,
+  source qualification or deployment occurred. Existing contract/provider/device
+  limits remain. I5 privacy and attendance interfaces remain incomplete.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

@@ -6,6 +6,22 @@ import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
 import { canonicalHash } from "../protocol/canonical";
 import type { CommitmentConsent, ConsentTerms } from "./consent";
+import { settlementWatchSnapshot } from "./reconciliation";
+
+export type OwnReconciliation = {
+  status:
+    | "not_linked"
+    | "awaiting_observation"
+    | "source_unavailable"
+    | "paused"
+    | "unqualified_observation";
+  lastSuccessAt: string | null;
+  lastAttemptAt: string | null;
+  block: { height: string; hash: string; timestampMs: number } | null;
+  principalRemaining: string | null;
+  returnedRemaining: string | null;
+  sourceQualified: false;
+};
 
 export type OwnFinancialRecord = {
   id: string;
@@ -17,6 +33,7 @@ export type OwnFinancialRecord = {
   authorizedAt: string | null;
   escrowState: "not_confirmed";
   fundingAllowed: false;
+  reconciliation: OwnReconciliation;
 };
 export async function listOwnFinancialRecords(
   pool: pg.Pool,
@@ -56,6 +73,12 @@ export async function listOwnFinancialRecords(
       [actor, before ?? null],
     );
     const rows = result.rows.slice(0, 50);
+    const observations = await client.query(
+      `SELECT l.consent_id,w.* FROM app_commitment_settlement_links l
+      JOIN app_settlement_watches w ON w.id=l.watch_id WHERE l.consent_id=ANY($1::uuid[])`,
+      [rows.map((row) => row.id)],
+    );
+    const linked = new Map(observations.rows.map((row) => [row.consent_id, row]));
     const records = rows.map((row) => {
       const { consent } = unseal(
         config.encryptionKey,
@@ -64,6 +87,27 @@ export async function listOwnFinancialRecords(
       ) as { consent: CommitmentConsent };
       if (canonicalHash(consent) !== row.consent_hash)
         throw new Error("Financial record integrity failure");
+      const observation = linked.get(row.id),
+        snapshot = observation ? settlementWatchSnapshot(config, observation) : null;
+      const reconciliation: OwnReconciliation = {
+        status: !snapshot
+          ? "not_linked"
+          : snapshot.paused
+            ? "paused"
+            : !snapshot.facts
+              ? observation!.last_attempt_at
+                ? "source_unavailable"
+                : "awaiting_observation"
+              : snapshot.available
+                ? "unqualified_observation"
+                : "source_unavailable",
+        lastSuccessAt: observation?.last_success_at?.toISOString() ?? null,
+        lastAttemptAt: observation?.last_attempt_at?.toISOString() ?? null,
+        block: snapshot?.facts?.block ?? null,
+        principalRemaining: snapshot?.facts?.principal?.remaining ?? null,
+        returnedRemaining: snapshot?.facts?.returned?.remaining ?? null,
+        sourceQualified: false,
+      };
       return {
         id: row.id,
         eventId: row.event_id,
@@ -74,6 +118,7 @@ export async function listOwnFinancialRecords(
         authorizedAt: row.authorized_at?.toISOString() ?? null,
         escrowState: "not_confirmed" as const,
         fundingAllowed: false as const,
+        reconciliation,
       };
     });
     return { records, nextCursor: result.rows.length > 50 ? rows.at(-1)!.id : null };

@@ -6,7 +6,9 @@ import { seal, unseal } from "../auth/crypto";
 import { mutate } from "../auth/mutations";
 import { isUuid } from "../events/drafts";
 import { AppFailure, limit } from "../http/security";
-import { canonicalHash } from "../protocol/canonical";
+import { canonicalHash, canonicalJson } from "../protocol/canonical";
+import type { SettlementContext } from "../protocol/settlement-state";
+import { createSettlementWatchInTransaction } from "./reconciliation";
 import { requireNearFullAccess, NearFullAccessRequired } from "../wallets/near-access";
 import type { OwnWallet } from "../wallets/service";
 import type { WalletSignature } from "../wallets/proof";
@@ -305,36 +307,90 @@ export async function prepareOwnContractAuthorization(
     input.operationId,
     input,
     "commitment.contract-wire-prepared",
+    (client, actor) => loadAcceptedContractWire(client, config, actor.id, input.consentId),
+  );
+}
+
+async function loadAcceptedContractWire(
+  client: pg.PoolClient,
+  config: AuthConfig,
+  accountId: string,
+  consentId: string,
+) {
+  const row = (
+    await client.query(
+      "SELECT * FROM app_commitment_consents WHERE id=$1 AND account_id=$2 FOR SHARE",
+      [consentId, accountId],
+    )
+  ).rows[0];
+  if (!row) throw new AppFailure(404, "Private financial authorization unavailable.");
+  if (!row.authorized_at || !row.encrypted_proof)
+    throw new AppFailure(409, "Review and sign the original financial terms first.");
+  const { consent } = unseal(
+    config.encryptionKey,
+    `commitment-consent:${accountId}:${row.id}`,
+    row.encrypted_consent,
+  ) as { consent: CommitmentConsent };
+  if (
+    canonicalHash(consent) !== row.consent_hash ||
+    (await participantCredential(client, config, accountId, consent.terms.event)) !==
+      consent.terms.participant
+  )
+    throw new AppFailure(409, "This financial authorization needs review.");
+  const { proof } = unseal(
+    config.encryptionKey,
+    `commitment-proof:${accountId}:${row.id}`,
+    row.encrypted_proof,
+  ) as { proof: WalletSignature };
+  return {
+    consentId: consent.id,
+    ...contractAuthorization(config.origin, consent, proof, row.authorized_at.getTime()),
+  };
+}
+
+// Backend-only binding; no browser route accepts a watch or finalized-state claim.
+// The original approval and watch are linked atomically under the account lock.
+export async function bindOwnSettlementWatch(
+  pool: pg.Pool,
+  config: AuthConfig,
+  session: string,
+  input: { operationId: string; consentId: string; context: SettlementContext },
+) {
+  if (!isUuid(input.consentId)) throw new AppFailure(400, "Invalid financial authorization.");
+  await rate(pool, session);
+  return mutate(
+    pool,
+    config.encryptionKey,
+    session,
+    input.operationId,
+    input,
+    "commitment.settlement-linked",
     async (client, actor) => {
-      const row = (
+      const wire = await loadAcceptedContractWire(client, config, actor.id, input.consentId);
+      if (wire.authorization.source.network !== "near")
+        throw new AppFailure(409, "External-source escrow attribution remains unqualified.");
+      if (
+        input.context.environment !== "mainnet" ||
+        canonicalJson(input.context.authorization) !== canonicalJson(wire.authorization)
+      )
+        throw new AppFailure(
+          409,
+          "Reconciliation must use the exact original financial authorization.",
+        );
+      const watchId = await createSettlementWatchInTransaction(client, config, input.context);
+      await client.query(
+        "INSERT INTO app_commitment_settlement_links(consent_id,watch_id) VALUES ($1,$2) ON CONFLICT (consent_id) DO NOTHING",
+        [input.consentId, watchId],
+      );
+      const link = (
         await client.query(
-          "SELECT * FROM app_commitment_consents WHERE id=$1 AND account_id=$2 FOR SHARE",
-          [input.consentId, actor.id],
+          "SELECT watch_id FROM app_commitment_settlement_links WHERE consent_id=$1 FOR SHARE",
+          [input.consentId],
         )
       ).rows[0];
-      if (!row) throw new AppFailure(404, "Private financial authorization unavailable.");
-      if (!row.authorized_at || !row.encrypted_proof)
-        throw new AppFailure(409, "Review and sign the original financial terms first.");
-      const { consent } = unseal(
-        config.encryptionKey,
-        `commitment-consent:${actor.id}:${row.id}`,
-        row.encrypted_consent,
-      ) as { consent: CommitmentConsent };
-      if (
-        canonicalHash(consent) !== row.consent_hash ||
-        (await participantCredential(client, config, actor.id, consent.terms.event)) !==
-          consent.terms.participant
-      )
-        throw new AppFailure(409, "This financial authorization needs review.");
-      const { proof } = unseal(
-        config.encryptionKey,
-        `commitment-proof:${actor.id}:${row.id}`,
-        row.encrypted_proof,
-      ) as { proof: WalletSignature };
-      return {
-        consentId: consent.id,
-        ...contractAuthorization(config.origin, consent, proof, row.authorized_at.getTime()),
-      };
+      if (link.watch_id !== watchId)
+        throw new AppFailure(409, "The original reconciliation binding cannot be replaced.");
+      return { consentId: input.consentId, watchId, fundingAllowed: false as const };
     },
   );
 }

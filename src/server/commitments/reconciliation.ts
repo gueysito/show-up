@@ -56,6 +56,14 @@ function decodeState(keys: Keys, row: Record<string, unknown>): Compared | null 
 // Restricted backend setup only. No user-facing endpoint or live funding
 // activation is attached. Context/authorization remains immutable for this watch.
 export async function createSettlementWatch(pool: pg.Pool, keys: Keys, context: SettlementContext) {
+  return transaction(pool, (client) => createSettlementWatchInTransaction(client, keys, context));
+}
+
+export async function createSettlementWatchInTransaction(
+  client: pg.PoolClient,
+  keys: Keys,
+  context: SettlementContext,
+) {
   const detached = structuredClone(context),
     contextHash = settlementContextHash(detached);
   const index = identityIndex(
@@ -68,23 +76,28 @@ export async function createSettlementWatch(pool: pg.Pool, keys: Keys, context: 
       registration: detached.authorization.registration,
     }),
   );
-  return transaction(pool, async (client) => {
-    const id = randomUUID();
-    await client.query(
-      `INSERT INTO app_settlement_watches (id,context_index,context_hash,encrypted_context)
+  const id = randomUUID();
+  await client.query(
+    `INSERT INTO app_settlement_watches (id,context_index,context_hash,encrypted_context)
       VALUES ($1,$2,$3,$4) ON CONFLICT (context_index) DO NOTHING`,
-      [id, index, contextHash, seal(keys.encryptionKey, `settlement-watch:${id}`, detached)],
-    );
-    const row = (
-      await client.query("SELECT * FROM app_settlement_watches WHERE context_index=$1 FOR UPDATE", [
-        index,
-      ])
-    ).rows[0];
-    if (row.context_hash !== contextHash)
-      throw new AppFailure(409, "The frozen settlement watch cannot be replaced.");
-    decodeContext(keys, row);
-    return row.id as string;
-  });
+    [id, index, contextHash, seal(keys.encryptionKey, `settlement-watch:${id}`, detached)],
+  );
+  const row = (
+    await client.query("SELECT * FROM app_settlement_watches WHERE context_index=$1 FOR UPDATE", [
+      index,
+    ])
+  ).rows[0];
+  if (row.context_hash !== contextHash)
+    throw new AppFailure(409, "The frozen settlement watch cannot be replaced.");
+  decodeContext(keys, row);
+  return row.id as string;
+}
+
+// Restricted backend read. HTTP callers must first scope the watch through an
+// owned consent link; the full projection is never a public roster endpoint.
+export function settlementWatchSnapshot(keys: Keys, row: Record<string, unknown>) {
+  decodeContext(keys, row);
+  return result(keys, row, row.available ? "observed" : "unavailable");
 }
 
 function monotonic(previous: Facts, next: Facts) {

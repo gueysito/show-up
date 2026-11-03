@@ -306,6 +306,14 @@ There is still no HTTP operation for signing, paying or submitting a contract pa
 Browser checks generate disposable per-run fixture keys, shared only with isolated
 test workers; they never load the operator's credential configuration.
 
+`010-commitment-settlement-links.sql` adds the internal consent-to-watch binding.
+Apply it through normal migrations before a rebuilt app reads financial history.
+Binding requires the original stored approval and exact native authorization; it
+does not qualify a source or send a transaction. Own records show waiting, unavailable
+or paused source checks. Conflicts preserve the recorded obligations; unqualified
+observations never become confirmed escrow or funded seats. No watch-creation or
+refresh endpoint is exposed to browsers.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet

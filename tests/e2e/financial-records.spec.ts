@@ -7,6 +7,48 @@ test.use({
   timezoneId: "Pacific/Auckland",
 });
 
+test("own reconciliation reports waiting, unavailable and persistent conflict without claiming a funded seat", async ({
+  page,
+  context,
+}) => {
+  const f = await financialFixtures("near");
+  try {
+    await f.enter(context, 0);
+    await f.watch("awaiting");
+    await page.goto("/account/commitments");
+    const status = page.getByRole("region", { name: "Reconciliation status" });
+    await expect(status).toContainText("Waiting for finalized source records");
+    await f.watch("unavailable");
+    await page.reload();
+    await expect(status).toContainText("temporarily unavailable");
+    await f.watch("conflict");
+    await page.reload();
+    await expect(status).toContainText("Conflicting source records paused this check");
+    await f.watch("unavailable");
+    await page.reload();
+    await expect(status).toContainText("Conflicting source records paused this check");
+    await expect(
+      page.getByText("Escrow not confirmed. No funded seat is shown for this authorization."),
+    ).toBeVisible();
+    const record = (await (await page.request.get("/api/commitments")).json()).records[0];
+    expect(record.reconciliation.status).toBe("paused");
+    expect(record.reconciliation.sourceQualified).toBe(false);
+    expect(record.reconciliation.context).toBeUndefined();
+    expect(record.reconciliation.funded).toBeUndefined();
+    expect(record.fundingAllowed).toBe(false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({
+      path: "test-results/reconciliation-paused-mobile.png",
+      fullPage: true,
+    });
+  } finally {
+    await f.cleanup();
+  }
+});
+
 test("own financial approvals persist without claiming escrow, and private history rejects ID swaps", async ({
   page,
   context,

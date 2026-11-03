@@ -76,6 +76,27 @@ export default async function CommitmentsPage({
                   : "Prepared terms · approval not recorded"}
               </p>
               <p>Escrow not confirmed. No funded seat is shown for this authorization.</p>
+              {record.reconciliation.status !== "not_linked" && (
+                <section aria-label="Reconciliation status">
+                  <h3>Financial record checks</h3>
+                  <p>
+                    {record.reconciliation.status === "paused"
+                      ? "Conflicting source records paused this check. Existing obligations remain recorded."
+                      : record.reconciliation.status === "source_unavailable"
+                        ? "Source records are temporarily unavailable. Existing obligations remain recorded."
+                        : record.reconciliation.status === "awaiting_observation"
+                          ? "Waiting for finalized source records for this authorization."
+                          : "Source records were compared, but this route is not qualified for escrow confirmation."}
+                  </p>
+                  {record.reconciliation.principalRemaining !== null && (
+                    <p>{`Observed principal still owed: ${amount(record.reconciliation.principalRemaining, record)}. This is an unqualified observation, not a payment receipt.`}</p>
+                  )}
+                  {record.reconciliation.returnedRemaining !== null && (
+                    <p>{`Observed source return still owed: ${amount(record.reconciliation.returnedRemaining, record)}. This is an unqualified observation, not a payment receipt.`}</p>
+                  )}
+                  <p>{`Last successful source check: ${record.reconciliation.lastSuccessAt ?? "Not recorded"}.`}</p>
+                </section>
+              )}
               {record.terms.environment === "sandbox" && (
                 <p>Disposable sandbox tokens only. This record is not real USDC funding.</p>
               )}
