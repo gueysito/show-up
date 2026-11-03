@@ -1,0 +1,122 @@
+import { createHash, createPrivateKey, createPublicKey, sign } from "node:crypto";
+import { decodeBase58, encodeBase58 } from "../../src/server/protocol/encoding";
+import { walletAddress } from "../../src/server/wallets/proof";
+
+export type NativeAction =
+  | { kind: "create" }
+  | { kind: "deploy"; code: Buffer }
+  | { kind: "call"; method: string; args: Buffer; gas: string; deposit: string }
+  | { kind: "transfer"; deposit: string }
+  | { kind: "add_key"; publicKey: string };
+
+export function nativeKey(seed: Buffer) {
+  if (seed.length !== 32) throw new Error("An Ed25519 seed is required");
+  const key = createPrivateKey({
+    key: Buffer.concat([Buffer.from("302e020100300506032b657004220420", "hex"), seed]),
+    format: "der",
+    type: "pkcs8",
+  });
+  const publicBytes = createPublicKey(key).export({ format: "der", type: "spki" }).subarray(-32);
+  return {
+    publicKey: `ed25519:${encodeBase58(publicBytes)}`,
+    publicBytes,
+    sign: (message: Uint8Array) => sign(null, message, key),
+  };
+}
+export type NativeKey = ReturnType<typeof nativeKey>;
+
+export function nativeInteger(value: string, bytes: number) {
+  if (!/^(0|[1-9][0-9]*)$/.test(value)) throw new Error("Invalid native integer");
+  let integer = BigInt(value);
+  if (integer >= 1n << BigInt(bytes * 8)) throw new Error("Native integer overflow");
+  const encoded = Buffer.alloc(bytes);
+  for (let i = 0; i < bytes; i++) {
+    encoded[i] = Number(integer & 255n);
+    integer >>= 8n;
+  }
+  return encoded;
+}
+export function nativeBytes(value: Uint8Array) {
+  if (value.length > 1_400_000) throw new Error("Native image exceeds the reviewed size");
+  return Buffer.concat([nativeInteger(String(value.length), 4), value]);
+}
+export const nativeString = (value: string) => nativeBytes(Buffer.from(value));
+function publicKey(value: string) {
+  if (!value.startsWith("ed25519:")) throw new Error("Only Ed25519 testnet keys are supported");
+  return Buffer.concat([Buffer.from([0]), decodeBase58(value.slice(8), 32)]);
+}
+function account(value: string) {
+  if (
+    walletAddress("near", value) !== value ||
+    (!value.endsWith(".testnet") && !/^[0-9a-f]{64}$/.test(value))
+  )
+    throw new Error("Only testnet names and implicit account identifiers are supported");
+  return nativeString(value);
+}
+function deposit(value: string) {
+  if (BigInt(value) > 20n * 10n ** 24n) throw new Error("Native transfer exceeds the reviewed cap");
+  return nativeInteger(value, 16);
+}
+function action(value: NativeAction): Buffer {
+  switch (value.kind) {
+    case "create":
+      return Buffer.from([0]);
+    case "deploy":
+      return Buffer.concat([Buffer.from([1]), nativeBytes(value.code)]);
+    case "call":
+      if (!/^[a-z][a-z0-9_]{0,63}$/.test(value.method) || BigInt(value.gas) > 300_000_000_000_000n)
+        throw new Error("Native call exceeds the reviewed shape");
+      return Buffer.concat([
+        Buffer.from([2]),
+        nativeString(value.method),
+        nativeBytes(value.args),
+        nativeInteger(value.gas, 8),
+        deposit(value.deposit),
+      ]);
+    case "transfer":
+      return Buffer.concat([Buffer.from([3]), deposit(value.deposit)]);
+    case "add_key":
+      return Buffer.concat([
+        Buffer.from([5]),
+        publicKey(value.publicKey),
+        Buffer.alloc(8),
+        Buffer.from([1]),
+      ]);
+  }
+}
+
+// Native V0 Borsh bytes have no version prefix. Persist the signed result before
+// the only broadcast attempt; a fresh nonce must never replace an unknown image.
+export function nativeTransaction(input: {
+  signer: string;
+  receiver: string;
+  publicKey: string;
+  nonce: string;
+  blockHash: string;
+  actions: NativeAction[];
+}) {
+  if (!input.actions.length || input.actions.length > 4)
+    throw new Error("Unexpected native action count");
+  const bytes = Buffer.concat([
+    account(input.signer),
+    publicKey(input.publicKey),
+    nativeInteger(input.nonce, 8),
+    account(input.receiver),
+    decodeBase58(input.blockHash, 32),
+    nativeInteger(String(input.actions.length), 4),
+    ...input.actions.map(action),
+  ]);
+  const digest = createHash("sha256").update(bytes).digest();
+  return { bytes, digest, hash: encodeBase58(digest) };
+}
+export function signNativeTransaction(
+  input: Omit<Parameters<typeof nativeTransaction>[0], "publicKey">,
+  key: NativeKey,
+) {
+  const image = nativeTransaction({ ...input, publicKey: key.publicKey });
+  const signature = key.sign(image.digest);
+  return {
+    hash: image.hash,
+    signedBase64: Buffer.concat([image.bytes, Buffer.from([0]), signature]).toString("base64"),
+  };
+}

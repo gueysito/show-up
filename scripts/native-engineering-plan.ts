@@ -8,7 +8,8 @@ import { record } from "../src/server/protocol/quote-signature";
 import { decodeBase58, encodeBase58 } from "../src/server/protocol/encoding";
 import { createHash } from "node:crypto";
 
-const rootAccount = "showup-dev-14989f.testnet";
+export const nativeEngineeringRoot = "showup-dev-14989f.testnet";
+const rootAccount = nativeEngineeringRoot;
 const native = 10n ** 24n;
 const maximumNative = 20n * native;
 const principal = "5000000";
@@ -173,6 +174,18 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
       "withdraw_original_principal",
       "return_test_tokens_to_project_wallet",
     ],
+    recovery: {
+      maximumAdditionalImages: 4,
+      reconcileOriginalHashBeforeRecovery: true,
+      newDepositOrReservationAllowed: false,
+      actions: [
+        "cancel_or_abort_original_event",
+        "fail_neutral_after_original_deadline",
+        "withdraw_original_liabilities",
+        "return_original_test_principal",
+      ],
+      retainChildAccountsAndKeys: true,
+    },
     requirements,
     sourceQualified: false,
     liveFundingAllowed: false,

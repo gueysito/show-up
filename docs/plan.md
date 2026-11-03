@@ -69,17 +69,38 @@ The finite remaining deliverables below decompose existing packages, not new sta
 Local delivery progress: `8ca2941` binds saved drafts/staff to actual native sandbox
 publication; `3f21725` connects event wallet/destination review and the signed NEAR
 return context; `9937770` connects original recovery status and actual deletion holds.
-This checkpoint binds explicit user release to the original funded registration,
-with a stable encrypted image, strict deadline and retained recovery identity.
-One new actual sandbox release/return journey passes, alongside focused deadline,
-qualification, restricted-account and affected history/API/browser checks. No new
-kill variant or repeated unchanged contract proof is added. Publication CI
-[41690057149](https://github.com/gueysito/show-up/actions/runs/41690057149) passes both
-jobs. Remaining integration work stays inside the existing finite packages:
-source-to-witness/engineering driver preparation, source-dependent quote/funding
-and publication prerequisites, then the combined two-mode walkthrough and exact
-owner handoff. Actual protocol activation/signing/spending, qualified source coverage,
-bot messages and devices retain their gates. No full milestone-4 completion is claimed.
+`9184ccd` adds user-bound release through actual sandbox principal return;
+`297770e` implements optional bot consent and bound replies. Existing affected
+browser/native evidence is retained. Release CI [41695563149](https://github.com/gueysito/show-up/actions/runs/41695563149)
+and engineering-profile CI [41703542800](https://github.com/gueysito/show-up/actions/runs/41703542800)
+pass both jobs. This checkpoint prepares the bounded native testnet executor,
+including fixed signed images and original-principal recovery, without running it.
+
+Updated remaining integration estimate: **2–4 focused local days after the required
+protocol proofs provide qualified paths**, excluding external turnaround and
+provider-driven redesign. The earlier 5–8-day reforecast included the now delivered
+publication binding, wallet review, recovery status, user release and ordinary bot
+journeys. Remaining: source-dependent publication prerequisites (0.5–1 day),
+qualified quote/consent/funding wiring (1–2 days), settlement-dependent clearance
+and combined two-mode walkthrough (0.5–1 day). P2/P3/P4/P5 public proofs can reveal
+additional implementation work; the current estimate does not assume they pass.
+No required route or acceptance criterion is removed. Actual protocol activation,
+qualified source coverage, bot messages and devices retain their gates.
+
+Smallest next owner action: fund `showup-dev-14989f.testnet` to **15 test NEAR**
+(keep total at or below 20) and at least **5 test USDC** using the pinned NEAR
+engineering token, then explicitly approve the concrete native testnet plan's
+signing/deployment and recovery under its **20-test-NEAR / 5-test-USDC** limits.
+Current review artifact: operation `2750f947-d374-424d-9b4c-328379227ada`, SHA-256
+`161ae1ebbb741e3ca695814f34e97b170a70d80ebb88d529f899d660971d261f`, at
+`/private/tmp/showup-native-engineering-2750f947-d374-424d-9b4c-328379227ada.json`.
+It pins the WASM/code, token, accounts, fourteen normal steps and bounded original
+recovery. It loads no application keys; execution has not been authorized or run.
+After that result, the next bounded requests are actual Base/Ethereum/Solana and
+MPC/draw/Intents assets/budgets, optional bot token/message approval, and iOS/Android
+checks. These remain separate gates, not part of this native approval.
+Source-dependent application integration and the combined funded walkthrough
+remain incomplete; no full milestone-4 completion is claimed.
 
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and
@@ -91,11 +112,11 @@ running merely to accumulate verification evidence. Milestones 5–7 remain excl
 | --- | --- | --- |
 | External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | Native engineering profile and unsigned experiment plan integrated; qualification incomplete | `e264acc` verifies both local financial profiles and fixed finalized-source reads. This checkpoint adds public-only preparation of the exact WASM/accounts/token/budget/return sequence; an actual two-source preparation found about 10 test NEAR and zero test USDC against about 14.2525 test NEAR plus 5 test USDC required. Focused static checks pass; no key was loaded or transaction signed. Next: finish the bounded execution driver and source-dependent application integration. Actual provider/asset experiments, public signing/deployment, funds and devices retain their gates. All four networks remain required. [Profiles and preparation](setup.md#financial-consent-preparation). |
+| P1–P5 | Native engineering executor prepared; public proofs gated | This checkpoint adds a fourteen-step native testnet operator path and bounded original-principal recovery. Signed images persist before one submission; unknown acknowledgment reconciles the original hash. Focused Node checks, independent pinned NEAR wire decoding, static checks and Rust lint pass. The lockfile only promotes two already pinned dependencies; no package versions change. Actual public-only preparation confirms funding/approval blockers. No operator key was loaded, public transaction signed or route qualified. Next: owner funding and exact native-plan approval, then source-dependent integration. [Operator boundaries](setup.md#financial-consent-preparation). |
 | I1 | Development sign-in/linking verified; optional bot identity prerequisite added | This checkpoint preserves the signed Telegram `profile.id` separately from OIDC `sub`, encrypted in the same identity record; legacy enrichment keeps the original account, rejects changed bindings and collects nothing new during restricted recovery. Own export includes the retained ID. 78 unit, 176 PostgreSQL, seven affected Chromium journeys and isolated build/static checks pass; the new regression fails against the old writer. Owner-verified Google/Telegram sign-in/linking remains prior evidence; no owner app/key change, bot-message consent, actual-phone or release claim. [Setup](setup.md#secure-local-identity-setup). |
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
-| I3 | Private drafts/entry and native sandbox publication integrated; live publication incomplete | This checkpoint replaces the bridge's raw publication SQL with the normal saved-draft service, fixed staff credentials and one encrypted publication image. A private salted commitment binds material application fields into the actual contract rules hash; matching source observations publish atomically, while material edits/roster changes stay frozen and deletion retains unresolved publication. Host readiness and own export expose scoped status without the image/salt. Existing four actual sandbox app/contract journeys exercise both modes and normal/fail-neutral principal return. Focused publication/deletion checks, required application/contract integration checks, isolated production build and affected host/privacy browser journeys are the checkpoint validation. No public signing, owner app/key changes, live route or full admission-coverage qualification. [Publication and gates](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). Next: wallet/quote/commitment review and recovery integration; actual publication still requires qualified protocol/reserve evidence. |
-| I4–I5 | Event-to-wallet review integrated; native sandbox round trip verified; qualified quotes/routes/clearance pending | This checkpoint adds event-scoped selection and server review of owned source/refund/payout wallets on all four networks, with current rules/registration and same-network source-refund checks. Unknown fee limits, source amount, minimum net and quote expiry remain explicitly unavailable; review creates no consent, reservation or payment instruction. NEAR control callbacks retain the exact event review and still require the original signed callback and FullAccess checks. Focused wallet/review PostgreSQL and callback checks, affected browser journeys/mobile inspection, isolated production build and static checks validate this change. `8ca2941` separately verifies normal saved-draft publication into the actual sandbox, all four existing attended/outage app/contract journeys and required broader contract/application checks; [CI](https://github.com/gueysito/show-up/actions/runs/41690057149) is running. Original consent/ciphertext and full test-token principal recovery remain prior evidence. Next: integrate own release/cancellation/return status and privacy holds. A qualified escrow recipient and attributable funding/return route are required before binding real quotes, exact fees or financial approval; no fixture or browser flag enables them. Settlement-dependent clearance/purge and real four-network evidence remain incomplete. [Review and gates](setup.md#financial-consent-preparation). |
+| I3 | Saved-rule publication bound in sandbox; live prerequisites gated | `8ca2941` binds normal saved drafts/fixed staff to one encrypted salted material image and actual native publication. Both-mode attended/outage principal journeys and affected host/privacy browser checks pass; CI41690057149 passes. Qualified escrow, reserve/prize/provider evidence and public authority remain prerequisites for live publication. [Publication](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). |
+| I4–I5 | Wallet review, release/recovery status and privacy holds integrated; live money/clearance pending | `3f21725` connects owned destinations/current rules and exact NEAR event return; `9937770` exposes original recovery and deletion holds; `9184ccd` binds explicit release to the original funded registration and actual sandbox principal return. Focused financial/privacy/API/browser checks pass and release CI41695563149 passes both jobs. Actual qualified quotes, fee limits, attributable four-network funding and settlement-dependent clearance remain incomplete. No browser flag or fixture enables them. [Review/recovery](setup.md#financial-consent-preparation). |
 | A1–A4 | Local bot connection, event handoff and bound code integration verified; qualification remains | `297770e` connects event prompts, exact-message/short-code replies and event-specific history to the shared attempt ledger without website/wallet authority; both CI jobs pass [41678300150](https://github.com/gueysito/show-up/actions/runs/41678300150). This entry checkpoint also wires bot-first links to the same website/sign-in journey without creating profiles or message subscriptions. [Setup and gates](setup.md#optional-telegram-connection). No actual Telegram request/message or webhook registration occurred. Next: publication/commitment/recovery integration in the finite list above. Qualified ingress/source coverage, bot activation/messages and actual-device evidence remain gated. |
 
 | Approved checkpoint | Status | Evidence |

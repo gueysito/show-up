@@ -30,11 +30,11 @@ private invitations and host management pass isolated-account checks. Funding an
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-Prepare the bounded engineering-network experiment driver within the existing P1–P5 packages;
-source-dependent publication/quote/funding/return integration and provider/asset experiments retain their gates.
+The bounded native engineering driver is prepared; [the exact plan and funding/approval handoff](docs/plan.md#active-halfway-implementation-goal) are ready.
+Await that public protocol proof before source-dependent publication/quote/funding/clearance integration;
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;
-independent local work continues. Verified private-branch checkpoints are approved.
+source-dependent implementation resumes with qualified inputs. Verified private-branch checkpoints are approved.
 No merge, general hosting, public signing/deployment, paid purchase or spending is authorized.
 
 ## Unimplemented or unverified

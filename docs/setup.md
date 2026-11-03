@@ -430,8 +430,38 @@ create → fund → release → return sequence. It loads no wallet/application 
 and has no execution option. The observed preparation requires about 14.2525
 test NEAR; the project wallet held about 10 and zero test USDC. Test-token funding
 and explicit public-signing/deployment approval remain prerequisites. The
-execution driver is still being prepared; this plan cannot activate application
-funding, qualify an asset/route or establish a completed experiment.
+separate operator driver, `scripts/native-engineering-run.ts`, accepts only an
+explicitly approved plan path/hash with `execute-approved-plan`,
+`resume-approved-plan` or `recover-approved-plan`. Its fixed testnet endpoint,
+manifest, token, artifact and destination checks cannot be changed by environment
+variables. Fresh public preflight must confirm funding and the frozen costs/code
+before execution. The original approved plan remains usable after owner funding.
+
+The driver parses the existing project testnet wallet as data, verifies its
+derived FullAccess key against both sources and generates separate disposable
+child/credential/evidence keys. It never reads `.env.auth` or rewrites existing
+wallet/application keys. Private retained state lives at
+`contracts/.cache/native-engineering/<operationId>.json`, mode 0600. The fixed
+fourteen-step path allocates exactly 5 test USDC, signs the normal financial
+consent, observes actual escrow, releases and withdraws the original liability,
+then returns that principal to the project wallet. Each signed transaction is
+saved and synced before one HTTP attempt. Unknown acknowledgments query the
+original hash/sender; they never refresh the nonce and repeat the transfer.
+
+Recovery first reconciles every possibly submitted image, closes new funding,
+and permits at most four additional images for original-event cancellation or
+deadline-based fail-neutral resolution, original liabilities and the same test
+principal return. Uncertain images or pending callbacks stop recovery. Preserve
+the private state and any crash lock for operator reconciliation; do not delete
+or regenerate keys while funds are unresolved. The approximately 12 test NEAR
+in escrow and 0.25 in the attendee remain in those disposable accounts, including
+storage collateral; no automatic account/key deletion is performed. This is part
+of the proposed 20-test-NEAR ceiling, separate from the returned 5-test-USDC principal.
+
+Local verification covers independent pinned native decoding/signatures and
+durable original-hash recovery. The public deployment/round trip has **not** run.
+This tool cannot activate application funding, qualify an asset/route, prove the
+other three networks or establish full milestone-4 completion.
 
 After rebuilding, **Account → Review your financial authorizations** shows only that
 account's prepared or approved terms. Approval is separate from escrow confirmation;

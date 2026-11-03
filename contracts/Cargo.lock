@@ -2849,10 +2849,12 @@ name = "showup-sandbox-tests"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "borsh",
  "bs58 0.5.1",
  "chrono",
  "ed25519-dalek",
  "near-crypto",
+ "near-primitives",
  "near-sandbox",
  "near-workspaces",
  "serde_json",
