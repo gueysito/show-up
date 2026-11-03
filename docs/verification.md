@@ -1191,6 +1191,26 @@ Actual BFCache/phone evidence remains an owner/device gate.
   settlement-dependent purge and actual-device verification remain incomplete.
   Owner auth credentials, application keys and development data are untouched.
 
+## Physical QR protocol checkpoint November 3
+
+- Format/lint/types, 68 unit, all 103 disposable PostgreSQL scenarios, isolated
+  production build and 28 Chromium journeys pass; 13 code/test inputs match.
+  Ten new database scenarios cover 60-second/clipped-cutoff equality, replacement,
+  original-operation retries, assigned staff/host authority, exact-session scans,
+  explicit presence, competing confirmations, source rechecks, deletion and schema
+  rollback. A controlled lock proves sorted cross-account acquisition. Removing
+  the staff-exclusion guard in a disposable copy makes its regression fail.
+- Actual HTTP checks deny unqualified issue/scan/confirm, anonymous/unassigned
+  callers, client authority/time overrides and cross-site requests. App input/rate,
+  account/role/ID-swap, SQL, error/header and server-secret boundaries are reviewed;
+  no upload, billing, dependency or CORS permission is added. No QR/source/credential
+  internals appear in client bundles. Prior runtime audit and unchanged contract
+  evidence are reused. Owner credentials, keys and development data are untouched.
+- Positive checks use explicit synthetic sandbox context and disposable signatures.
+  This verifies a pending server protocol, not actual funding, QR rendering/camera,
+  signed/submitted receipts, confirmed attendance or phone behavior. Those flows,
+  complete reconciliation and qualified settlement/purge remain incomplete.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

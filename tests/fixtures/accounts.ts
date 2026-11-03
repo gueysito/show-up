@@ -47,6 +47,10 @@ export async function accountFixtures(roles: string[][]) {
     );
     await pool.query(`DELETE FROM outbox WHERE operation_id IN (${eventOperations})`, [ids]);
     await pool.query("DELETE FROM app_event_access WHERE account_id=ANY($1::uuid[])", [ids]);
+    await pool.query("DELETE FROM app_attendance_qr_scans WHERE validator_id=ANY($1::uuid[])", [
+      ids,
+    ]);
+    await pool.query("DELETE FROM app_attendance_qr WHERE account_id=ANY($1::uuid[])", [ids]);
     await pool.query("DELETE FROM app_invitations WHERE issuer_id=ANY($1::uuid[])", [ids]);
     const watches = await pool.query(
       `DELETE FROM app_commitment_settlement_links WHERE consent_id IN

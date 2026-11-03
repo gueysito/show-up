@@ -31,6 +31,8 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       validatorAssignments,
       hostedValidators,
       attendanceCandidates,
+      attendanceQrWindows,
+      validatorScans,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -93,6 +95,15 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       ),
       await client.query(
         "SELECT * FROM app_attendance_candidates WHERE account_id=$1 ORDER BY received_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,event_id,issued_at,expires_at,retired_at,consumed_at FROM app_attendance_qr WHERE account_id=$1 ORDER BY issued_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT s.id,q.event_id,s.scanned_at,s.confirmed_at FROM app_attendance_qr_scans s
+        JOIN app_attendance_qr q ON q.id=s.qr_id WHERE s.validator_id=$1 ORDER BY s.scanned_at,s.id`,
         [actor.id],
       ),
     ];
@@ -176,6 +187,8 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       attendanceCandidates: attendanceCandidates.rows.map((row) =>
         attendanceCandidateRecord(config, row),
       ),
+      attendanceQrWindows: attendanceQrWindows.rows,
+      validatorScans: validatorScans.rows,
       invitationsIssued: issued.rows,
       invitationsRedeemed: redeemed.rows,
       eventAccess: access.rows,

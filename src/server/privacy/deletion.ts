@@ -121,6 +121,8 @@ export async function requestAccountDeletion(
     );
     await client.query("DELETE FROM app_wallet_challenges WHERE account_id=$1", [actor.id]);
     await client.query("DELETE FROM app_attendance_code_attempts WHERE account_id=$1", [actor.id]);
+    await client.query("DELETE FROM app_attendance_qr_scans WHERE validator_id=$1", [actor.id]);
+    await client.query("DELETE FROM app_attendance_qr WHERE account_id=$1", [actor.id]);
     await client.query("DELETE FROM app_mutations WHERE actor_id=$1", [actor.id]);
     await client.query("DELETE FROM app_wallets WHERE account_id=$1", [actor.id]);
     await client.query("DELETE FROM app_roles WHERE account_id=$1", [actor.id]);

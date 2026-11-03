@@ -31,6 +31,42 @@ export type CodeAttemptResult =
   | { status: "window_closed" }
   | OwnAttendanceCandidate;
 
+export type AttendanceCandidateInput = Awaited<ReturnType<typeof loadAttendanceAdmission>> & {
+  validator?: { credential: string; scanId: string; scannedAt: number; confirmedAt: number };
+};
+
+export async function persistAttendanceCandidate(
+  client: pg.PoolClient,
+  config: Pick<AuthConfig, "encryptionKey">,
+  candidate: AttendanceCandidateInput,
+  windowId: string | null = null,
+) {
+  const id = randomUUID();
+  const row = (
+    await client.query(
+      `INSERT INTO app_attendance_candidates(id,event_id,account_id,consent_id,window_id,environment,classification,received_at,candidate_hash,encrypted_candidate)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [
+        id,
+        candidate.binding.eventId,
+        candidate.binding.accountId,
+        candidate.binding.consentId,
+        windowId,
+        candidate.binding.environment,
+        candidate.packet.classification,
+        new Date(candidate.packet.receipt.received_ms),
+        canonicalHash(candidate),
+        seal(
+          config.encryptionKey,
+          `attendance-candidate:${candidate.binding.accountId}:${id}`,
+          candidate,
+        ),
+      ],
+    )
+  ).rows[0];
+  return attendanceCandidateRecord(config, row);
+}
+
 export function attendanceCandidateRecord(
   config: Pick<AuthConfig, "encryptionKey">,
   row: Record<string, unknown>,
@@ -157,25 +193,7 @@ export async function attemptAttendanceCode(
       );
       if (!timingSafeEqual(Buffer.from(window.code_index, "hex"), Buffer.from(codeIndex, "hex")))
         return { status: "incorrect_code" as const, remainingAttempts: 4 - previous };
-      const id = randomUUID();
-      const row = (
-        await client.query(
-          `INSERT INTO app_attendance_candidates(id,event_id,account_id,consent_id,window_id,environment,classification,received_at,candidate_hash,encrypted_candidate)
-      VALUES($1,$2,$3,$4,$5,'sandbox',$6,$7,$8,$9) RETURNING *`,
-          [
-            id,
-            input.eventId,
-            actor.id,
-            input.consentId,
-            window.id,
-            candidate.packet.classification,
-            at,
-            canonicalHash(candidate),
-            seal(config.encryptionKey, `attendance-candidate:${actor.id}:${id}`, candidate),
-          ],
-        )
-      ).rows[0];
-      return attendanceCandidateRecord(config, row);
+      return persistAttendanceCandidate(client, config, candidate, window.id);
     },
   );
 }

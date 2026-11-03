@@ -393,6 +393,25 @@ appears in that status. Export includes only one's own candidate summary; pendin
 deletion preserves the original candidate and clears failed-guess counters.
 Qualified settlement clearance and material purge remain incomplete.
 
+### Physical QR protocol
+
+Migration `016-attendance-qr.sql` adds encrypted personal QR payloads and private
+scan handles. Payloads contain an opaque credential, event ID, nonce and expiry,
+with no wallet or social identity. A QR lasts at most 60 seconds, clipped at the
+final cutoff; replacement invalidates its old scans. Published hosts/assigned
+validators must have a pre-publication credential on the observed exclusion
+roster. Scanning reveals an event alias and requires separate explicit presence
+confirmation from that exact signed-in validator session. Confirmation time
+determines the pending candidate's on-time/late class. No manual lookup or
+attendance override is provided.
+
+`POST /api/attendance/qr` accepts only the closed issue/scan/confirm actions and
+stays unavailable without qualified evidence. Positive engineering checks run
+backend-only in `showup_test`; no QR display/camera interface or real attendance
+is enabled. Pending candidates remain unconfirmed. Own export includes QR/scan
+metadata without capabilities or another attendee's identity; deletion clears
+ephemeral QR/scans and preserves necessary original financial candidates.
+
 ## Private account export
 
 After rebuilding, choose **Account → Your data and export → Download your data as JSON**.

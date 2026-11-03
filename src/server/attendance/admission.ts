@@ -151,6 +151,15 @@ export async function loadAttendanceAdmission(
   )
     throw new AppFailure(409, "The funded observation differs from the original event approval.");
   const schedule = attendanceSchedule(Date.parse(data.startsAt), Date.parse(data.endsAt));
+  if (
+    !Array.isArray(terms.excluded) ||
+    terms.excluded.length > 1024 ||
+    terms.excluded.some((value) => typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) ||
+    new Set(terms.excluded).size !== terms.excluded.length
+  )
+    throw new AppFailure(409, "The published exclusion roster is invalid.");
+  if (terms.excluded.includes(wire.authorization.participant))
+    throw new AppFailure(403, "The published exclusion roster does not permit attendee check-in.");
   if (receivedMs < schedule.opensAt || receivedMs > schedule.cutoff)
     throw new AppFailure(409, "The published attendance window is closed.");
   const packet = sandboxAttendancePacket(
@@ -164,7 +173,11 @@ export async function loadAttendanceAdmission(
   const facts = validateSettlementState(source.context, source.views, source.block);
   return {
     packet,
-    source: { contextHash: settlementContextHash(source.context), facts },
+    source: {
+      contextHash: settlementContextHash(source.context),
+      facts,
+      excluded: terms.excluded as string[],
+    },
     binding: { accountId, eventId, consentId, environment: "sandbox" as const },
   };
 }

@@ -21,10 +21,26 @@ export async function mutate<T>(
   request: unknown,
   action: string,
   work: (client: pg.PoolClient, actor: Actor) => Promise<T>,
+  relatedAccounts: readonly string[] = [],
 ): Promise<T> {
   if (!isUuid(operationId)) throw new AppFailure(400, "A valid operation reference is required.");
   const requestHash = hash(JSON.stringify({ action, request }));
   return transaction(pool, async (client) => {
+    // Cross-account attendance must lock all participants in one stable order,
+    // before its actor/session and event. Related IDs come from stored credentials,
+    // never caller-supplied account selectors, and are revalidated by the action.
+    if (relatedAccounts.length) {
+      if (relatedAccounts.length > 2 || relatedAccounts.some((id) => !isUuid(id)))
+        throw new Error("Invalid related mutation accounts");
+      const actor = (
+        await client.query("SELECT account_id FROM app_sessions WHERE token_hash=$1", [sessionHash])
+      ).rows[0];
+      if (!actor) throw new AppFailure(401, "Sign in again to continue.");
+      await client.query(
+        "SELECT id FROM app_accounts WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE",
+        [[actor.account_id, ...relatedAccounts]],
+      );
+    }
     const session = await client.query(
       `SELECT a.id FROM app_sessions s
       JOIN app_accounts a ON a.id=s.account_id WHERE s.token_hash=$1

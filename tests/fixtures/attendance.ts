@@ -8,7 +8,10 @@ import {
   createCommitmentConsent,
   consentWalletMessage,
 } from "../../src/server/commitments/consent";
-import { contractAuthorization } from "../../src/server/commitments/contract-authorization";
+import {
+  contractAuthorization,
+  contractReference,
+} from "../../src/server/commitments/contract-authorization";
 import { participantCredential } from "../../src/server/events/credentials";
 import { canonicalHash } from "../../src/server/protocol/canonical";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
@@ -20,7 +23,7 @@ import { validDraft } from "./draft";
 
 // Synthetic funded-state fixtures and real disposable signatures. These are not
 // an actual funding/deployment proof, live identity or a runtime qualification.
-export async function attendanceFixtures() {
+export async function attendanceFixtures(mode: "digital" | "physical" = "digital") {
   const f = await accountFixtures([[], ["host"], []]);
   try {
     const config = authConfig({
@@ -35,7 +38,9 @@ export async function attendanceFixtures() {
       acceptedAt = issued + 1000,
       start = now - 60_000,
       end = start + 3_600_000,
-      eventId = randomUUID();
+      eventId = randomUUID(),
+      hostCredential = randomUUID(),
+      staffCredential = randomUUID();
     const source = settlementFixture(now),
       event = source.views.event as Record<string, unknown>;
     const material: Record<string, unknown> = {
@@ -43,6 +48,8 @@ export async function attendanceFixtures() {
       event: eventId.replaceAll("-", "").padStart(64, "0"),
       start_ms: start,
       end_ms: end,
+      mode: mode === "digital" ? "online" : "physical",
+      excluded: mode === "physical" ? [hostCredential, staffCredential].map(contractReference) : [],
       wallet_consent_origin: config.origin,
     };
     delete material.rules_hash;
@@ -56,6 +63,7 @@ export async function attendanceFixtures() {
     });
     const draft = {
       ...validDraft(),
+      mode,
       title: `Fictional attendance ${randomUUID()}`,
       startsAt: new Date(start).toISOString(),
       endsAt: new Date(end).toISOString(),
@@ -67,6 +75,53 @@ export async function attendanceFixtures() {
       VALUES($1,$2,1,$3,'published',$4,$5,$6)`,
       [eventId, f.accounts[1].id, draft, rulesHash, new Date(start), new Date(issued - 60_000)],
     );
+    if (mode === "physical") {
+      for (const [index, credential] of [
+        [1, hostCredential],
+        [2, staffCredential],
+      ] as const)
+        await f.pool.query(
+          `INSERT INTO app_event_credentials(event_id,account_id,encrypted_credential,created_at)
+          VALUES($1,$2,$3,$4)`,
+          [
+            eventId,
+            f.accounts[index].id,
+            seal(
+              config.encryptionKey,
+              `event-credential:${f.accounts[index].id}:${eventId}`,
+              credential,
+            ),
+            new Date(issued - 120_000),
+          ],
+        );
+      const invitation = randomUUID();
+      await f.pool.query(
+        `INSERT INTO app_invitations(id,token_hash,issuer_id,kind,event_id,expires_at,redeemed_by,redeemed_at,created_at)
+        VALUES($1,$2,$3,'validator',$4,$5,$6,$7,$8)`,
+        [
+          invitation,
+          hash(randomUUID()),
+          f.accounts[1].id,
+          eventId,
+          new Date(start),
+          f.accounts[2].id,
+          new Date(issued - 120_000),
+          new Date(issued - 180_000),
+        ],
+      );
+      await f.pool.query(
+        `INSERT INTO app_event_validators(id,event_id,account_id,invitation_id,alias,assigned_at)
+        VALUES($1,$2,$3,$4,$5,$6)`,
+        [
+          randomUUID(),
+          eventId,
+          f.accounts[2].id,
+          invitation,
+          `Validator ${randomBytes(8).toString("hex")}`,
+          new Date(issued - 120_000),
+        ],
+      );
+    }
     const client = await f.pool.connect();
     let participant: string;
     try {
@@ -139,11 +194,18 @@ export async function attendanceFixtures() {
     (source.views.registration as Record<string, unknown>).authorization = structuredClone(
       wire.authorization,
     );
-    const window = await activateHostCodeWindow(f.pool, config, hash(f.accounts[1].value), {
-      eventId,
-      operationId: randomUUID(),
-      phrase: "Fresh attendance phrase",
-    });
+    const window =
+      mode === "digital"
+        ? await activateHostCodeWindow(f.pool, config, hash(f.accounts[1].value), {
+            eventId,
+            operationId: randomUUID(),
+            phrase: "Fresh attendance phrase",
+          })
+        : {
+            id: randomUUID(),
+            openedAt: new Date(now).toISOString(),
+            expiresAt: new Date(now + 180_000).toISOString(),
+          };
     const received = Date.parse(window.openedAt) + 1;
     const engineering: AttendanceEngineeringInput = { source, testClock: received };
     const input = (phrase: unknown = "Fresh attendance phrase", operationId = randomUUID()) => ({
