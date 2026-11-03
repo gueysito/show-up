@@ -11,6 +11,8 @@ import { authConfig } from "../src/server/auth/config";
 import { hash, seal, unseal } from "../src/server/auth/crypto";
 import { participantCredential } from "../src/server/events/credentials";
 import { saveAccountDraft } from "../src/server/events/accounts";
+import { prepareCommitmentRelease } from "../src/server/commitments/release";
+import { runSandboxPrincipalRecovery } from "../src/worker/principal-recovery";
 import {
   prepareSandboxPublication,
   observeSandboxPublication,
@@ -60,13 +62,20 @@ if (
   process.env.DATABASE_URL !== "postgresql://showup@127.0.0.1:55433/showup_test"
 )
   throw new Error("Application bridge requires the fixed disposable test database.");
+const releaseOnly = process.argv.slice(2).join() === "--release-only";
+if (process.argv.length > 2 && !releaseOnly)
+  throw new Error("Use the default bridge or --release-only.");
 const id = randomBytes(16).toString("hex"),
   directory = `contracts/.cache/app-bridge/${id}`;
 await mkdir(directory, { recursive: true, mode: 0o700 });
 const log = await open(`${directory}/runner.log`, "wx", 0o600);
-const runner = spawn("sh", ["scripts/contracts.sh", "app-bridge", id], {
-  stdio: ["ignore", log.fd, log.fd],
-});
+const runner = spawn(
+  "sh",
+  ["scripts/contracts.sh", "app-bridge", id, releaseOnly ? "release" : "all"],
+  {
+    stdio: ["ignore", log.fd, log.fd],
+  },
+);
 let exitCode: number | null | undefined,
   runnerError = false;
 const finished = new Promise<void>((resolve) => {
@@ -121,11 +130,11 @@ type Published = {
 };
 const results: {
   mode: string;
-  scenario: "attended" | "outage";
+  scenario: "attended" | "outage" | "release";
   attendance: string;
   principalPaid: string;
   liveSubmissionAllowed: false;
-  principalRecovery: {
+  principalRecovery?: {
     signal: "SIGKILL";
     attempts: number;
     submissions: number;
@@ -155,11 +164,16 @@ const results: {
   };
 }[] = [];
 try {
-  const cases = (["attended", "outage"] as const).flatMap((scenario) =>
-    (["online", "physical"] as const).map((mode) => ({ scenario, mode })),
-  );
-  for (const { scenario, mode } of cases) {
-    const channel = scenario === "outage" ? `${mode}-outage` : mode;
+  const cases: { scenario: "attended" | "outage" | "release"; mode: "online" | "physical" }[] = [
+    ...(["attended", "outage"] as const).flatMap((scenario) =>
+      (["online", "physical"] as const).map((mode) => ({ scenario, mode })),
+    ),
+    { scenario: "release", mode: "online" },
+  ];
+  for (const { scenario, mode } of cases.filter(
+    (item) => !releaseOnly || item.scenario === "release",
+  )) {
+    const channel = scenario === "attended" ? mode : `${mode}-${scenario}`;
     const opening = await receive<{
       mode: string;
       profile: SandboxPublicationProfile;
@@ -340,6 +354,64 @@ try {
         true,
       );
       assert.equal(canonicalJson(wire.authorization), canonicalJson(source.context.authorization));
+      if (scenario === "release") {
+        const operation = {
+          operationId: randomUUID(),
+          consentId: consent.id,
+          confirmRelease: true,
+        };
+        const release = await prepareCommitmentRelease(f.pool, config, session, operation, source);
+        assert.deepEqual(
+          await prepareCommitmentRelease(f.pool, config, session, operation),
+          release,
+        );
+        await send(channel, "funded", { action: release.action });
+        let current = await receive<Snapshot>(channel, "released");
+        assert.equal(
+          validateSettlementState(current.context, current.views, current.block).registration
+            ?.state,
+          "released",
+        );
+        let withdrawals = 0;
+        const gateway: SandboxPrincipalGateway = {
+          context: source.context,
+          read: async () => structuredClone(current),
+          submit: async (liabilityId) => {
+            withdrawals++;
+            await send(channel, "released", { liabilityId });
+            current = await receive<Snapshot>(channel, "release_paid");
+          },
+        };
+        const recovered = await runSandboxPrincipalRecovery(f.pool, config, consent.id, gateway);
+        assert.equal(recovered.status, "observed");
+        assert.equal(withdrawals, 1);
+        assert.equal(
+          validateSettlementState(current.context, current.views, current.block).principal
+            ?.remaining,
+          "0",
+        );
+        assert.deepEqual(
+          (
+            await f.pool.query(
+              "SELECT consent_hash,encrypted_consent,encrypted_proof FROM app_commitment_consents WHERE id=$1",
+              [consent.id],
+            )
+          ).rows[0],
+          originalApproval,
+        );
+        results.push({
+          mode,
+          scenario,
+          attendance: "not_checked_in",
+          principalPaid: "5000000",
+          liveSubmissionAllowed: false,
+        });
+        await send(channel, "release_paid", { verified: true });
+        console.log(
+          "PASS: user-bound release accepted in actual sandbox; full principal returned; live route disabled",
+        );
+        continue;
+      }
       const received = Math.max(Date.now(), source.block.timestampMs),
         engineering = { source, testClock: received };
       if (mode === "online") {

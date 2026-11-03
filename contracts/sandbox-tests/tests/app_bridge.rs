@@ -123,17 +123,30 @@ async fn application_attendance_round_trip() {
     );
     let root = PathBuf::from(format!("/cache/app-bridge/{id}"));
     assert!(root.is_dir());
-    for scenario in ["attended", "outage"] {
+    let selected = std::env::var("SHOWUP_APP_BRIDGE_CASE").unwrap_or_else(|_| "all".into());
+    assert!(selected == "all" || selected == "release");
+    for scenario in ["attended", "outage", "release"] {
+        if selected == "release" && scenario != "release" {
+            continue;
+        }
         for mode in ["online", "physical"] {
-            let channel_name = if scenario == "outage" {
-                format!("{mode}-outage")
-            } else {
+            if scenario == "release" && mode == "physical" {
+                continue;
+            }
+            let channel_name = if scenario == "attended" {
                 mode.to_owned()
+            } else {
+                format!("{mode}-{scenario}")
             };
             let channel = channel_name.as_str();
             let mut f = Fixture::with_financial_consent().await;
             let mut terms = f.view("get_event", json!({"event":f.event})).await["terms"].clone();
-            f.start = f.timestamp().await + 120_000;
+            f.start = f.timestamp().await
+                + if scenario == "release" {
+                    1_200_000
+                } else {
+                    120_000
+                };
             f.end = f.start + 1_800_000;
             terms["mode"] = json!(mode);
             terms["start_ms"] = json!(f.start);
@@ -209,6 +222,48 @@ async fn application_attendance_round_trip() {
             assert_eq!(f.fund(&f.alice, &auth, 5_000_000).await, "5000000");
             let funded = snapshot(&f, &auth).await;
             let candidate = exchange(&root, channel, "funded", &funded);
+            if scenario == "release" {
+                let action = candidate["action"].clone();
+                assert_eq!(action["event"], f.event);
+                assert_eq!(action["registration"], auth["registration"]);
+                assert_eq!(action["participant"], auth["participant"]);
+                assert_eq!(action["operation"], "release");
+                assert_eq!(
+                    f.bob
+                        .call(f.escrow.id(), "release")
+                        .args_json(json!({"action":action,"proof":proof(&f.credential,&action)}))
+                        .transact()
+                        .await
+                        .unwrap()
+                        .into_result()
+                        .unwrap()
+                        .json::<String>()
+                        .unwrap(),
+                    "released"
+                );
+                let withdrawal = exchange(&root, channel, "released", &snapshot(&f, &auth).await);
+                assert_eq!(
+                    withdrawal["liabilityId"],
+                    format!("{}:principal", auth["registration"].as_str().unwrap())
+                );
+                assert!(
+                    f.bob
+                        .call(f.escrow.id(), "withdraw")
+                        .args_json(json!({"id":withdrawal["liabilityId"]}))
+                        .max_gas()
+                        .transact()
+                        .await
+                        .unwrap()
+                        .into_result()
+                        .unwrap()
+                        .json::<bool>()
+                        .unwrap()
+                );
+                assert_eq!(f.balance(f.alice.id().as_str()).await, 100_000_000);
+                let paid = exchange(&root, channel, "release_paid", &snapshot(&f, &auth).await);
+                assert_eq!(paid["verified"], true);
+                continue;
+            }
             let receipt = candidate["receipt"].clone();
             assert_eq!(receipt["event"], f.event);
             assert_eq!(receipt["registration"], auth["registration"]);

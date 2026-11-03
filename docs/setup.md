@@ -425,9 +425,19 @@ classification. Release/cancellation/abort observations keep the original approv
 destinations; none is a qualified payment receipt. The release section shows the
 strict start-minus-ten-minute deadline and remains disabled until its route is
 qualified. The data page names the actual financial, published-event or pending
-publication hold. Sandbox observations never clear those holds. Native application
-user-release request binding and qualified settlement-dependent purge remain
-incomplete; existing principal return and contract release proofs are retained.
+publication hold. Sandbox observations never clear those holds.
+
+Native application user-release requests now bind explicit account confirmation
+to the original approved consent, exact funded registration and immutable contract
+action (`031-commitment-release-requests.sql`). Active and deletion-requested accounts
+retain recovery authority for their own obligation. The server enforces the strict
+start-minus-ten-minute boundary and a bounded action expiry; retry returns the same
+encrypted image/nonce. Fresh requests require new explicit confirmation and a
+current funded source observation. No destination or amount can be changed by a
+release request. Own history/export include scoped references, excluding the private
+image. The HTTP route accepts no source assertion and remains unavailable while
+the funding/return route is unqualified. Qualified settlement-dependent purge remains
+incomplete.
 
 The shared attendance packet builder accepts only explicit sandbox context and
 validated funded contract state. It binds the original event, participant, rules,
@@ -890,6 +900,12 @@ an explicit Rust sandbox test. Original app financial consent is signed by the
 generated sandbox wallet and actually funds escrow. A normalized host-code attempt
 or a scoped validator invitation/QR scan/explicit confirmation persists the exact
 candidate then accepted by the contract; both modes pay all principal back.
+It also exercises one positive user-release journey: explicit account confirmation
+prepares the original action, the actual contract releases the funded seat, and the
+existing recovery engine withdraws all principal to the original destination.
+For focused release work, use `npm run contracts:app-bridge -- --release-only`;
+the default CI command retains all existing attendance/outage cases. This adds no
+new kill/restart variant.
 Account identities remain disposable fixtures. Event creation uses the normal
 draft service and staff invitations; application publication is now reconciled
 from the actual sandbox contract against its frozen image rather than a raw

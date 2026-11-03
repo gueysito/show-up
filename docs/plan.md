@@ -68,16 +68,18 @@ The finite remaining deliverables below decompose existing packages, not new sta
 
 Local delivery progress: `8ca2941` binds saved drafts/staff to actual native sandbox
 publication; `3f21725` connects event wallet/destination review and the signed NEAR
-return context. This checkpoint connects the existing recovery journal to own
-history, displays source-observed release/cancellation/abort and the release deadline,
-and names actual deletion holds. Focused original principal/consent checks and
-affected financial-history/privacy browser journeys validate the projection without
-new kill variants or rerunning unchanged contract proofs. It never confirms a real
-payment or clears an obligation. Next local work: native user-release request binding,
-then the combined two-mode walkthrough and exact owner handoff. Qualified quotes,
-real funding/returns, source coverage, provider activation and devices remain external
-evidence gates. [Wallet-review CI](https://github.com/gueysito/show-up/actions/runs/41690979115)
-is running; no full milestone-4 completion is claimed.
+return context; `9937770` connects original recovery status and actual deletion holds.
+This checkpoint binds explicit user release to the original funded registration,
+with a stable encrypted image, strict deadline and retained recovery identity.
+One new actual sandbox release/return journey passes, alongside focused deadline,
+qualification, restricted-account and affected history/API/browser checks. No new
+kill variant or repeated unchanged contract proof is added. Publication CI
+[41690057149](https://github.com/gueysito/show-up/actions/runs/41690057149) passes both
+jobs. Remaining integration work stays inside the existing finite packages:
+source-to-witness/engineering driver preparation, source-dependent quote/funding
+and publication prerequisites, then the combined two-mode walkthrough and exact
+owner handoff. Actual protocol activation/signing/spending, qualified source coverage,
+bot messages and devices retain their gates. No full milestone-4 completion is claimed.
 
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and

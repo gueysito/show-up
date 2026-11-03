@@ -42,6 +42,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       telegramConnections,
       telegramAttendancePrompts,
       publicationImages,
+      releaseRequests,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -163,6 +164,10 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
          FROM app_publication_images p JOIN app_events e ON e.id=p.event_id WHERE e.owner_id=$1 ORDER BY p.created_at,p.event_id`,
         [actor.id],
       ),
+      await client.query(
+        "SELECT operation_id,consent_id,image_hash,expires_at,created_at FROM app_commitment_releases WHERE account_id=$1 ORDER BY created_at,operation_id",
+        [actor.id],
+      ),
     ];
     return {
       format: "showup.own-data.v1",
@@ -189,6 +194,11 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       })),
       telegramAttendancePrompts: telegramAttendancePrompts.rows,
       publicationImages: publicationImages.rows.map((row) => ({ ...row, sourceQualified: false })),
+      releaseRequests: releaseRequests.rows.map((row) => ({
+        ...row,
+        releaseConfirmed: false,
+        sourceQualified: false,
+      })),
       roles: roles.rows.map((row) => row.role as string),
       wallets: wallets.rows.map((row) => {
         const wallet = unseal(

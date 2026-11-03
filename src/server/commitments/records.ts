@@ -75,6 +75,12 @@ export type OwnFinancialRecord = {
   attendance: OwnAttendanceCandidate | null;
   attendanceWindow: OwnAttendanceWindow | null;
   principalRecovery: OwnPrincipalRecovery | null;
+  releaseRequest: {
+    operationId: string;
+    imageReference: string;
+    expiresAt: string;
+    releaseConfirmed: false;
+  } | null;
 };
 export async function listOwnFinancialRecords(
   pool: pg.Pool,
@@ -129,6 +135,13 @@ export async function listOwnFinancialRecords(
       [rows.map((row) => row.id)],
     );
     const recovery = new Map(recoveries.rows.map((row) => [row.consent_id, row]));
+    const releases = await client.query(
+      `SELECT DISTINCT ON (consent_id) consent_id,operation_id,image_hash,expires_at
+       FROM app_commitment_releases WHERE account_id=$1 AND consent_id=ANY($2::uuid[])
+       ORDER BY consent_id,created_at DESC,operation_id DESC`,
+      [actor, rows.map((row) => row.id)],
+    );
+    const release = new Map(releases.rows.map((row) => [row.consent_id, row]));
     const candidates = await client.query(
       "SELECT * FROM app_attendance_candidates WHERE account_id=$1 AND consent_id=ANY($2::uuid[])",
       [actor, rows.map((row) => row.id)],
@@ -180,6 +193,14 @@ export async function listOwnFinancialRecords(
         reconciliation,
         attendance: attendance.get(row.id) ?? null,
         attendanceWindow: attendanceWindow(row),
+        releaseRequest: release.has(row.id)
+          ? {
+              operationId: release.get(row.id)!.operation_id as string,
+              imageReference: release.get(row.id)!.image_hash as string,
+              expiresAt: release.get(row.id)!.expires_at.toISOString(),
+              releaseConfirmed: false as const,
+            }
+          : null,
         principalRecovery: recovery.has(row.id)
           ? {
               status: recovery.get(row.id)!.state as string,

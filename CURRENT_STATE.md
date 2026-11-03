@@ -19,7 +19,7 @@ private invitations and host management pass isolated-account checks. Funding an
 - Native NFT prototype: exact receipt/publication gate, fixed delivery/return with retry, draft/outage recovery and recomputed material-terms commitments.
 - P5: finalized-header pairs, exact asset facts, signed historical delivery and bounded nonce/blockhash recovery pass isolated checks. Routes remain unqualified.
 - Event commitment review selects owned source/refund/payout wallets and preserves NEAR event returns; exact quotes/fees and approval stay gated. Own history preserves original obligations.
-- Own history exposes original recovery status and release/return gates; deletion explains actual holds and retains restricted recovery. Qualified settlement-dependent clearance remains incomplete.
+- Native user-bound release now reaches actual sandbox principal return; own history and deletion expose original requests/holds. Qualified live submission and settlement-dependent clearance remain incomplete.
 - Online code entry preserves retry operations and pending status; host codes, bounded attempts and personal QR and staff camera/confirmation pass isolated checks with synthetic video. Live qualification and device evidence remain incomplete.
 - Disposable loopback capture records actual HTTP outcomes and restart gaps without bodies/identities; its narrow inventory remains unqualified.
 - Public/private event entry, invitation handoff and exact sign-in return are implemented locally; closed deposits and own recovery links remain visible.
@@ -30,8 +30,8 @@ private invitations and host management pass isolated-account checks. Funding an
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-Finish native user-release request binding and the combined two-mode local walkthrough;
-qualified publication/quote/funding/return integrations and P5 provider/asset experiments retain their gates.
+Continue source-to-witness/engineering driver preparation within the finite existing packages;
+source-dependent publication/quote/funding/return integration and provider/asset experiments retain their gates.
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;
 independent local work continues. Verified private-branch checkpoints are approved.

@@ -66,9 +66,22 @@ test("own financial approvals persist without claiming escrow, and private histo
       "INSERT INTO app_principal_recoveries(consent_id,request_hash,encrypted_request,state,last_effect) VALUES($1,$2,$3,'broadcast_unknown','withdraw')",
       [f.consent.id, "e".repeat(64), "engineering-recovery-fixture"],
     );
+    await f.pool.query(
+      "INSERT INTO app_commitment_releases(operation_id,consent_id,account_id,image_hash,encrypted_image,expires_at) VALUES($1,$2,$3,$4,$5,clock_timestamp()+interval '2 minutes')",
+      [
+        crypto.randomUUID(),
+        f.consent.id,
+        f.accounts[0].id,
+        "c".repeat(64),
+        "engineering-release-fixture",
+      ],
+    );
     await page.reload();
     const recovery = page.getByRole("region", { name: "Principal recovery status" });
     await expect(recovery).toContainText("Submission acknowledgement is unknown");
+    await expect(
+      page.getByRole("region", { name: "Release and recovery availability" }),
+    ).toContainText("Original release request saved. Release is not confirmed.");
     await expect(
       page.getByRole("button", { name: "Release commitment · qualified route required" }),
     ).toBeDisabled();
@@ -86,6 +99,13 @@ test("own financial approvals persist without claiming escrow, and private histo
     expect(record.principalRecovery.paymentConfirmed).toBe(false);
     expect(record.principalRecovery.sourceQualified).toBe(false);
     expect(record.principalRecovery.encrypted_request).toBeUndefined();
+    expect(record.releaseRequest.releaseConfirmed).toBe(false);
+    expect(record.releaseRequest.encrypted_image).toBeUndefined();
+    const releaseResponse = await page.request.post("/api/commitments/release", {
+      headers: { origin: "https://localhost:3444" },
+      data: { operationId: crypto.randomUUID(), consentId: f.consent.id, confirmRelease: true },
+    });
+    expect(releaseResponse.status()).toBe(503);
     for (const key of ["proof", "message", "nonce", "accountId"])
       expect(record[key]).toBeUndefined();
     for (const query of [

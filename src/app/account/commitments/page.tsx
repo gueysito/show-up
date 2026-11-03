@@ -195,6 +195,9 @@ export default async function CommitmentsPage({
               {record.authorizedAt && (
                 <section aria-label="Release and recovery availability">
                   <h3>Release and return</h3>
+                  {record.releaseRequest && (
+                    <p>{`Original release request saved. Release is not confirmed. Request reference: ${record.releaseRequest.operationId}; signing expiry: ${record.releaseRequest.expiresAt}. Reconcile that original action before preparing another request.`}</p>
+                  )}
                   <p>{`Timely release must be accepted before ${new Intl.DateTimeFormat("en-US", { dateStyle: "full", timeStyle: "short", timeZone: record.terms.timeZone }).format(new Date(record.terms.registrationClosesAt - 600_000))} (${record.terms.timeZone}). A deletion request does not release a commitment.`}</p>
                   <button type="button" className="secondary-button" disabled>
                     Release commitment · qualified route required
