@@ -5,7 +5,7 @@ import { canonicalJson } from "./canonical";
 
 export const rpcCandidates = candidates;
 const allowed = {
-  near: new Set(["status", "block", "query"]),
+  near: new Set(["status", "block", "query", "EXPERIMENTAL_protocol_config"]),
   evm: new Set([
     "eth_chainId",
     "eth_getBlockByNumber",

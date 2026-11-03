@@ -420,6 +420,19 @@ testnet and FastNEAR testnet. One actual read-only header comparison matched;
 operator independence, asset/deployment qualification and funded round trips remain
 unverified. No public signing, key loading, deployment or spending occurred.
 
+Prepare a concrete **unsigned** native experiment with
+`node --import tsx scripts/native-engineering-plan.ts` after the pinned WASM build.
+This reads only public testnet facts from both fixed sources, including token
+precision/code, balances and protocol storage price at one finalized block.
+It writes a private temporary JSON plan with the exact WASM hash, two proposed
+child accounts, 5 test-USDC principal, a 20-test-NEAR ceiling and the fixed
+create → fund → release → return sequence. It loads no wallet/application keys
+and has no execution option. The observed preparation requires about 14.2525
+test NEAR; the project wallet held about 10 and zero test USDC. Test-token funding
+and explicit public-signing/deployment approval remain prerequisites. The
+execution driver is still being prepared; this plan cannot activate application
+funding, qualify an asset/route or establish a completed experiment.
+
 After rebuilding, **Account → Review your financial authorizations** shows only that
 account's prepared or approved terms. Approval is separate from escrow confirmation;
 the page and read-only `/api/commitments` never report a funded seat. History uses
