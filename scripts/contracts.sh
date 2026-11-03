@@ -36,7 +36,13 @@ case "$task" in
     test_filter=${1:-}
     case "$test_filter" in *[!a-zA-Z0-9_]*) exit 1 ;; esac
     set -- env NEAR_SANDBOX_BIN_PATH=/cache/bin/near-sandbox cargo test --frozen -p showup-sandbox-tests "$test_filter" -- --nocapture --test-threads=1 ;;
-  *) echo 'Use prepare, lock, fetch, pin, format, format-check, wasm or test' >&2; exit 1 ;;
+  app-bridge)
+    bridge_id=${1:-}
+    case "$bridge_id" in ''|*[!0-9a-f]*) exit 1 ;; esac
+    [ "${#bridge_id}" -eq 32 ] || exit 1
+    node "$project_root/scripts/prepare-contracts.mjs" --verify
+    set -- env "SHOWUP_APP_BRIDGE=$bridge_id" NEAR_SANDBOX_BIN_PATH=/cache/bin/near-sandbox cargo test --frozen -p showup-sandbox-tests --test app_bridge application_attendance_round_trip -- --ignored --nocapture --test-threads=1 ;;
+  *) echo 'Use prepare, lock, fetch, pin, format, format-check, wasm, test or app-bridge' >&2; exit 1 ;;
 esac
 if [ "$source_mode" = readonly ]; then source_options=readonly; else source_options=consistency=consistent; fi
 cpu_limit=$(docker info --format '{{.NCPU}}')

@@ -13,7 +13,7 @@ private invitations and host management pass isolated-account checks. Funding an
 - I3 private account drafts: save/reopen/edit/duplicate, ownership checks and locked material terms.
 - Saved-revision publication requirements distinguish validated rules from unverified escrow, reserves, prizes and eligibility; publication stays disabled.
 - I4 wallet control, native sandbox financial proof and durable reconciliation: stable encrypted event credentials, exact consent-to-contract mapping and source-key/amount binding. Conflicts preserve debt; no live route is enabled.
-- Local NEAR sandbox prototype: source-bound escrow, principal recovery, signed attendance/reconciliation and first-round proof/recovery deadlines.
+- Local NEAR sandbox: PostgreSQL financial consent/code and assigned-staff QR candidates reach actual escrow/attendance with full test-token principal return; complete app reconciliation remains incomplete.
 - P2 read-only pricing: pinned real-provider signature verification, strict request/principal checks and bounded transport; no payment instruction or enrollment.
 - P4 local signing adapter: fixed EVM/Core images, provider key/address binding, one request per image and verified callback recovery. Live MPC signing remains unverified.
 - Native NFT prototype: exact receipt/publication gate, fixed delivery/return with retry, draft/outage recovery and recomputed material-terms commitments.

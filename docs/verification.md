@@ -1211,6 +1211,29 @@ Actual BFCache/phone evidence remains an owner/device gate.
   signed/submitted receipts, confirmed attendance or phone behavior. Those flows,
   complete reconciliation and qualified settlement/purge remain incomplete.
 
+## Application-to-sandbox round trip November 3
+
+- The direct runner and documented `contracts:app-bridge` command pass online and
+  physical round trips. Generated sandbox wallet signatures verify the original
+  PostgreSQL financial consent, actual token receipt funds the exact authorization,
+  and the contract accepts the exact persisted app candidate/nonce. Physical staff
+  accepted a scoped app invitation before the actual published exclusion roster;
+  scanning and separate confirmation use that staff session. Actual principal
+  liabilities are paid in full (5,000,000 units each), independently checked in
+  Node against fixed-block sandbox snapshots and receipt signatures. Original approval and candidate
+  ciphertext/hash remain unchanged. No private signing key crosses the peer boundary.
+- Pinned Rust format/Clippy/WASM, format/lint/types and 68 units pass. WASM/Cargo
+  hashes are unchanged; previous 35 sandbox/eight Node and 103 PostgreSQL/28 Chromium
+  production-build evidence are reused. CI runs the peer-dependent test explicitly
+  after the ordinary suite. The private cache retains bounded phase frames/results;
+  stdout reports only modes and aggregate test amounts.
+- This is actual disposable native-contract funding/attendance/return evidence with
+  fixture app publication and preauthenticated fictional accounts. Runtime admission
+  remains disabled. Rust's test authority supplies the complete checkpoint; a durable
+  complete app journal/worker, QR camera, actual phones and external routes remain
+  unverified. No operator credentials, application keys, owner data or public network
+  were used. Milestone 4 is still incomplete.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

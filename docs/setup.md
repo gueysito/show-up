@@ -508,6 +508,28 @@ participant/wallet uniqueness, capacity and authorization expiry. Only actual to
 receipt creates a funded sandbox seat. Principal liabilities outlive failed
 transfers; one pending attempt prevents duplicate sends. Contract-only attendance
 tests exercise signed evidence, not a working online-code or QR interface.
+
+### Application-to-contract sandbox check
+
+With the disposable `test-db` running, use the fixed test environment:
+
+```sh
+export SHOWUP_ENV=test
+export DATABASE_URL=postgresql://showup@127.0.0.1:55433/showup_test
+npm run contracts:app-bridge
+```
+
+The command builds pinned offline WASM and runs a Node/PostgreSQL peer alongside
+an explicit Rust sandbox test. Original app financial consent is signed by the
+generated sandbox wallet and actually funds escrow. A normalized host-code attempt
+or a scoped validator invitation/QR scan/explicit confirmation persists the exact
+candidate then accepted by the contract; both modes pay all principal back.
+The app publication/account setup is an engineering fixture. The script neither
+loads `.env.auth` nor signs on a public network; it refuses any other database URL.
+Private phase frames/results live in ignored `contracts/.cache/app-bridge/`.
+The ordinary contract suite leaves this peer-dependent test ignored; CI executes
+it separately with its test database. No worker completeness, browser QR/camera,
+real provider route or phone behavior is established by this check.
 First-round proof tests freeze one snapshot/key/version/request/deadline and enforce
 same-request recovery/timeout; they do not execute OutLayer or allocate draw assets.
 Typed-custody tests prescribe a fixture beneficiary, lock an exclusive intent and

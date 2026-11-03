@@ -41,3 +41,10 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run contracts:prepare
       - run: npm run contracts:check
+      - run: docker compose --profile checks up -d --wait test-db
+      - run: npm run contracts:app-bridge
+        env:
+          SHOWUP_ENV: test
+          DATABASE_URL: postgresql://showup@127.0.0.1:55433/showup_test
+      - if: always()
+        run: docker compose --profile checks down
