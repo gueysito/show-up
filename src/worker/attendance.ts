@@ -1,3 +1,5 @@
+import { settlementObservationFollows } from "../server/commitments/reconciliation";
+import { recordWorkerSourceObservation, workerSourceObservation } from "./source-observation";
 import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { AuthConfig } from "../server/auth/config";
@@ -192,8 +194,10 @@ export async function runSandboxAttendanceDelivery(
       );
     });
   }
+  let previous = candidate.source.facts,
+    restored = false;
   async function read() {
-    const source = await bounded((signal) => gateway.read(signal));
+    const source = structuredClone(await bounded((signal) => gateway.read(signal)));
     let facts: Facts;
     try {
       if (settlementContextHash(source.context) !== contextHash)
@@ -202,19 +206,22 @@ export async function runSandboxAttendanceDelivery(
     } catch {
       throw new SourceConflict("Attendance source evidence is invalid or changed");
     }
-    if (
-      BigInt(facts.block.height) < BigInt(candidate.source.facts.block.height) ||
-      BigInt(facts.ledgerVersion) < BigInt(candidate.source.facts.ledgerVersion) ||
-      facts.block.timestampMs < candidate.source.facts.block.timestampMs ||
-      (facts.block.height === candidate.source.facts.block.height &&
-        canonicalHash(facts) !== canonicalHash(candidate.source.facts))
-    )
+    if (!restored) {
+      const stored = workerSourceObservation(config, "attendance", candidateId, claimed.row);
+      if (stored && !settlementObservationFollows(previous, stored))
+        throw new SourceConflict("Stored attendance source regressed");
+      previous = stored ?? previous;
+      restored = true;
+    }
+    if (!settlementObservationFollows(previous, facts))
       throw new SourceConflict("Attendance source regressed");
     if (
       facts.registration?.attendance &&
       facts.registration.attendance !== candidate.packet.classification
     )
       throw new SourceConflict("Attendance classification differs");
+    await recordWorkerSourceObservation(pool, config, "attendance", candidateId, claimToken, facts);
+    previous = facts;
     return facts;
   }
   function observed(facts: Facts) {
@@ -243,7 +250,9 @@ export async function runSandboxAttendanceDelivery(
     );
     if (!signed) {
       stage = "sign";
-      const signature = await bounded((signal) => gateway.sign(candidate.packet.receipt, signal));
+      const signature = await bounded((signal) =>
+        gateway.sign(structuredClone(candidate.packet.receipt), signal),
+      );
       if (
         !verifyAttendancePacket(
           candidate.packet,
@@ -301,7 +310,9 @@ export async function runSandboxAttendanceDelivery(
         ).rows[0],
       );
     stage = "submit";
-    await bounded((signal) => gateway.submit(signed.receipt, signed.signature, signal));
+    await bounded((signal) =>
+      gateway.submit(structuredClone(signed.receipt), signed.signature, signal),
+    );
     facts = await read();
     return observed(facts)
       ? finish("observed", null, facts)

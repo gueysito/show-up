@@ -483,6 +483,13 @@ encrypted paid observation. Scoped own export and restricted deletion recovery
 preserve the request and original financial proof. The bridge now kills/restarts
 the principal process after actual payment and checks one withdrawal per mode.
 
+Each receipt, closing and principal worker now saves its latest validated source
+observation under the current claim before another external call. Later reads and
+fresh processes reject older heights/times, same-height forks and regressing
+ledger/accounting/liability facts. These watermarks survive a signer/source failure
+before submission; they record observed source state, not confirmed payment or a
+complete intake-health signal.
+
 No live signing gateway, complete intake/outage monitor or runtime transfer daemon
 is enabled. Dropped-transaction qualification still needs the planned source/witness
 integration; an unknown request cannot clear debt.

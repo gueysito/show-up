@@ -386,3 +386,74 @@ test("delivery migrations seed prior candidates, roll back and reject partial le
     await f.cleanup();
   }
 });
+
+test("source observations within one receipt delivery must advance without intermediate forks or regressions", async () => {
+  for (const kind of ["height", "fork", "time"]) {
+    const f = await fixture();
+    try {
+      const first = structuredClone(f.source),
+        second = structuredClone(f.source);
+      first.block = {
+        height: "103",
+        hash: encodeBase58(Buffer.alloc(32, 14)),
+        timestampMs: f.candidate.packet.receipt.received_ms + 3,
+      };
+      second.block = {
+        height: kind === "height" ? "102" : kind === "fork" ? "103" : "104",
+        hash: encodeBase58(Buffer.alloc(32, 15)),
+        timestampMs: kind === "time" ? first.block.timestampMs - 1 : first.block.timestampMs,
+      };
+      let reads = 0;
+      const result = await f.run({
+        ...f.gateway,
+        read: async () => structuredClone(reads++ === 0 ? first : second),
+      });
+      assert.equal(result.status, "conflict");
+      assert.equal(f.counts().submissions, 0);
+      assert.equal((await f.delivery()).last_error, "source_conflict");
+    } finally {
+      await f.cleanup();
+    }
+  }
+});
+
+test("receipt source watermarks survive a failed signer process before any submission", async () => {
+  const f = await fixture();
+  try {
+    const fresh = structuredClone(f.source);
+    fresh.block = {
+      height: "103",
+      hash: encodeBase58(Buffer.alloc(32, 14)),
+      timestampMs: f.candidate.packet.receipt.received_ms + 3,
+    };
+    assert.equal(
+      (
+        await deliveryProcess(f.config, f.row.id, {
+          ...f.gateway,
+          read: async () => structuredClone(fresh),
+          sign: async () => {
+            assert.equal((await f.delivery()).observed_height, "103");
+            throw new Error("Signer unavailable");
+          },
+        })
+      ).status,
+      "unavailable",
+    );
+    assert.equal((await f.delivery()).observed_height, "103");
+    const older = structuredClone(fresh);
+    older.block = { ...fresh.block, height: "102", hash: encodeBase58(Buffer.alloc(32, 15)) };
+    assert.equal(
+      (
+        await deliveryProcess(f.config, f.row.id, {
+          ...f.gateway,
+          read: async () => structuredClone(older),
+        })
+      ).status,
+      "conflict",
+    );
+    assert.equal((await f.delivery()).observed_height, "103");
+    assert.deepEqual(f.counts(), { signatures: 0, submissions: 0 });
+  } finally {
+    await f.cleanup();
+  }
+});

@@ -503,3 +503,46 @@ test("a stored status cannot claim principal completion without a matching paid 
     await f.cleanup();
   }
 });
+
+test("principal source watermarks survive a failed source process before any withdrawal", async () => {
+  const f = await fixture();
+  try {
+    f.owe();
+    const fresh = structuredClone(f.source());
+    fresh.block = {
+      height: "103",
+      hash: encodeBase58(Buffer.alloc(32, 14)),
+      timestampMs: fresh.block.timestampMs + 3,
+    };
+    let reads = 0;
+    assert.equal(
+      (
+        await principalProcess(f.config, f.consent.id, {
+          ...f.gateway,
+          read: async () => {
+            if (reads++ === 0) return structuredClone(fresh);
+            assert.equal((await f.row()).observed_height, "103");
+            throw new Error("Source unavailable");
+          },
+        })
+      ).status,
+      "unavailable",
+    );
+    assert.equal((await f.row()).observed_height, "103");
+    const older = structuredClone(fresh);
+    older.block = { ...fresh.block, height: "102", hash: encodeBase58(Buffer.alloc(32, 15)) };
+    assert.equal(
+      (
+        await principalProcess(f.config, f.consent.id, {
+          ...f.gateway,
+          read: async () => structuredClone(older),
+        })
+      ).status,
+      "conflict",
+    );
+    assert.equal((await f.row()).observed_height, "103");
+    assert.equal(f.counts().submissions, 0);
+  } finally {
+    await f.cleanup();
+  }
+});

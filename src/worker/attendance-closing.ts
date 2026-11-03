@@ -1,3 +1,5 @@
+import { settlementObservationFollows } from "../server/commitments/reconciliation";
+import { recordWorkerSourceObservation, workerSourceObservation } from "./source-observation";
 import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { AuthConfig } from "../server/auth/config";
@@ -193,6 +195,8 @@ export async function runSandboxAttendanceClosing(
       );
     });
   }
+  let previous = baseline!,
+    restored = false;
   async function read() {
     stage = "read";
     const source = structuredClone(await bounded((signal) => gateway.read(signal)));
@@ -203,19 +207,15 @@ export async function runSandboxAttendanceClosing(
     } catch {
       throw new SourceConflict("Closing source context or facts differ");
     }
-    const previous = claimed.row.encrypted_observation
-      ? (unseal(
-          config.encryptionKey,
-          `attendance-closing-observation:${checkpointId}`,
-          claimed.row.encrypted_observation,
-        ) as Facts)
-      : baseline!;
+    if (!restored) {
+      const stored = workerSourceObservation(config, "closing", checkpointId, claimed.row);
+      if (stored && !settlementObservationFollows(previous, stored))
+        throw new SourceConflict("Stored closing source regressed");
+      previous = stored ?? previous;
+      restored = true;
+    }
     if (
-      BigInt(facts.block.height) < BigInt(previous.block.height) ||
-      facts.block.timestampMs < previous.block.timestampMs ||
-      BigInt(facts.ledgerVersion) < BigInt(previous.ledgerVersion) ||
-      (facts.block.height === previous.block.height &&
-        canonicalHash(facts) !== canonicalHash(previous)) ||
+      !settlementObservationFollows(previous, facts) ||
       canonicalJson(facts.funded) !== canonicalJson(baseline!.funded) ||
       facts.attendance !== baseline!.attendance ||
       facts.registration?.attendance !== baseline!.registration?.attendance
@@ -234,6 +234,8 @@ export async function runSandboxAttendanceClosing(
       facts.ledgerVersion !== checkpoint.ledger_version
     )
       throw new SourceConflict("Closing outcome differs from the frozen decision");
+    await recordWorkerSourceObservation(pool, config, "closing", checkpointId, claimToken, facts);
+    previous = facts;
     return { source, facts };
   }
   try {

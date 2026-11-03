@@ -1,4 +1,5 @@
-import { monotonicSettlementFacts } from "../server/commitments/reconciliation";
+import { recordWorkerSourceObservation, workerSourceObservation } from "./source-observation";
+import { settlementObservationFollows } from "../server/commitments/reconciliation";
 import { randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { AuthConfig } from "../server/auth/config";
@@ -123,12 +124,8 @@ export async function runSandboxPrincipalRecovery(
     requestHash = canonicalHash(request),
     claimToken = randomUUID();
   function observation(row: Record<string, unknown>) {
-    if (!row.encrypted_observation) return null;
-    const value = unseal(
-      config.encryptionKey,
-      `principal-recovery-observation:${consentId}`,
-      row.encrypted_observation as string,
-    ) as Facts;
+    const value = workerSourceObservation(config, "principal", consentId, row);
+    if (!value) return null;
     if (
       value.block.height !== row.observed_height ||
       value.block.hash !== row.observed_hash ||
@@ -218,14 +215,9 @@ export async function runSandboxPrincipalRecovery(
     } catch {
       throw new SourceConflict("Principal source facts or context differ");
     }
-    if (
-      previous &&
-      (BigInt(facts.block.height) < BigInt(previous.block.height) ||
-        !monotonicSettlementFacts(previous, facts) ||
-        (facts.block.height === previous.block.height &&
-          canonicalHash(facts) !== canonicalHash(previous)))
-    )
+    if (previous && !settlementObservationFollows(previous, facts))
       throw new SourceConflict("Principal observation regressed or conflicted");
+    await recordWorkerSourceObservation(pool, config, "principal", consentId, claimToken, facts);
     previous = facts;
     return facts;
   }

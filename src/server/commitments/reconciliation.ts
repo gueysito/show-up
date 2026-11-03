@@ -155,6 +155,17 @@ export function monotonicSettlementFacts(previous: Facts, next: Facts) {
   return true;
 }
 
+export function settlementObservationFollows(previous: Facts, next: Facts) {
+  return (
+    next.event === previous.event &&
+    next.rulesHash === previous.rulesHash &&
+    next.registrationId === previous.registrationId &&
+    BigInt(next.block.height) >= BigInt(previous.block.height) &&
+    monotonicSettlementFacts(previous, next) &&
+    (next.block.height !== previous.block.height || canonicalHash(next) === canonicalHash(previous))
+  );
+}
+
 function result(
   keys: Keys,
   row: Record<string, unknown>,
