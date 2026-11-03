@@ -111,6 +111,7 @@ test("own financial approvals persist without claiming escrow, and private histo
       true,
     );
     await page.screenshot({ path: "test-results/financial-records-mobile.png", fullPage: true });
+    const recordsHistoryLength = await page.evaluate(() => history.length);
     await page.getByRole("link", { name: "Back to your account" }).click();
     // Revocation can finish before the document redirect reaches the browser.
     await page.route("**/api/auth/logout", async (route) => {
@@ -121,9 +122,16 @@ test("own financial approvals persist without claiming escrow, and private histo
     await page.getByRole("button", { name: "Log out", exact: true }).click();
     await expect(page.getByRole("region", { name: "Sign in", exact: true })).toBeVisible();
     expect((await page.request.get("/api/commitments")).status()).toBe(401);
-    await page.goBack();
-    if (new URL(page.url()).pathname !== "/account/commitments") await page.goBack();
+    // Logout can add a second /account entry. Return to the original records
+    // entry in one native traversal; Next may reload while restoring its tree.
+    const offset = recordsHistoryLength - (await page.evaluate(() => history.length));
+    expect(offset).toBeLessThan(0);
+    await page.evaluate((delta) => history.go(delta), offset);
     await expect(page).toHaveURL(/\/account\/commitments$/);
+    await expect(
+      page.getByRole("link", { name: "Sign in to view your financial authorizations" }),
+    ).toBeVisible();
+    expect((await page.request.get("/api/commitments")).status()).toBe(401);
     await expect(page.getByText(f.title)).toHaveCount(0);
     await page.goto("/account/commitments");
     await expect(

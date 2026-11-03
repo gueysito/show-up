@@ -1130,6 +1130,16 @@ Focused format/lint checks pass; application code is unchanged by this repair.
   attempts, staff QR, durable complete evidence, settlement-dependent purge and phone
   checks remain incomplete; existing public signing/spending/deployment gates remain.
 
+CI follow-up: `f9692a9` [run 41589431718](https://github.com/gueysito/show-up/actions/runs/41589431718)
+passed contracts and the host-code journey; financial history intermittently aborted
+its second Back waiter. The test now traverses directly to its original records
+history entry and verifies the exact URL, signed-out records content and API 401.
+Ten repetitions and all 25 Chromium scenarios pass against the isolated published
+build; no application code changes. [Next.js history restoration](https://github.com/vercel/next.js/blob/canary/packages/next/src/client/components/app-router.tsx)
+can reload while restoring the router. This checks network history navigation;
+[Playwright does not support BFCache verification](https://github.com/microsoft/playwright/blob/main/docs/src/navigations.md).
+Actual BFCache/phone evidence remains an owner/device gate.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:
