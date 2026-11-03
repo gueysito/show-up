@@ -77,6 +77,18 @@ export default async function CommitmentsPage({
                   : "Prepared terms · approval not recorded"}
               </p>
               <p>Escrow not confirmed. No funded seat is shown for this authorization.</p>
+              {record.attendance && (
+                <section aria-label="Attendance evidence status">
+                  <h3>Attendance not confirmed</h3>
+                  <p>
+                    {record.attendance.environment === "sandbox"
+                      ? "Disposable sandbox evidence candidate only. No live attendance is confirmed."
+                      : "A receipt candidate is recorded. Contract evidence is still pending."}
+                  </p>
+                  <p>{`Server arrival: ${record.attendance.receivedAt}. Classification: ${record.attendance.classification === "on_time" ? "on time" : "late"}.`}</p>
+                  <p>Preparing this candidate does not sign, submit or confirm attendance.</p>
+                </section>
+              )}
               {record.reconciliation.status !== "not_linked" && (
                 <section aria-label="Reconciliation status">
                   <h3>Financial record checks</h3>

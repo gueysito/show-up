@@ -7,6 +7,7 @@ import { AppFailure } from "../http/security";
 import { canonicalHash } from "../protocol/canonical";
 import type { CommitmentConsent, ConsentTerms } from "./consent";
 import { settlementWatchSnapshot } from "./reconciliation";
+import { attendanceCandidateRecord, type OwnAttendanceCandidate } from "../attendance/attempts";
 
 export type OwnReconciliation = {
   status:
@@ -34,6 +35,7 @@ export type OwnFinancialRecord = {
   escrowState: "not_confirmed";
   fundingAllowed: false;
   reconciliation: OwnReconciliation;
+  attendance: OwnAttendanceCandidate | null;
 };
 export async function listOwnFinancialRecords(
   pool: pg.Pool,
@@ -79,6 +81,13 @@ export async function listOwnFinancialRecords(
       [rows.map((row) => row.id)],
     );
     const linked = new Map(observations.rows.map((row) => [row.consent_id, row]));
+    const candidates = await client.query(
+      "SELECT * FROM app_attendance_candidates WHERE account_id=$1 AND consent_id=ANY($2::uuid[])",
+      [actor, rows.map((row) => row.id)],
+    );
+    const attendance = new Map(
+      candidates.rows.map((row) => [row.consent_id, attendanceCandidateRecord(config, row)]),
+    );
     const records = rows.map((row) => {
       const { consent } = unseal(
         config.encryptionKey,
@@ -119,6 +128,7 @@ export async function listOwnFinancialRecords(
         escrowState: "not_confirmed" as const,
         fundingAllowed: false as const,
         reconciliation,
+        attendance: attendance.get(row.id) ?? null,
       };
     });
     return { records, nextCursor: result.rows.length > 50 ? rows.at(-1)!.id : null };

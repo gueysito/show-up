@@ -1,7 +1,8 @@
 # Local setup
 
-This is an unfinished local application. Authentication, event publication,
-wallet connections, funding and transfers are unavailable. Approved scope is
+This is an unfinished local application. Google/Telegram authentication is
+verified in the development pilot; event publication, live funding and transfers
+remain unavailable. Approved scope is
 the larger halfway implementation goal; see [the plan](plan.md). Implemented and
 verified capabilities are recorded separately from that authorization.
 
@@ -372,6 +373,25 @@ personal QR issuance/scanning, presence confirmation or accepted attendance.
 Contract exclusion/publication integration and settlement-dependent purge remain
 unqualified/incomplete. The browser freeze check uses an explicit engineering
 publication fixture, never a product publication or funded seat.
+
+## Attendance attempt boundary
+
+Migration `015-attendance-attempts.sql` adds per-account/code-window attempt
+counters and encrypted immutable pending candidates bound to the original
+event/account/financial approval. Failed guesses commit; five attempts exhaust
+one active window. Normalized retries with the original operation do not consume
+another attempt. Server arrival determines the window and on-time/late class;
+browser timestamps and funding/source flags are rejected.
+
+`POST /api/attendance/check-in` remains unavailable until attributable escrow and
+attendance evidence are qualified. There is no enabled attendee code-entry flow.
+Positive checks use explicit backend-only sandbox observations against
+`showup_test` and localhost; they cannot enable the development tunnel or a live
+route. Own records label these candidates **Attendance not confirmed**. No receipt
+is signed/submitted, no seat or attendance is confirmed, and no wallet or identity
+appears in that status. Export includes only one's own candidate summary; pending
+deletion preserves the original candidate and clears failed-guess counters.
+Qualified settlement clearance and material purge remain incomplete.
 
 ## Private account export
 

@@ -46,6 +46,25 @@ export function attendanceCodeIndex(
   );
 }
 
+export function attendanceCodeWindowOpen(
+  opened: number,
+  expires: number,
+  received: number,
+  retired: number | null = null,
+) {
+  return (
+    [opened, expires, received, ...(retired === null ? [] : [retired])].every(
+      (value) => Number.isSafeInteger(value) && value >= 0,
+    ) &&
+    expires > opened &&
+    expires <= opened + 180_000 &&
+    received >= opened &&
+    received < opened + 180_000 &&
+    received <= expires &&
+    (retired === null || received < retired)
+  );
+}
+
 async function serverTime(client: pg.PoolClient) {
   return Number(
     (await client.query("SELECT floor(extract(epoch from clock_timestamp())*1000)::text AS ms"))
@@ -67,7 +86,12 @@ function windowFromRow(keys: Keys, row: Record<string, unknown>, now: number): H
     phrase: code.phrase,
     openedAt: (row.opened_at as Date).toISOString(),
     expiresAt: (row.expires_at as Date).toISOString(),
-    active: row.retired_at === null && now < (row.expires_at as Date).getTime(),
+    active: attendanceCodeWindowOpen(
+      (row.opened_at as Date).getTime(),
+      (row.expires_at as Date).getTime(),
+      now,
+      (row.retired_at as Date | null)?.getTime() ?? null,
+    ),
   };
 }
 

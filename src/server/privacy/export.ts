@@ -8,6 +8,7 @@ import type { WalletSignature } from "../wallets/proof";
 import type { OwnWallet } from "../wallets/service";
 import { requirePrivacyActor } from "./access";
 import { settlementWatchSnapshot } from "../commitments/reconciliation";
+import { attendanceCandidateRecord } from "../attendance/attempts";
 
 // Export owned product data, excluding security tokens, blind indexes and challenges.
 export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHash: string) {
@@ -29,6 +30,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       codeWindows,
       validatorAssignments,
       hostedValidators,
+      attendanceCandidates,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -87,6 +89,10 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       await client.query(
         `SELECT v.id,v.event_id,v.alias,v.assigned_at,v.revoked_at FROM app_event_validators v
         JOIN app_events e ON e.id=v.event_id WHERE e.owner_id=$1 ORDER BY v.assigned_at,v.id`,
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT * FROM app_attendance_candidates WHERE account_id=$1 ORDER BY received_at,id",
         [actor.id],
       ),
     ];
@@ -167,6 +173,9 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       hostedCodeWindows: codeWindows.rows,
       validatorAssignments: validatorAssignments.rows,
       hostedValidators: hostedValidators.rows,
+      attendanceCandidates: attendanceCandidates.rows.map((row) =>
+        attendanceCandidateRecord(config, row),
+      ),
       invitationsIssued: issued.rows,
       invitationsRedeemed: redeemed.rows,
       eventAccess: access.rows,

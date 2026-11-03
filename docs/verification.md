@@ -1169,6 +1169,28 @@ Actual BFCache/phone evidence remains an owner/device gate.
   and eight independent Node results are unchanged and reused. Public funding,
   signing, deployment and messaging gates remain.
 
+## Attendance attempt checkpoint November 3
+
+- Format/lint/types, 67 unit, 93 disposable PostgreSQL scenarios, isolated production
+  build and all 27 Chromium journeys pass. Eight new database scenarios exercise
+  five committed guesses, normalized-operation retries, concurrent exhaustion and
+  acceptance, fresh rotations, historical receipt time, exact timing boundaries,
+  account/approval/source rejection, schema rollback and deletion preservation.
+- HTTP checks reject client funding/source/time overrides and cross-site/account
+  swaps. Unqualified admission returns 503 without consuming guesses. The own-record
+  pending status exposes no receipt nonce, source, proof or other account data;
+  the 390px capture is inspected. All 13 code/test inputs match the tested snapshot.
+  Scoped review checks session/ownership, role exclusions, server-side eligibility,
+  bounded input/rates, private errors/headers, parameterized queries and server-only
+  secrets. No uploads, billing, dependency changes or new CORS permission are added;
+  existing runtime audit and unchanged Rust/WASM/eight Node checks are reused.
+- Positive candidates use synthetic funded-state context and disposable signatures
+  through an explicit backend-only test seam restricted to localhost/showup_test.
+  They do not prove actual funding, sign or submit a receipt, confirm attendance or
+  qualify a route. No attendee entry flow is enabled; QR, complete reconciliation,
+  settlement-dependent purge and actual-device verification remain incomplete.
+  Owner auth credentials, application keys and development data are untouched.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:
