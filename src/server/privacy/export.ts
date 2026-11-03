@@ -33,6 +33,8 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       attendanceCandidates,
       attendanceQrWindows,
       validatorScans,
+      hostedEvidenceBarriers,
+      hostedAttendanceCheckpoints,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -104,6 +106,16 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       await client.query(
         `SELECT s.id,q.event_id,s.scanned_at,s.confirmed_at FROM app_attendance_qr_scans s
         JOIN app_attendance_qr q ON q.id=s.qr_id WHERE s.validator_id=$1 ORDER BY s.scanned_at,s.id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT b.event_id,b.complete_through_ms,b.frozen_at_ms,b.candidate_count FROM app_attendance_evidence_barriers b
+        JOIN app_events e ON e.id=b.event_id WHERE e.owner_id=$1 ORDER BY b.frozen_at_ms,b.event_id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT c.id,c.event_id,c.checkpoint_hash,c.observed_height,c.observed_hash,c.ledger_version FROM app_attendance_checkpoints c
+        JOIN app_events e ON e.id=c.event_id WHERE e.owner_id=$1 ORDER BY c.observed_height,c.id`,
         [actor.id],
       ),
     ];
@@ -189,6 +201,8 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       ),
       attendanceQrWindows: attendanceQrWindows.rows,
       validatorScans: validatorScans.rows,
+      hostedEvidenceBarriers: hostedEvidenceBarriers.rows,
+      hostedAttendanceCheckpoints: hostedAttendanceCheckpoints.rows,
       invitationsIssued: issued.rows,
       invitationsRedeemed: redeemed.rows,
       eventAccess: access.rows,

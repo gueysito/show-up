@@ -41,6 +41,20 @@ export async function persistAttendanceCandidate(
   candidate: AttendanceCandidateInput,
   windowId: string | null = null,
 ) {
+  await client.query("SELECT id FROM app_events WHERE id=$1 FOR SHARE", [
+    candidate.binding.eventId,
+  ]);
+  if (
+    (
+      await client.query("SELECT 1 FROM app_attendance_evidence_barriers WHERE event_id=$1", [
+        candidate.binding.eventId,
+      ])
+    ).rowCount
+  )
+    throw new AppFailure(
+      409,
+      "Attendance evidence collection is closed; no new check-in was recorded.",
+    );
   const id = randomUUID();
   const row = (
     await client.query(
@@ -67,15 +81,15 @@ export async function persistAttendanceCandidate(
   return attendanceCandidateRecord(config, row);
 }
 
-export function attendanceCandidateRecord(
+export function attendanceCandidateMaterial(
   config: Pick<AuthConfig, "encryptionKey">,
   row: Record<string, unknown>,
-): OwnAttendanceCandidate {
+): AttendanceCandidateInput {
   const value = unseal(
     config.encryptionKey,
     `attendance-candidate:${row.account_id}:${row.id}`,
     row.encrypted_candidate as string,
-  ) as Awaited<ReturnType<typeof loadAttendanceAdmission>>;
+  ) as AttendanceCandidateInput;
   if (
     canonicalHash(value) !== row.candidate_hash ||
     value.binding.accountId !== row.account_id ||
@@ -87,6 +101,14 @@ export function attendanceCandidateRecord(
     value.packet.classification !== row.classification
   )
     throw new Error("Attendance candidate integrity failure");
+  return value;
+}
+
+export function attendanceCandidateRecord(
+  config: Pick<AuthConfig, "encryptionKey">,
+  row: Record<string, unknown>,
+): OwnAttendanceCandidate {
+  attendanceCandidateMaterial(config, row);
   return {
     id: row.id as string,
     eventId: row.event_id as string,

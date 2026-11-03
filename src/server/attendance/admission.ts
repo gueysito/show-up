@@ -114,6 +114,17 @@ export async function loadAttendanceAdmission(
     `commitment-consent:${accountId}:${consentId}`,
     row.encrypted_consent,
   ) as { consent: CommitmentConsent };
+  if (
+    (
+      await client.query("SELECT 1 FROM app_attendance_evidence_barriers WHERE event_id=$1", [
+        eventId,
+      ])
+    ).rowCount
+  )
+    throw new AppFailure(
+      409,
+      "Attendance evidence collection is closed; no new check-in was recorded.",
+    );
   const { proof } = unseal(
     config.encryptionKey,
     `commitment-proof:${accountId}:${consentId}`,

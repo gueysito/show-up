@@ -23,7 +23,10 @@ import { validDraft } from "./draft";
 
 // Synthetic funded-state fixtures and real disposable signatures. These are not
 // an actual funding/deployment proof, live identity or a runtime qualification.
-export async function attendanceFixtures(mode: "digital" | "physical" = "digital") {
+export async function attendanceFixtures(
+  mode: "digital" | "physical" = "digital",
+  hasQuiz = false,
+) {
   const f = await accountFixtures([[], ["host"], []]);
   try {
     const config = authConfig({
@@ -49,6 +52,7 @@ export async function attendanceFixtures(mode: "digital" | "physical" = "digital
       start_ms: start,
       end_ms: end,
       mode: mode === "digital" ? "online" : "physical",
+      latest_quiz_close_ms: hasQuiz ? end : 0,
       excluded: mode === "physical" ? [hostCredential, staffCredential].map(contractReference) : [],
       wallet_consent_origin: config.origin,
     };
@@ -64,6 +68,20 @@ export async function attendanceFixtures(mode: "digital" | "physical" = "digital
     const draft = {
       ...validDraft(),
       mode,
+      capacity: 1,
+      quizzes: hasQuiz
+        ? [
+            {
+              question: "Fictional unreconciled quiz",
+              type: "short" as const,
+              options: [],
+              correctOption: 0,
+              aliases: ["yes"],
+              plannedAt: new Date(end - 90_000).toISOString(),
+              durationSeconds: 90,
+            },
+          ]
+        : [],
       title: `Fictional attendance ${randomUUID()}`,
       startsAt: new Date(start).toISOString(),
       endsAt: new Date(end).toISOString(),

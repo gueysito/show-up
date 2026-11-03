@@ -412,6 +412,29 @@ is enabled. Pending candidates remain unconfirmed. Own export includes QR/scan
 metadata without capabilities or another attendee's identity; deletion clears
 ephemeral QR/scans and preserves necessary original financial candidates.
 
+### Frozen sandbox attendance evidence
+
+Migration `017-attendance-evidence-barriers.sql` freezes the durable accepted
+candidate set after attendance evidence grace. Event locking waits for an admitted
+writer to commit; subsequent attempts/new code windows are refused. Original
+candidate retries remain history reads. Preparing a checkpoint requires matching
+signed receipts and contract observations for every frozen candidate, one bound
+event/block/ledger, and normal closing prerequisites. Missing evidence, a source
+fork/regression, changed context or unreconciled quiz prevents preparation.
+
+The encrypted manifest/checkpoint survive retries; a 100-entry private manifest
+has its own bounded digest, and checkpoint wire preserves the exact Rust `u64`
+ledger number. Host exports contain only own aggregate/observation metadata;
+restricted deletion recovery preserves necessary journal records. The app bridge
+now uses this persisted checkpoint for actual sandbox close/return and verifies
+Rust/Node signatures across the full u64 range.
+
+These backend-only functions require localhost, `showup_test` and explicit sandbox
+context. They freeze accepted candidates, not complete transport/intake health.
+No live outage watermark or submission/recovery worker is enabled. Their packets
+retain `sourceQualified: false` and `liveSubmissionAllowed: false`; qualified
+settlement/purge, camera and device work remain incomplete.
+
 ## Private account export
 
 After rebuilding, choose **Account → Your data and export → Download your data as JSON**.

@@ -172,9 +172,17 @@ async fn application_attendance_round_trip() {
             .unwrap()
             .into_result()
             .unwrap();
-        let event = f.view("get_event", json!({"event":f.event})).await;
-        let checkpoint = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),"manifest":"local-v1",
-            "event":f.event,"rules_hash":f.rules_hash,"ledger_version":event["ledger_version"],"complete_through_ms":f.end-900_000,"expires_ms":f.end+2_100_000});
+        let boundary = json!({"domain":"showup.sandbox.authorization.v1","deployment":f.escrow.id(),"manifest":"local-v1",
+            "event":f.event,"rules_hash":f.rules_hash,"ledger_version":u64::MAX,"complete_through_ms":f.end-900_000,"expires_ms":f.end+2_100_000});
+        let reconciled = exchange(
+            &root,
+            mode,
+            "reconcile",
+            &json!({"source":snapshot(&f,&auth).await,
+            "receipt":receipt,"proof":signature,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes()),"u64BoundaryProof":proof(&f.evidence,&boundary)}),
+        );
+        let checkpoint: Value =
+            serde_json::from_str(reconciled["checkpointWire"].as_str().unwrap()).unwrap();
         assert_eq!(
             f.bob
                 .call(f.escrow.id(), "close")
@@ -204,7 +212,7 @@ async fn application_attendance_round_trip() {
                 .unwrap()
         );
         assert_eq!(f.balance(f.alice.id().as_str()).await, 100_000_000);
-        let result = json!({"receipt":receipt,"proof":signature,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes()),"returned":snapshot(&f,&auth).await});
+        let result = json!({"receipt":receipt,"proof":signature,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes()),"checkpointProof":proof(&f.evidence,&checkpoint),"returned":snapshot(&f,&auth).await});
         let acknowledged = exchange(&root, mode, "returned", &result);
         assert_eq!(acknowledged["verified"], true);
         eprintln!("PASS: application financial consent, {mode} attendance and principal return");

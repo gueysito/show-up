@@ -1234,6 +1234,29 @@ Actual BFCache/phone evidence remains an owner/device gate.
   unverified. No operator credentials, application keys, owner data or public network
   were used. Milestone 4 is still incomplete.
 
+## Frozen attendance journal checkpoint November 3
+
+- Format/lint/types, 72 unit, all 111 disposable PostgreSQL scenarios, isolated
+  production build and 28 Chromium journeys pass; affected attendance browser paths
+  are rechecked with final source-consistent fixtures. Eight new database scenarios
+  cover the event-lock writer/freezer race, immutable manifests, missing/changed
+  proofs, source forks/regressions, timing/quiz denial, exact u64 persistence,
+  idempotent preparation, migration rollback and private export/deletion recovery.
+  A synthetic 100-entry manifest measured 35,970 bytes and reproduced the generic
+  32 KiB attestation limit; its separate bounded digest passes that regression.
+- Both actual app/sandbox round trips close using the persisted app checkpoint and
+  pay full principal. Independent Rust signatures verify the exact bare-number wire
+  at `u64::MAX`; this boundary vector is not claimed as an accepted contract ledger.
+  Rust format/Clippy/WASM pass; existing unchanged contract/runtime-audit evidence is
+  reused. Scoped server-only/context/DB guards, owner SQL filters, bounded input,
+  private error/export and client-secret boundaries are reviewed. No new endpoint,
+  dependency, upload, billing or CORS permission is added.
+- The journal freezes durably accepted candidates in controlled sandbox execution.
+  It does not establish complete live ingress/outage coverage or a restart-safe
+  submission/closing worker. Live admission, unreconciled quizzes, qualified privacy
+  clearance, camera/phone and external routes remain disabled/incomplete. Operator
+  credentials, application keys and development data are untouched.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

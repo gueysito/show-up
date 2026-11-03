@@ -34,6 +34,11 @@ import {
   confirmAttendanceQr,
 } from "../src/server/attendance/qr";
 import { verifyAttendancePacket } from "../src/server/attendance/evidence";
+import {
+  freezeAttendanceEvidence,
+  prepareAttendanceCheckpoint,
+} from "../src/server/attendance/journal";
+import { verifyAttendanceCheckpoint } from "../src/server/attendance/checkpoint-wire";
 
 if (
   process.env.SHOWUP_ENV !== "test" ||
@@ -121,6 +126,7 @@ try {
           mode: mode === "online" ? ("digital" as const) : ("physical" as const),
           title: `Fictional application sandbox ${mode}`,
           commitment: "5.00",
+          capacity: 1,
           sponsorBudget: "0",
           access: "open" as const,
         };
@@ -321,10 +327,75 @@ try {
       ) as AttendanceCandidateInput;
       assert.equal(candidate.packet.classification, "on_time");
       await send(mode, "funded", { receipt: candidate.packet.receipt });
+      const reconciliation = await receive<{
+        source: Snapshot;
+        receipt: unknown;
+        proof: string;
+        evidencePublicKey: string;
+        u64BoundaryProof: string;
+      }>(mode, "reconcile");
+      assert.equal(canonicalJson(reconciliation.source.context), canonicalJson(source.context));
+      const closingAt = reconciliation.source.block.timestampMs;
+      const barrier = await freezeAttendanceEvidence(
+        f.pool,
+        config,
+        eventId,
+        reconciliation.source,
+        reconciliation.evidencePublicKey,
+        closingAt,
+      );
+      assert.equal(barrier.candidateCount, 1);
+      const prepared = await prepareAttendanceCheckpoint(
+        f.pool,
+        config,
+        {
+          eventId,
+          sources: [reconciliation.source],
+          accepted: [
+            { candidateId: row.id, receipt: reconciliation.receipt, proof: reconciliation.proof },
+          ],
+        },
+        closingAt,
+      );
+      assert.equal(prepared.liveSubmissionAllowed, false);
+      const restarted = await prepareAttendanceCheckpoint(
+        f.pool,
+        config,
+        {
+          eventId,
+          sources: [reconciliation.source],
+          accepted: [
+            { candidateId: row.id, receipt: reconciliation.receipt, proof: reconciliation.proof },
+          ],
+        },
+        closingAt,
+      );
+      assert.equal(restarted.id, prepared.id);
+      assert.equal(restarted.wire, prepared.wire);
+      // Independent Rust serde/signing evidence for the full u64 range. This
+      // boundary vector is never presented as an accepted contract ledger.
+      assert.equal(
+        verifyAttendanceCheckpoint(
+          { ...prepared.checkpoint, ledger_version: "18446744073709551615" },
+          reconciliation.u64BoundaryProof,
+          reconciliation.evidencePublicKey,
+        ),
+        true,
+      );
+      assert.equal(
+        verifyAttendanceCheckpoint(
+          { ...prepared.checkpoint, ledger_version: "18446744073709551614" },
+          reconciliation.u64BoundaryProof,
+          reconciliation.evidencePublicKey,
+        ),
+        false,
+      );
+      await send(mode, "reconcile", { checkpointWire: prepared.wire });
       const returned = await receive<{
         receipt: unknown;
         proof: string;
         evidencePublicKey: string;
+        checkpointProof: string;
         returned: Snapshot;
       }>(mode, "returned");
       assert.equal(
@@ -332,6 +403,14 @@ try {
           candidate.packet,
           returned.receipt,
           returned.proof,
+          returned.evidencePublicKey,
+        ),
+        true,
+      );
+      assert.equal(
+        verifyAttendanceCheckpoint(
+          prepared.checkpoint,
+          returned.checkpointProof,
           returned.evidencePublicKey,
         ),
         true,

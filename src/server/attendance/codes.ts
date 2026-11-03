@@ -160,6 +160,14 @@ export async function activateHostCodeWindow(
       const data = event.data as EventDraft;
       if (event.state !== "published" || data.mode !== "digital")
         throw new AppFailure(409, "Live codes require a published online event.");
+      if (
+        (
+          await client.query("SELECT 1 FROM app_attendance_evidence_barriers WHERE event_id=$1", [
+            input.eventId,
+          ])
+        ).rowCount
+      )
+        throw new AppFailure(409, "Attendance evidence collection is closed.");
       const now = await serverTime(client),
         schedule = attendanceSchedule(Date.parse(data.startsAt), Date.parse(data.endsAt));
       if (now < schedule.opensAt || now >= schedule.cutoff)
