@@ -16,6 +16,12 @@ test("own reconciliation reports waiting, unavailable and persistent conflict wi
     await f.enter(context, 0);
     await f.watch("awaiting");
     await page.goto("/account/commitments");
+    await expect(
+      page
+        .getByRole("region", { name: "Original financial limits" })
+        .getByText("Maximum source gas cost", { exact: true })
+        .locator(".."),
+    ).toContainText("0.0000000000000000001 NEAR");
     const status = page.getByRole("region", { name: "Reconciliation status" });
     await expect(status).toContainText("Waiting for finalized source records");
     await f.watch("unavailable");
@@ -61,6 +67,28 @@ test("own financial approvals persist without claiming escrow, and private histo
     await page.getByRole("link", { name: "Review your financial authorizations" }).click();
     await expect(page.getByRole("heading", { name: f.title })).toBeVisible();
     await expect(page.getByText("Financial terms approved", { exact: true })).toBeVisible();
+    const limits = page.getByRole("region", { name: "Original financial limits" });
+    for (const [label, value] of [
+      ["Maximum source input", "5.1 USDC"],
+      ["Maximum source gas cost", "0.0000000000001 ETH"],
+      ["Maximum routing fee", "0.10 USDC"],
+      ["Maximum delivery fee", "0.05 USDC"],
+      ["Platform fee", "0.00 USDC"],
+    ])
+      await expect(limits.getByText(label, { exact: true }).locator("..")).toContainText(value);
+    for (const [label, expiry] of [
+      ["Recorded quote expiry", f.consent.terms.quoteExpiresAt],
+      ["Recorded reservation expiry limit", f.consent.terms.reservationExpiresAt],
+      ["Funding authorization expiry", f.consent.terms.authorizationExpiresAt],
+    ] as const) {
+      const row = limits.getByText(label, { exact: true }).locator("..");
+      const eventTime = row.locator('time[data-time-zone="America/Denver"]');
+      const localTime = row.locator('time[data-time-zone="Pacific/Auckland"]');
+      for (const time of [eventTime, localTime])
+        await expect(time).toHaveAttribute("datetime", new Date(expiry).toISOString());
+      await expect(eventTime).toContainText("(America/Denver)");
+      await expect(localTime).toContainText("(Pacific/Auckland)");
+    }
     // Recovery transport metadata fixture only, never a live transfer or payment receipt.
     await f.pool.query(
       "INSERT INTO app_principal_recoveries(consent_id,request_hash,encrypted_request,state,last_effect) VALUES($1,$2,$3,'broadcast_unknown','withdraw')",

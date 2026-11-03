@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { formatUsdc } from "../../../domain/event-draft";
 import { authConfig } from "../../../server/auth/config";
 import { sessionCookie } from "../../../server/auth/sessions";
 import { findPrivacySession } from "../../../server/privacy/access";
@@ -12,10 +11,14 @@ import {
 import { AttendanceCodeEntry } from "../../../components/access/attendance-code-entry";
 import { AttendancePersonalQr } from "../../../components/access/attendance-personal-qr";
 import { TelegramCheckIn } from "../../../components/access/telegram-check-in";
+import {
+  FinancialTermsSummary,
+  consentMoneyAmount,
+} from "../../../components/access/financial-terms-summary";
 
 export const dynamic = "force-dynamic";
 function amount(value: string, record: OwnFinancialRecord) {
-  return `${formatUsdc(BigInt(value))} ${record.terms.environment === "mainnet" ? "USDC" : record.terms.environment === "engineering" ? "engineering test-token units" : "sandbox token units"}`;
+  return consentMoneyAmount(value, record.terms);
 }
 export default async function CommitmentsPage({
   searchParams,
@@ -215,20 +218,7 @@ export default async function CommitmentsPage({
               {record.terms.environment === "sandbox" && (
                 <p>Disposable sandbox tokens only. This record is not real USDC funding.</p>
               )}
-              <dl style={{ overflowWrap: "anywhere" }}>
-                <dt>Principal</dt>
-                <dd>{amount(record.terms.principal, record)}</dd>
-                <dt>Maximum delivery fee</dt>
-                <dd>{amount(record.terms.withdrawalFeeMaximum, record)}</dd>
-                <dt>Minimum net payout</dt>
-                <dd>{amount(record.terms.payoutMinimum, record)}</dd>
-                <dt>Funding wallet</dt>
-                <dd>{`${record.terms.source.network}: ${record.terms.source.address}`}</dd>
-                <dt>Source refund destination</dt>
-                <dd>{`${record.terms.refund.network}: ${record.terms.refund.address}`}</dd>
-                <dt>Payout destination</dt>
-                <dd>{`${record.terms.payout.network}: ${record.terms.payout.address}`}</dd>
-              </dl>
+              <FinancialTermsSummary terms={record.terms} />
               <p>
                 {record.authorizedAt
                   ? "These are the limits you approved. Actual fees and delivery have not been reconciled."
@@ -247,8 +237,8 @@ export default async function CommitmentsPage({
                   <dd>{record.createdAt}</dd>
                   <dt>Approved at</dt>
                   <dd>{record.authorizedAt ?? "Approval not recorded"}</dd>
-                  <dt>Funding authorization expires</dt>
-                  <dd>{new Date(record.terms.authorizationExpiresAt).toISOString()}</dd>
+                  <dt>Recorded quote reference</dt>
+                  <dd>{record.terms.quoteHash}</dd>
                 </dl>
               </details>
             </article>

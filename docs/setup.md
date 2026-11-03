@@ -477,6 +477,11 @@ account's prepared or approved terms. Approval is separate from escrow confirmat
 the page and read-only `/api/commitments` never report a funded seat. History uses
 private cursors and remains readable after re-sign-in. Backend contract preparation
 loads the original encrypted proof and acceptance time; callers cannot replace them.
+Own history itemizes the recorded maximum source input and exact asset, native gas
+cap, USDC routing/delivery caps, zero platform fee and minimum net payout. Quote,
+reservation-limit and funding-authorization expiries are separate, displayed in the
+event timezone and the browser's timezone when different. The browser timezone is
+used only for display. These are original limits; actual charges remain unreconciled.
 There is still no HTTP operation for signing, paying or submitting a contract packet.
 Browser checks generate disposable per-run fixture keys, shared only with isolated
 test workers; they never load the operator's credential configuration.
