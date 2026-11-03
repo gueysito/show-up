@@ -430,8 +430,8 @@ attendance override is provided.
 `POST /api/attendance/qr` accepts only the closed issue/scan/confirm actions and
 stays unavailable without qualified evidence. Positive engineering checks run
 in `showup_test`; positive browser packets are explicit backend fixtures. The
-personal display below is implemented; staff camera and real attendance remain
-incomplete. Pending candidates remain unconfirmed. Own export includes QR/scan
+personal display and staff camera below are implemented; real attendance remains
+unqualified. Pending candidates remain unconfirmed. Own export includes QR/scan
 metadata without capabilities or another attendee's identity; deletion clears
 ephemeral QR/scans and preserves necessary original financial candidates.
 
@@ -456,6 +456,47 @@ replay, expiry, capability clearing, restricted-account exclusion and closed
 actual HTTP admission. Browser success packets use synthetic backend fixtures;
 mobile layout is Chromium emulation, not actual-phone/camera evidence. The owner
 app is not rebuilt or changed by these isolated checks.
+
+### Staff QR camera and presence confirmation
+
+After rebuilding, **Account → Staff attendance assignments** lists up to 50
+published physical events at a time. Only the published host with the host role,
+or a validator assigned before publication, can open an event's controls. Both
+need a pre-publication event credential. Foreign event/cursor references, revoked
+or late assignments and restricted deletion accounts cannot expose controls.
+The page returns minimal event timing/title metadata, not a roster, quiz answers,
+wallet, financial approval or raw credential. Discovery does not qualify funding.
+
+Choose **Start camera to scan QR**, allow video, then point it at the attendee's
+personal QR. One video-only permission request is made per Start click. Decoding
+uses a local worker with at most five scans per second; no frames/audio are sent
+to the server. The camera, its canvas and worker stop on a scan, Stop, tab hiding,
+page hide/unmount or one minute. Each scanner owns a fresh video element so old
+asynchronous decoder cleanup cannot stop a newly started stream. A late permission
+response is stopped without attaching it or restarting scanning. No automatic
+navigation opens a decoded URL or unrelated QR.
+
+A valid inspection shows only an event alias. Check the separate **physically
+present** box and choose **Record presence request** while the QR is valid.
+Scanning alone creates no attendance candidate. Unknown scan/confirmation replies
+retain their original operation for explicit retry, including an acknowledged
+confirmation replay after expiry. Only event/scan-bound pending receipts can
+show **Attendance confirmation is still pending**. A QR, scan or click cannot
+confirm attendance, escrow or a seat, and there is no manual override.
+
+Agent checks use the actual attendee canvas → synthetic camera → local decoder,
+with explicit backend-fixture HTTP packets and original database operation
+journals. They cover wrong scan acknowledgements, lost ACKs, separate consent,
+ID swaps, closed actual HTTP admission, one-request permission denial, rapid
+restart, acquired-stream hiding and timeout, mobile 390-pixel layout and keyboard
+labels. The denial and rapid-restart negative controls fail on the prior code.
+The build's client chunks contain no private server markers. Changed-boundary
+security checks cover active-session/assignment authorization, actor-scoped
+parameterized queries, bounded response pages, JSON POST limits/rates and origin
+guards, no permissive CORS, escaped input, generic errors and type-only server
+imports. No upload, billing, admin override or production debug path is added.
+Broader production security and actual camera/device behavior remain unverified;
+normal evidence HTTP stays closed. Isolated tests do not rebuild the owner app.
 
 ### Frozen sandbox attendance evidence
 

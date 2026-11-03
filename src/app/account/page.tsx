@@ -103,6 +103,11 @@ export default async function AccountPage({
             </Link>
           </p>
           <p>
+            <Link href="/account/attendance" prefetch={false}>
+              Review your staff attendance assignments
+            </Link>
+          </p>
+          <p>
             Linking verifies the second identity and keeps this account. Matching emails or
             usernames never merge accounts.
           </p>
