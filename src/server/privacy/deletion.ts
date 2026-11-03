@@ -120,6 +120,10 @@ export async function requestAccountDeletion(
       [actor.id],
     );
     await client.query("DELETE FROM app_wallet_challenges WHERE account_id=$1", [actor.id]);
+    await client.query("DELETE FROM app_telegram_connection_attempts WHERE account_id=$1", [
+      actor.id,
+    ]);
+    await client.query("DELETE FROM app_telegram_connections WHERE account_id=$1", [actor.id]);
     await client.query("DELETE FROM app_attendance_code_attempts WHERE account_id=$1", [actor.id]);
     await client.query("DELETE FROM app_attendance_qr_scans WHERE validator_id=$1", [actor.id]);
     await client.query("DELETE FROM app_attendance_qr WHERE account_id=$1", [actor.id]);

@@ -44,6 +44,12 @@ export async function retirePrivacyRecords(
       DELETE FROM app_audit WHERE id IN (SELECT id FROM expired)`,
       [now, batchSize],
     );
+    await client.query(
+      `WITH expired AS (SELECT account_id FROM app_telegram_connection_attempts WHERE expires_at<=$1::timestamptz-interval '7 days'
+       ORDER BY expires_at,account_id LIMIT $2 FOR UPDATE SKIP LOCKED)
+       DELETE FROM app_telegram_connection_attempts WHERE account_id IN (SELECT account_id FROM expired)`,
+      [now, batchSize],
+    );
     const challenges = await client.query(
       `WITH expired AS (SELECT id FROM app_wallet_challenges WHERE expires_at<=$1::timestamptz-interval '7 days' ORDER BY expires_at,id LIMIT $2 FOR UPDATE SKIP LOCKED)
       DELETE FROM app_wallet_challenges WHERE id IN (SELECT id FROM expired)`,

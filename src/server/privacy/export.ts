@@ -39,6 +39,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       hostedAttendanceClosings,
       principalRecoveries,
       attendanceIntakes,
+      telegramConnections,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -145,6 +146,10 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
         WHERE account_id=$1 ORDER BY received_at_ms,id`,
         [actor.id],
       ),
+      await client.query(
+        "SELECT bot_id,bot_username,consented_at FROM app_telegram_connections WHERE account_id=$1",
+        [actor.id],
+      ),
     ];
     return {
       format: "showup.own-data.v1",
@@ -164,6 +169,11 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
           linkedAt: row.created_at.toISOString(),
         };
       }),
+      telegramConnections: telegramConnections.rows.map((row) => ({
+        botId: row.bot_id,
+        botUsername: row.bot_username,
+        consentedAt: row.consented_at.toISOString(),
+      })),
       roles: roles.rows.map((row) => row.role as string),
       wallets: wallets.rows.map((row) => {
         const wallet = unseal(

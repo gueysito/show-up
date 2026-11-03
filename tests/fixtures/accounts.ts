@@ -66,6 +66,8 @@ export async function accountFixtures(roles: string[][]) {
     await pool.query("DELETE FROM app_wallet_challenges WHERE account_id=ANY($1::uuid[])", [ids]);
     await pool.query("DELETE FROM app_wallets WHERE account_id=ANY($1::uuid[])", [ids]);
     for (const table of [
+      "app_telegram_connection_attempts",
+      "app_telegram_connections",
       "app_mutations",
       "app_audit",
       "app_roles",

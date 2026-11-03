@@ -46,11 +46,31 @@ checks are external gates, never inferred from offline tests.
 
 November 2 resumption: Google/Telegram setup, explicit linking and return to the
 same account are owner-verified; authentication no longer blocks implementation.
-Remaining local code and verification are estimated at 3–5 focused implementation
-days, excluding external approval/provider/device turnaround. Critical path:
-I4 wallet/fee/destination authorization → confirmed escrow/capacity and I3
-publication → I5 recovery/privacy → A1–A4 shared attendance → integrated browser/CI
-verification. Continue independent local work while public signing/funding is gated.
+November 3 delivery reforecast: **5–8 focused implementation days remain locally**,
+excluding external approval/provider/device turnaround. The earlier 3–5-day estimate
+treated backend proofs as closer to complete journeys than the code supports:
+publication is a checklist, commitments expose read-only history, and ordinary bot
+integration is absent. Repeated broad checks also consumed time without closing
+those gaps. This is an estimate correction within the original scope, not changed
+acceptance. Reuse passing evidence; run focused changed-behavior checks and required
+broader checks at integration checkpoints. No additional verification infrastructure
+or repeated negative/kill variants without a specific unresolved requirement.
+
+The finite remaining deliverables below decompose existing packages, not new stages:
+
+| Existing packages | Remaining local deliverable | Local effort | External gate before full acceptance |
+| --- | --- | --- | --- |
+| I3, P1–P5 | Connect saved rules, fixed staff/exclusions and existing protocol adapters to one publication flow with immutable escrow/reserve/prize prerequisites and recoverable status. | 1–2 days | Actual deployment authority, provider/draw/custody qualification, required assets/reserves and bounded signing/spending approval. |
+| I4, P2/P5 | Complete event review → verified wallets → quote/fee/destination consent → funding/reconciliation UI and adapter wiring; only verified escrow can book capacity. | 1.5–2 days | Approved real routes and funded deposit/return evidence on NEAR, Base, Solana and Ethereum. No fixture enables deposits. |
+| I5 | Connect release/cancellation/return status and settlement-dependent privacy clearance to the original obligations; preserve unresolved recovery. | 0.5–1 day | Qualified settlement evidence before actual clearance/purge and real return completion. |
+| A1–A4 | Ordinary optional bot opt-in, event links and sender/prompt-bound code replies on the shared attendance boundary; integrate existing attendance/coverage status and silent mobile/closed controls. | 1–2 days | Bot API credential and explicit message/ingress approval; qualified source/coverage evidence; actual iOS/Android camera, wallet return and audio checks. |
+| Existing integration exit | One combined host/attendee walkthrough for both modes, focused gap fixes, required CI and a concrete owner handoff. | 0.5–1 day | Owner/device and public-provider evidence listed above; no full milestone-4 claim without it. |
+
+Critical path: publication/escrow binding → attendee commitment and funded capacity →
+shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and
+remaining local UI work can progress while external gates stay closed. Finish the
+authorized local deliverables, then hand off exact owner actions; do not continue
+running merely to accumulate verification evidence. Milestones 5–7 remain excluded.
 
 | Active package | Status | Evidence / next dependency |
 | --- | --- | --- |
@@ -61,7 +81,7 @@ verification. Continue independent local work while public signing/funding is ga
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Private drafts and publication checklist verified; publication incomplete | This checkpoint adds an owned saved-revision check: validation is separate from escrow/capacity, four-network funding/returns, execution reserve, prize funding/custody, draw recovery and fixed staff eligibility. Unsaved/stale edits cannot reuse a current result; client verification flags never enable publication. 56 unit, 58 PostgreSQL, 19 Chromium and isolated build checks pass. Actual publication remains blocked on protocol evidence. [Checks and limits](verification.md#i3-publication-requirements-checkpoint-november-2). |
 | I4–I5 | Actual native sandbox app/contract round trip verified; qualified routes/clearance pending | `dd2cd58` carries PostgreSQL's original wallet consent and code/assigned-staff QR candidate into actual disposable NEAR contracts; both modes return all 5,000,000 test-token principal units. That checkpoint passes pinned Rust format/Clippy/WASM and 68 unit checks, with 103 PostgreSQL/28 Chromium/build evidence; original ciphertext/hash survive the round trip. The A1–A4 row records subsequent journal/delivery work. Private receipt retention remains verified at `27546a9`; settlement-dependent purge, real routes and qualified financial clearance remain incomplete. [Bridge checks](verification.md#application-to-sandbox-round-trip-november-3), [retention](verification.md#i5-private-receipt-retention-checkpoint-november-2). |
-| A1–A4 | NOW; local coverage capture verified; qualification and bot incomplete | This checkpoint adds a disposable loopback collector: durable pre-forward records, bounded hash-chained pages, actual HTTP outcomes, permanent observation gaps and SIGKILL/restart fencing without retained bodies/identities. Gap-guard removal fails its regression; 77 unit, 175 PostgreSQL, 42 Chromium-suite checks and isolated build/static checks pass, including actual app forwarding. Signed coverage `df28731` passes both private CI jobs [41656993863](https://github.com/gueysito/show-up/actions/runs/41656993863); its four actual sandbox principal-return cases remain unchanged evidence. [Coverage and limits](setup.md#signed-intake-coverage), [ADR-0004](adr/0004-attendance-intake-boundary.md). Next: A4 event-bound optional bot and coverage/source integration; full ingress/dependency qualification, qualified clearance, public-signing/spending and actual-device gates remain. |
+| A1–A4 | NOW; optional bot connection controls complete locally; event prompts/replies next | This checkpoint adds explicit message opt-in, a five-minute link matched to verified Telegram identity, duplicate-update handling, connection status and disconnect without removing sign-in. Account deletion removes messaging permission; own export and bounded retention include the new records. The focused connection/auth/privacy checks, actual browser control flow with an explicit backend fixture, mobile layout and isolated build/static checks pass. No Telegram API call, message or webhook registration occurred. [Setup](setup.md#optional-telegram-connection). Local coverage capture remains verified at `92f9d03`; signed coverage/native principal-return evidence remains at `df28731` ([CI](https://github.com/gueysito/show-up/actions/runs/41656993863)). Next: event-bound prompts/code replies and remaining publication/commitment/recovery integration in the finite list above. Bot activation/messages, full source/coverage qualification and actual-device evidence remain gated. |
 
 | Approved checkpoint | Status | Evidence |
 | --- | --- | --- |

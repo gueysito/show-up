@@ -231,6 +231,28 @@ Ctrl+C in the ngrok terminal removes public access; Ctrl+C in the app terminal
 stops its local production server. Other tunnel domains, HTTP browser origins,
 unexpected ports/paths and development-mode use of the public origin are rejected.
 
+## Optional Telegram connection
+
+**Account → Optional Telegram messages** keeps website participation available.
+The bot defaults off. When separately configured, explicitly opt in, create the
+five-minute connection link, open the ordinary private bot chat and press Start
+with the Telegram identity linked to this Showup account. Return and refresh the
+status. Disconnect removes message permission without removing Telegram sign-in.
+Account deletion also removes the connection and pending links; own export includes
+the connected bot and consent time, excluding link tokens and blind sender indexes.
+
+Migration `027-telegram-connections.sql` adds these records. Activation requires
+separate ingress approval and owner configuration of `SHOWUP_TELEGRAM_BOT_ENABLED`,
+`SHOWUP_TELEGRAM_BOT_ID`, `SHOWUP_TELEGRAM_BOT_USERNAME` and
+`SHOWUP_TELEGRAM_WEBHOOK_SECRET`. The configured webhook is
+`/api/telegram/webhook`; no webhook has been registered. Its secret authenticates
+incoming updates and is distinct from the OAuth client secret and Bot API token.
+Preserve the existing application keys. This implementation sends no messages;
+event-bound check-in prompts/replies remain the next A4 integration. Actual bot
+activation, credentials, messages and phone testing remain gated. See Telegram's
+[deep-link rules](https://core.telegram.org/bots/features#deep-linking) and
+[webhook authentication](https://core.telegram.org/bots/api#setwebhook).
+
 ## Wallet-control verification
 
 Apply the normal application migrations, including `005-wallet-control.sql`, before

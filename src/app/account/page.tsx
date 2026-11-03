@@ -71,6 +71,13 @@ export default async function AccountPage({
         showup.
       </Link>
       <h1>Your account</h1>
+      {session && (
+        <p>
+          <Link href="/account/telegram" prefetch={false}>
+            Optional Telegram messages
+          </Link>
+        </p>
+      )}
       {query.auth === "failed" && (
         <p role="alert">
           Sign-in could not be completed. Start again. Your existing account was not merged or
