@@ -185,11 +185,15 @@ test("NEAR return parameters are cleared and mismatched proofs cannot succeed; o
   const fixtures = await accountFixtures([[]]);
   try {
     await fixtures.enter(context, 0);
-    const id = randomUUID();
+    const id = randomUUID(),
+      eventId = randomUUID();
     await page.goto(
-      `/account/wallets?challenge=${id}#state=wrong&accountId=fictional-wallet.near&publicKey=invalid&signature=invalid`,
+      `/account/wallets?challenge=${id}&event=${eventId}#state=wrong&accountId=fictional-wallet.near&publicKey=invalid&signature=invalid`,
     );
-    await expect(page).toHaveURL("https://localhost:3444/account/wallets");
+    await expect(page).toHaveURL(`https://localhost:3444/account/wallets?event=${eventId}`);
+    await expect(
+      page.getByRole("link", { name: "Return to this event's commitment review" }),
+    ).toHaveAttribute("href", `/events/${eventId}/commit`);
     await page.getByRole("button", { name: "Finish NEAR wallet verification" }).click();
     await expect(
       page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
@@ -212,6 +216,7 @@ test("NEAR return parameters are cleared and mismatched proofs cannot succeed; o
     expect(url.searchParams.get("recipient")).toBe("localhost:3444");
     expect(Buffer.from(url.searchParams.get("nonce")!, "base64").length).toBe(32);
     expect(new URL(url.searchParams.get("callbackUrl")!).origin).toBe("https://localhost:3444");
+    expect(new URL(url.searchParams.get("callbackUrl")!).searchParams.get("event")).toBe(eventId);
     expect(url.searchParams.get("message")).toContain(
       "No transfer or spending approval is authorized.",
     );

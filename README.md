@@ -24,6 +24,8 @@ wire now matches actual native sandbox funding and principal return with source-
 enforcement. Application funding integration, actual wallets and qualified enrollment
 remain distinct gates.
 Own-account financial history displays approved terms with explicit unconfirmed-escrow status.
+Event commitment review connects verified wallet destinations and preserves NEAR
+wallet-return context; qualified quote/fee approval and funding remain disabled.
 Native synthetic NFT custody also exercises receipt, fixed-recipient retry and return.
 Start with the
 [10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).

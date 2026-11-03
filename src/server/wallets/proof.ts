@@ -15,6 +15,7 @@ export type WalletChallenge = {
   nonce: string;
   recipient: string;
   callbackUrl: string;
+  returnEventId?: string;
   issuedAt: number;
   expiresAt: number;
 };
@@ -66,10 +67,16 @@ export function createWalletChallenge(
   network: Network,
   address: string,
   now = Date.now(),
+  returnEventId?: string,
 ): WalletChallenge {
   const url = new URL(origin);
   if (url.protocol !== "https:" || origin !== url.origin || !Number.isSafeInteger(now))
     throw new Error("Wallet verification requires a fixed HTTPS origin and valid time");
+  if (
+    returnEventId !== undefined &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(returnEventId)
+  )
+    throw new Error("Invalid wallet event return");
   const id = randomUUID();
   const challenge: Omit<WalletChallenge, "message"> = {
     format: "showup.wallet.control.v1",
@@ -80,7 +87,8 @@ export function createWalletChallenge(
     origin,
     nonce: randomBytes(32).toString("base64"),
     recipient: url.host,
-    callbackUrl: `${origin}/account/wallets?challenge=${id}`,
+    callbackUrl: `${origin}/account/wallets?challenge=${id}${returnEventId ? `&event=${returnEventId}` : ""}`,
+    ...(returnEventId && { returnEventId }),
     issuedAt: now,
     expiresAt: now + 300_000,
   };
@@ -143,7 +151,12 @@ export function verifyWalletSignature(
       challenge.chainId !== networkIdentity(challenge.network).chainId ||
       challenge.address !== walletAddress(challenge.network, challenge.address) ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(challenge.id) ||
-      challenge.callbackUrl !== `${origin}/account/wallets?challenge=${challenge.id}` ||
+      (challenge.returnEventId !== undefined &&
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          challenge.returnEventId,
+        )) ||
+      challenge.callbackUrl !==
+        `${origin}/account/wallets?challenge=${challenge.id}${challenge.returnEventId ? `&event=${challenge.returnEventId}` : ""}` ||
       ![now, challenge.issuedAt, challenge.expiresAt].every(Number.isSafeInteger) ||
       challenge.expiresAt - challenge.issuedAt !== 300_000 ||
       now < challenge.issuedAt ||

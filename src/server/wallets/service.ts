@@ -36,7 +36,7 @@ export async function issueWalletChallenge(
   pool: pg.Pool,
   config: AuthConfig,
   session: string,
-  input: { operationId: string; network: string; address: string },
+  input: { operationId: string; network: string; address: string; returnEventId?: string },
 ) {
   if (!walletNetworks.some((network) => network === input.network))
     throw new AppFailure(400, "Choose NEAR, Base, Ethereum or Solana.");
@@ -58,6 +58,7 @@ export async function issueWalletChallenge(
           input.network as WalletChallenge["network"],
           input.address,
           time.getTime(),
+          input.returnEventId,
         );
       } catch {
         throw new AppFailure(400, "Enter a valid address for the selected wallet network.");

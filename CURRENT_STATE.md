@@ -18,7 +18,7 @@ private invitations and host management pass isolated-account checks. Funding an
 - P4 local signing adapter: fixed EVM/Core images, provider key/address binding, one request per image and verified callback recovery. Live MPC signing remains unverified.
 - Native NFT prototype: exact receipt/publication gate, fixed delivery/return with retry, draft/outage recovery and recomputed material-terms commitments.
 - P5: finalized-header pairs, exact asset facts, signed historical delivery and bounded nonce/blockhash recovery pass isolated checks. Routes remain unqualified.
-- Own financial records bind reconciliation to the original approval; source failures/conflicts preserve obligations and keep escrow unconfirmed.
+- Event commitment review selects owned source/refund/payout wallets and preserves NEAR event returns; exact quotes/fees and approval stay gated. Own history preserves original obligations.
 - Own-data export, account/session-bound deletion and bounded private-receipt retention pass isolated checks; unqualified obligations retain restricted recovery access. Qualified clearance remains incomplete.
 - Online code entry preserves retry operations and pending status; host codes, bounded attempts and personal QR and staff camera/confirmation pass isolated checks with synthetic video. Live qualification and device evidence remain incomplete.
 - Disposable loopback capture records actual HTTP outcomes and restart gaps without bodies/identities; its narrow inventory remains unqualified.

@@ -11,9 +11,11 @@ export const dynamic = "force-dynamic";
 export default async function WalletPage({
   searchParams,
 }: {
-  searchParams: Promise<{ challenge?: string }>;
+  searchParams: Promise<{ challenge?: string; event?: string }>;
 }) {
   const query = await searchParams;
+  const returnEventId =
+    typeof query.event === "string" && isUuid(query.event) ? query.event : undefined;
   const returnChallengeId =
     typeof query.challenge === "string" && isUuid(query.challenge) ? query.challenge : undefined;
   const config = authConfig();
@@ -36,6 +38,13 @@ export default async function WalletPage({
     <main>
       <Link href="/account">Back to your account</Link>
       <h1>Your wallets</h1>
+      {returnEventId && (
+        <p>
+          <Link href={`/events/${returnEventId}/commit`} prefetch={false}>
+            Return to this event&apos;s commitment review
+          </Link>
+        </p>
+      )}
       <p>
         Prove wallet control separately from social sign-in. Your wallet will show a message to
         review and sign.
@@ -51,7 +60,11 @@ export default async function WalletPage({
           <Link href="/account">Sign in before verifying a wallet</Link>
         </p>
       ) : (
-        <WalletManager initialWallets={wallets} returnChallengeId={returnChallengeId} />
+        <WalletManager
+          initialWallets={wallets}
+          returnChallengeId={returnChallengeId}
+          returnEventId={returnEventId}
+        />
       )}
     </main>
   );

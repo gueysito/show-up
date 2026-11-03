@@ -153,6 +153,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               <p>Your account has restricted recovery access; new commitments remain disabled.</p>
             ) : (
               <p>
+                {event.registration !== "closed" && (
+                  <>
+                    <Link href={`/events/${id}/commit`} prefetch={false}>
+                      Review wallets and commitment destinations
+                    </Link>
+                    <br />
+                  </>
+                )}
                 <Link href="/account/wallets" prefetch={false}>
                   Verify and review wallets before financial approval
                 </Link>

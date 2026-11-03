@@ -35,14 +35,19 @@ async function handle(request: Request) {
     let result: unknown;
     if (
       body.operation === "challenge" &&
-      fields === "address,network,operation,operationId" &&
+      [
+        "address,network,operation,operationId",
+        "address,network,operation,operationId,returnEventId",
+      ].includes(fields) &&
       typeof body.network === "string" &&
-      typeof body.address === "string"
+      typeof body.address === "string" &&
+      (body.returnEventId === undefined || typeof body.returnEventId === "string")
     )
       result = await issueWalletChallenge(database.pool, config, session.tokenHash, {
         operationId: body.operationId,
         network: body.network,
         address: body.address,
+        ...(typeof body.returnEventId === "string" && { returnEventId: body.returnEventId }),
       });
     else if (
       body.operation === "verify" &&

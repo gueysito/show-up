@@ -15,6 +15,36 @@ import { requireNearFullAccess } from "../../src/server/wallets/near-access";
 const origin = "https://localhost:3443";
 const now = Date.now();
 
+test("NEAR wallet return preserves only the selected event and binds that callback into the signature", () => {
+  const eventId = randomUUID(),
+    keys = generateKeyPairSync("ed25519");
+  const challenge = createWalletChallenge(origin, "near", "fictional-wallet.near", now, eventId);
+  const proof = {
+    accountId: challenge.address,
+    publicKey: `ed25519:${encodeBase58(Buffer.from(keys.publicKey.export({ format: "jwk" }).x!, "base64url"))}`,
+    signature: sign(null, nearMessageDigest(challenge), keys.privateKey).toString("base64"),
+  };
+  assert.equal(new URL(challenge.callbackUrl).searchParams.get("event"), eventId);
+  assert(verifyWalletSignature(challenge, proof, origin, now));
+  const changed = randomUUID();
+  assert.equal(
+    verifyWalletSignature(
+      {
+        ...challenge,
+        returnEventId: changed,
+        callbackUrl: `${origin}/account/wallets?challenge=${challenge.id}&event=${changed}`,
+      },
+      proof,
+      origin,
+      now,
+    ),
+    false,
+  );
+  assert.throws(() =>
+    createWalletChallenge(origin, "near", challenge.address, now, "https://foreign.invalid"),
+  );
+});
+
 test("EVM control proofs bind the exact origin, chain, wallet, nonce, purpose and five-minute window", async () => {
   for (const network of ["base", "ethereum"] as const) {
     const wallet = Wallet.createRandom();

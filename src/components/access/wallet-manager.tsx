@@ -38,10 +38,14 @@ function verifiedTime(value: string) {
   return `Control verified ${new Date(value).toLocaleString("en-US", { timeZone: "UTC" })} UTC`;
 }
 
-function returnedProof(challengeId: string): WalletSignature | null {
+function returnedProof(challengeId: string, returnEventId?: string): WalletSignature | null {
   const url = new URL(window.location.href);
   const fragment = new URLSearchParams(url.hash.slice(1));
-  window.history.replaceState(null, "", "/account/wallets");
+  window.history.replaceState(
+    null,
+    "",
+    `/account/wallets${returnEventId ? `?event=${returnEventId}` : ""}`,
+  );
   if (
     url.searchParams.get("challenge") !== challengeId ||
     fragment.get("state") !== challengeId ||
@@ -60,9 +64,11 @@ function returnedProof(challengeId: string): WalletSignature | null {
 export function WalletManager({
   initialWallets,
   returnChallengeId,
+  returnEventId,
 }: {
   initialWallets: OwnWallet[];
   returnChallengeId?: string;
+  returnEventId?: string;
 }) {
   const [network, setNetwork] = useState<WalletChallenge["network"]>(
     returnChallengeId ? "near" : "base",
@@ -90,8 +96,11 @@ export function WalletManager({
   }
   useEffect(() => {
     if (!returned.current && returnChallengeId)
-      returned.current = { id: returnChallengeId, proof: returnedProof(returnChallengeId) };
-  }, [returnChallengeId]);
+      returned.current = {
+        id: returnChallengeId,
+        proof: returnedProof(returnChallengeId, returnEventId),
+      };
+  }, [returnChallengeId, returnEventId]);
 
   async function refresh() {
     setBusy(true);
@@ -124,7 +133,10 @@ export function WalletManager({
       }
       if (returnReady) {
         if (!returned.current && returnChallengeId)
-          returned.current = { id: returnChallengeId, proof: returnedProof(returnChallengeId) };
+          returned.current = {
+            id: returnChallengeId,
+            proof: returnedProof(returnChallengeId, returnEventId),
+          };
         if (!returned.current?.proof)
           throw new WalletUiError(
             "The wallet did not return a complete matching proof. Start a fresh verification.",
@@ -172,6 +184,7 @@ export function WalletManager({
         operationId: crypto.randomUUID(),
         network,
         address,
+        ...(returnEventId && { returnEventId }),
       });
       if (new URL(challenge.callbackUrl).origin !== window.location.origin)
         throw new WalletUiError("Reopen Showup at its configured address and start again.");

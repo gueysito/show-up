@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { authConfig } from "../../src/server/auth/config";
-import { hash } from "../../src/server/auth/crypto";
+import { hash, seal } from "../../src/server/auth/crypto";
+import { encodeBase58 } from "../../src/server/protocol/encoding";
+import { requiredNetworks } from "../../src/server/protocol/manifest";
 import { saveAccountDraft } from "../../src/server/events/accounts";
 import { issueInvitation } from "../../src/server/invitations/service";
 import { accountFixtures } from "../fixtures/accounts";
@@ -79,6 +81,69 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     await expect(page.getByRole("heading", { name: privateEvent.title })).toBeVisible();
     await expect(page.getByText("Venue: Fictional studio", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Deposits closed", exact: true })).toBeDisabled();
+    const verifiedWallets = [];
+    for (const network of requiredNetworks) {
+      // Already-verified engineering records; actual wallet control has its own UI checks.
+      const wallet = {
+        id: randomUUID(),
+        network,
+        address:
+          network === "near"
+            ? "fictional.near"
+            : network === "solana"
+              ? encodeBase58(Buffer.alloc(32, 3))
+              : `0x${"12".repeat(20)}`,
+        verifiedAt: new Date().toISOString(),
+      };
+      await f.pool.query(
+        "INSERT INTO app_wallets(id,account_id,wallet_index,network,encrypted_wallet,verified_at) VALUES($1,$2,$3,$4,$5,$6)",
+        [
+          wallet.id,
+          f.accounts[1].id,
+          wallet.id,
+          network,
+          seal(config.encryptionKey, `wallet:${f.accounts[1].id}:${wallet.id}`, wallet),
+          wallet.verifiedAt,
+        ],
+      );
+      verifiedWallets.push(wallet);
+    }
+    await page.getByRole("link", { name: "Review wallets and commitment destinations" }).click();
+    await page.getByLabel("Source wallet", { exact: true }).selectOption(verifiedWallets[1].id);
+    await page
+      .getByLabel("Source-refund wallet", { exact: true })
+      .selectOption(verifiedWallets[1].id);
+    await page
+      .getByLabel("Principal payout wallet", { exact: true })
+      .selectOption(verifiedWallets[3].id);
+    await page.getByRole("button", { name: "Review destinations and fee availability" }).click();
+    const review = page.getByRole("region", { name: "Reviewed commitment destinations" });
+    await expect(review).toContainText("No qualified quote");
+    await expect(review).toContainText(verifiedWallets[3].address);
+    await expect(
+      review.getByRole("button", { name: "Approve financial terms · verified quote required" }),
+    ).toBeDisabled();
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({
+      path: testInfo.outputPath("commitment-review-mobile.png"),
+      fullPage: true,
+    });
+    await page
+      .getByLabel("Principal payout wallet", { exact: true })
+      .selectOption(verifiedWallets[0].id);
+    await expect(review).toHaveCount(0);
+    expect(
+      (
+        await f.pool.query(
+          "SELECT count(*)::int AS n FROM app_commitment_consents WHERE event_id=$1",
+          [privateId],
+        )
+      ).rows[0].n,
+    ).toBe(0);
+    await page.getByRole("link", { name: "Back to event", exact: true }).click();
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

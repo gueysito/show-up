@@ -349,6 +349,24 @@ remain incomplete.
 
 ## Financial-consent preparation
 
+From an available event, choose **Review wallets and commitment destinations**.
+Select independently verified source, source-refund and principal-payout wallets;
+source refunds must use the source network. **Review destinations and fee availability**
+rechecks the account's wallet ownership, current published rules, eligibility and
+registration close on the server. Changing a selection clears the displayed review.
+The page displays all three destinations and explicitly unavailable quote/fee/net
+amounts. It creates no consent, signature, reservation, provider request or payment
+instruction. Until an escrow recipient and attributable funding/return route are
+qualified, financial approval remains disabled. This is a completed local review
+step, not a qualified quote or funding integration.
+
+**Verify another wallet for this event** retains the event context through wallet
+verification. The NEAR callback binds that exact local event parameter into the
+original NEP-413 signature and strips the returned proof from the address bar;
+**Return to this event's commitment review** restores the review page. This does
+not register the wallet for an event or authorize funds. Actual mobile wallet
+return and real routes remain owner/device gates.
+
 Internal financial-consent storage also requires `006-commitment-consent.sql` via
 the normal migration command. It adds a new table; it does not rewrite accounts,
 wallets or application keys. The consent service currently has no HTTP endpoint or
