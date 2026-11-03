@@ -11,6 +11,7 @@ import {
 } from "../../../server/commitments/records";
 import { AttendanceCodeEntry } from "../../../components/access/attendance-code-entry";
 import { AttendancePersonalQr } from "../../../components/access/attendance-personal-qr";
+import { TelegramCheckIn } from "../../../components/access/telegram-check-in";
 
 export const dynamic = "force-dynamic";
 function amount(value: string, record: OwnFinancialRecord) {
@@ -19,7 +20,7 @@ function amount(value: string, record: OwnFinancialRecord) {
 export default async function CommitmentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ before?: string }>;
+  searchParams: Promise<{ before?: string; event?: string }>;
 }) {
   const query = await searchParams,
     config = authConfig();
@@ -40,6 +41,7 @@ export default async function CommitmentsPage({
           config,
           session.tokenHash,
           query.before,
+          query.event,
         ));
     } catch {
       available = false;
@@ -53,6 +55,13 @@ export default async function CommitmentsPage({
         Back to your account
       </Link>
       <h1>Your financial authorizations</h1>
+      {query.event && (
+        <p>
+          <Link href="/account/commitments" prefetch={false}>
+            Show all your event authorizations
+          </Link>
+        </p>
+      )}
       <p>
         These records show the event terms you reviewed or approved. A signature does not confirm a
         deposit or book a seat.
@@ -86,13 +95,16 @@ export default async function CommitmentsPage({
                 record.eventState === "published" &&
                 !record.attendance &&
                 record.attendanceWindow?.mode === "digital" && (
-                  <AttendanceCodeEntry
-                    key={record.id}
-                    eventId={record.eventId}
-                    consentId={record.id}
-                    window={record.attendanceWindow}
-                    timeZone={record.terms.timeZone}
-                  />
+                  <>
+                    <AttendanceCodeEntry
+                      key={record.id}
+                      eventId={record.eventId}
+                      consentId={record.id}
+                      window={record.attendanceWindow}
+                      timeZone={record.terms.timeZone}
+                    />
+                    <TelegramCheckIn eventId={record.eventId} consentId={record.id} />
+                  </>
                 )}
               {activeAccount &&
                 record.authorizedAt &&
@@ -177,7 +189,10 @@ export default async function CommitmentsPage({
           ))}
           {nextCursor && (
             <p>
-              <Link href={`/account/commitments?before=${nextCursor}`} prefetch={false}>
+              <Link
+                href={`/account/commitments?before=${nextCursor}${query.event ? `&event=${encodeURIComponent(query.event)}` : ""}`}
+                prefetch={false}
+              >
                 Older authorizations
               </Link>
             </p>

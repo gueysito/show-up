@@ -69,11 +69,12 @@ export async function listOwnFinancialRecords(
   config: AuthConfig,
   session: string,
   before?: string,
+  eventId?: string,
 ): Promise<{
   records: OwnFinancialRecord[];
   nextCursor: string | null;
 }> {
-  if (before !== undefined && !isUuid(before))
+  if ((before !== undefined && !isUuid(before)) || (eventId !== undefined && !isUuid(eventId)))
     throw new AppFailure(400, "Invalid financial history reference.");
   return transaction(pool, async (client) => {
     const current = await client.query(
@@ -86,10 +87,10 @@ export async function listOwnFinancialRecords(
     const actor = current.rows[0].id;
     if (before) {
       const cursor = (
-        await client.query("SELECT id FROM app_commitment_consents WHERE id=$1 AND account_id=$2", [
-          before,
-          actor,
-        ])
+        await client.query(
+          "SELECT id FROM app_commitment_consents WHERE id=$1 AND account_id=$2 AND ($3::uuid IS NULL OR event_id=$3)",
+          [before, actor, eventId ?? null],
+        )
       ).rows[0];
       if (!cursor) throw new AppFailure(404, "Private financial history unavailable.");
     }
@@ -97,10 +98,11 @@ export async function listOwnFinancialRecords(
       `SELECT c.*,e.data->>'title' AS event_title,e.state AS event_state,
       e.data->>'mode' AS event_mode,e.data->>'startsAt' AS event_start,e.data->>'endsAt' AS event_end
       FROM app_commitment_consents c JOIN app_events e ON e.id=c.event_id WHERE c.account_id=$1
+      AND ($3::uuid IS NULL OR c.event_id=$3)
       AND ($2::uuid IS NULL OR (c.created_at,c.id)<(SELECT older.created_at,older.id
         FROM app_commitment_consents older WHERE older.id=$2 AND older.account_id=$1))
       ORDER BY c.created_at DESC,c.id DESC LIMIT 51`,
-      [actor, before ?? null],
+      [actor, before ?? null, eventId ?? null],
     );
     const rows = result.rows.slice(0, 50);
     const observations = await client.query(

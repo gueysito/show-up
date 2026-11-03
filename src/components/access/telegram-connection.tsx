@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 
 type Status = { connected: boolean; available: boolean; botUsername: string | null };
-export function TelegramConnection({ initialStatus }: { initialStatus: Status | null }) {
+export function TelegramConnection({
+  initialStatus,
+  eventId,
+}: {
+  initialStatus: Status | null;
+  eventId?: string;
+}) {
   const [status, setStatus] = useState<Status | null>(initialStatus),
     [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
@@ -75,6 +81,7 @@ export function TelegramConnection({ initialStatus }: { initialStatus: Status | 
           body: JSON.stringify({
             ...pending.current,
             ...(action === "connect" ? { consentMessages: consent } : {}),
+            ...(action === "connect" && eventId ? { eventId } : {}),
           }),
         }),
         data = await response.json();
@@ -109,10 +116,14 @@ export function TelegramConnection({ initialStatus }: { initialStatus: Status | 
         setLink(null);
         setConsent(false);
         pending.current = null;
+        setStatus((previous) => ({
+          available: previous?.available ?? false,
+          connected: false,
+          botUsername: null,
+        }));
         setMessage(
           "Telegram messages disconnected. Your Showup account and Telegram sign-in remain available.",
         );
-        await refresh();
       }
     } catch (error) {
       if (current === generation.current)

@@ -3,6 +3,8 @@ import { test } from "node:test";
 import { token } from "../../src/server/auth/crypto";
 import { parseTelegramStart } from "../../src/server/telegram/connection";
 import { requireTelegramWebhook, telegramBotConfig } from "../../src/server/telegram/config";
+import { telegramPromptTransport } from "../../src/server/telegram/transport";
+import { parseTelegramCodeReply } from "../../src/server/telegram/attendance";
 
 test("optional bot stays disabled by default; connection starts require authenticated ordinary private-chat context", () => {
   assert.equal(telegramBotConfig({}), null);
@@ -16,6 +18,7 @@ test("optional bot stays disabled by default; connection starts require authenti
     new Request("https://localhost:3444/api/telegram/webhook", {
       headers: { "x-telegram-bot-api-secret-token": value },
     });
+  assert.equal(telegramPromptTransport(config, {}), null);
   requireTelegramWebhook(request(config.webhookSecret), config.webhookSecret);
   assert.throws(() => requireTelegramWebhook(request(token()), config.webhookSecret));
   assert.throws(() => requireTelegramWebhook(request(""), config.webhookSecret));
@@ -31,6 +34,33 @@ test("optional bot stays disabled by default; connection starts require authenti
     sender: "987654321",
     token: start,
   });
+  assert.deepEqual(
+    parseTelegramCodeReply({
+      update_id: 43,
+      message: {
+        ...message,
+        text: "event phrase",
+        reply_to_message: { message_id: 91, from: { id: 12345678, is_bot: true } },
+      },
+    }),
+    {
+      updateId: 43,
+      sender: "987654321",
+      text: "event phrase",
+      replyTo: 91,
+      replyBotId: "12345678",
+    },
+  );
+  assert.throws(() =>
+    parseTelegramCodeReply({
+      update_id: 43,
+      message: {
+        ...message,
+        text: "event phrase",
+        reply_to_message: { message_id: 91, from: { id: 12345678, is_bot: false } },
+      },
+    }),
+  );
   for (const changed of [
     { chat: { id: -1, type: "group" } },
     { from: { id: 1, is_bot: true } },

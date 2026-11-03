@@ -247,11 +247,30 @@ separate ingress approval and owner configuration of `SHOWUP_TELEGRAM_BOT_ENABLE
 `SHOWUP_TELEGRAM_WEBHOOK_SECRET`. The configured webhook is
 `/api/telegram/webhook`; no webhook has been registered. Its secret authenticates
 incoming updates and is distinct from the OAuth client secret and Bot API token.
-Preserve the existing application keys. This implementation sends no messages;
-event-bound check-in prompts/replies remain the next A4 integration. Actual bot
-activation, credentials, messages and phone testing remain gated. See Telegram's
+Preserve the existing application keys. Event check-in prompts additionally require
+the separately approved `SHOWUP_TELEGRAM_MESSAGES_ENABLED` and
+`SHOWUP_TELEGRAM_BOT_TOKEN`; the token must belong to the configured bot and is not
+the OAuth client secret. Both messaging and bot activation default off. No live
+messages, webhook registration or owner configuration changes have been performed.
+Actual bot activation, credentials, messages and phone testing remain gated. See Telegram's
 [deep-link rules](https://core.telegram.org/bots/features#deep-linking) and
 [webhook authentication](https://core.telegram.org/bots/api#setwebhook).
+
+For an owned, approved digital-event authorization, **Send this event's check-in
+prompt to Telegram** uses the same funded-state admission gate as website check-in.
+Unqualified routes cannot send a prompt. A delivered prompt names the event and
+binds to that account, consent and attendance cutoff. Reply to its exact message,
+or include its short prompt code; ambiguous text never selects the latest event.
+Website and bot submissions share five guesses, immutable retry operations and
+one candidate. Telegram's message date cannot extend the server receipt window.
+Bot authority permits only that attendance reply, never website sessions, wallets
+or financial actions. Pending verification remains unconfirmed; informational bot
+receipts have no delivery guarantee. All financial approval stays on the website.
+Unknown prompt delivery retains the original record instead of sending another
+message automatically. Disconnect/deletion removes messaging authority; original
+financial/evidence obligations remain. Prompt transport metadata expires seven
+days after its deadline, independently of those retained obligations. Enabling
+the webhook also requires renewed coverage qualification for that ingress.
 
 ## Wallet-control verification
 

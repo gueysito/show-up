@@ -6,9 +6,16 @@ import { createDatabase } from "../../../server/db/client";
 import { TelegramConnection } from "../../../components/access/telegram-connection";
 import { ownTelegramConnection } from "../../../server/telegram/connection";
 import { telegramBotConfig } from "../../../server/telegram/config";
+import { isUuid } from "../../../server/events/drafts";
 
 export const dynamic = "force-dynamic";
-export default async function TelegramPage() {
+export default async function TelegramPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ event?: string }>;
+}) {
+  const query = await searchParams,
+    eventId = isUuid(query.event) ? query.event : undefined;
   const config = authConfig();
   let session = null;
   let initialStatus = null;
@@ -34,7 +41,7 @@ export default async function TelegramPage() {
       </Link>
       <h1>Telegram messages</h1>
       {session ? (
-        <TelegramConnection initialStatus={initialStatus} />
+        <TelegramConnection initialStatus={initialStatus} eventId={eventId} />
       ) : (
         <p>
           <Link href="/account" prefetch={false}>

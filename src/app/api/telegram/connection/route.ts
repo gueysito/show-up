@@ -50,7 +50,11 @@ async function handle(request: Request, mutation: boolean) {
         );
       else if (
         body.action === "connect" &&
-        Object.keys(body).sort().join() === "action,consentMessages,operationId"
+        [
+          "action,consentMessages,operationId",
+          "action,consentMessages,eventId,operationId",
+        ].includes(Object.keys(body).sort().join()) &&
+        (body.eventId === undefined || typeof body.eventId === "string")
       ) {
         const bot = telegramBotConfig();
         if (!bot)
@@ -60,7 +64,11 @@ async function handle(request: Request, mutation: boolean) {
           config,
           bot,
           session.tokenHash,
-          { operationId: body.operationId, consentMessages: body.consentMessages === true },
+          {
+            operationId: body.operationId,
+            consentMessages: body.consentMessages === true,
+            ...(body.eventId ? { eventId: body.eventId as string } : {}),
+          },
         );
       } else throw new AppFailure(400, "Choose a connection action and explicit message consent.");
     }

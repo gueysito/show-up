@@ -6,6 +6,7 @@ import { transaction } from "../db/client";
 import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
 import { attendanceSchedule } from "./evidence";
+import { mutationActor, type MutationCredential } from "../auth/attendance-actor";
 
 type Action =
   | "attendance.code-attempt"
@@ -25,7 +26,7 @@ export async function attendanceMutation<T>(
   received: number,
   pool: pg.Pool,
   encryptionKey: string,
-  sessionHash: string,
+  sessionHash: MutationCredential,
   operationId: string,
   request: Record<string, unknown>,
   action: Action,
@@ -42,15 +43,7 @@ export async function attendanceMutation<T>(
   const eventId = request.eventId,
     requestHash = hash(JSON.stringify({ action, request }));
   const receipt = await transaction(pool, async (client): Promise<Receipt> => {
-    const actor = (
-      await client.query(
-        `SELECT a.id FROM app_sessions s JOIN app_accounts a ON a.id=s.account_id
-      WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
-      AND a.state='active' FOR SHARE OF a,s`,
-        [sessionHash],
-      )
-    ).rows[0];
-    if (!actor) throw new AppFailure(401, "Sign in again to continue.");
+    const actor = await mutationActor(client, sessionHash, "SHARE", action, request, operationId);
     const base = { eventId, actorId: actor.id as string, operationId, requestHash };
     const previous = (
       await client.query("SELECT actor_id,request_hash FROM app_mutations WHERE operation_id=$1", [

@@ -14,6 +14,7 @@ import {
 } from "./admission";
 import { attendanceCodeIndex, attendanceCodeWindowOpen } from "./codes";
 import type { AttendanceClass } from "./evidence";
+import type { MutationCredential } from "../auth/attendance-actor";
 
 export type OwnAttendanceCandidate = {
   id: string;
@@ -126,7 +127,7 @@ export function attendanceCandidateRecord(
 export async function attemptAttendanceCode(
   pool: pg.Pool,
   config: AuthConfig,
-  sessionHash: string,
+  sessionHash: MutationCredential,
   input: { eventId: string; consentId: string; operationId: string; phrase: unknown },
   engineering?: AttendanceEngineeringInput,
   serverReceivedMs?: number,

@@ -39,6 +39,13 @@ export async function accountFixtures(roles: string[][]) {
   }
   async function cleanup() {
     const ids = accounts.map((account) => account.id);
+    await pool.query(
+      "DELETE FROM app_telegram_connection_attempts WHERE account_id=ANY($1::uuid[])",
+      [ids],
+    );
+    await pool.query("DELETE FROM app_telegram_connections WHERE account_id=ANY($1::uuid[])", [
+      ids,
+    ]);
     const eventOperations = `SELECT operation_id FROM outbox WHERE payload->>'eventId' IN
       (SELECT id::text FROM app_events WHERE owner_id=ANY($1::uuid[]))`;
     await pool.query(
@@ -66,8 +73,6 @@ export async function accountFixtures(roles: string[][]) {
     await pool.query("DELETE FROM app_wallet_challenges WHERE account_id=ANY($1::uuid[])", [ids]);
     await pool.query("DELETE FROM app_wallets WHERE account_id=ANY($1::uuid[])", [ids]);
     for (const table of [
-      "app_telegram_connection_attempts",
-      "app_telegram_connections",
       "app_mutations",
       "app_audit",
       "app_roles",

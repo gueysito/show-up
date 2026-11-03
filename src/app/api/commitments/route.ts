@@ -21,7 +21,11 @@ export async function GET(request: Request) {
     if (!session) throw new AppFailure(401, "Sign in again to view your financial records.");
     await limit(database.pool, `financial-records:${session.accountId}`, 60);
     const query = new URL(request.url).searchParams;
-    if ([...query.keys()].some((key) => key !== "before") || query.getAll("before").length > 1)
+    if (
+      [...query.keys()].some((key) => !["before", "event"].includes(key)) ||
+      query.getAll("before").length > 1 ||
+      query.getAll("event").length > 1
+    )
       throw new AppFailure(400, "Use your own financial history reference.");
     return Response.json(
       await listOwnFinancialRecords(
@@ -29,6 +33,7 @@ export async function GET(request: Request) {
         config,
         session.tokenHash,
         query.get("before") ?? undefined,
+        query.get("event") ?? undefined,
       ),
       {
         headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },

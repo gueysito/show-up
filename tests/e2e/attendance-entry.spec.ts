@@ -16,7 +16,12 @@ test("code entry retries the same request after transport failure while actual H
   const f = await attendanceFixtures();
   try {
     await f.enter(context, 0);
-    await page.goto("/account/commitments");
+    await page.goto(`/account/commitments?event=${f.eventId}`);
+    const telegram = page.getByRole("region", { name: "Optional Telegram check-in" });
+    await telegram
+      .getByRole("button", { name: "Send this event's check-in prompt to Telegram" })
+      .click();
+    await expect(telegram.getByRole("status")).toContainText("currently unavailable");
     const entry = page.getByRole("region", { name: "Event code check-in" }),
       input = entry.getByLabel("Word or phrase from your host");
     await expect(entry).toContainText(f.consent.terms.timeZone);

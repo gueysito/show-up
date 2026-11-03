@@ -13,7 +13,7 @@ test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
 test("optional bot: disabled default, explicit backend-fixture opt-in/start, status refresh and actual disconnect", async ({
   page,
   context,
-}) => {
+}, testInfo) => {
   const f = await accountFixtures([[]]),
     bot = { id: "12345678", username: "showup_fixture_bot" };
   const config = authConfig({
@@ -86,7 +86,7 @@ test("optional bot: disabled default, explicit backend-fixture opt-in/start, sta
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
-    await page.screenshot({ path: "/private/tmp/showup-telegram-mobile.png", fullPage: true });
+    await page.screenshot({ path: testInfo.outputPath("telegram-mobile.png"), fullPage: true });
     await page.getByRole("button", { name: "Disconnect Telegram messages" }).click();
     await expect(page.getByRole("status")).toContainText("Telegram messages disconnected.");
     expect((await ownTelegramConnection(f.pool, session)).connected).toBe(false);

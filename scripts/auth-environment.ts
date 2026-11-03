@@ -17,6 +17,8 @@ const names = new Set([
   "SHOWUP_TELEGRAM_BOT_ID",
   "SHOWUP_TELEGRAM_BOT_USERNAME",
   "SHOWUP_TELEGRAM_WEBHOOK_SECRET",
+  "SHOWUP_TELEGRAM_MESSAGES_ENABLED",
+  "SHOWUP_TELEGRAM_BOT_TOKEN",
 ]);
 
 export function parseAuthEnvironment(text: string) {
@@ -89,6 +91,8 @@ export function privateWorkerEnvironment(
     "SHOWUP_TELEGRAM_BOT_ID",
     "SHOWUP_TELEGRAM_BOT_USERNAME",
     "SHOWUP_TELEGRAM_WEBHOOK_SECRET",
+    "SHOWUP_TELEGRAM_MESSAGES_ENABLED",
+    "SHOWUP_TELEGRAM_BOT_TOKEN",
   ])
     delete env[name];
   if (

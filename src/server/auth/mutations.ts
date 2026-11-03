@@ -5,6 +5,7 @@ import { transaction } from "../db/client";
 import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
 import { controlReceiptDeadline } from "../privacy/retention";
+import { mutationActor, type MutationCredential } from "./attendance-actor";
 
 export type Actor = { id: string; roles: string[] };
 
@@ -16,7 +17,7 @@ export function hasRole(actor: Actor, ...roles: string[]) {
 export async function mutate<T>(
   pool: pg.Pool,
   encryptionKey: string,
-  sessionHash: string,
+  sessionHash: MutationCredential,
   operationId: string,
   request: unknown,
   action: string,
@@ -30,6 +31,8 @@ export async function mutate<T>(
     // before its actor/session and event. Related IDs come from stored credentials,
     // never caller-supplied account selectors, and are revalidated by the action.
     if (relatedAccounts.length) {
+      if (typeof sessionHash !== "string")
+        throw new AppFailure(403, "Bot replies cannot authorize staff actions.");
       if (relatedAccounts.length > 2 || relatedAccounts.some((id) => !isUuid(id)))
         throw new Error("Invalid related mutation accounts");
       const actor = (
@@ -41,15 +44,9 @@ export async function mutate<T>(
         [[actor.account_id, ...relatedAccounts]],
       );
     }
-    const session = await client.query(
-      `SELECT a.id FROM app_sessions s
-      JOIN app_accounts a ON a.id=s.account_id WHERE s.token_hash=$1
-      AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND a.state='active'
-      FOR UPDATE OF a,s`,
-      [sessionHash],
-    );
-    if (!session.rowCount) throw new AppFailure(401, "Sign in again to continue.");
-    const actorId = session.rows[0].id as string;
+    const actorId = (
+      await mutationActor(client, sessionHash, "UPDATE", action, request, operationId)
+    ).id;
     const previous = await client.query("SELECT * FROM app_mutations WHERE operation_id=$1", [
       operationId,
     ]);
