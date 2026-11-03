@@ -9,6 +9,7 @@ import { decodeBase58, encodeBase58 } from "../src/server/protocol/encoding";
 import { createHash } from "node:crypto";
 
 export const nativeEngineeringRoot = "showup-dev-14989f.testnet";
+export const nativeEngineeringGas = "200000000000000";
 const rootAccount = nativeEngineeringRoot;
 const native = 10n ** 24n;
 const maximumNative = 20n * native;
@@ -153,7 +154,7 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
       attendeeNative: attendeeNative.toString(),
       tokenStorageMinimum: a.tokenStorageMinimum,
       maximumTestTokenPrincipal: principal,
-      maximumGasPerCall: "300000000000000",
+      maximumGasPerCall: nativeEngineeringGas,
     },
     facts: a,
     observedBlock: compared.block,

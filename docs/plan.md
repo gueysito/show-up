@@ -9,6 +9,15 @@ for these packages. Local application/contracts, disposable sandbox testing and
 project-local tooling are authorized, as are verified private feature-branch
 checkpoints. No merge, public deployment, public-network signing/deployment,
 mainnet spending, paid purchase, external messages or SSH is authorized.
+November 3 exception: the owner approved Circle's prepared free faucet CAPTCHA
+and exact native testnet operation `2750f947-d374-424d-9b4c-328379227ada`, approval
+hash `161ae1ebbb741e3ca695814f34e97b170a70d80ebb88d529f899d660971d261f`.
+Its 20-test-NEAR / 5-test-USDC limits, pinned deployment and bounded original-principal
+recovery are authorized. This grants no mainnet, other-network or general deployment authority.
+The owner subsequently approved gas-only amendment
+`c50abf32e3dd2c80cea170125d6e0c118848f5aab73f469575b38565efd81ca6`:
+200 Tgas for the replacement and remaining calls, with the original nonce,
+recipient/authorization, no top-up and unchanged principal/native limits.
 On November 2 the owner separately authorized the temporary Telegram sign-in
 tunnel at `https://liable-pleat-maritime.ngrok-free.dev` and its narrow app
 configuration change. This does not authorize other hosts or general deployment.
@@ -90,18 +99,33 @@ qualified source coverage, bot messages and devices retain their gates.
 November 3 faucet delegation: the agent used the isolated Brave development profile
 at the owner's request. The official Docs faucet funded 5 test NEAR; two finalized
 sources agree on **14.9999553634875 test NEAR**, sufficient for the prepared native
-experiment, and **0 test USDC**. Circle's 20-test-USDC request for the pinned NEAR
-network/account awaits CAPTCHA confirmation. [Funding evidence](development-wallets.md#current-funding-verification).
-Smallest remaining owner actions: confirm the pending Circle CAPTCHA interaction
-and explicitly approve the concrete native testnet plan's signing/deployment and
-recovery under its **20-test-NEAR / 5-test-USDC** limits. Delegated faucet requests
-authorize receiving free test tokens; they do not authorize experiment execution.
-Current review artifact: operation `2750f947-d374-424d-9b4c-328379227ada`, SHA-256
+experiment, and **0 test USDC** at that point. Circle's 20-test-USDC request then
+awaited CAPTCHA confirmation. [Funding evidence](development-wallets.md#current-funding-verification).
+The owner subsequently approved Circle and the native operation under its
+**20-test-NEAR / 5-test-USDC** limits. Two finalized sources confirmed 20 test USDC.
+The trial created both accounts, deployed the pinned WASM and published the event.
+Its first reservation was rejected before inclusion: required prepaid balance
+0.300960527059114 test NEAR exceeded the attendee's 0.25. Both sources confirmed
+that rejection; one identical-byte retransmission changed no nonce/signature.
+The owner approved the concrete 200-Tgas replacement at the same nonce, retaining
+the original image. The replacement finalized with `Authorization expired`.
+No escrow funding/release occurred. Approved recovery returned the original 5
+test USDC and cancelled the event. Final two-source observation at block 276118428
+shows root 20 test USDC, attendee/escrow zero and accounting owed zero.
+[Public transaction receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json).
+Executed review artifact: operation `2750f947-d374-424d-9b4c-328379227ada`, SHA-256
 `161ae1ebbb741e3ca695814f34e97b170a70d80ebb88d529f899d660971d261f`, at
 `/private/tmp/showup-native-engineering-2750f947-d374-424d-9b4c-328379227ada.json`.
 It pins the WASM/code, token, accounts, fourteen normal steps and bounded original
-recovery. It loads no application keys; execution has not been authorized or run.
-After that result, the next bounded requests are actual Base/Ethereum/Solana and
+recovery. Application keys were never accessed or regenerated. The retained child
+accounts/state remain available. This checkpoint fixes the missing read-only
+access-key query, uses 200 Tgas, blocks new near-expiry financial broadcasts while
+preserving original-hash reconciliation, and closes an unfunded published event
+during recovery. Focused operator/RPC regressions and full format/lint/types/unit
+checks pass; unchanged browser/build/Rust evidence is reused. The post-close driver
+check stopped; a separate same-block, two-source observation verified closure and
+all balances. Next: prepare a fresh native proof reusing the retained deployment;
+new public execution requires its own exact approval. Other bounded requests remain actual Base/Ethereum/Solana and
 MPC/draw/Intents assets/budgets, optional bot token/message approval, and iOS/Android
 checks. These remain separate gates, not part of this native approval.
 Source-dependent application integration and the combined funded walkthrough
@@ -117,7 +141,7 @@ running merely to accumulate verification evidence. Milestones 5–7 remain excl
 | --- | --- | --- |
 | External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | Native engineering executor prepared; native gas funded; public proofs gated | `e0f287f` implements fixed signed images, one submission and original-principal recovery; both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41712350737) pass. This checkpoint records the owner-delegated faucet result: two finalized sources agree on sufficient native test NEAR, while test USDC remains zero and Circle requires CAPTCHA confirmation. No operator key was loaded, public transaction signed or route qualified. Next: finish delegated test-USDC funding after confirmation and obtain exact native-plan approval. [Funding](development-wallets.md#current-funding-verification), [operator boundaries](setup.md#financial-consent-preparation). |
+| P1–P5 | Native public deployment/recovery observed; normal escrow round trip failed | This checkpoint executes the approved operation and gas amendment above, records the exact public receipts and fixes access-key reads, prepaid-gas sizing and expiry/recovery behavior. Original 5 test USDC returned; cancelled event, root 20 test USDC, attendee/escrow zero and zero owed agree at one finalized block. No normal escrow funding/release or route qualification is claimed. Next: fresh native proof on the retained deployment, then the still-gated provider/four-network proofs. [Receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json), [operator boundaries](setup.md#financial-consent-preparation). |
 | I1 | Development sign-in/linking verified; optional bot identity prerequisite added | This checkpoint preserves the signed Telegram `profile.id` separately from OIDC `sub`, encrypted in the same identity record; legacy enrichment keeps the original account, rejects changed bindings and collects nothing new during restricted recovery. Own export includes the retained ID. 78 unit, 176 PostgreSQL, seven affected Chromium journeys and isolated build/static checks pass; the new regression fails against the old writer. Owner-verified Google/Telegram sign-in/linking remains prior evidence; no owner app/key change, bot-message consent, actual-phone or release claim. [Setup](setup.md#secure-local-identity-setup). |
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Saved-rule publication bound in sandbox; live prerequisites gated | `8ca2941` binds normal saved drafts/fixed staff to one encrypted salted material image and actual native publication. Both-mode attended/outage principal journeys and affected host/privacy browser checks pass; CI41690057149 passes. Qualified escrow, reserve/prize/provider evidence and public authority remain prerequisites for live publication. [Publication](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). |

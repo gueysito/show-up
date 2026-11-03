@@ -112,7 +112,7 @@ export class ReadOnlyRpc {
     if (
       family === "near" &&
       method === "query" &&
-      !["view_account", "view_access_key_list", "call_function"].includes(
+      !["view_account", "view_access_key", "view_access_key_list", "call_function"].includes(
         String(record(params).request_type),
       )
     )

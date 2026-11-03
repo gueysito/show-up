@@ -1,0 +1,147 @@
+{
+  "format": "showup.native-engineering.receipt.v1",
+  "operationId": "2750f947-d374-424d-9b4c-328379227ada",
+  "network": "near-testnet",
+  "originalPlanHash": "161ae1ebbb741e3ca695814f34e97b170a70d80ebb88d529f899d660971d261f",
+  "approvedGasAmendmentHash": "c50abf32e3dd2c80cea170125d6e0c118848f5aab73f469575b38565efd81ca6",
+  "accounts": {
+    "rootAccount": "showup-dev-14989f.testnet",
+    "escrowAccount": "e-2750f947d3.showup-dev-14989f.testnet",
+    "attendeeAccount": "a-2750f947d3.showup-dev-14989f.testnet"
+  },
+  "token": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+  "manifest": "c051ff3fff68cfcdb1efdacc280882c5e0c185cc23e78319f4eb77a3c1ab8cdc",
+  "contractArtifact": {
+    "bytes": 1007612,
+    "sha256": "12be79b214a3a93dc239cbcabb65fb25274eb54963fb2118ad2cb27ff79c8276",
+    "codeHash": "2GAoAZYrBfDL2vk1yx8AAegShWGPC2hnJVjCwrKLJJfX"
+  },
+  "maximumNative": "20000000000000000000000000",
+  "maximumTestTokenPrincipal": "5000000",
+  "originalGas": "300000000000000",
+  "amendedRemainingGas": "200000000000000",
+  "outcome": {
+    "publicationObserved": true,
+    "reservationAccepted": false,
+    "escrowFundingObserved": false,
+    "normalReleaseWithdrawalRoundTripPassed": false,
+    "reservationFailure": "Authorization expired",
+    "originalPrincipalReturnedFromUnfundedAttendee": "5000000",
+    "eventCancelled": true,
+    "sourceQualified": false,
+    "liveFundingAllowed": false
+  },
+  "prevalidationFailure": {
+    "sourceIds": ["near-testnet-archival", "near-testnet-fastnear"],
+    "reason": "NotEnoughBalance",
+    "attendeeBalance": "250000000000000000000000",
+    "requiredPrepaidBalance": "300960527059114000000000",
+    "originalHash": "FAfBDqgEpssrdzT2hHVu6UcZjJMFsccn2DbdBBYB4DBe",
+    "identicalImageExtraBroadcastAttempts": 1,
+    "replacementRetainsOriginalNonceAndAuthorization": true
+  },
+  "transactions": [
+    {
+      "step": "create_escrow",
+      "hash": "3rQzVeeTzZBmv2THf5PVLtP2LAPRJkkSCBMe1tY86rny",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "create_attendee",
+      "hash": "4hz1Mgtag4GCfDZcjud997ordTGTrfjgqGdXWcUab6DA",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "deploy_pinned_wasm",
+      "hash": "FbtAPyeFca9g9z16SvSyNaf4SkPXTymPpdPDyik7pDcm",
+      "signer": "e-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "initialize_engineering_profile",
+      "hash": "6Wi88xUTNUsodiZepyp49ENyHq17Bzx6Ur7XeY3nVzVC",
+      "signer": "e-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "register_escrow_token_storage",
+      "hash": "AS26c39DRSrDDbcMtpV1zfqxnCKBQ4vVE9KPEfgZREXU",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "register_attendee_token_storage",
+      "hash": "Dx83EccHH5GpvxGhwxJ3SQEMd8uVFTtMmnoyAoWvoBpw",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "allocate_exact_test_principal",
+      "hash": "GHPNPW3uiv4apFhXoCyDFvFW9hEmwrLLDPhB3E2VZPMq",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "create_fixed_event",
+      "hash": "9FwDuKJhZDyGWv6XuuZ6VjWfY3MnvH3tv5h7SZ4BZzMj",
+      "signer": "e-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "publish",
+      "hash": "GhfMvFZkbf88PBYVDSffsdNGfPffbjdwUdzZN5sGriLW",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "reserve_original_authorization",
+      "hash": "DZtjfuXdKcoCZ6GJT2znZ3Q4xjhMedXrTxysdKcf2jEc",
+      "signer": "a-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "failed"
+    },
+    {
+      "step": "recover_test_tokens_to_project_wallet",
+      "hash": "EcbwXThcg95m2XhmgqVncfwGSPwZ5kMWFerRxbWNLpJ5",
+      "signer": "a-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "recover_original_event",
+      "hash": "EJ5wz62134CSjtmenexd2Jg2zqo1ito2rNiQ4T5rEYLB",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    }
+  ],
+  "finalObservation": {
+    "operationId": "2750f947-d374-424d-9b4c-328379227ada",
+    "eventState": "cancelled",
+    "registrationState": null,
+    "tokenBalance": "0",
+    "accounting": {
+      "received": "0",
+      "delivered": "0",
+      "owed": "0",
+      "unallocated": "0"
+    },
+    "rootNative": "2731911336684227399999999",
+    "rootTestUsdc": "20000000",
+    "attendeeTestUsdc": "0",
+    "block": {
+      "height": "276118428",
+      "hash": "Bh1uHAfF9wcS2MUU9FopyxEp4gApA2qy5ZSfXPBwDhmd",
+      "timestampMs": 1793750052879
+    },
+    "sourceIds": ["near-testnet-archival", "near-testnet-fastnear"]
+  },
+  "retention": "Child accounts and original private operation state retained; no application keys accessed or regenerated.",
+  "limits": [
+    "No confirmed escrow deposit or normal release/withdrawal proof.",
+    "No mainnet, other-network, bot-message, actual-device or full milestone-4 qualification.",
+    "Post-close driver verification stopped; the separate final two-source observation above confirmed closure and balances."
+  ],
+  "rootNativeBefore": "14999955363487500000000000",
+  "rootNativeDebit": "12268044026803272600000001",
+  "nativeDebitMeaning": "Includes retained child funding and storage, not a gas-burn measurement."
+}

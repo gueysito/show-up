@@ -30,17 +30,18 @@ private invitations and host management pass isolated-account checks. Funding an
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-Native test NEAR is funded; Circle test USDC awaits CAPTCHA confirmation and [the exact native plan](docs/plan.md#active-halfway-implementation-goal) awaits execution approval.
-Await that public protocol proof before source-dependent publication/quote/funding/clearance integration;
+The approved native testnet trial deployed/published the contract, but reservation failed after a gas-budget error and authorization expiry; all 5 test USDC returned and the event is cancelled.
+Prepare a fresh native proof using the retained deployment and corrected gas/deadline handling; another public operation needs exact approval.
+Normal escrow funding/release remains unproved before source-dependent publication/quote/funding/clearance integration;
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;
 source-dependent implementation resumes with qualified inputs. Verified private-branch checkpoints are approved.
-No merge, general hosting, public signing/deployment, paid purchase or spending is authorized.
+No merge, general hosting, additional public operation, paid purchase or mainnet spending is authorized.
 
 ## Unimplemented or unverified
 
 Actual-wallet/phone journeys, real attributable funding/publication, integrated wallet commitments,
 settlement-dependent retention, qualified deletion/recovery and qualified attendee/staff attendance. Contract evidence uses local test tokens;
 external routes, live draw recovery, typed custody signing and observers remain unqualified.
-Native publication has actual sandbox evidence; browser published-state records remain fixtures. Rewards/claims/reporting/release stay in milestones 5–7.
+Native publication has sandbox and public-testnet evidence; browser published-state records remain fixtures. Rewards/claims/reporting/release stay in milestones 5–7.
 No mainnet, real-phone or full halfway completion is claimed.

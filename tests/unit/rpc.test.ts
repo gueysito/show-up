@@ -65,6 +65,33 @@ test("RPC endpoint and method allowlists block writes, arbitrary origins and raw
   assert.equal(calls, 0);
 });
 
+test("native signer preflight can read one access key at the original finalized block", async () => {
+  const params = {
+    request_type: "view_access_key",
+    account_id: "fictional.testnet",
+    public_key: `ed25519:${"1".repeat(32)}`,
+    block_id: "1".repeat(32),
+  };
+  const result = {
+    nonce: 276115628000000,
+    permission: "FullAccess",
+    block_hash: params.block_id,
+    block_height: 276115628,
+  };
+  for (const id of ["near-testnet-archival", "near-testnet-fastnear"]) {
+    let calls = 0;
+    const rpc = new ReadOnlyRpc(id, async (_url, options) => {
+      calls++;
+      const request = JSON.parse(String(options?.body));
+      assert.equal(request.method, "query");
+      assert.deepEqual(request.params, params);
+      return Response.json({ jsonrpc: "2.0", id: request.id, result });
+    });
+    assert.deepEqual(await rpc.read("query", params), result);
+    assert.equal(calls, 1);
+  }
+});
+
 test("RPC correlates response IDs, preserves pending null, rejects errors/bounds and uses bounded transient retries", async () => {
   let calls = 0;
   const rpc = new ReadOnlyRpc("base-public", async (url, options) => {

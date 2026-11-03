@@ -427,7 +427,8 @@ state. The mainnet reader rejects engineering inputs. The sources follow current
 [NEAR provider documentation](https://docs.near.org/api/rpc/providers): NEAR archival
 testnet and FastNEAR testnet. One actual read-only header comparison matched;
 operator independence, asset/deployment qualification and funded round trips remain
-unverified. No public signing, key loading, deployment or spending occurred.
+unverified. At that read-only checkpoint no public signing, key loading,
+deployment or spending occurred.
 
 Prepare a concrete **unsigned** native experiment with
 `node --import tsx scripts/native-engineering-plan.ts` after the pinned WASM build.
@@ -468,7 +469,18 @@ storage collateral; no automatic account/key deletion is performed. This is part
 of the proposed 20-test-NEAR ceiling, separate from the returned 5-test-USDC principal.
 
 Local verification covers independent pinned native decoding/signatures and
-durable original-hash recovery. The public deployment/round trip has **not** run.
+durable original-hash recovery. The approved November 3 public trial deployed and
+published successfully, but its reservation encountered insufficient prepaid gas,
+then expired after the owner-approved gas amendment. Recovery returned the original
+5 test USDC from the unfunded attendee and cancelled the event. Both sources agree
+on zero escrow funds/debt and the original root token balance. This is **not** a
+successful funded escrow/release round trip. [Public receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json).
+Future plans/calls use 200 Tgas. Newly prepared reservation/funding images carry
+their original authorization expiry; a new broadcast needs at least 30 seconds
+remaining. Already submitted images still reconcile after expiry. Recovery also
+closes an unfunded published event, preserving the original keys/images and all
+principal. A fresh public operation needs a new concrete approval; use the retained
+deployment when preparing it rather than assuming another deployment is funded.
 This tool cannot activate application funding, qualify an asset/route, prove the
 other three networks or establish full milestone-4 completion.
 

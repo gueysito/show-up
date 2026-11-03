@@ -17,7 +17,11 @@ import {
   contractAuthorization,
   contractReference,
 } from "../src/server/commitments/contract-authorization";
-import { nativeEngineeringRoot, prepareNativeEngineeringPlan } from "./native-engineering-plan";
+import {
+  nativeEngineeringRoot,
+  nativeEngineeringGas,
+  prepareNativeEngineeringPlan,
+} from "./native-engineering-plan";
 import { engineeringManifest, engineeringManifestHash } from "../src/server/protocol/manifest";
 import {
   nativeInteger,
@@ -35,6 +39,7 @@ type Image = {
   signedBase64: string;
   signer: string;
   phase: "prepared" | "submitted" | "final" | "failed";
+  validUntilMs?: number;
 };
 type State = {
   plan: Plan;
@@ -53,13 +58,14 @@ type State = {
 };
 const endpoint = "https://test.rpc.fastnear.com";
 const directory = new URL("../contracts/.cache/native-engineering/", import.meta.url);
+let operatorStage = "validate_approved_plan";
 const json = (value: unknown) => Buffer.from(canonicalJson(value));
 const call = (method: string, args: object, deposit = "0"): NativeAction => ({
   kind: "call",
   method,
   args: json(args),
   deposit,
-  gas: "300000000000000",
+  gas: nativeEngineeringGas,
 });
 
 // One HTTP attempt. It never retries, refreshes a nonce or exposes RPC bodies in
@@ -109,6 +115,12 @@ export async function submitOriginalNativeImage(
   // Mark possible submission durably BEFORE the request. A crash at either side
   // of HTTP must reconcile this image, even if the first request never arrived.
   const firstAttempt = image.phase === "prepared";
+  if (
+    firstAttempt &&
+    image.validUntilMs !== undefined &&
+    (!Number.isSafeInteger(image.validUntilMs) || Date.now() + 30_000 >= image.validUntilMs)
+  )
+    throw new Error("Original authorization needs recovery before a new broadcast");
   if (firstAttempt) {
     image.phase = "submitted";
     await save();
@@ -273,6 +285,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
     throw new Error("Prepared plan differs from approval");
   // Recompute the current artifact and all fixed operation constraints. Balances
   // may change after owner funding; destinations, costs and code may not.
+  operatorStage = "read_public_preflight";
   const fresh = resume ? null : (await prepareNativeEngineeringPlan()).plan;
   const suffix = plan.operationId.replaceAll("-", "").slice(0, 10);
   const expected = fresh && {
@@ -304,6 +317,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
     throw new Error("Prepared test funding is missing or exceeds the reviewed cap");
   // The fixed wallet file is parsed as data only AFTER the approved public plan
   // and funding preflight. No application configuration/keys are accessed.
+  operatorStage = "load_project_testnet_wallet";
   const wallet = record(
     await privateJson(join(homedir(), ".showup-test-wallets", "near-testnet.json")),
   );
@@ -314,16 +328,21 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
     !wallet.private_key.startsWith("ed25519:")
   )
     throw new Error("Project testnet wallet configuration requires review");
+  operatorStage = "derive_project_signer";
   const secret = decodeBase58(wallet.private_key.slice(8), 64),
     root = nativeKey(secret.subarray(0, 32));
   if (!root.publicBytes.equals(secret.subarray(32)) || wallet.public_key !== root.publicKey)
     throw new Error("Project wallet key binding requires review");
+  operatorStage = "verify_root_access";
   await verifyAccess(plan.rootAccount, root);
+  operatorStage = "create_private_state_directory";
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const statePath = new URL(`${plan.operationId}.json`, directory),
     lockPath = new URL(`${plan.operationId}.lock`, directory);
+  operatorStage = "acquire_operation_lock";
   const lock = await open(lockPath, "wx", 0o600);
   try {
+    operatorStage = "initialize_operation_state";
     let state: State;
     if (resume) {
       state = (await privateJson(statePath)) as State;
@@ -395,6 +414,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       receiver: string,
       actions: () => Promise<NativeAction[]> | NativeAction[],
     ) {
+      operatorStage = "execute_original_step";
       if (state.completed.includes(name)) return;
       if (!state.images[name]) {
         const preparedActions = await actions(),
@@ -407,6 +427,14 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
           signer: signerAccount,
           phase: "prepared",
         };
+        await save();
+      }
+      if (
+        ["reserve_original_authorization", "fund_original_registration"].includes(name) &&
+        state.authorization &&
+        state.images[name].validUntilMs !== Number(state.authorization.expires_ms)
+      ) {
+        state.images[name].validUntilMs = Number(state.authorization.expires_ms);
         await save();
       }
       await submitOriginalNativeImage(state.images[name], save);
@@ -434,6 +462,21 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
             if ((image as Image).phase !== "failed")
               throw new Error("Original native image is still uncertain");
           }
+        }
+      }
+      if (
+        !state.images.fund_original_registration &&
+        state.authorization &&
+        state.completed.includes("publish")
+      ) {
+        const source = await observe(state);
+        if (source.eventState === "published" || source.eventState === "draft") {
+          const afterDeadline = source.block.timestampMs >= Number(state.terms.end_ms) + 2_100_000;
+          if (!afterDeadline && source.block.timestampMs >= Number(state.terms.end_ms) - 600_000)
+            throw new Error("Wait for the original event fail-neutral deadline before recovery");
+          await step("recover_original_event", plan.rootAccount, root, plan.escrowAccount, () => [
+            call(afterDeadline ? "fail_neutral" : "cancel_or_abort", { event: state.terms.event }),
+          ]);
         }
       }
       if (state.images.fund_original_registration) {
@@ -767,7 +810,14 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       : command === "resume-approved-plan"
         ? "resume"
         : "recover";
-  await run(planPath, hash, mode).catch(() => {
+  await run(planPath, hash, mode).catch((error: unknown) => {
+    // Never print exception messages, stacks, signed images, keys or RPC bodies.
+    const category =
+      error instanceof Error &&
+      ["Error", "TypeError", "RangeError", "AbortError", "TimeoutError"].includes(error.name)
+        ? error.name
+        : "Error";
+    console.error(JSON.stringify({ status: "stopped", stage: operatorStage, category }));
     console.error(
       "Native engineering stopped. Preserve its private state and reconcile the original transaction before any further signing.",
     );

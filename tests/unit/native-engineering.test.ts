@@ -149,3 +149,38 @@ test("an uncertain native submission resumes only its original hash after durabl
   });
   assert.deepEqual(saved, ["submitted", "final"]);
 });
+
+test("expired prepared financial images cannot broadcast but submitted images still reconcile", async () => {
+  const image = {
+    hash: "original-hash",
+    signedBase64: "original-image",
+    signer: "a.root.testnet",
+    phase: "prepared" as "prepared" | "submitted" | "final" | "failed",
+    validUntilMs: Date.now() - 1,
+  };
+  let calls = 0;
+  const transport: typeof fetch = async (_url, init) => {
+    calls++;
+    assert.equal(JSON.parse(String(init!.body)).method, "tx");
+    return Response.json({
+      jsonrpc: "2.0",
+      id: "showup-native-engineering",
+      result: {
+        transaction: { hash: image.hash },
+        final_execution_status: "FINAL",
+        status: { SuccessValue: "" },
+        receipts_outcome: [],
+      },
+    });
+  };
+  await assert.rejects(
+    submitOriginalNativeImage(image, async () => {}, transport),
+    /recovery/,
+  );
+  assert.equal(calls, 0);
+  assert.equal(image.phase, "prepared");
+  image.phase = "submitted";
+  await submitOriginalNativeImage(image, async () => {}, transport);
+  assert.equal(calls, 1);
+  assert.equal(image.phase, "final");
+});

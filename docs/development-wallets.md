@@ -1,6 +1,6 @@
 # Development wallets and faucet setup
 
-Updated November 3, 2026 after the delegated NEAR faucet top-up. Public test addresses only. These accounts are dedicated
+Updated November 3, 2026 after approved NEAR test-USDC funding. Public test addresses only. These accounts are dedicated
 to Showup engineering networks; never fund them with real assets. Key generation
 is not activation, funding, browser import or a tested signing integration.
 
@@ -8,7 +8,7 @@ is not activation, funding, browser import or a tested signing integration.
 
 | Network | Public address | Verified state |
 | --- | --- | --- |
-| NEAR testnet | `showup-dev-14989f.testnet` | Prior ownership/self-transfer evidence retained; finalized balance 14.9999553634875 test NEAR after the November 3 faucet top-up. No operator key was accessed for funding. |
+| NEAR testnet | `showup-dev-14989f.testnet` | After approved deployment/recovery: 2.731911336684227399999999 test NEAR and 20 test USDC. Original 5 test USDC returned; child accounts/keys retained. [Receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json). |
 | Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Ethereum Sepolia 0.00699987998086555 ETH after native self-transfer, finality pending; Base Sepolia 0.00299941552999982 ETH after finalized native/USDC tests. Last checked test USDC balance: 20 on each chain. |
 | Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Ownership and native self-transfer verified; fee-control retest finalized; balance 4.999915 SOL |
 
@@ -61,8 +61,8 @@ import tutorial. The NEAR testnet wallet import path still needs confirmation.
    against the deployment manifest before integrating it. Native gas and USDC are
    different assets; receiving USDC does not supply gas.
 5. Verify network, recipient, finalized/native balance and token balance. Record
-   transaction IDs and source before marking funded. Browser sign-in/CAPTCHA is
-   performed by the owner in the isolated profile; never request a private key on
+   transaction IDs and source before marking funded. Browser sign-in/CAPTCHA requires
+   the owner's approval in the isolated profile; never request a private key on
    a faucet site. Provider requirements and availability can change.
 
 NEAR faucet creation transaction: `EjYigWDCBA7yJcPUyyM8DZ6867SdQnAyFMWZ9e9NLhQt`.
@@ -79,9 +79,22 @@ agreed at finalized block `276103324` (`5zpbP8quGU4FHcnjRPi639gp9qaNGqJkKQEpaHs2
 on **14.9999553634875 test NEAR**, exactly 5 more than the prior balance, and **0
 test USDC** at the pinned engineering token. Native funding is sufficient for the
 prepared experiment. The earlier external 2-NEAR request returned an empty page
-without a confirmed arrival. Circle's NEAR/20-test-USDC form is prepared in the same
-profile; it requires reCAPTCHA and awaits action-time confirmation. No private key
-was loaded, agent-signed public transaction created or application funding route enabled.
+without a confirmed arrival.
+
+The owner subsequently approved the prepared Circle CAPTCHA and native experiment.
+Circle reported 20 test USDC sent. NEAR archival and FastNEAR agree at finalized
+block `276115628` (`DM9kj8ipYydVUgtFK7bXkHafAVZUtYSiZtWVuUZhN8xM`) on
+**14.9999553634875 test NEAR and 20 test USDC** at the pinned token, before
+experiment execution. Receipt: `/private/tmp/showup-faucet-balances-1793748389086.json`;
+UI confirmation: `/private/tmp/showup-circle-funded-approved.jpg`. Faucet funding
+loaded no key and enabled no application route. The separately approved native
+operator loaded only the original testnet key for its exact plan and budget.
+The trial's reservation failed after a prepaid-gas error and authorization expiry.
+Approved recovery returned the original 5 test USDC and cancelled the event.
+Both sources agree at finalized block `276118428` on the current table balance,
+zero attendee/escrow test USDC and zero owed. No normal funded round trip or
+application route qualification is claimed. Child native balances/storage and
+recovery keys are retained; no account/key deletion or application-key change occurred.
 
 At 18:25 UTC on November 1, public RPC checks reconfirmed Ethereum Sepolia chain ID
 11155111 and Base Sepolia 84532. Native balances were 6999999980865550 wei and
