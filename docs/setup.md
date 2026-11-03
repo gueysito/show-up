@@ -253,6 +253,14 @@ disabled. Agent browser evidence uses disposable in-memory wallets and test acco
 The NEAR redirect was inspected without contacting MyNearWallet; actual wallet
 approval/return, live NEAR membership and phone behavior remain owner/provider gates.
 
+## Publication requirements
+
+In the host workspace, save a draft and choose **Check saved publication requirements**.
+The server checks that exact owned revision. Unsaved edits hide the result and require
+a save; stale revisions require reload. Validation alone does not qualify funding,
+escrow, execution reserves, sponsor rewards, NFT custody, draw recovery or staff
+eligibility. The checklist explains those prerequisites; publication stays disabled.
+
 ## Financial-consent preparation
 
 Internal financial-consent storage also requires `006-commitment-consent.sql` via

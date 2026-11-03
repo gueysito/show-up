@@ -9,6 +9,7 @@ import {
   requestPublication,
   saveAccountDraft,
 } from "../../../server/events/accounts";
+import { readPublicationReadiness } from "../../../server/events/publication";
 import {
   AppFailure,
   failureResponse,
@@ -30,11 +31,31 @@ async function handle(request: Request) {
       (await cookies()).get(sessionCookie)?.value,
     );
     await limit(database.pool, `events:${session.accountId}`, 60);
-    if (request.method === "GET")
+    if (request.method === "GET") {
+      const query = new URL(request.url).searchParams;
+      if (query.has("publication")) {
+        if (
+          [...query.keys()].some((key) => !["publication", "revision"].includes(key)) ||
+          query.getAll("publication").length !== 1 ||
+          query.getAll("revision").length !== 1 ||
+          !/^[1-9]\d{0,8}$/.test(query.get("revision") ?? "")
+        )
+          throw new AppFailure(400, "Choose a saved event revision.");
+        return Response.json(
+          await readPublicationReadiness(
+            database.pool,
+            session.tokenHash,
+            query.get("publication")!,
+            Number(query.get("revision")),
+          ),
+          { headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } },
+        );
+      }
       return Response.json(
         { drafts: await listAccountEvents(database.pool, session.accountId) },
         { headers: { "Cache-Control": "no-store" } },
       );
+    }
     const body = await jsonBody(request);
     if (typeof body.operationId !== "string" || typeof body.id !== "string")
       throw new AppFailure(400, "Invalid event operation.");

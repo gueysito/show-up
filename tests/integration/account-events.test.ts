@@ -14,6 +14,7 @@ import {
   saveAccountDraft,
 } from "../../src/server/events/accounts";
 import { AppFailure } from "../../src/server/http/security";
+import { readPublicationReadiness } from "../../src/server/events/publication";
 import { validDraft } from "../fixtures/draft";
 
 if (process.env.SHOWUP_ENV !== "test")
@@ -62,6 +63,34 @@ function operation() {
 }
 const status = (code: number) => (error: unknown) =>
   error instanceof AppFailure && error.status === code;
+
+test("publication requirements come from an owned current saved revision and cannot qualify routes or leak answers", async () => {
+  const host = await account("host"),
+    other = await account("host"),
+    admin = await account("admin");
+  const draft = { id: randomUUID(), operationId: operation(), revision: 0, data: validDraft() };
+  await saveAccountDraft(pool, config.encryptionKey, host.session, draft);
+  const result = await readPublicationReadiness(pool, host.session, draft.id, 1);
+  assert.equal(result.publicationAllowed, false);
+  assert.equal(result.revision, 1);
+  assert.equal(result.checks.find((check) => check.id === "rules")!.state, "ready");
+  assert.equal(Object.hasOwn(result, "data"), false);
+  assert.equal(Object.hasOwn(result, "quizzes"), false);
+  await assert.rejects(readPublicationReadiness(pool, other.session, draft.id, 1), status(404));
+  await assert.rejects(readPublicationReadiness(pool, admin.session, draft.id, 1), status(403));
+  await assert.rejects(readPublicationReadiness(pool, host.session, draft.id, 2), status(409));
+  await assert.rejects(
+    requestPublication(pool, config.encryptionKey, host.session, operation(), draft.id),
+    status(409),
+  );
+  assert.equal((await listAccountEvents(pool, host.id))[0].state, "draft");
+  await pool.query("DELETE FROM app_roles WHERE account_id=$1", [host.id]);
+  await assert.rejects(readPublicationReadiness(pool, host.session, draft.id, 1), status(403));
+  await pool.query("UPDATE app_sessions SET revoked_at=clock_timestamp() WHERE token_hash=$1", [
+    other.session,
+  ]);
+  await assert.rejects(readPublicationReadiness(pool, other.session, draft.id, 1), status(401));
+});
 
 test("host drafts are private; admin alone is not a host and ID swaps cannot change ownership", async () => {
   const owner = await account("host");

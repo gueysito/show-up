@@ -407,6 +407,7 @@ export function EventDraftForm({
                 description={draft.description}
                 busy={busy}
                 setBusy={setBusy}
+                dirty={dirty}
                 changeDescription={(value) => change("description", value)}
                 onSaved={(revision) => {
                   setIdentity({ ...identity, revision });

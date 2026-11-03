@@ -56,6 +56,43 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     );
     await expect(host.getByRole("status")).toContainText("Independent unfunded draft");
     await expect(host.getByRole("button", { name: /Publish event/ })).toBeDisabled();
+    const review = host.getByRole("button", { name: "Check saved publication requirements" });
+    await review.click();
+    const requirements = host.getByRole("region", { name: "Saved publication requirements" });
+    await expect(requirements).toContainText("Checked saved revision 1");
+    await expect(requirements).toContainText("NEAR, Base, Solana and Ethereum");
+    await expect(requirements).toContainText("Project execution funding");
+    await expect(requirements).not.toContainText("Fictional private answer");
+    const ownEvents = await (await host.request.get("/api/events")).json();
+    const copy = ownEvents.drafts.find(
+      (event: { data: { title: string } }) => event.data.title === "Invited host draft (copy)",
+    );
+    expect(
+      (
+        await host.request.get(`/api/events?publication=${copy.id}&revision=1&fundingVerified=true`)
+      ).status(),
+    ).toBe(400);
+    expect((await host.request.get(`/api/events?publication=${copy.id}&revision=2`)).status()).toBe(
+      409,
+    );
+    expect(
+      (
+        await host.request.post("/api/events", {
+          headers: { origin: "https://localhost:3444" },
+          data: {
+            operation: "publish",
+            operationId: crypto.randomUUID(),
+            id: copy.id,
+            fundingVerified: true,
+          },
+        })
+      ).status(),
+    ).toBe(409);
+    await host.getByLabel("Event name", { exact: true }).fill("Unsaved private edit");
+    await expect(review).toBeDisabled();
+    await expect(requirements).toHaveCount(0);
+    await host.getByLabel("Event name", { exact: true }).fill("Invited host draft (copy)");
+    await expect(review).toBeEnabled();
     await host.setViewportSize({ width: 390, height: 844 });
     expect(await host.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
@@ -78,6 +115,13 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await expect(other.getByRole("button", { name: /Invited host draft/ })).toHaveCount(0);
     const response = await other.request.get("https://localhost:3444/api/events");
     expect((await response.json()).drafts).toEqual([]);
+    expect(
+      (
+        await other.request.get(
+          `https://localhost:3444/api/events?publication=${copy.id}&revision=1`,
+        )
+      ).status(),
+    ).toBe(404);
     await other.goto("https://localhost:3444/account");
     await expect(other.getByRole("button", { name: "Issue host invitation" })).toHaveCount(0);
     const attendeeContext = await browser.newContext({ ignoreHTTPSErrors: true });

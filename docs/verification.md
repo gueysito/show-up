@@ -986,6 +986,18 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   approved records and explicit unconfirmed escrow; they do not demonstrate a real
   payment. Financial signing/escrow integration, publication and device gates remain open.
 
+## I3 publication requirements checkpoint November 2
+
+- Format/lint/types, 56 unit, 58 disposable PostgreSQL checks and isolated production
+  build pass; all 19 Chromium scenarios pass. Saved-revision checks reject ID swaps,
+  admin-without-host access, stale revisions, revoked roles/sessions and client-supplied
+  verification flags. Publication remains 409 and the saved event remains a draft.
+- Mobile host capture inspected. New since the walkthrough: save/reopen a private
+  draft → **Check saved publication requirements** → see validation and unverified
+  protocol prerequisites; edit without saving → hide that result and disable the check.
+  No private answers or wallet directory appear in the response. Native/sandbox and
+  provider/device limits from the preceding checkpoints remain in force.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

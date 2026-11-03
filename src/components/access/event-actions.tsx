@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { InvitationManager } from "./invitation-manager";
+import type { PublicationReadiness } from "../../server/events/publication";
 
 export function EventActions({
   id,
@@ -12,6 +13,7 @@ export function EventActions({
   onSaved,
   busy,
   setBusy,
+  dirty,
 }: {
   id: string;
   revision: number;
@@ -21,8 +23,27 @@ export function EventActions({
   onSaved: (revision: number) => void;
   busy: boolean;
   setBusy: (busy: boolean) => void;
+  dirty: boolean;
 }) {
   const [status, setStatus] = useState("");
+  const [readiness, setReadiness] = useState<PublicationReadiness | null>(null);
+  async function checkPublication() {
+    setBusy(true);
+    setReadiness(null);
+    try {
+      const response = await fetch(`/api/events?publication=${id}&revision=${revision}`, {
+        cache: "no-store",
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Publication check unavailable. Retry.");
+      setReadiness(result);
+      setStatus("Publication remains unavailable. Review the saved-revision requirements below.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Publication check unavailable. Retry.");
+    } finally {
+      setBusy(false);
+    }
+  }
   const pending = useRef<{ operationId: string; description: string; revision: number } | null>(
     null,
   );
@@ -58,6 +79,33 @@ export function EventActions({
       <button type="button" className="secondary-button" disabled>
         Publish event · protocol verification required
       </button>
+      {state !== "published" && (
+        <div>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy || dirty}
+            onClick={checkPublication}
+          >
+            Check saved publication requirements
+          </button>
+          {dirty && <p>Save your changes before checking publication requirements.</p>}
+          {!dirty && readiness?.revision === revision && (
+            <section aria-label="Saved publication requirements">
+              <p>{`Checked saved revision ${readiness.revision} at ${readiness.checkedAt}. This check does not publish or fund the event.`}</p>
+              <ul>
+                {readiness.checks.map((check) => (
+                  <li key={check.id}>
+                    <strong>{check.label}</strong>
+                    {`: ${check.state === "ready" ? "Validated" : check.state === "not_required" ? "Not required" : "Verification required"}. ${check.detail}`}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {status && <p role="status">{status}</p>}
+        </div>
+      )}
       {state === "published" && (
         <div>
           <label htmlFor="copy-description">Correct description only</label>
