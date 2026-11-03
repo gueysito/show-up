@@ -314,6 +314,15 @@ or paused source checks. Conflicts preserve the recorded obligations; unqualifie
 observations never become confirmed escrow or funded seats. No watch-creation or
 refresh endpoint is exposed to browsers.
 
+The shared attendance packet builder accepts only explicit sandbox context and
+validated funded contract state. It binds the original event, participant, rules,
+proof class, server receipt time, nonce and bounded expiry; its result stays
+`pending_contract`, with live submission disabled. It neither establishes a valid
+code/staff proof nor signs or confirms attendance. `contracts:check` independently
+replays actual sandbox signatures and principal returns for both proof classes.
+Online-code, staff QR, durable evidence processing and actual-phone journeys remain
+incomplete. A pure receipt builder or sandbox token cannot qualify live attendance.
+
 ## Private account export
 
 After rebuilding, choose **Account → Your data and export → Download your data as JSON**.

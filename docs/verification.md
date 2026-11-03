@@ -1089,6 +1089,24 @@ Focused format/lint checks pass; application code is unchanged by this repair.
   The private launcher reuses the existing parser/key without executing credentials;
   no owner database migration, deletion, worker start or credential read occurred.
 
+## Shared attendance receipt checkpoint November 2
+
+- Format/lint/types and all 64 unit checks pass. Opening/grace/cutoff equality,
+  exact event/participant/registration binding, proof-class mismatch, unbooked,
+  released, already-attended and live-source rejection, and every signed field/key
+  substitution are exercised. Sandbox packets remain pending, never confirmed.
+- Pinned Rust test Clippy and the affected actual sandbox scenario pass across
+  online/physical modes. Four exported signed receipts independently match the Node
+  wire builder; on-time/late classifications and paid original principal match
+  contract-owned state. No contract source/WASM/lockfile changed; the other 34
+  sandbox scenarios and seven prior Node replays retain their existing evidence.
+  `contracts:check` now includes this eighth replay. Existing PostgreSQL/build/browser
+  evidence is unchanged; no application route, database schema or UI changed.
+- Receipt construction does not establish live-code possession, assigned-staff
+  presence or complete reconciliation. Those interfaces/durable integrations remain
+  next, alongside existing source qualification and phone gates. No operator key,
+  credential, public transaction or deployed app was used.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:
