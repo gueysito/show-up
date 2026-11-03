@@ -1,17 +1,11 @@
 import assert from "node:assert/strict";
-import { generateKeyPairSync, randomUUID, randomBytes, sign } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
-import { attendanceFixtures } from "../fixtures/attendance";
-import {
-  attendanceCandidateMaterial,
-  persistAttendanceCandidate,
-} from "../../src/server/attendance/attempts";
+import { checkpointFixture as fixture } from "../fixtures/attendance-checkpoint";
+import { persistAttendanceCandidate } from "../../src/server/attendance/attempts";
 import { loadAttendanceAdmission } from "../../src/server/attendance/admission";
-import {
-  freezeAttendanceEvidence,
-  prepareAttendanceCheckpoint,
-} from "../../src/server/attendance/journal";
+import { freezeAttendanceEvidence } from "../../src/server/attendance/journal";
 import { activateHostCodeWindow } from "../../src/server/attendance/codes";
 import { hash, unseal } from "../../src/server/auth/crypto";
 import { AppFailure } from "../../src/server/http/security";
@@ -20,67 +14,11 @@ import { parseRpcJson } from "../../src/server/protocol/rpc";
 import { exportOwnData } from "../../src/server/privacy/export";
 import { requestAccountDeletion } from "../../src/server/privacy/deletion";
 import { confirmedDeletion } from "../fixtures/deletion";
-import { runSandboxAttendanceDelivery } from "../../src/worker/attendance";
 
 if (process.env.SHOWUP_ENV !== "test")
   throw new Error("Evidence journal checks require disposable data");
 const status = (code: number) => (error: unknown) =>
   error instanceof AppFailure && error.status === code;
-async function fixture(withCandidate = true, withQuiz = false, ledgerVersion?: bigint) {
-  const f = await attendanceFixtures("digital", withQuiz);
-  if (withCandidate) await f.attempt();
-  const row = (
-    await f.pool.query("SELECT * FROM app_attendance_candidates WHERE event_id=$1", [f.eventId])
-  ).rows[0];
-  const candidate = row ? attendanceCandidateMaterial(f.config, row) : null;
-  const observed = structuredClone(f.source),
-    event = observed.views.event as Record<string, unknown>,
-    terms = event.terms as { end_ms: number };
-  const at = terms.end_ms - 600_000;
-  event.attendance = withCandidate ? 1 : 0;
-  event.ledger_version = ledgerVersion ?? (withCandidate ? 2 : 1);
-  event.ended_ms = at - 300_000;
-  (observed.views.registration as { attendance: string | null }).attendance =
-    candidate?.packet.classification ?? null;
-  observed.block = { height: "101", hash: encodeBase58(Buffer.alloc(32, 9)), timestampMs: at };
-  const key = generateKeyPairSync("ed25519"),
-    publicKey = Buffer.from(key.publicKey.export({ format: "jwk" }).x!, "base64url").toString(
-      "base64",
-    );
-  const accepted = candidate
-    ? [
-        {
-          candidateId: row.id as string,
-          receipt: candidate.packet.receipt,
-          proof: sign(null, Buffer.from(candidate.packet.canonical), key.privateKey).toString(
-            "base64",
-          ),
-        },
-      ]
-    : [];
-  if (candidate) {
-    const delivered = await runSandboxAttendanceDelivery(f.pool, f.config, row.id, {
-      context: f.source.context,
-      evidencePublicKey: publicKey,
-      read: async () => structuredClone(observed),
-      sign: async () => accepted[0].proof,
-      submit: async () => {
-        throw new Error("Observed fixture receipt must not be submitted again");
-      },
-    });
-    assert.equal(delivered.status, "observed");
-  }
-  const freeze = (source = observed, now = at, authority = publicKey) =>
-    freezeAttendanceEvidence(f.pool, f.config, f.eventId, source, authority, now);
-  const prepare = (sources = [observed], evidence = accepted, now = at) =>
-    prepareAttendanceCheckpoint(
-      f.pool,
-      f.config,
-      { eventId: f.eventId, sources, accepted: evidence },
-      now,
-    );
-  return { ...f, row, candidate, observed, at, accepted, publicKey, freeze, prepare };
-}
 
 test("a frozen accepted-candidate manifest and signed contract observations produce one persistent restart-safe sandbox checkpoint", async () => {
   const f = await fixture();

@@ -26,6 +26,41 @@ type FrozenManifest = {
 };
 type Facts = ReturnType<typeof validateSettlementState>;
 type AcceptedEvidence = { candidateId: string; receipt: unknown; proof: string };
+type CheckpointBundle = {
+  eventId: string;
+  manifestHash: string;
+  packet: { checkpoint: AttendanceCheckpoint; wire: string };
+  accepted: AcceptedEvidence[];
+  observations: Facts[];
+};
+
+export function attendanceCheckpointMaterial(
+  config: Keys,
+  row: Record<string, unknown>,
+  barrier: Record<string, unknown>,
+) {
+  const frozen = manifest(config, barrier),
+    bundle = unseal(
+      config.encryptionKey,
+      `attendance-checkpoint:${row.event_id}:${row.id}`,
+      row.encrypted_checkpoint as string,
+    ) as CheckpointBundle;
+  if (
+    bundle.eventId !== row.event_id ||
+    bundle.eventId !== barrier.event_id ||
+    bundle.manifestHash !== barrier.manifest_hash ||
+    bundle.packet.wire !== attendanceCheckpointWire(bundle.packet.checkpoint) ||
+    hash(bundle.packet.wire) !== row.checkpoint_hash ||
+    bundle.observations.length < 1 ||
+    bundle.observations.length > 100 ||
+    bundle.observations[0].block.height !== row.observed_height ||
+    bundle.observations[0].block.hash !== row.observed_hash ||
+    bundle.packet.checkpoint.ledger_version !== row.ledger_version ||
+    bundle.packet.checkpoint.complete_through_ms !== Number(barrier.complete_through_ms)
+  )
+    throw new Error("Attendance checkpoint integrity failure");
+  return { bundle, frozen };
+}
 
 // This private batch manifest is not a signed protocol attestation. Its 100
 // bounded entries legitimately exceed the generic 32 KiB attestation limit.

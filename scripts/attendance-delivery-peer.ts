@@ -1,6 +1,7 @@
 import { fork } from "node:child_process";
 import type { AuthConfig } from "../src/server/auth/config";
 import type { SandboxAttendanceGateway } from "../src/worker/attendance";
+import type { SandboxClosingGateway } from "../src/worker/attendance-closing";
 
 // The generated fixture encryption key travels only over private process IPC.
 // No operator file or private wallet key is read, serialized or logged here.
@@ -10,6 +11,25 @@ export function deliveryProcess(
   gateway: SandboxAttendanceGateway,
   killAfterSubmission = false,
 ) {
+  return runProcess(config, candidateId, { kind: "attendance", gateway }, killAfterSubmission);
+}
+export function closingProcess(
+  config: Pick<AuthConfig, "encryptionKey" | "origin">,
+  checkpointId: string,
+  gateway: SandboxClosingGateway,
+  killAfterSubmission = false,
+) {
+  return runProcess(config, checkpointId, { kind: "closing", gateway }, killAfterSubmission);
+}
+function runProcess(
+  config: Pick<AuthConfig, "encryptionKey" | "origin">,
+  jobId: string,
+  input:
+    | { kind: "attendance"; gateway: SandboxAttendanceGateway }
+    | { kind: "closing"; gateway: SandboxClosingGateway },
+  killAfterSubmission: boolean,
+) {
+  const { gateway } = input;
   return new Promise<{ killed: boolean; status: string | null }>((resolve, reject) => {
     const child = fork(
       new URL("../tests/fixtures/attendance-delivery-process.ts", import.meta.url),
@@ -58,16 +78,29 @@ export function deliveryProcess(
         let result: unknown;
         if (value.method === "read") result = await gateway.read(signal);
         else if (value.method === "sign")
-          result = await gateway.sign(
-            value.params[0] as Parameters<SandboxAttendanceGateway["sign"]>[0],
-            signal,
-          );
+          result =
+            input.kind === "attendance"
+              ? await input.gateway.sign(
+                  value.params[0] as Parameters<SandboxAttendanceGateway["sign"]>[0],
+                  signal,
+                )
+              : await input.gateway.sign(
+                  value.params[0] as Parameters<SandboxClosingGateway["sign"]>[0],
+                  signal,
+                );
         else if (value.method === "submit") {
-          await gateway.submit(
-            value.params[0] as Parameters<SandboxAttendanceGateway["submit"]>[0],
-            value.params[1] as string,
-            signal,
-          );
+          if (input.kind === "attendance")
+            await input.gateway.submit(
+              value.params[0] as Parameters<SandboxAttendanceGateway["submit"]>[0],
+              value.params[1] as string,
+              signal,
+            );
+          else
+            await input.gateway.submit(
+              value.params[0] as Parameters<SandboxClosingGateway["submit"]>[0],
+              value.params[1] as string,
+              signal,
+            );
           if (killAfterSubmission) {
             killed = true;
             child.kill("SIGKILL");
@@ -88,7 +121,8 @@ export function deliveryProcess(
     });
     child.send({
       kind: "start",
-      candidateId,
+      jobId,
+      jobKind: input.kind,
       config: { encryptionKey: config.encryptionKey, origin: config.origin },
       context: gateway.context,
       evidencePublicKey: gateway.evidencePublicKey,

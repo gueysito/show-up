@@ -38,8 +38,12 @@ import {
   freezeAttendanceEvidence,
   prepareAttendanceCheckpoint,
 } from "../src/server/attendance/journal";
-import { verifyAttendanceCheckpoint } from "../src/server/attendance/checkpoint-wire";
-import { deliveryProcess } from "./attendance-delivery-peer";
+import {
+  attendanceCheckpointWire,
+  verifyAttendanceCheckpoint,
+} from "../src/server/attendance/checkpoint-wire";
+import { deliveryProcess, closingProcess } from "./attendance-delivery-peer";
+import type { SandboxClosingGateway } from "../src/worker/attendance-closing";
 import type { SandboxAttendanceGateway } from "../src/worker/attendance";
 
 if (
@@ -110,6 +114,13 @@ const results: {
   attendance: string;
   principalPaid: string;
   liveSubmissionAllowed: false;
+  closingRecovery: {
+    signal: "SIGKILL";
+    attempts: number;
+    signatureRequests: number;
+    submissions: number;
+    signedEnvelopePreserved: true;
+  };
   workerRecovery: {
     signal: "SIGKILL";
     attempts: number;
@@ -471,7 +482,72 @@ try {
         ),
         false,
       );
-      await send(mode, "reconcile", { checkpointWire: prepared.wire });
+      let closingSource = reconciliation.source,
+        closingSignatures = 0,
+        closingSubmissions = 0;
+      const closingGateway: SandboxClosingGateway = {
+        context: source.context,
+        evidencePublicKey: reconciliation.evidencePublicKey,
+        read: async () => structuredClone(closingSource),
+        sign: async (checkpoint, signal) => {
+          closingSignatures++;
+          assert.equal(attendanceCheckpointWire(checkpoint), prepared.wire);
+          await send(mode, "reconcile", { checkpointWire: prepared.wire });
+          const signed = await receive<{ source: Snapshot; checkpointProof: string }>(
+            mode,
+            "closing_signed",
+            signal,
+          );
+          closingSource = signed.source;
+          return signed.checkpointProof;
+        },
+        submit: async (checkpoint, signature, signal) => {
+          closingSubmissions++;
+          assert.equal(attendanceCheckpointWire(checkpoint), prepared.wire);
+          assert(
+            verifyAttendanceCheckpoint(checkpoint, signature, reconciliation.evidencePublicKey),
+          );
+          await send(mode, "closing_signed", { submit: true });
+          closingSource = (await receive<{ source: Snapshot }>(mode, "closed", signal)).source;
+        },
+      };
+      assert.equal((await closingProcess(config, prepared.id, closingGateway, true)).killed, true);
+      const beforeClosingRecovery = (
+        await f.pool.query("SELECT * FROM app_attendance_closings WHERE checkpoint_id=$1", [
+          prepared.id,
+        ])
+      ).rows[0];
+      assert.equal(beforeClosingRecovery.state, "broadcast_unknown");
+      assert(beforeClosingRecovery.encrypted_signed);
+      await f.pool.query(
+        "UPDATE app_attendance_closings SET claim_until=clock_timestamp()-interval '1 second' WHERE checkpoint_id=$1",
+        [prepared.id],
+      );
+      assert.equal(
+        (
+          await closingProcess(config, prepared.id, {
+            ...closingGateway,
+            sign: async () => {
+              throw new Error("Closing recovery must reuse the original signature");
+            },
+            submit: async () => {
+              throw new Error("Closing recovery must observe the actual outcome");
+            },
+          })
+        ).status,
+        "observed",
+      );
+      const recoveredClosing = (
+        await f.pool.query("SELECT * FROM app_attendance_closings WHERE checkpoint_id=$1", [
+          prepared.id,
+        ])
+      ).rows[0];
+      assert.equal(recoveredClosing.attempts, 2);
+      assert.equal(recoveredClosing.encrypted_signed, beforeClosingRecovery.encrypted_signed);
+      assert.equal(recoveredClosing.signed_hash, beforeClosingRecovery.signed_hash);
+      assert.equal(closingSignatures, 1);
+      assert.equal(closingSubmissions, 1);
+      await send(mode, "closed", { recovered: true });
       const returned = await receive<{
         receipt: unknown;
         proof: string;
@@ -529,6 +605,13 @@ try {
         attendance: "on_time",
         principalPaid: "5000000",
         liveSubmissionAllowed: false,
+        closingRecovery: {
+          signal: "SIGKILL",
+          attempts: recoveredClosing.attempts,
+          signatureRequests: closingSignatures,
+          submissions: closingSubmissions,
+          signedEnvelopePreserved: true,
+        },
         workerRecovery: {
           signal: "SIGKILL",
           attempts: recoveredDelivery.attempts,

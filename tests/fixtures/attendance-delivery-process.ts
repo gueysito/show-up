@@ -3,6 +3,10 @@ import {
   runSandboxAttendanceDelivery,
   type SandboxAttendanceGateway,
 } from "../../src/worker/attendance";
+import {
+  runSandboxAttendanceClosing,
+  type SandboxClosingGateway,
+} from "../../src/worker/attendance-closing";
 import type { AuthConfig } from "../../src/server/auth/config";
 
 if (
@@ -12,7 +16,8 @@ if (
   throw new Error("Delivery process fixture requires the fixed disposable database");
 type Start = {
   kind: "start";
-  candidateId: string;
+  jobId: string;
+  jobKind: "attendance" | "closing";
   config: Pick<AuthConfig, "encryptionKey" | "origin">;
   context: SandboxAttendanceGateway["context"];
   evidencePublicKey: string;
@@ -59,22 +64,32 @@ process.on("message", async (message: unknown) => {
       input.config.origin !== "https://localhost:3444"
     )
       throw new Error("Invalid generated fixture configuration");
-    const gateway: SandboxAttendanceGateway = {
+    const common = {
       context: input.context,
       evidencePublicKey: input.evidencePublicKey,
-      read: async (signal) =>
+      read: async (signal: AbortSignal) =>
         (await rpc("read", [], signal)) as Awaited<ReturnType<SandboxAttendanceGateway["read"]>>,
-      sign: async (receipt, signal) => (await rpc("sign", [receipt], signal)) as string,
-      submit: async (receipt, signature, signal) => {
-        await rpc("submit", [receipt, signature], signal);
-      },
     };
-    const result = await runSandboxAttendanceDelivery(
-      pool,
-      input.config,
-      input.candidateId,
-      gateway,
-    );
+    let result;
+    if (input.jobKind === "attendance") {
+      const gateway: SandboxAttendanceGateway = {
+        ...common,
+        sign: async (receipt, signal) => (await rpc("sign", [receipt], signal)) as string,
+        submit: async (receipt, signature, signal) => {
+          await rpc("submit", [receipt, signature], signal);
+        },
+      };
+      result = await runSandboxAttendanceDelivery(pool, input.config, input.jobId, gateway);
+    } else if (input.jobKind === "closing") {
+      const gateway: SandboxClosingGateway = {
+        ...common,
+        sign: async (checkpoint, signal) => (await rpc("sign", [checkpoint], signal)) as string,
+        submit: async (checkpoint, signature, signal) => {
+          await rpc("submit", [checkpoint, signature], signal);
+        },
+      };
+      result = await runSandboxAttendanceClosing(pool, input.config, input.jobId, gateway);
+    } else throw new Error("Unknown engineering job kind");
     process.send?.({ kind: "result", result });
   } catch {
     process.send?.({ kind: "fixture-error" });

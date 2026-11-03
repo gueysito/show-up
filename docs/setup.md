@@ -455,8 +455,21 @@ account's delivery metadata; restricted deletion recovery retains original oblig
 
 Gateway construction is explicit and limited to localhost/`showup_test` sandbox
 context. Generated fixture encryption material travels over private process IPC;
-operator configuration and wallet key files are unused. No live signing gateway,
-complete intake/outage monitor or closing/principal-recovery daemon is enabled.
+operator configuration and wallet key files are unused. Migration `020-attendance-closing-delivery.sql` adds one fixed closing checkpoint
+per event. The same command also kills the closing process after actual contract
+close; a replacement observes the outcome using its original durable signature,
+without another signing request or submission. Deadlines are rechecked after
+signing, stale workers cannot overwrite replacement claims and conflicting source
+facts latch reconciliation. Host exports contain scoped metadata only and preserve
+restricted deletion recovery. Run database and browser suites serially against
+the shared disposable database; retention checks count global expiring records.
+
+Changed-boundary review checks explicit test-database/local-origin guards, exact
+signature/context/ledger binding, parameterized SQL, host-owned export access,
+bounded calls/claims, sanitized errors and server-only signed material. No new
+HTTP/admin/upload/CORS surface or dependency is introduced. Broader release security
+and live-source qualification remain unverified. No live signing gateway,
+complete intake/outage monitor or principal-recovery daemon is enabled.
 Camera/phone checks, real routes and qualified settlement/purge remain incomplete.
 
 ## Private account export

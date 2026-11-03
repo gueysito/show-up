@@ -199,10 +199,18 @@ async fn application_attendance_round_trip() {
         );
         let checkpoint: Value =
             serde_json::from_str(reconciled["checkpointWire"].as_str().unwrap()).unwrap();
+        let checkpoint_proof = proof(&f.evidence, &checkpoint);
+        let permission = exchange(
+            &root,
+            mode,
+            "closing_signed",
+            &json!({"source":snapshot(&f,&auth).await,"checkpointProof":checkpoint_proof}),
+        );
+        assert_eq!(permission["submit"], true);
         assert_eq!(
             f.bob
                 .call(f.escrow.id(), "close")
-                .args_json(json!({"checkpoint":checkpoint,"proof":proof(&f.evidence,&checkpoint)}))
+                .args_json(json!({"checkpoint":checkpoint,"proof":checkpoint_proof}))
                 .transact()
                 .await
                 .unwrap()
@@ -212,6 +220,13 @@ async fn application_attendance_round_trip() {
                 .unwrap(),
             "closed"
         );
+        let acknowledged = exchange(
+            &root,
+            mode,
+            "closed",
+            &json!({"source":snapshot(&f,&auth).await}),
+        );
+        assert_eq!(acknowledged["recovered"], true);
         assert!(
             f.bob
                 .call(f.escrow.id(), "withdraw")
