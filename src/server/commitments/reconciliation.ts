@@ -100,7 +100,7 @@ export function settlementWatchSnapshot(keys: Keys, row: Record<string, unknown>
   return result(keys, row, row.available ? "observed" : "unavailable");
 }
 
-function monotonic(previous: Facts, next: Facts) {
+export function monotonicSettlementFacts(previous: Facts, next: Facts) {
   if (
     next.block.timestampMs < previous.block.timestampMs ||
     BigInt(next.ledgerVersion) < BigInt(previous.ledgerVersion) ||
@@ -221,7 +221,7 @@ export async function refreshSettlementWatch(
         ((BigInt(facts.block.height) === BigInt(previous.block.height) &&
           (facts.block.hash !== previous.block.hash || hash !== row.observed_state_hash)) ||
           (BigInt(facts.block.height) > BigInt(previous.block.height) &&
-            !monotonic(previous, facts))));
+            !monotonicSettlementFacts(previous, facts))));
     if (conflict) {
       await client.query(
         `UPDATE app_settlement_watches SET available=false,paused_at=coalesce(paused_at,clock_timestamp()),

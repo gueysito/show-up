@@ -42,7 +42,8 @@ import {
   attendanceCheckpointWire,
   verifyAttendanceCheckpoint,
 } from "../src/server/attendance/checkpoint-wire";
-import { deliveryProcess, closingProcess } from "./attendance-delivery-peer";
+import { deliveryProcess, closingProcess, principalProcess } from "./attendance-delivery-peer";
+import type { SandboxPrincipalGateway } from "../src/worker/principal-recovery";
 import type { SandboxClosingGateway } from "../src/worker/attendance-closing";
 import type { SandboxAttendanceGateway } from "../src/worker/attendance";
 
@@ -114,6 +115,12 @@ const results: {
   attendance: string;
   principalPaid: string;
   liveSubmissionAllowed: false;
+  principalRecovery: {
+    signal: "SIGKILL";
+    attempts: number;
+    submissions: number;
+    originalRequestPreserved: true;
+  };
   closingRecovery: {
     signal: "SIGKILL";
     attempts: number;
@@ -548,6 +555,55 @@ try {
       assert.equal(closingSignatures, 1);
       assert.equal(closingSubmissions, 1);
       await send(mode, "closed", { recovered: true });
+      let principalSource = (await receive<{ source: Snapshot }>(mode, "principal_ready")).source,
+        principalSubmissions = 0;
+      const principalGateway: SandboxPrincipalGateway = {
+        context: source.context,
+        read: async () => structuredClone(principalSource),
+        submit: async (liabilityId, signal) => {
+          principalSubmissions++;
+          assert.equal(liabilityId, `${source.context.authorization.registration}:principal`);
+          await send(mode, "principal_ready", { liabilityId });
+          principalSource = (await receive<{ source: Snapshot }>(mode, "principal_paid", signal))
+            .source;
+        },
+      };
+      assert.equal(
+        (await principalProcess(config, consent.id, principalGateway, true)).killed,
+        true,
+      );
+      const beforePrincipalRecovery = (
+        await f.pool.query("SELECT * FROM app_principal_recoveries WHERE consent_id=$1", [
+          consent.id,
+        ])
+      ).rows[0];
+      assert.equal(beforePrincipalRecovery.state, "broadcast_unknown");
+      assert.equal(beforePrincipalRecovery.submitted_attempt, "1");
+      await f.pool.query(
+        "UPDATE app_principal_recoveries SET claim_until=clock_timestamp()-interval '1 second' WHERE consent_id=$1",
+        [consent.id],
+      );
+      assert.equal(
+        (
+          await principalProcess(config, consent.id, {
+            ...principalGateway,
+            submit: async () => {
+              throw new Error("Principal recovery must observe payment before another withdrawal");
+            },
+          })
+        ).status,
+        "observed",
+      );
+      const recoveredPrincipal = (
+        await f.pool.query("SELECT * FROM app_principal_recoveries WHERE consent_id=$1", [
+          consent.id,
+        ])
+      ).rows[0];
+      assert.equal(recoveredPrincipal.attempts, 2);
+      assert.equal(recoveredPrincipal.encrypted_request, beforePrincipalRecovery.encrypted_request);
+      assert.equal(recoveredPrincipal.request_hash, beforePrincipalRecovery.request_hash);
+      assert.equal(principalSubmissions, 1);
+      await send(mode, "principal_paid", { recovered: true });
       const returned = await receive<{
         receipt: unknown;
         proof: string;
@@ -605,6 +661,12 @@ try {
         attendance: "on_time",
         principalPaid: "5000000",
         liveSubmissionAllowed: false,
+        principalRecovery: {
+          signal: "SIGKILL",
+          attempts: recoveredPrincipal.attempts,
+          submissions: principalSubmissions,
+          originalRequestPreserved: true,
+        },
         closingRecovery: {
           signal: "SIGKILL",
           attempts: recoveredClosing.attempts,

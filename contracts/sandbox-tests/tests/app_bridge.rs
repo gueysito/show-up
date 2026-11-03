@@ -227,6 +227,16 @@ async fn application_attendance_round_trip() {
             &json!({"source":snapshot(&f,&auth).await}),
         );
         assert_eq!(acknowledged["recovered"], true);
+        let withdrawal = exchange(
+            &root,
+            mode,
+            "principal_ready",
+            &json!({"source":snapshot(&f,&auth).await}),
+        );
+        assert_eq!(
+            withdrawal["liabilityId"],
+            format!("{}:principal", auth["registration"].as_str().unwrap())
+        );
         assert!(
             f.bob
                 .call(f.escrow.id(), "withdraw")
@@ -243,6 +253,13 @@ async fn application_attendance_round_trip() {
                 .unwrap()
         );
         assert_eq!(f.balance(f.alice.id().as_str()).await, 100_000_000);
+        let recovered = exchange(
+            &root,
+            mode,
+            "principal_paid",
+            &json!({"source":snapshot(&f,&auth).await}),
+        );
+        assert_eq!(recovered["recovered"], true);
         let result = json!({"receipt":receipt,"proof":signature,"evidencePublicKey":STANDARD.encode(f.evidence.verifying_key().to_bytes()),"checkpointProof":proof(&f.evidence,&checkpoint),"returned":snapshot(&f,&auth).await});
         let acknowledged = exchange(&root, mode, "returned", &result);
         assert_eq!(acknowledged["verified"], true);

@@ -1,6 +1,7 @@
 import { fork } from "node:child_process";
 import type { AuthConfig } from "../src/server/auth/config";
 import type { SandboxAttendanceGateway } from "../src/worker/attendance";
+import type { SandboxPrincipalGateway } from "../src/worker/principal-recovery";
 import type { SandboxClosingGateway } from "../src/worker/attendance-closing";
 
 // The generated fixture encryption key travels only over private process IPC.
@@ -21,12 +22,21 @@ export function closingProcess(
 ) {
   return runProcess(config, checkpointId, { kind: "closing", gateway }, killAfterSubmission);
 }
+export function principalProcess(
+  config: Pick<AuthConfig, "encryptionKey" | "origin">,
+  consentId: string,
+  gateway: SandboxPrincipalGateway,
+  killAfterSubmission = false,
+) {
+  return runProcess(config, consentId, { kind: "principal", gateway }, killAfterSubmission);
+}
 function runProcess(
   config: Pick<AuthConfig, "encryptionKey" | "origin">,
   jobId: string,
   input:
     | { kind: "attendance"; gateway: SandboxAttendanceGateway }
-    | { kind: "closing"; gateway: SandboxClosingGateway },
+    | { kind: "closing"; gateway: SandboxClosingGateway }
+    | { kind: "principal"; gateway: SandboxPrincipalGateway },
   killAfterSubmission: boolean,
 ) {
   const { gateway } = input;
@@ -77,7 +87,9 @@ function runProcess(
         const signal = AbortSignal.timeout(10_000);
         let result: unknown;
         if (value.method === "read") result = await gateway.read(signal);
-        else if (value.method === "sign")
+        else if (value.method === "sign") {
+          if (input.kind === "principal")
+            throw new Error("Principal recovery has no new signing authority");
           result =
             input.kind === "attendance"
               ? await input.gateway.sign(
@@ -88,19 +100,20 @@ function runProcess(
                   value.params[0] as Parameters<SandboxClosingGateway["sign"]>[0],
                   signal,
                 );
-        else if (value.method === "submit") {
+        } else if (value.method === "submit") {
           if (input.kind === "attendance")
             await input.gateway.submit(
               value.params[0] as Parameters<SandboxAttendanceGateway["submit"]>[0],
               value.params[1] as string,
               signal,
             );
-          else
+          else if (input.kind === "closing")
             await input.gateway.submit(
               value.params[0] as Parameters<SandboxClosingGateway["submit"]>[0],
               value.params[1] as string,
               signal,
             );
+          else await input.gateway.submit(value.params[0] as string, signal);
           if (killAfterSubmission) {
             killed = true;
             child.kill("SIGKILL");
@@ -125,7 +138,7 @@ function runProcess(
       jobKind: input.kind,
       config: { encryptionKey: config.encryptionKey, origin: config.origin },
       context: gateway.context,
-      evidencePublicKey: gateway.evidencePublicKey,
+      evidencePublicKey: input.kind === "principal" ? "" : input.gateway.evidencePublicKey,
     });
   });
 }

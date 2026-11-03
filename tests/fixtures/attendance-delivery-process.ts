@@ -7,6 +7,10 @@ import {
   runSandboxAttendanceClosing,
   type SandboxClosingGateway,
 } from "../../src/worker/attendance-closing";
+import {
+  runSandboxPrincipalRecovery,
+  type SandboxPrincipalGateway,
+} from "../../src/worker/principal-recovery";
 import type { AuthConfig } from "../../src/server/auth/config";
 
 if (
@@ -17,7 +21,7 @@ if (
 type Start = {
   kind: "start";
   jobId: string;
-  jobKind: "attendance" | "closing";
+  jobKind: "attendance" | "closing" | "principal";
   config: Pick<AuthConfig, "encryptionKey" | "origin">;
   context: SandboxAttendanceGateway["context"];
   evidencePublicKey: string;
@@ -89,6 +93,15 @@ process.on("message", async (message: unknown) => {
         },
       };
       result = await runSandboxAttendanceClosing(pool, input.config, input.jobId, gateway);
+    } else if (input.jobKind === "principal") {
+      const gateway: SandboxPrincipalGateway = {
+        context: common.context,
+        read: common.read,
+        submit: async (id, signal) => {
+          await rpc("submit", [id], signal);
+        },
+      };
+      result = await runSandboxPrincipalRecovery(pool, input.config, input.jobId, gateway);
     } else throw new Error("Unknown engineering job kind");
     process.send?.({ kind: "result", result });
   } catch {

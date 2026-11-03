@@ -455,7 +455,9 @@ account's delivery metadata; restricted deletion recovery retains original oblig
 
 Gateway construction is explicit and limited to localhost/`showup_test` sandbox
 context. Generated fixture encryption material travels over private process IPC;
-operator configuration and wallet key files are unused. Migration `020-attendance-closing-delivery.sql` adds one fixed closing checkpoint
+operator configuration and wallet key files are unused.
+
+Migration `020-attendance-closing-delivery.sql` adds one fixed closing checkpoint
 per event. The same command also kills the closing process after actual contract
 close; a replacement observes the outcome using its original durable signature,
 without another signing request or submission. Deadlines are rechecked after
@@ -468,8 +470,22 @@ Changed-boundary review checks explicit test-database/local-origin guards, exact
 signature/context/ledger binding, parameterized SQL, host-owned export access,
 bounded calls/claims, sanitized errors and server-only signed material. No new
 HTTP/admin/upload/CORS surface or dependency is introduced. Broader release security
-and live-source qualification remain unverified. No live signing gateway,
-complete intake/outage monitor or principal-recovery daemon is enabled.
+and live-source qualification remain unverified.
+
+Migration `021-principal-recovery.sql` adds native sandbox principal recovery.
+It verifies the original encrypted wallet consent/proof, fixes the contract-owned
+principal liability and persists its request before transfer. The gateway accepts
+only that liability ID. A pending callback prevents a second transfer; unknown
+submission without an observed contract attempt stays unresolved even as blocks
+advance. A settled failed callback permits the next attempt at the same liability.
+Source forks/regressions latch conflict, and completed replay checks the original
+encrypted paid observation. Scoped own export and restricted deletion recovery
+preserve the request and original financial proof. The bridge now kills/restarts
+the principal process after actual payment and checks one withdrawal per mode.
+
+No live signing gateway, complete intake/outage monitor or runtime transfer daemon
+is enabled. Dropped-transaction qualification still needs the planned source/witness
+integration; an unknown request cannot clear debt.
 Camera/phone checks, real routes and qualified settlement/purge remain incomplete.
 
 ## Private account export
