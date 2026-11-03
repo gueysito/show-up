@@ -36,7 +36,7 @@ pub(crate) fn validate_policy(terms: &Terms, credential: &[u8; 32], evidence: &[
     }
 }
 
-fn chain(network: &str) -> &str {
+pub(crate) fn chain(network: &str) -> &str {
     match network {
         "base" => "84532",
         "ethereum" => "11155111",
@@ -44,7 +44,7 @@ fn chain(network: &str) -> &str {
         _ => env::panic_str("Unsupported observation chain"),
     }
 }
-fn hash(network: &str, value: &str, transaction: bool) {
+pub(crate) fn hash(network: &str, value: &str, transaction: bool) {
     if network == "solana" {
         let expected = if transaction { 64 } else { 32 };
         require!(value.len() <= 88, "Observation hash length");
@@ -87,7 +87,7 @@ impl Escrow {
         let key: [u8; 32] = policy.key.0.clone().try_into().unwrap();
         signature(&receipt, &proof, &key);
         require!(
-            receipt.format == "showup.asset.observation.v1"
+            receipt.format == "showup.asset.observation.v2"
                 && receipt.domain == self.domain
                 && receipt.deployment == env::current_account_id()
                 && receipt.manifest == "showup-engineering-2026-11-02-v1"
@@ -133,23 +133,51 @@ impl Escrow {
             );
         }
         let delivered = receipt.operation == "delivery" || receipt.operation == "return";
+        let mut fee_review_required = false;
         if delivered {
             let intent = self
                 .custody_intents
                 .get(&receipt.event)
                 .expect("No canonical release intent");
             let image = self
-                .custody_images
+                .custody_history
                 .get(&receipt.event)
-                .expect("No signing image");
+                .expect("No signing history")
+                .iter()
+                .find(|image| receipt.image_hash.as_ref() == Some(&custody::image_hash(image)))
+                .expect("Unknown signing image");
             require!(
                 receipt.operation == intent.operation
                     && receipt.owner == intent.recipient
                     && receipt.intent_hash.as_ref() == Some(&image.intent_hash)
-                    && receipt.image_hash.as_ref() == Some(&hex_digest(&image.unsigned.0))
-                    && receipt.fee.0 <= intent.fee_cap.0,
-                "Observation cannot replace release intent/image/fee cap"
+                    && receipt.image_hash.as_ref() == Some(&custody::image_hash(image)),
+                "Observation cannot replace release intent/image"
             );
+            fee_review_required =
+                receipt.fee.0 > intent.fee_cap.0 || receipt.fee.0 > image.execution.fee_exposure.0;
+            require!(
+                receipt
+                    .transaction_block_height
+                    .is_some_and(|height| height.0 > 0 && height.0 <= receipt.block_height.0)
+                    && receipt
+                        .transaction_ms
+                        .is_some_and(|time| time > 0 && time <= receipt.block_ms),
+                "Historical delivery inclusion missing"
+            );
+            hash(
+                &receipt.network,
+                receipt
+                    .transaction_block_hash
+                    .as_deref()
+                    .expect("Delivery block hash missing"),
+                false,
+            );
+            if receipt.transaction_block_height == Some(receipt.block_height) {
+                require!(
+                    receipt.transaction_block_hash.as_ref() == Some(&receipt.block_hash),
+                    "Delivery block hash mismatch"
+                );
+            }
             hash(
                 &receipt.network,
                 receipt
@@ -164,6 +192,9 @@ impl Escrow {
                     && receipt.intent_hash.is_none()
                     && receipt.image_hash.is_none()
                     && receipt.transaction.is_none()
+                    && receipt.transaction_block_height.is_none()
+                    && receipt.transaction_block_hash.is_none()
+                    && receipt.transaction_ms.is_none()
                     && receipt.fee.0 == 0,
                 "Invalid custody observation purpose"
             );
@@ -182,10 +213,19 @@ impl Escrow {
                         || receipt.transaction != old.transaction
                         || receipt.image_hash != old.image_hash
                         || receipt.intent_hash != old.intent_hash
-                        || receipt.fee != old.fee));
+                        || receipt.fee != old.fee))
+                || (previous.delivered
+                    && delivered
+                    && receipt.transaction == old.transaction
+                    && (receipt.image_hash != old.image_hash
+                        || receipt.fee != old.fee
+                        || receipt.transaction_block_height != old.transaction_block_height
+                        || receipt.transaction_block_hash != old.transaction_block_hash
+                        || receipt.transaction_ms != old.transaction_ms));
             if conflict || (previous.paused && !delivered) || (previous.delivered && !delivered) {
                 let mut paused = previous.clone();
                 paused.paused = true;
+                paused.fee_review_required |= fee_review_required;
                 self.observations
                     .insert(receipt.event.clone(), paused.clone());
                 return paused;
@@ -193,8 +233,11 @@ impl Escrow {
         }
         let state = ObservationState {
             paused: previous.is_some_and(|state| state.paused)
+                || fee_review_required
                 || (!delivered && receipt.owner != asset.source),
             delivered,
+            fee_review_required: fee_review_required
+                || previous.is_some_and(|state| state.fee_review_required),
             latest: receipt,
         };
         self.observations
@@ -205,11 +248,4 @@ impl Escrow {
     pub fn get_asset_observation(&self, event: String) -> Option<ObservationState> {
         self.observations.get(&event).cloned()
     }
-}
-
-fn hex_digest(bytes: &[u8]) -> String {
-    env::sha256(bytes)
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect()
 }

@@ -24,6 +24,9 @@ export type AssetObservation = {
   intent_hash: string | null;
   image_hash: string | null;
   transaction: string | null;
+  transaction_block_height: string | null;
+  transaction_block_hash: string | null;
+  transaction_ms: number | null;
   block_height: string;
   block_hash: string;
   block_ms: number;
@@ -40,7 +43,13 @@ export type ObservationContext = {
   custody: { network: string; collection: string; asset: string; source: string };
   policy: { key: string; profile_hash: string; sources: [string, string] };
   intent?: CustodyIntent;
-  image?: { intent_hash: string; unsigned: string };
+  image?: ObservationImage;
+  images?: ObservationImage[];
+};
+type ObservationImage = {
+  intent_hash: string;
+  unsigned: string;
+  execution?: { fee_exposure: string };
 };
 const fields: (keyof AssetObservation)[] = [
   "format",
@@ -61,6 +70,9 @@ const fields: (keyof AssetObservation)[] = [
   "intent_hash",
   "image_hash",
   "transaction",
+  "transaction_block_height",
+  "transaction_block_hash",
+  "transaction_ms",
   "block_height",
   "block_hash",
   "block_ms",
@@ -73,6 +85,34 @@ const fields: (keyof AssetObservation)[] = [
 function hash(network: string, value: string, transaction = false) {
   if (network === "solana") decodeBase58(value, transaction ? 64 : 32);
   else if (!/^0x[0-9a-f]{64}$/.test(value)) throw new Error("Invalid observation hash");
+}
+
+function observedImage(receipt: AssetObservation, context: ObservationContext) {
+  const images = context.images ?? (context.image ? [context.image] : []);
+  if (images.length > 3) throw new Error("Observation signing history limit");
+  return images.find(
+    (image) =>
+      createHash("sha256").update(Buffer.from(image.unsigned, "base64")).digest("hex") ===
+      receipt.image_hash,
+  );
+}
+
+export function assetObservationFeeReview(
+  receipt: AssetObservation,
+  context: ObservationContext,
+): boolean {
+  try {
+    if (receipt.operation === "holding") return false;
+    const image = observedImage(receipt, context);
+    return (
+      !context.intent ||
+      !image?.execution ||
+      unsigned(receipt.fee, 128) > unsigned(context.intent.feeCap, 128) ||
+      unsigned(receipt.fee, 128) > unsigned(image.execution.fee_exposure, 128)
+    );
+  } catch {
+    return true;
+  }
 }
 
 // Verification only, against already frozen event/key/intent context. No key
@@ -94,7 +134,7 @@ export function verifyAssetObservation(
     );
     if (!network || network.id === "near") return false;
     if (
-      receipt.format !== "showup.asset.observation.v1" ||
+      receipt.format !== "showup.asset.observation.v2" ||
       receipt.domain !== context.domain ||
       receipt.deployment !== context.deployment ||
       receipt.event !== context.event ||
@@ -136,11 +176,15 @@ export function verifyAssetObservation(
         receipt.intent_hash !== null ||
         receipt.image_hash !== null ||
         receipt.transaction !== null ||
+        receipt.transaction_block_height !== null ||
+        receipt.transaction_block_hash !== null ||
+        receipt.transaction_ms !== null ||
         unsigned(receipt.fee, 128) !== 0n
       )
         return false;
     } else {
-      const { intent, image } = context;
+      const { intent } = context;
+      const image = observedImage(receipt, context);
       if (
         !intent ||
         !image ||
@@ -159,12 +203,28 @@ export function verifyAssetObservation(
         receipt.intent_hash !== image.intent_hash ||
         image.intent_hash !== custodyIntentHash(intent) ||
         receipt.image_hash !==
-          createHash("sha256").update(Buffer.from(image.unsigned, "base64")).digest("hex") ||
-        unsigned(receipt.fee, 128) > unsigned(intent.feeCap, 128)
+          createHash("sha256").update(Buffer.from(image.unsigned, "base64")).digest("hex")
       )
         return false;
       if (!receipt.transaction) return false;
       hash(network.id, receipt.transaction, true);
+      if (
+        typeof receipt.transaction_block_height !== "string" ||
+        !/^[1-9][0-9]{0,19}$/.test(receipt.transaction_block_height) ||
+        unsigned(receipt.transaction_block_height, 64) > unsigned(receipt.block_height, 64) ||
+        !receipt.transaction_block_hash ||
+        receipt.transaction_ms === null ||
+        !Number.isSafeInteger(receipt.transaction_ms) ||
+        receipt.transaction_ms <= 0 ||
+        receipt.transaction_ms > receipt.block_ms
+      )
+        return false;
+      hash(network.id, receipt.transaction_block_hash);
+      if (
+        receipt.transaction_block_height === receipt.block_height &&
+        receipt.transaction_block_hash !== receipt.block_hash
+      )
+        return false;
     }
     const key = Buffer.from(context.policy.key, "base64");
     const signature = Buffer.from(proof, "base64");

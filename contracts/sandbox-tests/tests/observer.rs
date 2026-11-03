@@ -116,7 +116,7 @@ async fn signed_observations_gate_publication_and_cannot_redirect_an_irreversibl
         let (method, envelope) = if network == "solana" {
             (
                 "prepare_solana_custody",
-                json!({"blockhash":bs58::encode([5u8;32]).into_string(),"compute_units":100000,"estimated_fee":"5000"}),
+                json!({"blockhash":bs58::encode([5u8;32]).into_string(),"compute_units":100000,"estimated_fee":"5000","last_valid_block_height":"150"}),
             )
         } else {
             (
@@ -154,13 +154,16 @@ async fn signed_observations_gate_publication_and_cannot_redirect_an_irreversibl
             format!("0x{}", id(700))
         });
         delivered["fee"] = json!("5000");
+        delivered["transaction_block_height"] = json!("100");
+        delivered["transaction_block_hash"] = receipt["block_hash"].clone();
+        delivered["transaction_ms"] = receipt["block_ms"].clone();
         for (field, value) in [
             ("owner", policy(network)["beneficiary"].clone()),
             ("operation", json!("delivery")),
             ("intent_hash", json!(id(800))),
             ("image_hash", json!(id(801))),
             ("transaction", json!("wrong")),
-            ("fee", json!("300000000000001")),
+            ("transaction_block_height", json!("102")),
         ] {
             let mut changed = delivered.clone();
             changed[field] = value;
@@ -284,6 +287,9 @@ async fn conflicting_signed_state_pauses_publication_without_rolling_back_an_exi
     ));
     returned["transaction"] = json!(format!("0x{}", id(2000)));
     returned["fee"] = json!("5000");
+    returned["transaction_block_height"] = json!("100");
+    returned["transaction_block_hash"] = returned["block_hash"].clone();
+    returned["transaction_ms"] = returned["block_ms"].clone();
     let recovered: Value = f
         .submit_observation(&returned)
         .await

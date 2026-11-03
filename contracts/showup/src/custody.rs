@@ -6,6 +6,12 @@ use near_sdk::serde_json::json;
 const CORE: &str = "CoREENxT6tW1HoK8ypY1SxRMZTcVPm7R94rH4PZNhX7d";
 const COMPUTE: &str = "ComputeBudget111111111111111111111111111111";
 const SYSTEM: &str = "11111111111111111111111111111111";
+struct ImageParts {
+    scheme: &'static str,
+    unsigned: Vec<u8>,
+    payload: Vec<u8>,
+    execution: ExecutionBounds,
+}
 
 #[near]
 impl Escrow {
@@ -76,9 +82,39 @@ impl Escrow {
         event: String,
         envelope: EvmCustodyEnvelope,
     ) -> CustodyImage {
+        let image = self.evm_image(&event, &envelope);
+        self.remember_image(event, image)
+    }
+
+    #[private]
+    pub fn prepare_solana_custody(
+        &mut self,
+        event: String,
+        envelope: SolanaCustodyEnvelope,
+    ) -> CustodyImage {
+        let image = self.solana_image(&event, &envelope);
+        self.remember_image(event, image)
+    }
+
+    pub fn get_custody_intent(&self, event: String) -> Option<CustodyIntent> {
+        self.custody_intents.get(&event).cloned()
+    }
+    pub fn get_custody_image(&self, event: String) -> Option<CustodyImage> {
+        self.custody_images.get(&event).cloned()
+    }
+    pub fn get_custody_history(&self, event: String) -> Vec<CustodyImage> {
+        self.custody_history
+            .get(&event)
+            .cloned()
+            .unwrap_or_default()
+    }
+}
+
+impl Escrow {
+    pub(crate) fn evm_image(&self, event: &String, envelope: &EvmCustodyEnvelope) -> CustodyImage {
         let intent = self
             .custody_intents
-            .get(&event)
+            .get(event)
             .expect("Lock custody intent first");
         let chain = match intent.network.as_str() {
             "base" => 84532u128,
@@ -118,24 +154,41 @@ impl Escrow {
         let mut unsigned = vec![2];
         unsigned.extend(rlp_list(&fields));
         let payload = env::keccak256(&unsigned);
-        self.remember_image(event, &envelope, "Ecdsa", unsigned, payload)
+        self.make_image(
+            event,
+            envelope,
+            ImageParts {
+                scheme: "Ecdsa",
+                unsigned,
+                payload,
+                execution: ExecutionBounds {
+                    evm_nonce: Some(near_sdk::json_types::U64(envelope.nonce)),
+                    evm_max_fee: Some(envelope.max_fee_per_gas),
+                    evm_priority_fee: Some(envelope.max_priority_fee_per_gas),
+                    solana_blockhash: None,
+                    last_valid_block_height: None,
+                    fee_exposure: U128(u128::from(envelope.gas_limit) * envelope.max_fee_per_gas.0),
+                    fee_bound_qualified: intent.network == "ethereum",
+                },
+            },
+        )
     }
 
-    #[private]
-    pub fn prepare_solana_custody(
-        &mut self,
-        event: String,
-        envelope: SolanaCustodyEnvelope,
+    pub(crate) fn solana_image(
+        &self,
+        event: &String,
+        envelope: &SolanaCustodyEnvelope,
     ) -> CustodyImage {
         let intent = self
             .custody_intents
-            .get(&event)
+            .get(event)
             .expect("Lock custody intent first");
         require!(intent.network == "solana", "Wrong custody family");
         require!(
             (1..=200_000).contains(&envelope.compute_units)
-                && envelope.estimated_fee.0 > 0
-                && envelope.estimated_fee.0 <= intent.fee_cap.0,
+                && envelope.estimated_fee.0 >= 5000
+                && envelope.estimated_fee.0 <= intent.fee_cap.0
+                && envelope.last_valid_block_height.0 > 0,
             "Invalid Solana fee context"
         );
         let keys = [
@@ -157,49 +210,64 @@ impl Escrow {
         unsigned.extend([6, 0, 9, 3]);
         unsigned.extend([0u8; 8]);
         unsigned.extend([5, 7, 1, 2, 0, 0, 3, 4, 5, 2, 14, 0]);
-        self.remember_image(event, &envelope, "Eddsa", unsigned.clone(), unsigned)
+        self.make_image(
+            event,
+            envelope,
+            ImageParts {
+                scheme: "Eddsa",
+                unsigned: unsigned.clone(),
+                payload: unsigned,
+                execution: ExecutionBounds {
+                    evm_nonce: None,
+                    evm_max_fee: None,
+                    evm_priority_fee: None,
+                    solana_blockhash: Some(envelope.blockhash.clone()),
+                    last_valid_block_height: Some(envelope.last_valid_block_height),
+                    fee_exposure: envelope.estimated_fee,
+                    fee_bound_qualified: false,
+                },
+            },
+        )
     }
 
-    pub fn get_custody_intent(&self, event: String) -> Option<CustodyIntent> {
-        self.custody_intents.get(&event).cloned()
-    }
-    pub fn get_custody_image(&self, event: String) -> Option<CustodyImage> {
-        self.custody_images.get(&event).cloned()
-    }
-}
-
-impl Escrow {
-    fn remember_image<T: near_sdk::serde::Serialize>(
-        &mut self,
-        event: String,
+    fn make_image<T: near_sdk::serde::Serialize>(
+        &self,
+        event: &String,
         envelope: &T,
-        scheme: &str,
-        unsigned: Vec<u8>,
-        payload: Vec<u8>,
+        parts: ImageParts,
     ) -> CustodyImage {
-        let intent = self.custody_intents.get(&event).unwrap();
+        let intent = self.custody_intents.get(event).unwrap();
         let envelope_hash = digest(&canonical::bytes(envelope));
-        if let Some(image) = self.custody_images.get(&event) {
-            require!(
-                image.envelope_hash == envelope_hash && image.scheme == scheme,
-                "Original signing image unresolved"
-            );
-            return image.clone();
-        }
         let descriptor = json!({"deployment":intent.deployment,"environment":intent.environment,"network":intent.network,
             "event":intent.event,"collection":intent.collection,"asset":intent.asset});
-        let image = CustodyImage {
+        CustodyImage {
             intent_hash: digest(&canonical::bytes(intent)),
             path: format!(
                 "showup.v1/engineering/{}/{}",
                 intent.network,
                 digest(&canonical::bytes(&descriptor))
             ),
-            scheme: scheme.into(),
-            unsigned: Base64VecU8(unsigned),
-            payload: Base64VecU8(payload),
+            scheme: parts.scheme.into(),
+            unsigned: Base64VecU8(parts.unsigned),
+            payload: Base64VecU8(parts.payload),
             envelope_hash,
-        };
+            generation: 1,
+            reserved_fee: parts.execution.fee_exposure,
+            execution: parts.execution,
+            recovery_witness: None,
+        }
+    }
+
+    fn remember_image(&mut self, event: String, image: CustodyImage) -> CustodyImage {
+        if let Some(previous) = self.custody_images.get(&event) {
+            require!(
+                previous.envelope_hash == image.envelope_hash && previous.scheme == image.scheme,
+                "Original signing image unresolved"
+            );
+            return previous.clone();
+        }
+        self.custody_history
+            .insert(event.clone(), vec![image.clone()]);
         self.custody_images.insert(event, image.clone());
         image
     }
@@ -289,6 +357,14 @@ fn digest(bytes: &[u8]) -> String {
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect()
+}
+
+pub(crate) fn image_hash(image: &CustodyImage) -> String {
+    digest(&image.unsigned.0)
+}
+
+pub(crate) fn record_hash<T: near_sdk::serde::Serialize>(value: &T) -> String {
+    digest(&canonical::bytes(value))
 }
 fn rlp_int(value: u128) -> Vec<u8> {
     let bytes = value.to_be_bytes();

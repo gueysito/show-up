@@ -287,13 +287,14 @@ impl Fixture {
         let policy = &item["terms"]["custody_proof_policy"];
         let network = policy["network"].as_str().unwrap();
         let current = self.timestamp().await;
-        json!({"format":"showup.asset.observation.v1","domain":"showup.sandbox.authorization.v1",
+        json!({"format":"showup.asset.observation.v2","domain":"showup.sandbox.authorization.v1",
             "deployment":self.escrow.id(),"manifest":"showup-engineering-2026-11-02-v1",
             "event":self.event,"rules_hash":self.rules_hash,"network":network,
             "chain_id":match network {"base"=>"84532","ethereum"=>"11155111",_=>"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG"},
             "profile_hash":id(9400),"sources":["fixture-one","fixture-two"],"collection":policy["collection"],
             "asset":policy["asset"],"custody":policy["source"],"owner":policy["source"],"operation":"holding",
             "intent_hash":null,"image_hash":null,"transaction":null,"block_height":"100",
+            "transaction_block_height":null,"transaction_block_hash":null,"transaction_ms":null,
             "block_hash":if network == "solana" {bs58::encode([10u8;32]).into_string()} else {format!("0x{}",id(100))},
             "block_ms":current-1000,"observed_ms":current,"expires_ms":current+60_000,"finalized":true,"fee":"0"})
     }

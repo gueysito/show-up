@@ -722,6 +722,49 @@ facts do not qualify independent upstreams, code/upgrade authority, assets or fe
 Real source/asset qualification, signed historical-witness assembly and contract
 nonce/blockhash recovery remain P5 work; every funding route stays disabled.
 
+## P5 bounded custody recovery checkpoint, November 2
+
+The sandbox retains up to three typed signing images under one immutable release
+intent. A separately signed, fresh observer witness permits an EVM same-nonce fee
+replacement, a next nonce after finalized failure, or a Solana replacement after
+finalized failure or proved blockhash expiry. Solana expiry requires actual block
+height, an invalid old hash and historical lookup of the known original signature.
+An unknown original signature cannot authorize automatic rebuilding.
+
+Recovery never replenishes the contributor's frozen fee budget. EVM reserves the
+maximum exposure for each nonce; Solana keeps every earlier image's reservation.
+Exact witness replay returns the original image without authorizing another attempt.
+Changed payloads, stale witnesses, wrong signer/context, unresolved nonce/status,
+reused blockhashes, exhausted reservations and a fourth image are rejected.
+The three-image ceiling bounds this local experiment; it does not establish a live
+provider request/retry policy. No MPC request or broadcaster is exposed.
+
+Signed asset observations now use `showup.asset.observation.v2`, separating the
+fresh finality checkpoint from historical transaction inclusion. Any retained
+image can prove delivery to the fixed recipient, including a day-old transaction
+after a replacement was prepared. A real delivery whose fee exceeds its image or
+intent cap remains recorded and latches pause/fee review. It cannot authorize more
+spending or alter principal accounting. Two deliberate negative sandbox cases
+first failed against the old latest-image/fee predicate, then passed after this
+change. Source independence/finality and truthful observer attestation remain trust
+assumptions. Base total fees and Solana complete cost bounds remain unqualified.
+
+Full `npm run contracts:check` passes: supply-chain gate, formatting, Rust lint,
+WASM build, **29 sandbox scenarios** and four independent Node replays. Native Node
+verifies four actual sandbox-accepted recovery witnesses and independently rebuilds
+all typed histories, derivation paths and non-replenishing reservations. A clean
+snapshot of `e9a79b6` plus only these changes passes **36 unit scenarios**, formatting,
+lint, types and production build. Concurrent authentication work is excluded.
+Unchanged PostgreSQL/browser inputs reuse
+[both passing jobs at e9a79b6](https://github.com/gueysito/show-up/actions/runs/41544011494).
+
+Escrow WASM SHA-256:
+`7ff0209e37f6de611ae67437efbd9d09997893d9ea6878943849c86da9b7c4b8`.
+The test-token WASM and Cargo lock hashes are unchanged. All signatures and assets
+are disposable local fixtures. No private wallet file, public-network signature,
+asset transfer, observer key configuration or funding route qualification is claimed.
+Source-to-witness assembly and actual provider/asset qualification remain P5 work.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

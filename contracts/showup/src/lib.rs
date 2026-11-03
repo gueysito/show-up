@@ -7,6 +7,7 @@ mod draw;
 mod funding;
 mod nft;
 mod observer;
+mod recovery;
 mod types;
 
 use near_sdk::json_types::{Base64VecU8, U128};
@@ -31,6 +32,7 @@ pub struct Escrow {
     draws: LookupMap<String, DrawProof>,
     custody_intents: LookupMap<String, CustodyIntent>,
     custody_images: LookupMap<String, CustodyImage>,
+    custody_history: LookupMap<String, Vec<CustodyImage>>,
     native_prizes: LookupMap<String, NativePrize>,
     observations: LookupMap<String, ObservationState>,
     received: u128,
@@ -74,6 +76,7 @@ impl Escrow {
             draws: LookupMap::new(b"d"),
             custody_intents: LookupMap::new(&b"ci"[..]),
             custody_images: LookupMap::new(&b"cs"[..]),
+            custody_history: LookupMap::new(&b"ch"[..]),
             native_prizes: LookupMap::new(b"q"),
             observations: LookupMap::new(b"o"),
             received: 0,

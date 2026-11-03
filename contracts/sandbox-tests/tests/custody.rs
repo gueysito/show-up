@@ -16,7 +16,7 @@ fn policy(network: &str) -> Value {
 }
 fn envelope(network: &str) -> Value {
     if network == "solana" {
-        json!({"blockhash":bs58::encode([5u8;32]).into_string(),"compute_units":100000,"estimated_fee":"5000"})
+        json!({"blockhash":bs58::encode([5u8;32]).into_string(),"compute_units":100000,"estimated_fee":"5000","last_valid_block_height":"150"})
     } else {
         json!({"nonce":if network == "base" {0} else {256},"gas_limit":100000,"max_fee_per_gas":"2000000000","max_priority_fee_per_gas":"1000000000"})
     }
@@ -118,6 +118,7 @@ async fn typed_custody_construction_preserves_intent_and_rejects_mutation_or_arb
                 ("blockhash", json!(bs58::encode([8u8; 32]).into_string())),
                 ("compute_units", json!(200001)),
                 ("estimated_fee", json!("10001")),
+                ("last_valid_block_height", json!("151")),
             ]
         } else {
             vec![

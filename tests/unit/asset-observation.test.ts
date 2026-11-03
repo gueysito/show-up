@@ -3,6 +3,7 @@ import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
 import {
   verifyAssetObservation,
+  assetObservationFeeReview,
   type AssetObservation,
   type ObservationContext,
 } from "../../src/server/protocol/asset-observation";
@@ -44,7 +45,7 @@ function fixture(network: "base" | "ethereum" | "solana") {
     policy: { key: publicKey, profile_hash: "c".repeat(64), sources: ["one", "two"] },
   };
   const receipt: AssetObservation = {
-    format: "showup.asset.observation.v1",
+    format: "showup.asset.observation.v2",
     domain: context.domain,
     deployment: context.deployment,
     manifest: engineeringManifest.revision,
@@ -62,6 +63,9 @@ function fixture(network: "base" | "ethereum" | "solana") {
     intent_hash: null,
     image_hash: null,
     transaction: null,
+    transaction_block_height: null,
+    transaction_block_hash: null,
+    transaction_ms: null,
     block_height: "123",
     block_hash: network === "solana" ? address(8) : "0x" + "08".repeat(32),
     block_ms: now - 1000,
@@ -113,7 +117,7 @@ test("frozen observer signatures require exact event/asset/source/finality and b
     );
   }
 });
-test("even a valid observer signature cannot replace a frozen payout recipient, operation, image or fee cap", () => {
+test("even a valid observer signature cannot replace a frozen payout recipient, operation or image; fee overruns stay observable", () => {
   for (const network of ["base", "ethereum", "solana"] as const) {
     const { context, receipt, address } = fixture(network);
     const intent: CustodyIntent = {
@@ -148,7 +152,11 @@ test("even a valid observer signature cannot replace a frozen payout recipient, 
             "hex",
           ).toString("base64");
     context.intent = intent;
-    context.image = { intent_hash: custodyIntentHash(intent), unsigned };
+    context.image = {
+      intent_hash: custodyIntentHash(intent),
+      unsigned,
+      execution: { fee_exposure: network === "solana" ? "5000" : "200000000000000" },
+    };
     const delivered = {
       ...receipt,
       operation: "return",
@@ -158,6 +166,9 @@ test("even a valid observer signature cannot replace a frozen payout recipient, 
       transaction:
         network === "solana" ? encodeBase58(Buffer.alloc(64, 9)) : "0x" + "09".repeat(32),
       fee: "5000",
+      transaction_block_height: "100",
+      transaction_block_hash: receipt.block_hash,
+      transaction_ms: now - 86_400_000,
     };
     assert(verifyAssetObservation(delivered, proof(delivered), context, now));
     for (const [field, value] of [
@@ -166,11 +177,44 @@ test("even a valid observer signature cannot replace a frozen payout recipient, 
       ["intent_hash", "e".repeat(64)],
       ["image_hash", "f".repeat(64)],
       ["transaction", "wrong"],
-      ["fee", "300000000000001"],
+      ["transaction_block_height", "124"],
     ]) {
       const changed = { ...delivered, [field]: value };
       assert.equal(verifyAssetObservation(changed, proof(changed), context, now), false, field);
     }
+    const overrun = { ...delivered, fee: "300000000000001" };
+    assert(verifyAssetObservation(overrun, proof(overrun), context, now));
+    assert.equal(assetObservationFeeReview(overrun, context), true);
+    assert.equal(assetObservationFeeReview(delivered, context), false);
+    const later =
+      network === "solana"
+        ? solanaCustodyMessage(intent, {
+            blockhash: address(6),
+            computeUnits: 100000,
+            estimatedFee: "5000",
+          }).message
+        : Buffer.from(
+            evmCustodyTransaction(intent, {
+              nonce: 1,
+              gasLimit: "100000",
+              maxFeePerGas: "2000000000",
+              maxPriorityFeePerGas: "1000000000",
+            }).unsigned.slice(2),
+            "hex",
+          ).toString("base64");
+    const newest = { ...context.image, unsigned: later };
+    assert(
+      verifyAssetObservation(
+        delivered,
+        proof(delivered),
+        { ...context, image: newest, images: [context.image, newest] },
+        now,
+      ),
+    );
+    assert.equal(
+      verifyAssetObservation(delivered, proof(delivered), { ...context, image: newest }, now),
+      false,
+    );
     assert.equal(
       verifyAssetObservation(
         delivered,

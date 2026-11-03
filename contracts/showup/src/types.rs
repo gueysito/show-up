@@ -1,4 +1,4 @@
-use near_sdk::json_types::{Base64VecU8, U128};
+use near_sdk::json_types::{Base64VecU8, U64, U128};
 use near_sdk::{AccountId, near};
 
 #[near(serializers = [borsh, json])]
@@ -83,6 +83,9 @@ pub struct AssetObservation {
     pub intent_hash: Option<String>,
     pub image_hash: Option<String>,
     pub transaction: Option<String>,
+    pub transaction_block_height: Option<U64>,
+    pub transaction_block_hash: Option<String>,
+    pub transaction_ms: Option<u64>,
     pub block_height: near_sdk::json_types::U64,
     pub block_hash: String,
     pub block_ms: u64,
@@ -97,6 +100,7 @@ pub struct AssetObservation {
 pub struct ObservationState {
     pub paused: bool,
     pub delivered: bool,
+    pub fee_review_required: bool,
     pub latest: AssetObservation,
 }
 
@@ -165,6 +169,59 @@ pub struct CustodyImage {
     pub unsigned: Base64VecU8,
     pub payload: Base64VecU8,
     pub envelope_hash: String,
+    pub generation: u8,
+    pub reserved_fee: U128,
+    pub execution: ExecutionBounds,
+    pub recovery_witness: Option<CustodyRecovery>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct ExecutionBounds {
+    pub evm_nonce: Option<U64>,
+    pub evm_max_fee: Option<U128>,
+    pub evm_priority_fee: Option<U128>,
+    pub solana_blockhash: Option<String>,
+    pub last_valid_block_height: Option<U64>,
+    pub fee_exposure: U128,
+    pub fee_bound_qualified: bool,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct CustodyRecovery {
+    pub format: String,
+    pub domain: String,
+    pub deployment: AccountId,
+    pub manifest: String,
+    pub event: String,
+    pub rules_hash: String,
+    pub network: String,
+    pub chain_id: String,
+    pub profile_hash: String,
+    pub sources: [String; 2],
+    pub intent_hash: String,
+    pub previous_image_hash: String,
+    pub new_envelope_hash: String,
+    pub reason: String,
+    pub owner: String,
+    pub account_nonce: Option<U64>,
+    pub failed_image_hash: Option<String>,
+    pub transaction: Option<String>,
+    pub transaction_failed: bool,
+    pub signature_status_absent: bool,
+    pub blockhash_valid: Option<bool>,
+    pub new_blockhash_valid: Option<bool>,
+    pub transaction_block_height: Option<U64>,
+    pub transaction_block_hash: Option<String>,
+    pub reported_fee: U128,
+    pub block_height: U64,
+    pub block_hash: String,
+    pub block_ms: u64,
+    pub finalized_block_height: Option<U64>,
+    pub observed_ms: u64,
+    pub expires_ms: u64,
+    pub nonce: String,
 }
 
 #[near(serializers = [json])]
@@ -180,6 +237,7 @@ pub struct SolanaCustodyEnvelope {
     pub blockhash: String,
     pub compute_units: u32,
     pub estimated_fee: U128,
+    pub last_valid_block_height: U64,
 }
 
 #[near(serializers = [borsh, json])]
