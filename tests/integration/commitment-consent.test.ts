@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { Wallet } from "ethers";
 import { consentTerms } from "../fixtures/consent";
+import { confirmedDeletion } from "../fixtures/deletion";
 import { emptyDraft } from "../../src/domain/event-draft";
 import { authConfig, issuers } from "../../src/server/auth/config";
 import { hash, seal, unseal } from "../../src/server/auth/crypto";
@@ -707,11 +708,12 @@ test("NEAR financial consent independently rechecks current full-access membersh
   assert.equal(exported.reconciliation[0].consentId, consent.id);
   assert.equal(exported.reconciliation[0].available, false);
   assert.equal(Object.hasOwn(exported.reconciliation[0], "funded"), false);
-  const deletion = await requestAccountDeletion(pool, f.actor.session, {
-    operationId: randomUUID(),
-    confirmation: "DELETE",
-    acknowledgeOnChain: true,
-  });
+  const deletion = await requestAccountDeletion(
+    pool,
+    config,
+    f.actor.session,
+    confirmedDeletion(config, f.actor.accountId, f.actor.session),
+  );
   assert.equal(deletion.state, "pending_reconciliation");
   assert.deepEqual(deletion.holdReasons, ["financial_reconciliation"]);
   const recovery = hash(deletion.sessionValue!);
@@ -746,11 +748,12 @@ test("financial approval and deletion races preserve accepted proof or erase onl
     consent = await f.prepare();
   const [accepted, deleted] = await Promise.allSettled([
     f.accept(consent),
-    requestAccountDeletion(pool, f.actor.session, {
-      operationId: randomUUID(),
-      confirmation: "DELETE",
-      acknowledgeOnChain: true,
-    }),
+    requestAccountDeletion(
+      pool,
+      config,
+      f.actor.session,
+      confirmedDeletion(config, f.actor.accountId, f.actor.session),
+    ),
   ]);
   assert.equal(deleted.status, "fulfilled");
   const deletion = (

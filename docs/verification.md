@@ -1053,6 +1053,19 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   cannot yet receive qualified deletion clearance. Retention automation, integrated
   principal-return controls, attendance and real wallet/phone checks remain incomplete.
 
+## I5 deletion confirmation account binding checkpoint November 2
+
+- A disposable two-account browser regression reproduced an unsafe 200 after the
+  account cookie changed while confirmation remained open. The fixed build returns
+  403, keeps both accounts active, and resets acknowledgment on confirmation reload.
+- Standalone fix snapshot: format/lint/types, 58 unit, 65 PostgreSQL, production build
+  and all 24 Chromium checks pass; all ten inputs match. Account, exact-session,
+  operation, tamper and five-minute expiry checks run before deletion under the account
+  lock. The page displays the current private account reference; mobile capture inspected.
+- This corrects the preceding deletion checkpoint before owner-app deployment.
+  Only fictional records were exercised. Retention enforcement remains incomplete;
+  qualified financial clearance, attendance, public funding/signing and device gates remain.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

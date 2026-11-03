@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { authConfig } from "../../../server/auth/config";
 import { sessionCookie } from "../../../server/auth/sessions";
@@ -10,6 +11,7 @@ import {
   deletionCompletionCookie,
   readCompletedDeletion,
 } from "../../../server/privacy/completion";
+import { createDeletionConfirmation } from "../../../server/privacy/confirmation";
 
 export const dynamic = "force-dynamic";
 export default async function PrivacyPage() {
@@ -17,6 +19,7 @@ export default async function PrivacyPage() {
   let session = null,
     available = Boolean(config);
   let deletion: DeletionReceipt | null = null;
+  const operationId = randomUUID();
   const completion = config
     ? readCompletedDeletion(config, (await cookies()).get(deletionCompletionCookie)?.value)
     : null;
@@ -50,6 +53,7 @@ export default async function PrivacyPage() {
         </p>
       ) : (
         <section aria-label="Private account export">
+          <p style={{ overflowWrap: "anywhere" }}>{`Account reference: ${session.accountId}`}</p>
           <h2>Download your account data</h2>
           <p>
             Your JSON export includes your linked identities, wallet addresses, financial approvals,
@@ -80,7 +84,16 @@ export default async function PrivacyPage() {
               </p>
             </section>
           ) : (
-            <DeletionRequest />
+            <DeletionRequest
+              key={operationId}
+              operationId={operationId}
+              intent={createDeletionConfirmation(
+                config!,
+                session.accountId,
+                session.tokenHash,
+                operationId,
+              )}
+            />
           )}
           <p>
             <Link href="/account/commitments" prefetch={false}>

@@ -336,6 +336,11 @@ Retention automation and clearance of qualified settled obligations remain incom
 Agent erasure checks use fictional accounts in `showup_test`, never the owner's
 linked development account. A branch push neither migrates nor restarts that app.
 
+Deletion confirmation expires after five minutes and is bound to the account,
+exact session and operation that opened it. Switching accounts, signing in again
+or using an old confirmation cannot delete the replacement account. **Reload deletion
+confirmation** shows the current account reference and clears the typed acknowledgment.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet

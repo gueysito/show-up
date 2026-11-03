@@ -15,6 +15,7 @@ import { exportOwnData } from "../../src/server/privacy/export";
 import { ownDeletionRequest, requestAccountDeletion } from "../../src/server/privacy/deletion";
 import { issueWalletChallenge } from "../../src/server/wallets/service";
 import { validDraft } from "../fixtures/draft";
+import { confirmedDeletion } from "../fixtures/deletion";
 
 if (process.env.SHOWUP_ENV !== "test")
   throw new Error("Privacy checks require the disposable test database");
@@ -56,6 +57,30 @@ async function account() {
   accounts.push(result.accountId);
   return { ...result, subject, session: hash(result.value) };
 }
+
+test("a confirmation prepared for another account, session or operation cannot request deletion", async () => {
+  const owner = await account(),
+    other = await account();
+  const second = await establishIdentity(pool, config, "telegram", {
+    issuer: issuers.telegram,
+    subject: owner.subject,
+  });
+  const intent = confirmedDeletion(config, owner.accountId, owner.session);
+  await assert.rejects(requestAccountDeletion(pool, config, other.session, intent), status(403));
+  await assert.rejects(
+    requestAccountDeletion(pool, config, hash(second.value), intent),
+    status(403),
+  );
+  await assert.rejects(
+    requestAccountDeletion(pool, config, owner.session, { ...intent, operationId: randomUUID() }),
+    status(403),
+  );
+  for (const id of [owner.accountId, other.accountId])
+    assert.equal(
+      (await pool.query("SELECT state FROM app_accounts WHERE id=$1", [id])).rows[0].state,
+      "active",
+    );
+});
 
 test("deletion request migration rolls back and rejects a completed request that still holds obligations", async () => {
   const owner = await account(),
@@ -117,19 +142,19 @@ test("confirmed deletion clears an unfunded account atomically and cannot remove
     address: "fictional.near",
   });
   await assert.rejects(
-    requestAccountDeletion(pool, owner.session, {
-      operationId,
+    requestAccountDeletion(pool, config, owner.session, {
+      ...confirmedDeletion(config, owner.accountId, owner.session, operationId),
       confirmation: "delete",
-      acknowledgeOnChain: true,
     }),
     status(400),
   );
   assert.equal((await findSession(pool, owner.value))!.accountId, owner.accountId);
-  const result = await requestAccountDeletion(pool, owner.session, {
-    operationId,
-    confirmation: "DELETE",
-    acknowledgeOnChain: true,
-  });
+  const result = await requestAccountDeletion(
+    pool,
+    config,
+    owner.session,
+    confirmedDeletion(config, owner.accountId, owner.session, operationId),
+  );
   assert.equal(result.state, "completed");
   assert.equal(result.sessionValue, null);
   assert.equal(await findPrivacySession(pool, owner.value), null);
@@ -154,11 +179,12 @@ test("confirmed deletion clears an unfunded account atomically and cannot remove
   );
   assert.equal((await findPrivacySession(pool, other.value))!.accountId, other.accountId);
   await assert.rejects(
-    requestAccountDeletion(pool, other.session, {
-      operationId,
-      confirmation: "DELETE",
-      acknowledgeOnChain: true,
-    }),
+    requestAccountDeletion(
+      pool,
+      config,
+      other.session,
+      confirmedDeletion(config, other.accountId, other.session, operationId),
+    ),
     status(409),
   );
   assert.equal((await findSession(pool, other.value))!.accountId, other.accountId);
@@ -192,11 +218,12 @@ test("published obligations retain restricted sign-in, export and original event
     "UPDATE app_events SET state='published',rules_hash=$2,published_at=clock_timestamp() WHERE id=$1",
     [eventId, "a".repeat(64)],
   );
-  const result = await requestAccountDeletion(pool, owner.session, {
-    operationId: randomUUID(),
-    confirmation: "DELETE",
-    acknowledgeOnChain: true,
-  });
+  const result = await requestAccountDeletion(
+    pool,
+    config,
+    owner.session,
+    confirmedDeletion(config, owner.accountId, owner.session),
+  );
   assert.equal(result.state, "pending_reconciliation");
   assert.deepEqual(result.holdReasons, ["published_event_obligations"]);
   assert.equal(Boolean(result.sessionValue), true);
@@ -215,11 +242,12 @@ test("published obligations retain restricted sign-in, export and original event
   assert.equal(exported.hostedEvents[0].id, eventId);
   assert.deepEqual(exported.roles, []);
   assert.equal(exported.deletionRequest.id, result.id);
-  const replay = await requestAccountDeletion(pool, session, {
-    operationId: randomUUID(),
-    confirmation: "DELETE",
-    acknowledgeOnChain: true,
-  });
+  const replay = await requestAccountDeletion(
+    pool,
+    config,
+    session,
+    confirmedDeletion(config, owner.accountId, session),
+  );
   assert.equal(replay.id, result.id);
   assert.equal(replay.sessionValue, null);
   await assert.rejects(

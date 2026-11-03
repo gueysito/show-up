@@ -5,6 +5,8 @@ import { transaction } from "../db/client";
 import { isUuid } from "../events/drafts";
 import { AppFailure } from "../http/security";
 import { requirePrivacyActor } from "./access";
+import type { AuthConfig } from "../auth/config";
+import { verifyDeletionConfirmation } from "./confirmation";
 
 export type DeletionReceipt = {
   id: string;
@@ -38,8 +40,9 @@ export async function ownDeletionRequest(
 
 export async function requestAccountDeletion(
   pool: pg.Pool,
+  keys: Pick<AuthConfig, "encryptionKey">,
   sessionHash: string,
-  input: { operationId: string; confirmation: string; acknowledgeOnChain: boolean },
+  input: { operationId: string; confirmation: string; acknowledgeOnChain: boolean; intent: string },
 ) {
   if (
     !isUuid(input.operationId) ||
@@ -59,6 +62,11 @@ export async function requestAccountDeletion(
       )
     ).rows[0];
     if (!actor) throw new AppFailure(401, "Sign in again to request deletion.");
+    if (!verifyDeletionConfirmation(keys, input.intent, actor.id, sessionHash, input.operationId))
+      throw new AppFailure(
+        403,
+        "Reload your data page and confirm deletion for the signed-in account. The previous confirmation may have expired.",
+      );
     const existing = (
       await client.query("SELECT * FROM app_deletion_requests WHERE account_id=$1", [actor.id])
     ).rows[0];

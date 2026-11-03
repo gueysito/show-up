@@ -1,23 +1,22 @@
 "use client";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export function DeletionRequest() {
+export function DeletionRequest({ intent, operationId }: { intent: string; operationId: string }) {
   const router = useRouter();
   const [confirmation, setConfirmation] = useState(""),
     [acknowledge, setAcknowledge] = useState(false),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState("");
-  const operation = useRef<string | null>(null);
   async function submit() {
     setBusy(true);
-    operation.current ??= crypto.randomUUID();
     try {
       const response = await fetch("/api/account/deletion", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          operationId: operation.current,
+          operationId,
+          intent,
           confirmation,
           acknowledgeOnChain: acknowledge,
         }),
@@ -78,6 +77,11 @@ export function DeletionRequest() {
         {busy ? "Requesting deletion…" : "Request account deletion"}
       </button>
       <p role="status">{message}</p>
+      {message && (
+        <button type="button" className="secondary-button" onClick={() => router.refresh()}>
+          Reload deletion confirmation
+        </button>
+      )}
     </section>
   );
 }

@@ -30,12 +30,18 @@ export async function POST(request: Request) {
     if (!session) throw new AppFailure(401, "Sign in again to request deletion.");
     await limit(database.pool, `privacy-deletion:${session.accountId}`, 3, 3600);
     const body = await jsonBody(request, 2048);
-    if (Object.keys(body).sort().join() !== "acknowledgeOnChain,confirmation,operationId")
+    if (Object.keys(body).sort().join() !== "acknowledgeOnChain,confirmation,intent,operationId")
       throw new AppFailure(400, "Review the deletion confirmation.");
     const { sessionValue, ...result } = await requestAccountDeletion(
       database.pool,
+      config,
       session.tokenHash,
-      body as { operationId: string; confirmation: string; acknowledgeOnChain: boolean },
+      body as {
+        operationId: string;
+        confirmation: string;
+        acknowledgeOnChain: boolean;
+        intent: string;
+      },
     );
     if (sessionValue)
       jar.set(sessionCookie, sessionValue, { ...cookieOptions, maxAge: sessionSeconds });
