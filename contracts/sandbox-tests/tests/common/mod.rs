@@ -144,13 +144,25 @@ impl Fixture {
         budget: u128,
         custody: Option<Value>,
     ) -> Self {
-        Self::build(capacity, mode, budget, custody, false, true).await
+        Self::build(capacity, mode, budget, custody, false, true, None).await
     }
     pub async fn with_unobserved_custody(custody: Value) -> Self {
-        Self::build(1, "online", 0, Some(custody), false, false).await
+        Self::build(1, "online", 0, Some(custody), false, false, None).await
     }
     pub async fn with_native() -> Self {
-        Self::build(1, "online", 20_000_000, None, true, false).await
+        Self::build(1, "online", 20_000_000, None, true, false, None).await
+    }
+    pub async fn with_financial_consent() -> Self {
+        Self::build(
+            1,
+            "online",
+            0,
+            None,
+            false,
+            true,
+            Some("https://localhost:3443"),
+        )
+        .await
     }
     async fn build(
         capacity: u32,
@@ -159,6 +171,7 @@ impl Fixture {
         custody: Option<Value>,
         native: bool,
         observed: bool,
+        financial_origin: Option<&str>,
     ) -> Self {
         let (worker, node) = start_node().await;
         let wasm = "/cache/target/wasm32-unknown-unknown/release";
@@ -240,6 +253,9 @@ impl Fixture {
             "custody_proof_policy":custody,
             "native_nft":if native {json!({"token":fixture.token.id(),"token_id":"prize-1", "contributor":fixture.alice.id(),
                 "fixture_beneficiary":fixture.bob.id()})} else {Value::Null}});
+        if let Some(origin) = financial_origin {
+            terms["wallet_consent_origin"] = json!(origin);
+        }
         fixture.rules_hash = fixture.rules_commitment(&terms);
         terms["rules_hash"] = json!(fixture.rules_hash);
         fixture

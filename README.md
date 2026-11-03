@@ -20,7 +20,9 @@ attendance and first-round proof boundaries in a disposable sandbox. Read-only
 provider pricing verifies actual quote signatures; app funding remains disabled.
 Separate wallet-control UI and encrypted records pass isolated tests. Immutable
 event/fee/destination consent has internal signature and database evidence; its
-funding integration, actual wallets and confirmed enrollment remain distinct gates.
+wire now matches actual native sandbox funding and principal return with source-key
+enforcement. Application funding integration, actual wallets and qualified enrollment
+remain distinct gates.
 Native synthetic NFT custody also exercises receipt, fixed-recipient retry and return.
 Start with the
 [10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).

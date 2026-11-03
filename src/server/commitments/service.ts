@@ -14,12 +14,57 @@ import {
   createCommitmentConsent,
   consentWalletMessage,
   verifyCommitmentConsent,
+  validateConsentTerms,
   type CommitmentConsent,
   type ConsentTerms,
 } from "./consent";
 
 type PreparedTerms = Omit<ConsentTerms, "registration" | "participant" | "reservationExpiresAt">;
 type WalletSelection = { source: string; refund: string; payout: string };
+
+async function participantCredential(
+  client: pg.PoolClient,
+  config: AuthConfig,
+  actor: string,
+  event: string,
+) {
+  const context = `event-credential:${actor}:${event}`;
+  const existing = (
+    await client.query(
+      "SELECT encrypted_credential FROM app_event_credentials WHERE event_id=$1 AND account_id=$2 FOR UPDATE",
+      [event, actor],
+    )
+  ).rows[0];
+  if (existing) {
+    const value = unseal(config.encryptionKey, context, existing.encrypted_credential);
+    if (typeof value !== "string" || !isUuid(value))
+      throw new Error("Event credential integrity failure");
+    return value;
+  }
+  // Preserve the first pre-migration consent's opaque credential when present.
+  const previous = (
+    await client.query(
+      "SELECT id,encrypted_consent FROM app_commitment_consents WHERE event_id=$1 AND account_id=$2 ORDER BY created_at,id LIMIT 1",
+      [event, actor],
+    )
+  ).rows[0];
+  let credential: string = randomUUID();
+  if (previous) {
+    const stored = unseal(
+      config.encryptionKey,
+      `commitment-consent:${actor}:${previous.id}`,
+      previous.encrypted_consent,
+    ) as { consent: CommitmentConsent };
+    if (!isUuid(stored.consent.terms.participant))
+      throw new Error("Event credential integrity failure");
+    credential = stored.consent.terms.participant;
+  }
+  await client.query(
+    "INSERT INTO app_event_credentials (event_id,account_id,encrypted_credential) VALUES ($1,$2,$3)",
+    [event, actor, seal(config.encryptionKey, context, credential)],
+  );
+  return credential;
+}
 type ConsentReceipt = {
   id: string;
   eventId: string;
@@ -125,9 +170,8 @@ export async function prepareCommitmentConsent(
           input.terms.authorizationExpiresAt,
         ),
       };
-      let consent: CommitmentConsent;
       try {
-        consent = createCommitmentConsent(config.origin, terms, now);
+        validateConsentTerms(terms, now);
       } catch {
         throw new AppFailure(
           400,
@@ -136,6 +180,8 @@ export async function prepareCommitmentConsent(
       }
       await eligibleEvent(client, actor.id, terms, now);
       await requireOwnedWallets(client, config, actor.id, input.wallets, terms);
+      terms.participant = await participantCredential(client, config, actor.id, terms.event);
+      const consent = createCommitmentConsent(config.origin, terms, now);
       await client.query(
         `INSERT INTO app_commitment_consents (id,account_id,event_id,session_hash,consent_hash,encrypted_consent,signing_expires_at,authorization_expires_at)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
@@ -196,6 +242,11 @@ export async function acceptCommitmentConsent(
         throw new AppFailure(400, "The signature does not match the original event consent.");
       await eligibleEvent(client, actor.id, consent.terms, row.time.getTime());
       await requireOwnedWallets(client, config, actor.id, wallets, consent.terms);
+      if (
+        (await participantCredential(client, config, actor.id, consent.terms.event)) !==
+        consent.terms.participant
+      )
+        throw new AppFailure(409, "Review a fresh consent for this account's event credential.");
       let access: Awaited<ReturnType<typeof requireNearFullAccess>> | undefined;
       if (consent.terms.source.network === "near") {
         try {

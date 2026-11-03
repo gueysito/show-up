@@ -40,6 +40,9 @@ after(async () => {
   const ids = [...accounts];
   await pool.query("DELETE FROM app_commitment_consents WHERE account_id=ANY($1::uuid[])", [ids]);
   await pool.query("DELETE FROM app_event_access WHERE event_id=ANY($1::uuid[])", [[...events]]);
+  await pool.query("DELETE FROM app_event_credentials WHERE event_id=ANY($1::uuid[])", [
+    [...events],
+  ]);
   await pool.query("DELETE FROM app_events WHERE id=ANY($1::uuid[])", [[...events]]);
   for (const table of [
     "app_wallet_challenges",
@@ -161,6 +164,64 @@ test("immutable encrypted consent survives lost acknowledgments without creating
   );
   assert.throws(() => requireFundingRoute("base"), /Funding disabled/);
   await assert.rejects(() => f.accept(consent), status(409));
+});
+
+test("fresh consents keep one encrypted participant credential per account and event", async () => {
+  const f = await fixture();
+  const [first, next] = await Promise.all([
+    f.prepare(),
+    prepareCommitmentConsent(pool, config, f.actor.session, {
+      ...f.input,
+      operationId: randomUUID(),
+    }),
+  ]);
+  assert.equal(next.terms.participant, first.terms.participant);
+  assert.notEqual(next.terms.registration, first.terms.registration);
+  assert.notEqual(next.nonce, first.nonce);
+  const rows = (
+    await pool.query(
+      "SELECT encrypted_credential FROM app_event_credentials WHERE event_id=$1 AND account_id=$2",
+      [first.terms.event, f.actor.accountId],
+    )
+  ).rows;
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].encrypted_credential.includes(first.terms.participant), false);
+  assert.equal(
+    unseal(
+      config.encryptionKey,
+      `event-credential:${f.actor.accountId}:${first.terms.event}`,
+      rows[0].encrypted_credential,
+    ),
+    first.terms.participant,
+  );
+});
+
+test("first existing consent credentials survive journal backfill without rewriting the original authorization", async () => {
+  const f = await fixture(),
+    first = await f.prepare();
+  const before = (
+    await pool.query("SELECT encrypted_consent FROM app_commitment_consents WHERE id=$1", [
+      first.id,
+    ])
+  ).rows[0].encrypted_consent;
+  // Controlled fixture of a consent created before the credential-table migration.
+  await pool.query("DELETE FROM app_event_credentials WHERE event_id=$1 AND account_id=$2", [
+    first.terms.event,
+    f.actor.accountId,
+  ]);
+  const next = await prepareCommitmentConsent(pool, config, f.actor.session, {
+    ...f.input,
+    operationId: randomUUID(),
+  });
+  assert.equal(next.terms.participant, first.terms.participant);
+  assert.equal(
+    (
+      await pool.query("SELECT encrypted_consent FROM app_commitment_consents WHERE id=$1", [
+        first.id,
+      ])
+    ).rows[0].encrypted_consent,
+    before,
+  );
 });
 
 test("account, session, wallet and operation ID swaps cannot consume another consent", async () => {
@@ -414,6 +475,7 @@ test("consent migration rolls back without erasing existing accounts or events",
     await client.query(`CREATE SCHEMA ${schema}`);
     await client.query(`SET LOCAL search_path TO ${schema},public`);
     await client.query(await readFile("migrations/006-commitment-consent.sql", "utf8"));
+    await client.query(await readFile("migrations/009-event-participant-credentials.sql", "utf8"));
     assert(
       (
         await client.query("SELECT to_regclass($1) AS relation", [

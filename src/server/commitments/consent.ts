@@ -1,6 +1,11 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { canonicalHash, canonicalJson } from "../protocol/canonical";
-import { manifestHash, networkIdentity, type Network } from "../protocol/manifest";
+import {
+  engineeringManifest,
+  manifestHash,
+  networkIdentity,
+  type Network,
+} from "../protocol/manifest";
 import { integerAmount } from "../protocol/one-click";
 import {
   walletAddress,
@@ -9,8 +14,9 @@ import {
 } from "../wallets/proof";
 
 export type ConsentWallet = { network: Network; chainId: string; address: string };
+export type SandboxConsentProfile = { environment: "sandbox"; manifest: string; token: string };
 export type ConsentTerms = {
-  environment: "mainnet";
+  environment: "mainnet" | "sandbox";
   manifest: string;
   deployment: string;
   event: string;
@@ -55,23 +61,47 @@ function exact(value: object, keys: string) {
   )
     throw new Error("Unexpected consent fields");
 }
-function wallet(value: ConsentWallet) {
+export function consentNetwork(network: Network, profile?: SandboxConsentProfile) {
+  if (!profile) return networkIdentity(network);
+  exact(profile, "environment,manifest,token");
+  if (
+    profile.environment !== "sandbox" ||
+    typeof profile.manifest !== "string" ||
+    !profile.manifest ||
+    profile.manifest.length > 128 ||
+    walletAddress("near", profile.token) !== profile.token
+  )
+    throw new Error("Invalid explicit sandbox consent profile");
+  const entry = engineeringManifest.networks.find((item) => item.id === network);
+  if (!entry) throw new Error("Unsupported sandbox consent network");
+  return {
+    chainId: network === "near" ? "sandbox" : entry.chainId,
+    assets: [
+      { id: "usdc", contract: network === "near" ? profile.token : entry.usdc, decimals: 6 },
+    ],
+  };
+}
+function wallet(value: ConsentWallet, profile?: SandboxConsentProfile) {
   exact(value, "address,chainId,network");
   if (
-    value.chainId !== networkIdentity(value.network).chainId ||
+    value.chainId !== consentNetwork(value.network, profile).chainId ||
     value.address !== walletAddress(value.network, value.address) ||
     /^0x0{40}$/.test(value.address)
   )
     throw new Error("Invalid consent wallet identity");
 }
-export function validateConsentTerms(terms: ConsentTerms, issuedAt: number) {
+export function validateConsentTerms(
+  terms: ConsentTerms,
+  issuedAt: number,
+  profile?: SandboxConsentProfile,
+) {
   exact(
     terms,
     "authorizationExpiresAt,deployment,environment,event,inputAsset,manifest,maximumInput,participant,payout,payoutMinimum,principal,quoteExpiresAt,quoteHash,refund,registration,registrationClosesAt,reservationExpiresAt,routingFeeMaximum,rulesHash,source,sourceGasMaximum,timeZone,withdrawalFeeMaximum",
   );
   if (
-    terms.environment !== "mainnet" ||
-    terms.manifest !== manifestHash ||
+    terms.environment !== (profile?.environment ?? "mainnet") ||
+    terms.manifest !== (profile?.manifest ?? manifestHash) ||
     !uuid.test(terms.event) ||
     !uuid.test(terms.registration) ||
     !uuid.test(terms.participant) ||
@@ -83,11 +113,11 @@ export function validateConsentTerms(terms: ConsentTerms, issuedAt: number) {
   if (typeof terms.timeZone !== "string" || terms.timeZone.length > 100)
     throw new Error("Invalid consent timezone");
   new Intl.DateTimeFormat("en", { timeZone: terms.timeZone });
-  for (const selected of [terms.source, terms.refund, terms.payout]) wallet(selected);
+  for (const selected of [terms.source, terms.refund, terms.payout]) wallet(selected, profile);
   if (terms.refund.network !== terms.source.network)
     throw new Error("Source refunds must return on the source network");
   exact(terms.inputAsset, "contract,decimals");
-  const asset = networkIdentity(terms.source.network).assets.find(
+  const asset = consentNetwork(terms.source.network, profile).assets.find(
     (item) => item.contract === terms.inputAsset.contract,
   );
   if (
@@ -131,6 +161,9 @@ export function validateConsentTerms(terms: ConsentTerms, issuedAt: number) {
 function message(consent: Omit<CommitmentConsent, "message">) {
   return [
     "Showup event financial consent v1",
+    ...(consent.terms.environment === "sandbox"
+      ? ["DISPOSABLE SANDBOX TOKENS ONLY. No real USDC or live funding route is authorized."]
+      : []),
     `Website: ${consent.origin}`,
     "Authorize only the event and limits below. A separate wallet transaction is required to transfer funds.",
     "A signature, quote or reservation creates no funded seat. Enrollment requires actual attributable escrow.",
@@ -153,10 +186,11 @@ export function createCommitmentConsent(
   origin: string,
   terms: ConsentTerms,
   now = Date.now(),
+  profile?: SandboxConsentProfile,
 ): CommitmentConsent {
   if (new URL(origin).protocol !== "https:" || new URL(origin).origin !== origin)
     throw new Error("Consent requires the fixed HTTPS application origin");
-  validateConsentTerms(terms, now);
+  validateConsentTerms(terms, now, profile);
   const value: Omit<CommitmentConsent, "message"> = {
     format: "showup.commitment.consent.v1",
     id: randomUUID(),
@@ -188,10 +222,11 @@ export function verifyCommitmentConsent(
   proof: WalletSignature,
   origin: string,
   now = Date.now(),
+  profile?: SandboxConsentProfile,
 ): boolean {
   try {
     exact(consent, "format,id,issuedAt,message,nonce,origin,signingExpiresAt,terms,termsHash");
-    validateConsentTerms(consent.terms, consent.issuedAt);
+    validateConsentTerms(consent.terms, consent.issuedAt, profile);
     if (
       consent.format !== "showup.commitment.consent.v1" ||
       consent.origin !== origin ||
@@ -220,8 +255,9 @@ export function assessPayout(
   gross: string,
   actualFee: string,
   routeMinimum: string,
+  profile?: SandboxConsentProfile,
 ) {
-  validateConsentTerms(consent.terms, consent.issuedAt);
+  validateConsentTerms(consent.terms, consent.issuedAt, profile);
   const amount = integerAmount(gross),
     fee = integerAmount(actualFee),
     minimum = integerAmount(routeMinimum);

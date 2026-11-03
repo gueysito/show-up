@@ -17,7 +17,7 @@ enum Deposit {
 #[near]
 impl Escrow {
     pub fn reserve(&mut self, authorization: Authorization, proof: Base64VecU8) -> String {
-        self.check_authorization(&authorization, &proof);
+        let _ = self.check_authorization(&authorization, &proof);
         require!(now() < authorization.expires_ms, "Authorization expired");
         if let Some(existing) = self.registrations.get(&authorization.registration) {
             require!(
@@ -71,7 +71,7 @@ impl Escrow {
             env::predecessor_account_id() == self.token,
             "Wrong settlement token"
         );
-        require!(amount.0 > 0 && msg.len() <= 8192, "Invalid receipt");
+        require!(amount.0 > 0 && msg.len() <= 16384, "Invalid receipt");
         let deposit: Deposit =
             near_sdk::serde_json::from_str(&msg).expect("Invalid receipt binding");
         match deposit {
@@ -103,7 +103,11 @@ impl Escrow {
 }
 
 impl Escrow {
-    pub(crate) fn check_authorization(&self, auth: &Authorization, proof: &Base64VecU8) {
+    pub(crate) fn check_authorization(
+        &self,
+        auth: &Authorization,
+        proof: &Base64VecU8,
+    ) -> Option<financial::FundingConsent> {
         require!(
             auth.domain == self.domain
                 && auth.deployment == env::current_account_id()
@@ -149,6 +153,7 @@ impl Escrow {
                 "Registration binding changed"
             );
         }
+        self.check_financial_consent(auth)
     }
 
     fn check_active(&self, auth: &Authorization) {
@@ -195,11 +200,25 @@ impl Escrow {
         amount: u128,
         sender: &AccountId,
     ) {
-        self.check_authorization(&auth, &proof);
+        let consent = self.check_authorization(&auth, &proof);
         require!(
             auth.source.address == sender.as_str(),
             "Wrong funding wallet"
         );
+        if let Some(consent) = consent {
+            let key = env::signer_account_pk();
+            require!(
+                env::signer_account_id().as_str() == auth.source.address
+                    && key.as_bytes().len() == 33
+                    && key.as_bytes()[0] == 0
+                    && key.as_bytes()[1..] == consent.public_key,
+                "Financial consent key does not match the actual source signer"
+            );
+            require!(
+                amount <= consent.maximum_input,
+                "Source amount exceeds financial consent"
+            );
+        }
         self.clean_reservations(&auth.event);
         let existing = self.registrations.get(&auth.registration).cloned();
         let event = self.events.get(&auth.event).unwrap();

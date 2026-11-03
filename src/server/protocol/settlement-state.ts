@@ -84,9 +84,20 @@ function context(value: SettlementContext) {
       value.domain !== networkManifest.signingDomain)
   )
     throw new Error("Mainnet settlement profile does not match the frozen manifest");
+  const fields =
+    "deployment,domain,event,expires_ms,fee_cap,manifest,nonce,participant,payout,principal,refund,registration,reservation_ms,rules_hash,source,wallet_tag";
+  const candidate = record(value.authorization),
+    hasConsent = Object.hasOwn(candidate, "wallet_consent");
+  if (
+    hasConsent &&
+    (typeof candidate.wallet_consent !== "string" ||
+      !candidate.wallet_consent ||
+      Buffer.byteLength(candidate.wallet_consent) > 12288)
+  )
+    throw new Error("Financial consent envelope bounds");
   const auth = exact(
     value.authorization,
-    "deployment,domain,event,expires_ms,fee_cap,manifest,nonce,participant,payout,principal,refund,registration,reservation_ms,rules_hash,source,wallet_tag",
+    hasConsent ? [...fields.split(","), "wallet_consent"].sort().join() : fields,
   );
   if (
     auth.domain !== value.domain ||
@@ -173,6 +184,8 @@ export function validateSettlementState(
   );
   const terms = record(event.terms),
     material = { ...terms };
+  if (Boolean(terms.wallet_consent_origin) !== Object.hasOwn(auth, "wallet_consent"))
+    throw new Error("Settlement financial consent policy mismatch");
   delete material.rules_hash;
   if (
     terms.event !== expected.event ||

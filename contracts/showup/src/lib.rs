@@ -4,6 +4,7 @@ mod canonical;
 mod custody;
 mod delivery;
 mod draw;
+mod financial;
 mod funding;
 mod nft;
 mod observer;
@@ -131,6 +132,12 @@ impl Escrow {
             "Quiz outside published schedule"
         );
         self.valid_destination(&terms.sponsor_return);
+        if let Some(origin) = &terms.wallet_consent_origin {
+            require!(
+                financial::valid_origin(origin),
+                "Invalid financial consent origin"
+            );
+        }
         if let Some(prize) = &terms.native_nft {
             require!(
                 !prize.token_id.is_empty()

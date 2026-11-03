@@ -16,6 +16,7 @@ sha2 = "=0.10.9"
 bs58 = "=0.5.1"
 near-crypto = "=0.37.4"
 sha3 = "=0.10.9"
+chrono = { version = "=0.4.45", default-features = false, features = ["alloc"] }
 
 # Keep reqwest's matching browser-only packages behind the seven-day release gate.
 # They are resolved in Cargo.lock but are not compiled into the Linux test runner.

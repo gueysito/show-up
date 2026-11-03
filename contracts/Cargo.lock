@@ -2840,6 +2840,7 @@ name = "showup-escrow"
 version = "0.1.0"
 dependencies = [
  "bs58 0.5.1",
+ "chrono",
  "near-sdk",
 ]
 
@@ -2849,6 +2850,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
  "bs58 0.5.1",
+ "chrono",
  "ed25519-dalek",
  "near-crypto",
  "near-sandbox",

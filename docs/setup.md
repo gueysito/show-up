@@ -274,6 +274,21 @@ latch a pause; later agreement cannot silently clear it. These are restricted ba
 seams with no HTTP endpoint, worker polling activation, own-account binding or live
 funding capability. A journal entry is not a financial authorization or route approval.
 
+`009-event-participant-credentials.sql` preserves one encrypted opaque credential per
+account/event, including an existing consent's first credential. New registrations
+and nonces do not create another event identity. This does not prove one human per account.
+
+The internal contract-wire builder validates the exact original signature and maps
+UUID credentials into the prototype's 32-byte fields. Its default profile remains
+mainnet-bound; an explicitly supplied sandbox profile is required for disposable token
+proofs, whose message says **DISPOSABLE SANDBOX TOKENS ONLY**. That profile is not a
+web flag or funding override. Native sandbox events with `wallet_consent_origin`
+verify the full NEP-413 message, nonce, destinations, fee cap, deadlines and actual
+transaction source key, then use the existing escrow/capacity/refund engine. Legacy
+construction fixtures omit this policy and remain unqualified for live funding.
+EVM/Solana wire mapping is tested, but their actual escrow/return paths remain gated.
+This checkpoint adds no consent endpoint, wallet-return page, broadcaster or deployment.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet

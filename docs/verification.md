@@ -934,6 +934,34 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   Financial-consent/contract binding, user interfaces, recovery controls and qualified
   live routes remain incomplete; this backend journal alone cannot enroll anyone.
 
+## I4 native financial binding checkpoint November 2
+
+- `npm run check`: 55 unit tests, format, lint and types pass. Full disposable
+  PostgreSQL suite: 55 scenarios pass, including concurrent stable event-credential
+  creation, preservation of existing consent identity and transactional migration rollback.
+- Contract supply-chain review passes for all 380 locked packages. Chrono 0.4.45 was
+  already locked/audited; only direct dependency edges were added. Pinned Rust format,
+  both lint checks, fresh WASM and the full 35-scenario sandbox suite pass.
+- All seven independent Node replays pass. New financial replay reconstructs the
+  exact app wire and verifies wallet signatures against four actual sandbox states:
+  reserved, funded after reservation expiry, released and paid principal. Credential
+  authority substitutions, wrong actual source keys, missing financial proof and
+  over-limit input cannot book a seat; excess/duplicate funds remain recoverable.
+- Isolated production build and all 18 Chromium scenarios pass; all 18 implementation
+  inputs match that snapshot. No auth internals appear in client bundles. Public
+  synthetic vectors are in the approved ignored evidence directory, without private keys.
+- Escrow WASM: `409aa768c6a11b3a5ea6d206e950be5fbe1e235ef15bed05a67eb076a3b6848c`;
+  test token: `4949b5cc3eb440a68997ea551fa2042a40d150287c5fa55c68453c7ab0006125`;
+  Cargo lock: `2aa6485989d8af5c70e07a3ea618e55fcd4cf78f5498c61ebc62eb1f04661ad3`.
+- Checked strict schemas/amounts, event/deployment/asset/origin/nonce binding, canonical
+  NEP-413 serialization, source signatures and actual signer, identity isolation,
+  replay/races, expiry and principal conservation. Accepted-at eligibility attestation
+  remains an identity-service trust boundary. This is fresh disposable native sandbox
+  evidence; existing construction-only events without the new financial policy do
+  not gain this guarantee. Real G1 routes, provider gas/fee qualification, consent UI,
+  publication, public deployment/signing and actual wallets/phones remain incomplete
+  or explicitly gated. The owner tunnel, real identities and private keys were untouched.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

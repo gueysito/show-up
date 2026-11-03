@@ -28,6 +28,8 @@ pub struct Authorization {
     pub nonce: String,
     pub expires_ms: u64,
     pub reservation_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wallet_consent: Option<String>,
 }
 
 #[near(serializers = [borsh, json])]
@@ -49,6 +51,8 @@ pub struct Terms {
     pub custody_proof_policy: Option<CustodyProofPolicy>,
     pub native_nft: Option<NativeNftTerms>,
     pub observer_policy: Option<ObserverPolicy>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub wallet_consent_origin: Option<String>,
 }
 
 /// Operator-qualified source profile is frozen with the event. Source labels
