@@ -112,7 +112,14 @@ test("own financial approvals persist without claiming escrow, and private histo
     );
     await page.screenshot({ path: "test-results/financial-records-mobile.png", fullPage: true });
     await page.getByRole("link", { name: "Back to your account" }).click();
+    // Revocation can finish before the document redirect reaches the browser.
+    await page.route("**/api/auth/logout", async (route) => {
+      const response = await route.fetch({ maxRedirects: 0 });
+      await new Promise((resolve) => setTimeout(resolve, 700));
+      await route.fulfill({ response });
+    });
     await page.getByRole("button", { name: "Log out", exact: true }).click();
+    await expect(page.getByRole("region", { name: "Sign in", exact: true })).toBeVisible();
     expect((await page.request.get("/api/commitments")).status()).toBe(401);
     await page.goBack();
     if (new URL(page.url()).pathname !== "/account/commitments") await page.goBack();

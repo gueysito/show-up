@@ -1066,6 +1066,13 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   Only fictional records were exercised. Retention enforcement remains incomplete;
   qualified financial clearance, attendance, public funding/signing and device gates remain.
 
+CI follow-up: [run 41582962083](https://github.com/gueysito/show-up/actions/runs/41582962083)
+passed contracts but exposed `ERR_ABORTED` when the financial-history test pressed
+Back before its logout document finished. Delaying that response reproduced the
+failure three times. Waiting for visible signed-out content passes five repetitions
+and all 24 Chromium scenarios, retaining logout denial and Back privacy assertions.
+Focused format/lint checks pass; application code is unchanged by this repair.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:
