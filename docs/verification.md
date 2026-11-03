@@ -896,6 +896,24 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   route qualification; contract enforcement, capacity/escrow integration, consent UI,
   real wallets, actual provider/funding and phones remain incomplete or externally gated.
 
+## I4 settlement state checkpoint November 2
+
+- `npm run check`: 52 unit tests, format, lint and types pass. Fixed-source mock
+  reads reject wrong network/manifest/token, code/block substitutions, changed
+  authorization/rules, impossible capacity, inconsistent accounting and source
+  disagreement; u64 ledger versions retain exact values.
+- Pinned Rust `lint-tests` and the focused `settlement_views_replay_actual_receipts_capacity_and_failed_refund_recovery`
+  sandbox scenario pass. `node --import tsx scripts/check-settlement-state.ts`
+  independently replays nine block-pinned actual sandbox states, including failed
+  principal delivery followed by successful principal/excess returns. Public synthetic
+  vectors are preserved in the approved ignored evidence directory; no private keys.
+- Unchanged application journeys reuse `2bd48b0`'s 43 PostgreSQL, 18 Chromium and
+  isolated production build evidence; unchanged deployed sandbox code reuses the
+  32-scenario/five-replay baseline. Wallet `9a92964` has both private CI jobs passing.
+- This is read-only state comparison. It creates no seat, reservation or payment.
+  Monotonic persistence, app-to-contract financial binding, consent/escrow interfaces,
+  actual source/profile/route qualification and wallet/phone checks remain open.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

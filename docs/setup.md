@@ -323,6 +323,15 @@ and hard-grace recovery return prototype holdings. Rules commitments are recompu
 from normalized typed terms and deployment context. These are fresh local deployments;
 no production upgrade, collection approval or real winner/fee-reserve flow is implied.
 
+Settlement-state verification reads event/registration/liability/accounting/token
+views at one block hash, verifies both code hashes and the complete rules and
+authorization, and checks capacity and conservation. `contracts:check` additionally
+replays nine actual sandbox states with `scripts/check-settlement-state.ts`, including
+a failed refund and its successful retry. Public comparison uses the two fixed NEAR
+sources and rejects sandbox or wrong-manifest profiles before HTTP. It has no
+published mainnet deployment/profile, HTTP endpoint or funding activation. Agreement
+does not qualify source independence, deployed authority, G1 or a real funding route.
+
 The optional `node --import tsx scripts/probe-rpc-candidates.ts` command only compares
 public mainnet network identities and finalized headers. It cannot sign/broadcast,
 query a wallet or qualify an asset/route. The versioned candidate list and retained
