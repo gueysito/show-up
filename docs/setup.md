@@ -289,6 +289,15 @@ construction fixtures omit this policy and remain unqualified for live funding.
 EVM/Solana wire mapping is tested, but their actual escrow/return paths remain gated.
 This checkpoint adds no consent endpoint, wallet-return page, broadcaster or deployment.
 
+After rebuilding, **Account → Review your financial authorizations** shows only that
+account's prepared or approved terms. Approval is separate from escrow confirmation;
+the page and read-only `/api/commitments` never report a funded seat. History uses
+private cursors and remains readable after re-sign-in. Backend contract preparation
+loads the original encrypted proof and acceptance time; callers cannot replace them.
+There is still no HTTP operation for signing, paying or submitting a contract packet.
+Browser checks generate disposable per-run fixture keys, shared only with isolated
+test workers; they never load the operator's credential configuration.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet

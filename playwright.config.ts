@@ -2,6 +2,11 @@ import { defineConfig } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 
 const containerHarness = process.env.SHOWUP_CONTAINER_E2E === "1";
+// Disposable per-run keys, inherited by browser-test workers for fixture records.
+// Application configuration never reads these names; no operator credential file is used.
+const fixtureKey = (name: string) => (process.env[name] ??= randomBytes(32).toString("hex"));
+const fixtureEncryptionKey = fixtureKey("SHOWUP_E2E_ENCRYPTION_KEY");
+const fixtureIndexKey = fixtureKey("SHOWUP_E2E_INDEX_KEY");
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -29,8 +34,8 @@ export default defineConfig({
         SHOWUP_ORIGIN: "http://127.0.0.1:3101",
         SHOWUP_AUTH: "1",
         SHOWUP_AUTH_ORIGIN: "https://localhost:3444",
-        SHOWUP_IDENTITY_KEY: randomBytes(32).toString("hex"),
-        SHOWUP_IDENTITY_INDEX_KEY: randomBytes(32).toString("hex"),
+        SHOWUP_IDENTITY_KEY: fixtureEncryptionKey,
+        SHOWUP_IDENTITY_INDEX_KEY: fixtureIndexKey,
       },
     },
     {

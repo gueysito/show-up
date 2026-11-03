@@ -6,13 +6,21 @@ import { Wallet } from "ethers";
 import { consentTerms } from "../fixtures/consent";
 import { emptyDraft } from "../../src/domain/event-draft";
 import { authConfig, issuers } from "../../src/server/auth/config";
-import { hash, unseal } from "../../src/server/auth/crypto";
+import { hash, seal, unseal } from "../../src/server/auth/crypto";
 import { establishIdentity } from "../../src/server/auth/identities";
 import { revokeSession } from "../../src/server/auth/sessions";
-import { consentWalletMessage, type CommitmentConsent } from "../../src/server/commitments/consent";
+import {
+  createCommitmentConsent,
+  consentWalletMessage,
+  type CommitmentConsent,
+} from "../../src/server/commitments/consent";
+import { contractAuthorization } from "../../src/server/commitments/contract-authorization";
+import { listOwnFinancialRecords } from "../../src/server/commitments/records";
+import { canonicalHash } from "../../src/server/protocol/canonical";
 import {
   acceptCommitmentConsent,
   prepareCommitmentConsent,
+  prepareOwnContractAuthorization,
 } from "../../src/server/commitments/service";
 import { createDatabase } from "../../src/server/db/client";
 import { migrate } from "../../src/server/db/migrations";
@@ -36,6 +44,103 @@ const accounts = new Set<string>(),
 const status = (code: number) => (error: unknown) =>
   error instanceof AppFailure && error.status === code;
 before(() => migrate(pool));
+test("financial history and accepted contract preparation stay account scoped across re-sign-in", async () => {
+  const f = await fixture(),
+    consent = await f.prepare(),
+    stranger = await login();
+  const input = { operationId: randomUUID(), consentId: consent.id };
+  await assert.rejects(
+    prepareOwnContractAuthorization(pool, config, f.actor.session, input),
+    status(409),
+  );
+  await assert.rejects(
+    prepareOwnContractAuthorization(pool, config, stranger.session, input),
+    status(404),
+  );
+  assert.deepEqual((await listOwnFinancialRecords(pool, config, stranger.session)).records, []);
+  await assert.rejects(
+    listOwnFinancialRecords(pool, config, stranger.session, consent.id),
+    status(404),
+  );
+  const accepted = await f.accept(consent);
+  const proof = { signature: await f.wallet.signMessage(consent.message) };
+  const expected = {
+    consentId: consent.id,
+    ...contractAuthorization(config.origin, consent, proof, Date.parse(accepted.authorizedAt)),
+  };
+  assert.deepEqual(
+    await prepareOwnContractAuthorization(pool, config, f.actor.session, input),
+    expected,
+  );
+  assert.deepEqual(
+    await prepareOwnContractAuthorization(pool, config, f.actor.session, input),
+    expected,
+  );
+  const fresh = await login(f.actor.subject);
+  assert.deepEqual(
+    await prepareOwnContractAuthorization(pool, config, fresh.session, {
+      ...input,
+      operationId: randomUUID(),
+    }),
+    expected,
+  );
+  const history = await listOwnFinancialRecords(pool, config, fresh.session);
+  assert.equal(history.records.length, 1);
+  assert.deepEqual(history.records[0].terms, consent.terms);
+  assert.equal(history.records[0].escrowState, "not_confirmed");
+  assert.equal(history.records[0].fundingAllowed, false);
+  for (const key of ["proof", "message", "nonce", "accountId", "wallets"])
+    assert.equal(Object.hasOwn(history.records[0], key), false);
+  await pool.query("UPDATE app_sessions SET revoked_at=clock_timestamp() WHERE token_hash=$1", [
+    fresh.session,
+  ]);
+  await assert.rejects(listOwnFinancialRecords(pool, config, fresh.session), status(401));
+  await assert.rejects(
+    prepareOwnContractAuthorization(pool, config, fresh.session, {
+      ...input,
+      operationId: randomUUID(),
+    }),
+    status(401),
+  );
+});
+
+test("financial history pagination preserves PostgreSQL sub-millisecond ordering without leaking another account cursor", async () => {
+  const f = await fixture(),
+    original = await f.prepare();
+  await pool.query(
+    "UPDATE app_commitment_consents SET created_at='2026-11-02 00:00:00.123999+00' WHERE id=$1",
+    [original.id],
+  );
+  for (let index = 0; index < 51; index++) {
+    const consent = createCommitmentConsent(config.origin, original.terms, original.issuedAt);
+    await pool.query(
+      `INSERT INTO app_commitment_consents
+      (id,account_id,event_id,session_hash,consent_hash,encrypted_consent,signing_expires_at,authorization_expires_at,created_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        consent.id,
+        f.actor.accountId,
+        consent.terms.event,
+        f.actor.session,
+        canonicalHash(consent),
+        seal(config.encryptionKey, `commitment-consent:${f.actor.accountId}:${consent.id}`, {
+          consent,
+          wallets: f.input.wallets,
+        }),
+        new Date(consent.signingExpiresAt),
+        new Date(consent.terms.authorizationExpiresAt),
+        `2026-11-02 00:00:00.123${String(index).padStart(3, "0")}+00`,
+      ],
+    );
+  }
+  const first = await listOwnFinancialRecords(pool, config, f.actor.session);
+  assert.equal(first.records.length, 50);
+  assert.equal(first.records[0].id, original.id);
+  const second = await listOwnFinancialRecords(pool, config, f.actor.session, first.nextCursor!);
+  assert.equal(second.records.length, 2);
+  assert.equal(second.nextCursor, null);
+  assert.equal(new Set([...first.records, ...second.records].map((r) => r.id)).size, 52);
+});
 after(async () => {
   const ids = [...accounts];
   await pool.query("DELETE FROM app_commitment_consents WHERE account_id=ANY($1::uuid[])", [ids]);

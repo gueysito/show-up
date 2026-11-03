@@ -18,6 +18,7 @@ import {
   type CommitmentConsent,
   type ConsentTerms,
 } from "./consent";
+import { contractAuthorization } from "./contract-authorization";
 
 type PreparedTerms = Omit<ConsentTerms, "registration" | "participant" | "reservationExpiresAt">;
 type WalletSelection = { source: string; refund: string; payout: string };
@@ -282,6 +283,57 @@ export async function acceptCommitmentConsent(
         termsHash: consent.termsHash,
         state: "user_authorized",
         authorizedAt: accepted.rows[0].authorized_at.toISOString(),
+      };
+    },
+  );
+}
+
+// Restricted backend preparation from the immutable accepted record. Callers
+// cannot supply replacement destinations, fees, signer proof or acceptance time.
+export async function prepareOwnContractAuthorization(
+  pool: pg.Pool,
+  config: AuthConfig,
+  session: string,
+  input: { operationId: string; consentId: string },
+) {
+  if (!isUuid(input.consentId)) throw new AppFailure(400, "Invalid financial authorization.");
+  await rate(pool, session);
+  return mutate(
+    pool,
+    config.encryptionKey,
+    session,
+    input.operationId,
+    input,
+    "commitment.contract-wire-prepared",
+    async (client, actor) => {
+      const row = (
+        await client.query(
+          "SELECT * FROM app_commitment_consents WHERE id=$1 AND account_id=$2 FOR SHARE",
+          [input.consentId, actor.id],
+        )
+      ).rows[0];
+      if (!row) throw new AppFailure(404, "Private financial authorization unavailable.");
+      if (!row.authorized_at || !row.encrypted_proof)
+        throw new AppFailure(409, "Review and sign the original financial terms first.");
+      const { consent } = unseal(
+        config.encryptionKey,
+        `commitment-consent:${actor.id}:${row.id}`,
+        row.encrypted_consent,
+      ) as { consent: CommitmentConsent };
+      if (
+        canonicalHash(consent) !== row.consent_hash ||
+        (await participantCredential(client, config, actor.id, consent.terms.event)) !==
+          consent.terms.participant
+      )
+        throw new AppFailure(409, "This financial authorization needs review.");
+      const { proof } = unseal(
+        config.encryptionKey,
+        `commitment-proof:${actor.id}:${row.id}`,
+        row.encrypted_proof,
+      ) as { proof: WalletSignature };
+      return {
+        consentId: consent.id,
+        ...contractAuthorization(config.origin, consent, proof, row.authorized_at.getTime()),
       };
     },
   );

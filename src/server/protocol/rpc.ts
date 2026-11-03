@@ -1,5 +1,5 @@
 import { setTimeout as delay } from "node:timers/promises";
-import candidates from "../../../manifests/rpc-candidates.v1.json";
+import candidates from "../../../manifests/rpc-candidates.v1.json" with { type: "json" };
 import { record } from "./quote-signature";
 import { canonicalJson } from "./canonical";
 

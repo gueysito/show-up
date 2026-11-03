@@ -23,6 +23,7 @@ event/fee/destination consent has internal signature and database evidence; its
 wire now matches actual native sandbox funding and principal return with source-key
 enforcement. Application funding integration, actual wallets and qualified enrollment
 remain distinct gates.
+Own-account financial history displays approved terms with explicit unconfirmed-escrow status.
 Native synthetic NFT custody also exercises receipt, fixed-recipient retry and return.
 Start with the
 [10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).

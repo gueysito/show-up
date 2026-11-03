@@ -17,8 +17,8 @@ private invitations and host management pass isolated-account checks. Funding an
 - P4 local signing adapter: fixed EVM/Core images, provider key/address binding, one request per image and verified callback recovery. Live MPC signing remains unverified.
 - Native NFT prototype: exact receipt/publication gate, fixed delivery/return with retry, draft/outage recovery and recomputed material-terms commitments.
 - P5: finalized-header pairs, exact asset facts, signed historical delivery and bounded nonce/blockhash recovery pass isolated checks. Routes remain unqualified.
-- 55 unit, 55 PostgreSQL, 35 sandbox and seven independent Node replays pass; all 18 Chromium scenarios and isolated production build pass.
-- Reconciliation `9f993f6` has both CI jobs passing. Native financial proof is this checkpoint; consent/escrow HTTP and wallet-return integration remain incomplete.
+- Own financial records distinguish approved terms from unconfirmed escrow; private cursors and exact stored-approval preparation enforce account boundaries.
+- 55 unit, 57 PostgreSQL and 19 Chromium checks/build pass; unchanged 35 sandbox/seven Node replays remain verified. Native financial binding `01cf30b` has both CI jobs passing.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action

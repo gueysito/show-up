@@ -962,6 +962,30 @@ I5 and attendance remain incomplete. No route or full halfway completion is clai
   publication, public deployment/signing and actual wallets/phones remain incomplete
   or explicitly gated. The owner tunnel, real identities and private keys were untouched.
 
+## I4 own financial records checkpoint November 2
+
+- `npm run check`: format/lint/types and all 55 unit checks pass. Disposable PostgreSQL:
+  57 checks pass, including stored-proof reconstruction/replay, re-sign-in, revoked
+  sessions, cross-account cursor rejection and 52 records ordered within one millisecond.
+- Isolated production build and all 19 Chromium scenarios pass. New journey: account
+  link → approved terms → refresh → details/keyboard at 390px → logout/back. Another
+  account cannot see the record or use its cursor; unknown filters return 400, unsigned
+  access 401 and attempted payment writes 405. No CORS grant or proof/nonce is returned.
+- Mobile screenshot was inspected in the isolated test output. Exact originals stay
+  encrypted; sensitive reads are dynamic/no-store and account-scoped. Queries are
+  parameterized; API limits are shared per account and errors disclose no internals.
+  No dependency, wallet request, upload, public funding or production debug path was added.
+- Three JSON imports now declare their native Node type, allowing the same server
+  fixture path under Playwright and the application. Test discovery, units and build pass.
+  Unchanged contract/supply-chain evidence is reused. Real keys were not read or changed.
+- The owner app's port 3445 had no listener during this check; its live health was
+  therefore not verified. One build accidentally ran in the main checkout; subsequent
+  build/browser checks used an isolated copy. No server was restarted or deployed.
+- New since the walkthrough: **Review your financial authorizations** shows an empty
+  own-account list until real terms are prepared. Fictional fixture tests demonstrate
+  approved records and explicit unconfirmed escrow; they do not demonstrate a real
+  payment. Financial signing/escrow integration, publication and device gates remain open.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

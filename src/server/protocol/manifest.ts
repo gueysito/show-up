@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import mainnet from "../../../manifests/mainnet.v2.json";
-import engineering from "../../../manifests/engineering.v1.json";
+import mainnet from "../../../manifests/mainnet.v2.json" with { type: "json" };
+import engineering from "../../../manifests/engineering.v1.json" with { type: "json" };
 
 export const requiredNetworks = ["near", "base", "ethereum", "solana"] as const;
 export type Network = (typeof requiredNetworks)[number];

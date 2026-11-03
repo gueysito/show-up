@@ -61,6 +61,11 @@ export default async function AccountPage({
             <Link href="/account/wallets">Verify and review your wallets</Link>
           </p>
           <p>
+            <Link href="/account/commitments" prefetch={false}>
+              Review your financial authorizations
+            </Link>
+          </p>
+          <p>
             Linking verifies the second identity and keeps this account. Matching emails or
             usernames never merge accounts.
           </p>
