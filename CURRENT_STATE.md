@@ -20,13 +20,14 @@ private invitations and host management pass isolated-account checks. Funding an
 - P5: finalized-header pairs, exact asset facts, signed historical delivery and bounded nonce/blockhash recovery pass isolated checks. Routes remain unqualified.
 - Own financial records bind reconciliation to the original approval; source failures/conflicts preserve obligations and keep escrow unconfirmed.
 - Own-data export, account/session-bound deletion and bounded private-receipt retention pass isolated checks; unqualified obligations retain restricted recovery access. Qualified clearance remains incomplete.
-- 60 unit, 71 PostgreSQL and 24 Chromium checks/build pass; unchanged 35 sandbox/seven Node replays remain verified. Detailed revisions and CI results live in the plan/verification links.
+- Shared sandbox attendance packets and private host code windows pass isolated checks; attendee acceptance and staff QR remain incomplete.
+- 66 unit, 77 PostgreSQL and 25 Chromium checks/build pass; 35 sandbox/eight Node replays remain verified. Detailed revisions and CI results live in the plan/verification links.
 - [Verification](docs/verification.md), [secure setup](docs/setup.md#secure-local-identity-setup), [isolation](docs/adr/0003-local-draft-workspace.md).
 
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-A1–A4 attendance interfaces while I4 real-route integration, settlement-dependent retention and qualified deletion clearance remain gated;
+A1 attendee attempts and A2 staff/QR interfaces, then A3–A4 evidence/mobile integration, while I4 real-route integration and qualified privacy clearance remain gated;
 continue P5 source-to-witness integration and qualified provider/asset experiments within their gates.
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;
@@ -36,7 +37,7 @@ No merge, general hosting, public signing/deployment, paid purchase or spending 
 ## Unimplemented or unverified
 
 Actual-wallet/phone journeys, real attributable funding/publication, integrated wallet commitments,
-settlement-dependent retention, qualified deletion/recovery and attendance interfaces. Contract evidence uses local test tokens;
+settlement-dependent retention, qualified deletion/recovery and attendee/staff attendance interfaces. Contract evidence uses local test tokens;
 external routes, live draw recovery, typed custody signing and observers remain unqualified.
 Published-state tests are fixtures. Rewards/claims/reporting/release stay in milestones 5–7.
 No mainnet, real-phone or full halfway completion is claimed.

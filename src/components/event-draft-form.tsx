@@ -404,6 +404,7 @@ export function EventDraftForm({
                 id={identity.id}
                 revision={identity.revision}
                 state={identity.state}
+                mode={draft.mode}
                 description={draft.description}
                 busy={busy}
                 setBusy={setBusy}

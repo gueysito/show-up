@@ -323,6 +323,25 @@ replays actual sandbox signatures and principal returns for both proof classes.
 Online-code, staff QR, durable evidence processing and actual-phone journeys remain
 incomplete. A pure receipt builder or sandbox token cannot qualify live attendance.
 
+### Host attendance codes
+
+Apply migration `013-attendance-code-windows.sql` before rebuilding these controls.
+For a published online event, its owning active host can choose **Open fresh code
+window**, then reveal the displayed phrase verbally. A window lasts three minutes,
+clipped at the fixed final cutoff. Case/spacing/compatibility variants of any earlier
+phrase in that event cannot create a fresh window. **Show current code** restores
+the current phrase and closing time after a refresh or another-tab rotation.
+A failed acknowledgment retries the original operation; it does not rotate twice.
+
+Only the owning host can read phrases. They are encrypted at rest and absent from
+URLs, audit payloads, exports and ordinary operation receipts; freshness uses a keyed
+index. Export includes own window metadata. Published obligations preserve these
+records after a deletion request while code management is disabled. Their eventual
+settlement-dependent seven-day purge is still part of incomplete I5 integration.
+This adds host controls, not attendee acceptance, funded seats or live publication.
+Agent browser verification uses explicitly published engineering fixtures in the
+disposable database. Do not create such records in the owner's development account.
+
 ## Private account export
 
 After rebuilding, choose **Account → Your data and export → Download your data as JSON**.

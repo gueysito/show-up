@@ -26,6 +26,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       audit,
       watches,
       deletion,
+      codeWindows,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -70,6 +71,11 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       ),
       await client.query(
         "SELECT id,requested_at,completed_at,hold_reasons FROM app_deletion_requests WHERE account_id=$1",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT w.id,w.event_id,w.opened_at,w.expires_at,w.retired_at FROM app_attendance_code_windows w
+        JOIN app_events e ON e.id=w.event_id WHERE e.owner_id=$1 ORDER BY w.opened_at,w.id`,
         [actor.id],
       ),
     ];
@@ -147,6 +153,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
         };
       }),
       hostedEvents: events.rows,
+      hostedCodeWindows: codeWindows.rows,
       invitationsIssued: issued.rows,
       invitationsRedeemed: redeemed.rows,
       eventAccess: access.rows,
@@ -157,6 +164,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
         "OAuth credentials and login attempts",
         "Blind identity/wallet indexes",
         "Ephemeral control challenges",
+        "Attendance code phrases and keyed indexes",
       ],
       notice:
         "This export contains private identity, wallet and event data. On-chain records cannot be erased. Approved terms do not confirm escrow or a funded seat.",

@@ -1075,6 +1075,8 @@ Focused format/lint checks pass; application code is unchanged by this repair.
 
 ## I5 private receipt retention checkpoint November 2
 
+- Published `27546a9`: [CI 41586773932](https://github.com/gueysito/show-up/actions/runs/41586773932)
+  passes both application and contract jobs, including the logout-history repair.
 - Format/lint/types and 60 unit checks pass; all 71 disposable PostgreSQL checks pass.
   Six new scenarios cover actual worker startup/clean shutdown, seven-day boundary
   equality, schema rollback/atomic erasure, preserved replay barriers and financial
@@ -1106,6 +1108,27 @@ Focused format/lint checks pass; application code is unchanged by this repair.
   presence or complete reconciliation. Those interfaces/durable integrations remain
   next, alongside existing source qualification and phone gates. No operator key,
   credential, public transaction or deployed app was used.
+
+## Host attendance code window checkpoint November 2
+
+- Format/lint/types, 66 unit and all 77 disposable PostgreSQL scenarios pass.
+  Fresh normalized phrases, encrypted storage, original-operation replay, atomic
+  rotation races, exact cutoff clipping, role/ownership/revocation, metadata-only
+  export, deletion holds and schema rollback are exercised. A controlled lock
+  reproduced an event/account inversion; account-first reads pass that regression.
+- Isolated production build and all 25 Chromium scenarios pass. The new host journey
+  covers keyboard activation, reused-code rejection, lost acknowledgment/same-operation
+  retry, refresh, ID swaps, anonymous/cross-site denial, closed request fields and
+  mobile reflow. Seven status reads reproduced an unsafe shared-counter 429; separate
+  read/write budgets pass the same regression. Final field styling is rechecked in
+  the affected browser journey; the mobile capture is inspected. Ten inputs match
+  the tested snapshot; server code/index/encryption internals are absent from client
+  bundles. React/accessibility and scoped auth/input/header/rate-limit checks pass.
+- New controls: **Host → published online event → Open fresh code window → Show
+  current code**. Browser checks used published engineering fixtures, never real
+  publication or owner data. No attendee was checked in or funded. Bounded attendee
+  attempts, staff QR, durable complete evidence, settlement-dependent purge and phone
+  checks remain incomplete; existing public signing/spending/deployment gates remain.
 
 ## Safe cleanup
 

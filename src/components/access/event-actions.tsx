@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { InvitationManager } from "./invitation-manager";
 import type { PublicationReadiness } from "../../server/events/publication";
+import { HostCodeWindowManager } from "./host-code-window";
 
 export function EventActions({
   id,
@@ -14,6 +15,7 @@ export function EventActions({
   busy,
   setBusy,
   dirty,
+  mode,
 }: {
   id: string;
   revision: number;
@@ -24,6 +26,7 @@ export function EventActions({
   busy: boolean;
   setBusy: (busy: boolean) => void;
   dirty: boolean;
+  mode: "digital" | "physical";
 }) {
   const [status, setStatus] = useState("");
   const [readiness, setReadiness] = useState<PublicationReadiness | null>(null);
@@ -126,6 +129,7 @@ export function EventActions({
           </button>
           <p role="status">{status}</p>
           <InvitationManager canIssueHost={false} eventId={id} />
+          {mode === "digital" && <HostCodeWindowManager key={id} eventId={id} />}
         </div>
       )}
     </section>
