@@ -765,6 +765,27 @@ are disposable local fixtures. No private wallet file, public-network signature,
 asset transfer, observer key configuration or funding route qualification is claimed.
 Source-to-witness assembly and actual provider/asset qualification remain P5 work.
 
+## Development authentication verification, November 2
+
+The owner verified actual Telegram sign-in, refresh, logout/re-sign-in, explicit
+Google linking and Google sign-in returning to the exact same account. Both
+providers remain linked to one account. This clears the development authentication
+setup gate; it does not establish actual-phone or production-release readiness.
+
+The exact approved ngrok origin uses a production-mode app on loopback port 3445.
+Its launcher parses the owner-only credential file as allowlisted data, preserves
+existing application keys and disables the anonymous harness. Both fixed HTTPS
+issuers use advertised `client_secret_post` authentication. Callback diagnostics
+emit only allowlisted categories, never raw errors, provider bodies or claims.
+
+Main-chat checks pass: format/lint/types, **40 unit tests**, and both real signed
+OIDC fixture tests, including signature/issuer/audience/expiry/nonce/state/PKCE
+rejection. Together the seven auth unit tests and two exchange tests provide nine
+focused auth checks. The side chat's unchanged production-build evidence is reused;
+remote CI verifies the committed inputs separately. Owner live-provider evidence
+is distinguished from the fixture exchanges. No credential file or application key
+was read, sourced, regenerated or committed during this checkpoint.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

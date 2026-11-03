@@ -53,9 +53,10 @@ worker and browser checks use the disposable resources below.
 
 ## Secure local identity setup
 
-Identity code is implemented; live Google/Telegram registration and login remain
-unverified. This starts only a local application and never creates provider accounts
-or sends messages. Use fictional test accounts until the provider gate passes.
+Owner checks verify Google/Telegram sign-in and explicit linking through the
+approved development tunnel. Separate actual-phone checks remain open. The local
+launcher below stays on loopback; the ngrok procedure has its own authorization.
+Use only approved test accounts. Application setup sends no external messages.
 
 1. Run `npm run auth:prepare`. It creates ignored `.env.auth` with mode 600,
    fresh separate encryption/index keys, a local development database and empty
@@ -67,12 +68,11 @@ or sends messages. Use fictional test accounts until the provider gate passes.
    Keep each key/value on one line. `export NAME=value` is also accepted.
    The runtime parses allowlisted keys as data, rejects malformed lines by number,
    and never executes or expands shell text. Never source the file.
-3. Follow the provider registration steps below. Register origin `https://localhost:3443` and exact callbacks
-   `https://localhost:3443/api/auth/callback/google` and
-   `https://localhost:3443/api/auth/callback/telegram` with the respective providers.
-   If a provider rejects loopback callbacks, record that restriction; hosting or
-   tunnels are not implicitly approved. Telegram uses OIDC client credentials,
-   not a bot API token. Request only `openid profile`.
+3. Follow the provider registration steps below. Google can use the local callback
+   `https://localhost:3443/api/auth/callback/google`. BotFather rejected this pilot's
+   localhost URLs; Telegram uses the separately approved exact ngrok address below.
+   Other hosting or tunnel addresses remain outside this permission. Telegram uses
+   OIDC client credentials, not a bot API token. Request only `openid profile`.
 4. Start database/migrations using the normal Compose command, then run
    `npm run dev:secure`. Open `https://localhost:3443/account`. The local launcher
    generates a disposable self-signed certificate; accept its local browser warning
@@ -101,39 +101,48 @@ keys, not wallet keys. Isolated fixtures do not prove live login or phone callba
 
 ### Provider registration, owner steps
 
-Owner confirmed November 2 that neither provider is set up. The local private
-configuration already exists on M4; do not regenerate its application keys.
+The local private configuration already exists on M4; do not regenerate its
+application keys. On November 2 the owner created the Telegram bot and confirmed
+both ngrok URLs below persist in BotFather. The owner subsequently verified both
+providers, explicit linking and return to the same account through Google or Telegram.
 
 Google, following [Google's OIDC setup](https://developers.google.com/identity/openid-connect/openid-connect):
 
-1. In Google Cloud Console, create/select a Showup development project. Configure
-   the Google Auth Platform branding and audience for your test accounts.
+1. In Google Cloud Console, create/select the Showup project. Configure Google
+   Auth Platform branding, choose External audience and add the owner's test email.
 2. In Clients, create an OAuth client of type **Web application**. Name it
-   `Showup local`. Register this exact authorized redirect URI:
-   `https://localhost:3443/api/auth/callback/google`.
-3. If an authorized JavaScript origin is requested, use `https://localhost:3443`.
+   `Showup Dev`. For the approved tunnel, register this exact redirect URI:
+   `https://liable-pleat-maritime.ngrok-free.dev/api/auth/callback/google`.
+3. Set the JavaScript origin to `https://liable-pleat-maritime.ngrok-free.dev`.
+   Leave **Use this client for an AI-powered agent** unchecked: this is human sign-in.
+   The separate local launcher can instead use the localhost origin/callback above.
    Showup uses the server code flow with `openid profile`; no other Google API
    permissions or service-account key is needed.
 4. Enter the client ID and secret in the existing private file using nano,
-   under `SHOWUP_GOOGLE_CLIENT_ID` and `SHOWUP_GOOGLE_CLIENT_SECRET`.
+   under `SHOWUP_GOOGLE_CLIENT_ID` and `SHOWUP_GOOGLE_CLIENT_SECRET`. Copy the
+   entire Client ID, including `.apps.googleusercontent.com`. The original secret
+   is shown only on creation; if the private copy is lost, generate a replacement
+   in Google Cloud rather than trying to retrieve the old value.
 
 Telegram, following [Telegram's OIDC setup](https://core.telegram.org/bots/telegram-login):
 
 1. In Telegram, open the official verified `@BotFather` yourself and create/select
    a Showup development bot. This is an owner action; the agent sends no message.
-2. Open BotFather's bot settings → **Login Widget** → **Allowed URLs**. Add
-   `https://localhost:3443` and
-   `https://localhost:3443/api/auth/callback/telegram` exactly.
+2. Open BotFather's mini app → your bot → **Login Widget**. Select **Switch to
+   OpenID Connect Login** if the legacy domain screen is still shown. Under
+   **Trusted Origins**, add `https://liable-pleat-maritime.ngrok-free.dev`.
+   Under **Redirect URIs**, add
+   `https://liable-pleat-maritime.ngrok-free.dev/api/auth/callback/telegram`.
+   Leave and reopen settings to verify they persist. Localhost was rejected;
+   do not keep retrying that address.
 3. Obtain the OIDC **Client ID** and **Client Secret** from that section. Enter them
    as `SHOWUP_TELEGRAM_CLIENT_ID` and `SHOWUP_TELEGRAM_CLIENT_SECRET` in nano.
    The bot API token is a different credential. Login requests only `openid profile`;
    phone sharing and bot-message access are separate consent, not required login.
 
-For either provider, if its console rejects the loopback URL, stop that provider's
-setup and report the nonsecret error. Telegram's public guide does not establish
-loopback acceptance. A public callback/tunnel and phone-access origin require a
-separate concrete approval and configuration review; the current app accepts
-HTTPS loopback only. Do not invent an accepted redirect or switch to HTTP.
+For a rejected provider URL, report the nonsecret error rather than inventing an
+accepted redirect or switching browser login to HTTP. A new public callback,
+tunnel hostname or hosting configuration needs separate authorization.
 
 After saving, restart `npm run dev:secure`, open
 <https://localhost:3443/account>, and use the newly enabled provider button.
@@ -142,6 +151,77 @@ sign-in again and explicit second-provider linking. Report only provider names,
 registered callback URLs and success/nonsecret error, never credential values,
 authorization URLs, callback query strings or tokens. The live gate remains open
 until these actual interactions pass.
+
+### Approved ngrok sign-in check
+
+The owner separately authorized this development tunnel and the exact hostname
+above on November 2. It makes the app reachable online while running; it is not
+an approval for general hosting, spending, funding or production identity readiness.
+ngrok is installed separately, with its authtoken in its owner-only local config.
+
+Put the Telegram client ID/secret into the existing `.env.auth` fields through
+`nano .env.auth`; storing them in a password manager alone does not configure the
+app. Never paste credentials into shell commands, screenshots or chat, and never
+source the file. Preserve the application encryption/index keys.
+
+Build the application, then keep the production-mode local server running:
+
+```sh
+npm run build
+npm run start:tunnel
+```
+
+In another terminal in this repository, start the tunnel:
+
+```sh
+npm run tunnel
+```
+
+The launcher loads the private file without executing it, requires the Telegram
+fields and development database, and uses the fixed public HTTPS origin without
+rewriting `.env.auth`. The production server listens only on `127.0.0.1:3445`;
+the anonymous harness is disabled. The existing secure development server on 3443
+is independent. ngrok forwards to this local HTTP upstream; browser requests use
+public HTTPS and secure cookies. Local traffic inspection is disabled. Do not
+rewrite the Host header: host/origin checks must see the registered domain.
+
+Open <https://liable-pleat-maritime.ngrok-free.dev/account> in one browser.
+Continue past ngrok's free-tier notice if shown. Sign in with Telegram, confirm
+the provider prompt, then verify an account reference, refresh, logout and sign-in
+again. A saved BotFather setting or HTTP 200 alone does not prove login. Do not
+share callback URLs containing query strings. If also testing Google through this
+launcher, register the same public origin and `/api/auth/callback/google` first.
+The owner created the Showup Google project/client and saved both Google fields
+privately on November 2. Both fixed issuers now use their advertised
+`client_secret_post` method over HTTPS, preserving secret bytes. The owner then
+confirmed Google approval/linking; aggregate database checks show both providers
+on one account without printing identity values. The owner also verified logout
+and Google-only sign-in returning to that exact account. While signed in through
+Telegram, choose **Verify and
+link Google** to keep the same account; after successful linking, logout and
+Google sign-in should restore that exact account reference.
+
+Telegram's approval notification alone does not prove a Showup session. On
+November 2 the owner reached `/account?auth=failed` after approval; no account or
+session was created. The app terminal now reports only allowlisted callback
+stage/error/claim names, never the original error, provider body, codes or tokens.
+This includes allowlisted OAuth errors nested in Telegram's HTTP-200 error
+responses, which the client library otherwise reports as a missing token field.
+The captured live category was `invalid_client`. Telegram now uses its advertised
+`client_secret_post` method: credentials stay in the HTTPS token request body,
+avoiding the Basic-header re-encoding observed with the saved secret. A strict
+signed fixture reproduces the old failure and passes with this method while
+retaining signature, issuer/audience, expiry, nonce, state and PKCE checks.
+After this change the owner confirmed actual Telegram sign-in, Showup's
+"Sign-in confirmed" message and the Log out control on November 2. The owner also
+verified refresh, logout and re-sign-in returning to the exact same account.
+Google linking and Google-only sign-in after logout returning to the same account
+are also confirmed. Separate actual-phone checks remain open.
+Use a fresh attempt after a fix; consumed authorization codes cannot be replayed.
+
+Ctrl+C in the ngrok terminal removes public access; Ctrl+C in the app terminal
+stops its local production server. Other tunnel domains, HTTP browser origins,
+unexpected ports/paths and development-mode use of the public origin are rejected.
 
 ## Local contract sandbox
 

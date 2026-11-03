@@ -4,7 +4,7 @@ import { createServer, type Server } from "node:http";
 import { after, before, test } from "node:test";
 import * as oidc from "openid-client";
 import { token } from "../../src/server/auth/crypto";
-import { verifyAuthorization } from "../../src/server/auth/oidc";
+import { providerClientAuthentication, verifyAuthorization } from "../../src/server/auth/oidc";
 
 const keys = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const other = generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -22,6 +22,7 @@ let issuer = "";
 let client: oidc.Configuration;
 let server: Server;
 const codes = new Set<string>();
+const clientSecret = "fixture-only-secret_with.encoding+characters";
 
 function jwt(variant: string) {
   const now = Math.floor(Date.now() / 1000);
@@ -58,6 +59,15 @@ before(async () => {
     const chunks: Buffer[] = [];
     for await (const chunk of request) chunks.push(Buffer.from(chunk));
     const body = new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
+    if (
+      request.headers.authorization ||
+      body.get("client_id") !== "fixture-client" ||
+      body.get("client_secret") !== clientSecret
+    ) {
+      // Telegram can report token errors with HTTP 200, rather than a conforming 400.
+      response.end(JSON.stringify({ error: "invalid_client" }));
+      return;
+    }
     const code = body.get("code") ?? "";
     const correctPkce =
       createHash("sha256")
@@ -93,8 +103,8 @@ before(async () => {
       id_token_signing_alg_values_supported: ["RS256"],
     },
     "fixture-client",
-    "fixture-only-secret",
-    oidc.ClientSecretBasic("fixture-only-secret"),
+    clientSecret,
+    providerClientAuthentication("telegram", clientSecret),
   );
   // Only the test's in-process fixture permits HTTP. Application issuers are fixed HTTPS.
   oidc.allowInsecureRequests(client);

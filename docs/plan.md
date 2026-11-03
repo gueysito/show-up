@@ -9,6 +9,9 @@ for these packages. Local application/contracts, disposable sandbox testing and
 project-local tooling are authorized, as are verified private feature-branch
 checkpoints. No merge, public deployment, public-network signing/deployment,
 mainnet spending, paid purchase, external messages or SSH is authorized.
+On November 2 the owner separately authorized the temporary Telegram sign-in
+tunnel at `https://liable-pleat-maritime.ngrok-free.dev` and its narrow app
+configuration change. This does not authorize other hosts or general deployment.
 
 ## Active halfway implementation goal
 
@@ -41,13 +44,21 @@ routes disabled. Rewards/claims/reporting/release in milestones 5–7 remain inc
 Credentials, approved assets/budgets, public signing/deployment and actual-phone
 checks are external gates, never inferred from offline tests.
 
+November 2 resumption: Google/Telegram setup, explicit linking and return to the
+same account are owner-verified; authentication no longer blocks implementation.
+Remaining local code and verification are estimated at 3–5 focused implementation
+days, excluding external approval/provider/device turnaround. Critical path:
+I4 wallet/fee/destination authorization → confirmed escrow/capacity and I3
+publication → I5 recovery/privacy → A1–A4 shared attendance → integrated browser/CI
+verification. Continue independent local work while public signing/funding is gated.
+
 | Active package | Status | Evidence / next dependency |
 | --- | --- | --- |
-| External preflight | In progress | Owner confirmed neither Google nor Telegram is registered; [exact setup steps](setup.md#provider-registration-owner-steps) prepared against current primary docs. Local HTTPS configuration exists with providers empty; no live auth claimed. Mainnet funds/public signing/service-budget approval and phone checks remain gates. Unrelated `.codex-attachments/` preserved. |
+| External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
 | P1–P5 | NOW; bounded custody recovery locally verified | `e9a79b6`: exact-asset source comparison, both CI jobs pass. This checkpoint retains signing histories and accepts fresh signed nonce/expiry recovery without changing the payout intent or replenishing fee reservations. Historical delivery and over-cap fee review remain recoverable. Full Rust/supply-chain/WASM checks, 29 sandbox scenarios, four independent Node replays and a clean 36-unit/build snapshot pass. No real asset/profile/route is qualified. Next: source-to-witness assembly and actual signing-provider qualification, then I4–I5 and A1–A4. Provider, asset, budget, public-signing and phone gates remain. [Recovery evidence and limits](verification.md#p5-bounded-custody-recovery-checkpoint-november-2). |
-| I1 | Code and isolated checks pass; live gate pending | `a1ea340` (private CI passed): signed OIDC fixture exchanges, encrypted identities, browser-bound callback replay, linking conflicts, revocable HTTPS sessions and initial-admin bootstrap. 10 unit, 20 integration and 13 Chromium checks pass. Actual Google/Telegram login requires owner registration/configuration; [setup](setup.md#secure-local-identity-setup). |
-| I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. Actual provider-to-host journey remains gated by I1 live setup. |
+| I1 | Development sign-in/linking verified; separate device/release gates open | `a1ea340` (private CI passed): signed OIDC fixtures, encrypted identities, replay/linking conflicts, revocable sessions and admin bootstrap. November 2 local setup follow-up: owner verified actual Google/Telegram sign-in, explicit linking and logout/re-sign-in to the same account; the external-preflight row records tests and remaining limits. No actual-phone or production release claim. [Setup](setup.md#secure-local-identity-setup). |
+| I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Private draft management verified; publication incomplete | `ac19b14` (private CI passed): own-account list/save/reopen, stale-write rejection, independent unfunded duplication and material-term lock/description-only correction. Published-state checks use an explicit engineering fixture, not funded publication. 10 unit, 29 integration and all 15 Chromium scenarios pass; [evidence](verification.md#invitation-and-private-event-checkpoint-november-2). |
 | I4–I5 | Approved; pending | Wallet, commitments, delivery/recovery and privacy remain; P2/G1 blocks real-money enrollment. |
 | A1–A4 | Approved; pending | Depends on identities, commitments and shared evidence; owner device gate remains. |

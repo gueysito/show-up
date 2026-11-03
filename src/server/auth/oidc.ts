@@ -5,6 +5,13 @@ import { issuers, type AuthConfig, type Provider } from "./config";
 import { hash, seal, token, unseal } from "./crypto";
 import { establishIdentity } from "./identities";
 import type { Session } from "./sessions";
+import { authFailureDetails, type AuthStage } from "./diagnostics";
+
+export function providerClientAuthentication(provider: Provider, secret: string) {
+  // Both fixed issuers advertise POST authentication; preserve their secret bytes over HTTPS.
+  const methods = { google: oidc.ClientSecretPost, telegram: oidc.ClientSecretPost };
+  return methods[provider](secret);
+}
 
 async function providerClient(config: AuthConfig, provider: Provider) {
   const credentials = config.clients[provider];
@@ -13,7 +20,7 @@ async function providerClient(config: AuthConfig, provider: Provider) {
     new URL(issuers[provider]),
     credentials.id,
     credentials.secret,
-    oidc.ClientSecretBasic(credentials.secret),
+    providerClientAuthentication(provider, credentials.secret),
     {
       execute: [oidc.enableNonRepudiationChecks],
       timeout: 10,
@@ -108,21 +115,33 @@ export async function finishLogin(
   await limit(pool, "login-callback:global", 100);
   const url = new URL(`/api/auth/callback/${provider}${search}`, config.origin);
   const state = url.searchParams.get("state") ?? "";
-  const attempt = await consumeAttempt(pool, provider, state, browser);
-  const checks = unseal(config.encryptionKey, `login:${hash(state)}`, attempt.encrypted_checks) as {
-    nonce: string;
-    verifier: string;
-  };
-  const identity = await verifyAuthorization(await providerClient(config, provider), url, {
-    ...checks,
-    state,
-  });
-  return establishIdentity(
-    pool,
-    config,
-    provider,
-    identity,
-    previousHash,
-    attempt.linking_session_hash ?? undefined,
-  );
+  let stage: AuthStage = "attempt";
+  try {
+    const attempt = await consumeAttempt(pool, provider, state, browser);
+    stage = "decrypt";
+    const checks = unseal(
+      config.encryptionKey,
+      `login:${hash(state)}`,
+      attempt.encrypted_checks,
+    ) as {
+      nonce: string;
+      verifier: string;
+    };
+    stage = "discovery";
+    const client = await providerClient(config, provider);
+    stage = "exchange";
+    const identity = await verifyAuthorization(client, url, { ...checks, state });
+    stage = "session";
+    return await establishIdentity(
+      pool,
+      config,
+      provider,
+      identity,
+      previousHash,
+      attempt.linking_session_hash ?? undefined,
+    );
+  } catch (error) {
+    console.error("Sign-in callback failed:", authFailureDetails(stage, error));
+    throw error;
+  }
 }

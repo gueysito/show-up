@@ -12,6 +12,8 @@
     "dev": "next dev --hostname 127.0.0.1 --port 3100",
     "auth:prepare": "node --import tsx scripts/prepare-auth.ts",
     "dev:secure": "node --import tsx scripts/dev-secure.ts",
+    "start:tunnel": "node --import tsx scripts/start-tunnel.ts",
+    "tunnel": "ngrok http http://127.0.0.1:3445 --url https://liable-pleat-maritime.ngrok-free.dev --inspect=false",
     "build": "next build && node scripts/prepare-standalone.mjs",
     "start": "node --import tsx scripts/check-config.ts && node .next/standalone/server.js",
     "format": "prettier --write .",

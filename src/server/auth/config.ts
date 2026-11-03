@@ -1,5 +1,6 @@
 export const providers = ["google", "telegram"] as const;
 export type Provider = (typeof providers)[number];
+export const approvedTunnelOrigin = "https://liable-pleat-maritime.ngrok-free.dev";
 export const issuers: Record<Provider, string> = {
   google: "https://accounts.google.com",
   telegram: "https://oauth.telegram.org",
@@ -19,14 +20,17 @@ export function authConfig(env: Record<string, string | undefined> = process.env
   }
   if (
     origin.protocol !== "https:" ||
-    !["localhost", "127.0.0.1"].includes(origin.hostname) ||
+    (!["localhost", "127.0.0.1"].includes(origin.hostname) &&
+      !(origin.origin === approvedTunnelOrigin && env.NODE_ENV === "production")) ||
     origin.username ||
     origin.password ||
     origin.pathname !== "/" ||
     origin.search ||
     origin.hash
   )
-    throw new Error("Authentication currently requires a fixed HTTPS loopback origin");
+    throw new Error(
+      "Authentication requires HTTPS loopback or the approved production-mode tunnel",
+    );
   const encryptionKey = env.SHOWUP_IDENTITY_KEY ?? "";
   const indexKey = env.SHOWUP_IDENTITY_INDEX_KEY ?? "";
   if (
