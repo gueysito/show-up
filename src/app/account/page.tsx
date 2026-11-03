@@ -58,6 +58,9 @@ export default async function AccountPage({
           <p>{`Access: ${session.roles.join(", ") || "attendee"}`}</p>
           <p>{`Linked providers: ${linked.join(", ")}`}</p>
           <p>
+            <Link href="/account/wallets">Verify and review your wallets</Link>
+          </p>
+          <p>
             Linking verifies the second identity and keeps this account. Matching emails or
             usernames never merge accounts.
           </p>

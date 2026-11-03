@@ -18,6 +18,8 @@ improvements are implemented under the active [halfway goal](docs/plan.md#active
 A local NEAR contract prototype proves token receipt, principal recovery, signed
 attendance and first-round proof boundaries in a disposable sandbox. Read-only
 provider pricing verifies actual quote signatures; app funding remains disabled.
+Separate wallet-control UI and encrypted records pass isolated tests; actual wallets,
+financial consent and confirmed enrollment remain distinct gates.
 Native synthetic NFT custody also exercises receipt, fixed-recipient retry and return.
 Start with the
 [10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).

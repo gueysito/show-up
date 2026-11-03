@@ -832,6 +832,50 @@ All signing keys/assets are disposable local fixtures. Live signing, authority/k
 removal, qualified source-to-witness integration, assets, complete fees and public
 transfer evidence remain gates. Every funding route remains disabled.
 
+## I4 wallet-control checkpoint, November 2
+
+Authenticated accounts now verify wallets separately from social identity. Five-minute
+challenges bind the HTTPS host/URI, network/chain, address, nonce, purpose and session.
+EVM uses personal-message signatures; Solana verifies raw Ed25519 messages; NEAR
+uses tagged NEP-413 Borsh/SHA-256 plus finalized full-access key membership from both
+fixed sources. No browser proof, redirect or signature creates a funded seat.
+
+Migration 005 stores challenges and own-wallet records under authenticated encryption
+and keyed indexes. Challenge consumption, profile upsert, operation receipt and audit
+are transactional. Account/session swaps, expired/revoked sessions, changed messages,
+replay and concurrent consumption fail; rate limits are account-wide. Current session
+and expiry are rechecked after NEAR reads. Responses/logs expose no private keys or
+raw social-identity mapping; HTTP errors remain generic and origin guards stay strict.
+
+Checks pass: **44 unit**, **36 PostgreSQL** and **18 Chromium scenarios**, formatting,
+lint/types and isolated production build. Database checks include rollback of the
+new tables without disturbing account/session data. The 32 contract scenarios/five
+Node replays at [a94d053](https://github.com/gueysito/show-up/actions/runs/41554462794)
+are unchanged and reused. The initial browser assertions also matched Next's route
+announcer; scoping them to the wallet panel fixed the test without a product workaround.
+
+Actual browser controls exercise disposable Base/Ethereum/Solana signatures,
+durable refresh, keyboard focus, 390px layout, account isolation and lost-acknowledgement
+recovery with exactly one signature. An Auckland browser timezone separately checks
+stable UTC rendering. NEAR return parameters are removed from browser history; a
+mismatched return fails, and its outbound URL is inspected behind a network intercept.
+No external wallet was contacted. The final mobile screenshot is retained in the
+approved ignored evidence directory. Production static bundles contain none of the
+checked identity-key, private-file or server-crypto markers.
+
+The public [NEP-413 example](https://github.com/near/NEPs/blob/master/neps/nep-0413.md)
+was independently serialized with Rust Borsh 1.8.1/SHA-256, producing
+`c9ce5de288f7de6d83e2303e56c7615949da83867ea33c0747ed45c47ef50148`.
+Pinned Node 24.22.2 separately rejects the tested public weak-key counterexample.
+The [MyNearWallet adapter](https://github.com/near/wallet-selector/blob/b532bcd7bacbe3027f7392b3ac8eb002ddacc19d/packages/my-near-wallet/src/lib/mnw-connect.ts)
+supplies the reviewed public URL/parameter interface; no wallet SDK was installed.
+
+All keys/signatures used by agent tests are disposable fixtures generated in memory.
+The existing auth app and credential file were untouched. Actual wallet extensions,
+MyNearWallet signing/return, live NEAR account membership and phones remain unverified.
+This completes the wallet-control subset of I4; financial consent, capacity, escrow,
+I5 and attendance remain incomplete. No route or full halfway completion is claimed.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

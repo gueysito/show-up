@@ -223,6 +223,36 @@ Ctrl+C in the ngrok terminal removes public access; Ctrl+C in the app terminal
 stops its local production server. Other tunnel domains, HTTP browser origins,
 unexpected ports/paths and development-mode use of the public origin are rejected.
 
+## Wallet-control verification
+
+Apply the normal application migrations, including `005-wallet-control.sql`, before
+starting a rebuilt app. A private branch push does not update an already running
+server. Existing application encryption/index keys must remain unchanged.
+
+After social sign-in, choose **Verify and review your wallets**:
+
+- Base/Ethereum: use a compatible EIP-1193 wallet with personal message signing,
+  select the matching mainnet and review the host, address, chain, nonce and expiry.
+  Contract wallets are not verified in this pilot.
+- Solana: use a compatible injected wallet such as Phantom and sign the displayed
+  message. Private keys remain in the wallet.
+- NEAR: enter the mainnet account, continue to MyNearWallet, then choose **Finish
+  NEAR wallet verification** on return. The pilot supports NEP-413 Ed25519 full-access
+  keys; current finalized membership must agree at both fixed RPC sources. A
+  function-call key does not establish control.
+
+Success adds the wallet to **Saved wallets**. Refresh and sign-in restoration read
+the durable own-account records. After a lost acknowledgement, **Retry saving this
+proof** resubmits the original operation/signature; **Refresh saved wallets** checks
+what actually persisted. A new challenge expires after five minutes. Changing the
+account/session, host, chain, address, nonce or signed message cannot reuse it.
+
+This proves wallet control only. Funding still requires separate event/rules,
+destination/fee authorization and actual attributable escrow; these routes remain
+disabled. Agent browser evidence uses disposable in-memory wallets and test accounts.
+The NEAR redirect was inspected without contacting MyNearWallet; actual wallet
+approval/return, live NEAR membership and phone behavior remain owner/provider gates.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet

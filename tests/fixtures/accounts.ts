@@ -49,6 +49,8 @@ export async function accountFixtures(roles: string[][]) {
     await pool.query("DELETE FROM app_event_access WHERE account_id=ANY($1::uuid[])", [ids]);
     await pool.query("DELETE FROM app_invitations WHERE issuer_id=ANY($1::uuid[])", [ids]);
     await pool.query("DELETE FROM app_events WHERE owner_id=ANY($1::uuid[])", [ids]);
+    await pool.query("DELETE FROM app_wallet_challenges WHERE account_id=ANY($1::uuid[])", [ids]);
+    await pool.query("DELETE FROM app_wallets WHERE account_id=ANY($1::uuid[])", [ids]);
     for (const table of [
       "app_mutations",
       "app_audit",
