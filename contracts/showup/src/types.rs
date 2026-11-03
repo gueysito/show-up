@@ -139,6 +139,43 @@ pub struct CustodyProofPolicy {
     pub beneficiary: String,
     pub contributor: String,
     pub fee_cap: U128,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signer: Option<CustodySignerPolicy>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct CustodySignerPolicy {
+    pub provider: AccountId,
+    pub domain_id: u64,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct CustodyKeyBinding {
+    pub provider: AccountId,
+    pub domain_id: u64,
+    pub path: String,
+    pub attempt: u8,
+    pub state: String,
+    pub public_key: Option<String>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct CustodySigningRequest {
+    pub event: String,
+    pub image_hash: String,
+    pub provider: AccountId,
+    pub domain_id: u64,
+    pub path: String,
+    pub scheme: String,
+    pub payload: Base64VecU8,
+    pub public_key: String,
+    pub state: String,
+    pub signature: Option<Base64VecU8>,
+    pub signed_transaction: Option<Base64VecU8>,
+    pub transaction: Option<String>,
 }
 
 #[near(serializers = [borsh, json])]

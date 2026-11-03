@@ -146,6 +146,7 @@ impl Escrow {
                 .iter()
                 .find(|image| receipt.image_hash.as_ref() == Some(&custody::image_hash(image)))
                 .expect("Unknown signing image");
+            self.require_custody_transaction(&receipt.event, image, &receipt.transaction);
             require!(
                 receipt.operation == intent.operation
                     && receipt.owner == intent.recipient

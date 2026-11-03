@@ -104,6 +104,7 @@ impl Escrow {
         );
         match receipt.reason.as_str() {
             "solana_expired" => {
+                self.require_custody_transaction(&receipt.event, previous, &receipt.transaction);
                 require!(
                     receipt.blockhash_valid == Some(false)
                         && receipt.signature_status_absent
@@ -253,6 +254,7 @@ impl Escrow {
             .find(|image| custody::image_hash(image) == *hash)
             .expect("Unknown failed signing image")
             .clone();
+        self.require_custody_transaction(&receipt.event, &image, &receipt.transaction);
         observer::hash(
             &receipt.network,
             receipt

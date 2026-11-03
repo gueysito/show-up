@@ -238,15 +238,9 @@ impl Escrow {
     ) -> CustodyImage {
         let intent = self.custody_intents.get(event).unwrap();
         let envelope_hash = digest(&canonical::bytes(envelope));
-        let descriptor = json!({"deployment":intent.deployment,"environment":intent.environment,"network":intent.network,
-            "event":intent.event,"collection":intent.collection,"asset":intent.asset});
         CustodyImage {
             intent_hash: digest(&canonical::bytes(intent)),
-            path: format!(
-                "showup.v1/engineering/{}/{}",
-                intent.network,
-                digest(&canonical::bytes(&descriptor))
-            ),
+            path: self.custody_path(event),
             scheme: parts.scheme.into(),
             unsigned: Base64VecU8(parts.unsigned),
             payload: Base64VecU8(parts.payload),
@@ -256,6 +250,24 @@ impl Escrow {
             execution: parts.execution,
             recovery_witness: None,
         }
+    }
+
+    pub(crate) fn custody_path(&self, event: &String) -> String {
+        let policy = self
+            .events
+            .get(event)
+            .unwrap()
+            .terms
+            .custody_proof_policy
+            .as_ref()
+            .unwrap();
+        let descriptor = json!({"deployment":env::current_account_id(),"environment":"engineering","network":policy.network,
+            "event":event,"collection":policy.collection,"asset":policy.asset});
+        format!(
+            "showup.v1/engineering/{}/{}",
+            policy.network,
+            digest(&canonical::bytes(&descriptor))
+        )
     }
 
     fn remember_image(&mut self, event: String, image: CustodyImage) -> CustodyImage {
@@ -274,6 +286,13 @@ impl Escrow {
 }
 
 pub(crate) fn validate_policy(policy: &CustodyProofPolicy) {
+    if let Some(signer) = &policy.signer {
+        require!(
+            signer.provider != env::current_account_id()
+                && signer.domain_id == if policy.network == "solana" { 1 } else { 0 },
+            "Wrong custody signing provider/domain"
+        );
+    }
     require!(
         policy.fee_cap.0 > 0
             && policy.beneficiary != policy.contributor
@@ -361,6 +380,36 @@ fn digest(bytes: &[u8]) -> String {
 
 pub(crate) fn image_hash(image: &CustodyImage) -> String {
     digest(&image.unsigned.0)
+}
+
+// Input is a contract-built image and an already verified low-s signature.
+// Preserve all nine unsigned fields and append only yParity, r and s.
+pub(crate) fn signed_evm_image(image: &CustodyImage, signature: &[u8]) -> Vec<u8> {
+    let unsigned = &image.unsigned.0;
+    require!(
+        unsigned[0] == 2 && signature.len() == 65,
+        "Signed EVM image context"
+    );
+    let prefix = unsigned[1];
+    require!(prefix >= 0xc0, "Typed EVM list missing");
+    let offset = if prefix <= 0xf7 {
+        2
+    } else {
+        2 + usize::from(prefix - 0xf7)
+    };
+    let mut body = unsigned[offset..].to_vec();
+    body.extend(rlp_int(u128::from(signature[64])));
+    for scalar in [&signature[..32], &signature[32..64]] {
+        let first = scalar
+            .iter()
+            .position(|byte| *byte != 0)
+            .unwrap_or(scalar.len());
+        body.extend(rlp_bytes(&scalar[first..]));
+    }
+    let mut wire = vec![2];
+    wire.extend(rlp_prefix(body.len(), 0xc0));
+    wire.extend(body);
+    wire
 }
 
 pub(crate) fn record_hash<T: near_sdk::serde::Serialize>(value: &T) -> String {

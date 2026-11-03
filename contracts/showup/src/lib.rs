@@ -8,6 +8,7 @@ mod funding;
 mod nft;
 mod observer;
 mod recovery;
+mod signing;
 mod types;
 
 use near_sdk::json_types::{Base64VecU8, U128};
@@ -33,6 +34,8 @@ pub struct Escrow {
     custody_intents: LookupMap<String, CustodyIntent>,
     custody_images: LookupMap<String, CustodyImage>,
     custody_history: LookupMap<String, Vec<CustodyImage>>,
+    custody_keys: LookupMap<String, CustodyKeyBinding>,
+    custody_requests: LookupMap<String, CustodySigningRequest>,
     native_prizes: LookupMap<String, NativePrize>,
     observations: LookupMap<String, ObservationState>,
     received: u128,
@@ -77,6 +80,8 @@ impl Escrow {
             custody_intents: LookupMap::new(&b"ci"[..]),
             custody_images: LookupMap::new(&b"cs"[..]),
             custody_history: LookupMap::new(&b"ch"[..]),
+            custody_keys: LookupMap::new(&b"ck"[..]),
+            custody_requests: LookupMap::new(&b"cr"[..]),
             native_prizes: LookupMap::new(b"q"),
             observations: LookupMap::new(b"o"),
             received: 0,
@@ -197,7 +202,15 @@ impl Escrow {
                 "Native NFT escrow receipt missing"
             );
         }
-        if item.terms.custody_proof_policy.is_some() {
+        if let Some(policy) = &item.terms.custody_proof_policy {
+            if policy.signer.is_some() {
+                require!(
+                    self.custody_keys
+                        .get(&event)
+                        .is_some_and(|key| key.state == "verified"),
+                    "Derived custody key not bound to the frozen source"
+                );
+            }
             require!(
                 self.observations
                     .get(&event)

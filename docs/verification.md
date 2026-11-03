@@ -786,6 +786,52 @@ remote CI verifies the committed inputs separately. Owner live-provider evidence
 is distinguished from the fixture exchanges. No credential file or application key
 was read, sourced, regenerated or committed during this checkpoint.
 
+## Local custody signing interface checkpoint, November 2
+
+The contract now requests signatures only for its retained typed image, fixed path
+and frozen signing provider/domain. A direct key-derivation callback must match
+the frozen custody address before publication when this policy is used. It verifies
+ECDSA/Ed25519 responses, retains the exact signed wire image/transaction ID and binds
+later delivery/failure/expiry observations to that original transaction. The caller
+cannot submit a path, beneficiary or opaque signing hash.
+
+One provider request is permitted per image, including after uncertain, failed,
+malformed or oversized callbacks. Permissionless reconciliation verifies the
+original signature without another provider call. Private callbacks require one
+promise result; concurrent callers cannot send a second request. Image history,
+irreversible intent and non-replenishing fee reservations remain enforced.
+
+The interface is pinned to [near/mpc revision 0b098d0](https://github.com/near/mpc/tree/0b098d0e9951f658c3c9402480d23c09ca31620e),
+including source hashes and explicit unqualified flags in
+[the interface manifest](../manifests/signing-interface.v1.json). The SDK's existing
+`unstable` feature exposes the NEAR `ecrecover` host function; no dependency version
+was added or upgraded. Two already locked crypto dependencies are now explicit
+test dependencies. All 380 registry versions pass the unchanged advisory/age policy.
+
+Full contract checks pass: formatting, Rust lint, WASM, **32 sandbox scenarios**
+and **five independent Node replays**. Three new sandbox tests each cover Base,
+Ethereum and Solana, including wrong keys/context, races, public callback attempts,
+oversized/malformed/failed replies, altered signatures and unrelated transaction IDs.
+Native Node independently reconstructs the actual accepted wire transactions and
+verifies signatures using Ethers and Node crypto. A clean scoped snapshot passes
+36 unit tests/checks and production build; the combined auth worktree passes all
+40 unit tests/checks. The running auth app and private credentials were untouched.
+
+Read-only public testnet queries on November 2 compared
+`public_key` and `derived_public_key` for domains 0/1 through NEAR public and FastNEAR
+sources. Both returned matching public-key fingerprints and provider code hash
+`CpGX8ywXJwvWPgZFDDCTCuPJBHF7BATT51gSfc3APERJ`. The probe used an explicitly
+fictional predecessor and requested no signature, deployment or transfer. This
+does not establish correspondence between the deployed code and the source pin,
+actual Showup MPC derivation, provider availability, independent upstreams or fees.
+
+SHA-256: escrow WASM `8fc16d71e71ab898bef1fe8dc4079b3f8467d6a650a66a71561696a0834650b4`;
+test-token/mock WASM `4949b5cc3eb440a68997ea551fa2042a40d150287c5fa55c68453c7ab0006125`;
+Cargo lock `01b6a0812b4e557e7792c6fe045c081575c1cf71b263788949b2a7e2b1682dab`.
+All signing keys/assets are disposable local fixtures. Live signing, authority/key
+removal, qualified source-to-witness integration, assets, complete fees and public
+transfer evidence remain gates. Every funding route remains disabled.
+
 ## Safe cleanup
 
 To remove project containers/network while **keeping stored development drafts**:

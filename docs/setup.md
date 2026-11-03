@@ -237,8 +237,9 @@ Preparation builds the digest-pinned Rust 1.93 container, verifies the nearcore
 2.13.4 archive/binary checksums in the engineering manifest and fetches locked
 Cargo sources. The check reviews registry/checksum/release-age/OSV metadata before
 running Rust formatting, warning-free Clippy, WASM build and actual sandbox tests,
-then independently replaying the accepted public draw proof and the typed EVM/Solana
-custody construction. The latter uses the frozen Ethers dependency. Run
+then independently replaying the draw proof, typed custody images, signed observer
+and recovery witnesses, and the signing ABI traces/transactions. EVM reconstruction
+uses the frozen Ethers dependency. Run
 `npm ci --ignore-scripts` first on a clean clone as described above.
 Public metadata requests have bounded bodies/retries and a three-minute review
 deadline. Metadata cache freshness is limited to six hours; advisories are queried
@@ -266,6 +267,13 @@ same-request recovery/timeout; they do not execute OutLayer or allocate draw ass
 Typed-custody tests prescribe a fixture beneficiary, lock an exclusive intent and
 compare constructed bytes independently; they do not request MPC signatures or
 prove actual NFT ownership/delivery.
+The signing adapter additionally exercises a disposable local provider with the
+pinned current `payload_v2` interface. It binds the returned public key to the
+frozen custody address/path, verifies ECDSA/Ed25519 signatures, retains exact signed
+transactions and permits one provider request per image. A failed/oversized reply
+requires reconciliation of that original signature; it cannot authorize a new
+request. No broadcaster or live route is enabled. The mock proves this boundary,
+not actual MPC root derivation, live service behavior or deployed code authority.
 Native custody tests additionally transfer a synthetic NFT, require its receipt
 before publication and verify immutable retry/return ownership. Draft cancellation
 and hard-grace recovery return prototype holdings. Rules commitments are recomputed

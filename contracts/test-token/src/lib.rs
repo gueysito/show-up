@@ -1,5 +1,6 @@
 //! Test-only NEP-141/NEP-171 transfer/callback harness. Never a production asset.
 mod nft;
+mod signer;
 use near_sdk::json_types::U128;
 use near_sdk::{
     AccountId, Gas, NearToken, PanicOnDefault, Promise, PromiseOrValue, env, ext_contract, near,
@@ -30,6 +31,9 @@ pub struct TestToken {
     reply_size: u32,
     nft_owners: LookupMap<String, AccountId>,
     fail_nft: bool,
+    signer_configuration: Option<String>,
+    signer_trace: Option<String>,
+    signer_calls: u32,
 }
 
 #[near]
@@ -42,6 +46,9 @@ impl TestToken {
             reply_size: 0,
             nft_owners: LookupMap::new(b"n"),
             fail_nft: false,
+            signer_configuration: None,
+            signer_trace: None,
+            signer_calls: 0,
         }
     }
 
