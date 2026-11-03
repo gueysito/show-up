@@ -16,6 +16,7 @@ import {
   type SettlementContext,
 } from "../server/protocol/settlement-state";
 import type { SandboxAttendanceObservation } from "../server/attendance/admission";
+import { attendanceSchedule } from "../server/attendance/evidence";
 import {
   contractAuthorization,
   contractReference,
@@ -28,9 +29,18 @@ export type SandboxPrincipalGateway = {
   read: (signal: AbortSignal) => Promise<SandboxAttendanceObservation>;
   // No recipient, amount, asset or arbitrary contract method is accepted.
   submit: (liabilityId: string, signal: AbortSignal) => Promise<void>;
+  // Optional explicit sandbox capability. The contract's fixed deadline and
+  // event state decide the outcome; no host outage claim or arbitrary abort.
+  failNeutral?: (event: string, signal: AbortSignal) => Promise<void>;
 };
 type Keys = Pick<AuthConfig, "encryptionKey" | "origin">;
 type Facts = ReturnType<typeof validateSettlementState>;
+type NeutralRequest = {
+  contextHash: string;
+  method: "fail_neutral";
+  event: string;
+  notBeforeMs: number;
+};
 class SourceConflict extends Error {}
 function summary(row: Record<string, unknown>) {
   return {
@@ -123,6 +133,25 @@ export async function runSandboxPrincipalRecovery(
     },
     requestHash = canonicalHash(request),
     claimToken = randomUUID();
+  function neutralMaterial(row: Record<string, unknown>) {
+    if (!row.encrypted_neutral_request) return null;
+    const value = unseal(
+      config.encryptionKey,
+      `principal-neutral:${consentId}`,
+      row.encrypted_neutral_request as string,
+    ) as NeutralRequest;
+    if (
+      Object.keys(value).sort().join() !== "contextHash,event,method,notBeforeMs" ||
+      canonicalHash(value) !== row.neutral_hash ||
+      value.contextHash !== contextHash ||
+      value.event !== context.event ||
+      value.method !== "fail_neutral" ||
+      !Number.isSafeInteger(value.notBeforeMs) ||
+      value.notBeforeMs < 0
+    )
+      throw new SourceConflict("Stored fail-neutral request binding differs");
+    return value;
+  }
   function observation(row: Record<string, unknown>) {
     const value = workerSourceObservation(config, "principal", consentId, row);
     if (!value) return null;
@@ -158,6 +187,7 @@ export async function runSandboxPrincipalRecovery(
     );
     if (row.request_hash !== requestHash || canonicalHash(stored) !== requestHash)
       throw new AppFailure(409, "The original principal recovery request cannot be replaced.");
+    neutralMaterial(row);
     if (row.state === "observed" && observation(row)?.principal?.remaining !== "0")
       throw new SourceConflict("Completed principal recovery lacks observed payment");
     if (["observed", "conflict"].includes(row.state)) return { row, claimed: false };
@@ -179,6 +209,7 @@ export async function runSandboxPrincipalRecovery(
   if (!claimed.claimed) return summary(claimed.row);
   let submitted = false;
   let previous = observation(claimed.row);
+  let failNeutralAt = 0;
   async function finish(state: string, error: string | null, facts?: Facts) {
     return transaction(pool, async (client) => {
       await client.query(
@@ -212,6 +243,13 @@ export async function runSandboxPrincipalRecovery(
     try {
       if (settlementContextHash(source.context) !== contextHash) throw new SourceConflict();
       facts = validateSettlementState(context, source.views, source.block);
+      const terms = record(record(source.views.event).terms);
+      failNeutralAt = attendanceSchedule(
+        Number(terms.start_ms),
+        Number(terms.end_ms),
+      ).failNeutralAt;
+      const neutral = neutralMaterial(claimed.row);
+      if (neutral && neutral.notBeforeMs !== failNeutralAt) throw new SourceConflict();
     } catch {
       throw new SourceConflict("Principal source facts or context differ");
     }
@@ -235,19 +273,66 @@ export async function runSandboxPrincipalRecovery(
       return "broadcast_unknown";
     return null;
   }
+  async function recoverAfterDeadline(facts: Facts) {
+    if (
+      !gateway.failNeutral ||
+      !["draft", "published"].includes(facts.eventState) ||
+      facts.block.timestampMs < failNeutralAt
+    )
+      return finish("awaiting_liability", null, facts);
+    const neutral: NeutralRequest = {
+      contextHash,
+      method: "fail_neutral",
+      event: context.event,
+      notBeforeMs: failNeutralAt,
+    };
+    const stored = neutralMaterial(claimed.row);
+    if (stored && canonicalJson(stored) !== canonicalJson(neutral))
+      throw new SourceConflict("Fail-neutral request cannot be replaced");
+    const ready = await pool.query(
+      `UPDATE app_principal_recoveries SET state='broadcast_unknown',last_effect='fail_neutral',neutral_hash=$3,
+       encrypted_neutral_request=COALESCE(encrypted_neutral_request,$4),updated_at=clock_timestamp()
+       WHERE consent_id=$1 AND claim_token=$2`,
+      [
+        consentId,
+        claimToken,
+        canonicalHash(neutral),
+        seal(config.encryptionKey, `principal-neutral:${consentId}`, neutral),
+      ],
+    );
+    if (!ready.rowCount) return finish("unavailable", "source_unavailable");
+    submitted = true;
+    await bounded((signal) => gateway.failNeutral!(context.event, signal));
+    const next = await read();
+    // Observe abort first. A later claim withdraws the fixed principal liability;
+    // this invocation cannot combine an uncertain abort with another transfer.
+    return finish(
+      next.principal
+        ? next.principal.remaining === "0"
+          ? "observed"
+          : "pending"
+        : ["draft", "published"].includes(next.eventState)
+          ? "broadcast_unknown"
+          : "awaiting_liability",
+      ["draft", "published"].includes(next.eventState) ? "submission_unknown" : null,
+      next,
+    );
+  }
   try {
     let facts = await read();
     let state = outcome(facts);
+    if (state === "awaiting_liability") return await recoverAfterDeadline(facts);
     if (state)
       return finish(state, state === "broadcast_unknown" ? "submission_unknown" : null, facts);
     facts = await read();
     state = outcome(facts);
+    if (state === "awaiting_liability") return await recoverAfterDeadline(facts);
     if (state)
       return finish(state, state === "broadcast_unknown" ? "submission_unknown" : null, facts);
     const attempt = BigInt(facts.principal!.attempts) + 1n;
     if (attempt > 18446744073709551615n) return finish("conflict", "attempt_limit", facts);
     const ready = await pool.query(
-      `UPDATE app_principal_recoveries SET state='broadcast_unknown',submitted_attempt=$3,
+      `UPDATE app_principal_recoveries SET state='broadcast_unknown',last_effect='withdraw',submitted_attempt=$3,
       observed_height=$4,observed_hash=$5,encrypted_observation=$6,updated_at=clock_timestamp()
       WHERE consent_id=$1 AND claim_token=$2`,
       [

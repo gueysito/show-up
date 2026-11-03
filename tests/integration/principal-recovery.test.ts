@@ -466,6 +466,7 @@ test("restricted deletion recovery honors original principal obligations and exp
     assert.deepEqual(Object.keys(owned.principalRecoveries[0]).sort(), [
       "attempts",
       "consent_id",
+      "last_effect",
       "last_error",
       "observed_hash",
       "observed_height",
@@ -542,6 +543,269 @@ test("principal source watermarks survive a failed source process before any wit
     );
     assert.equal((await f.row()).observed_height, "103");
     assert.equal(f.counts().submissions, 0);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("fail-neutral waits for the exact verified deadline and never acts on a host claim or local clock", async () => {
+  const f = await fixture();
+  try {
+    const terms = (f.source().views.event as { terms: { end_ms: number } }).terms;
+    const deadline = terms.end_ms + 2100000;
+    f.source().block = {
+      height: "101",
+      hash: encodeBase58(Buffer.alloc(32, 16)),
+      timestampMs: deadline - 1,
+    };
+    let aborts = 0;
+    const gateway = {
+      ...f.gateway,
+      failNeutral: async (event: string) => {
+        assert.equal(event, f.gateway.context.event);
+        aborts++;
+        f.owe();
+      },
+    };
+    assert.equal((await f.run(gateway)).status, "awaiting_liability");
+    assert.equal(aborts, 0);
+    assert.equal((await f.row()).encrypted_neutral_request, null);
+    f.source().block = {
+      height: "102",
+      hash: encodeBase58(Buffer.alloc(32, 17)),
+      timestampMs: deadline,
+    };
+    assert.equal((await f.run(gateway)).status, "pending");
+    assert.equal(aborts, 1);
+    assert.equal(f.counts().submissions, 0);
+    const row = await f.row();
+    assert.equal(row.last_effect, "fail_neutral");
+    const image = unseal(
+      f.config.encryptionKey,
+      `principal-neutral:${f.consent.id}`,
+      row.encrypted_neutral_request,
+    ) as { method: string; event: string; notBeforeMs: number };
+    assert.equal(image.method, "fail_neutral");
+    assert.equal(image.event, f.gateway.context.event);
+    assert.equal(image.notBeforeMs, deadline);
+    assert.equal((await f.run(gateway)).status, "observed");
+    assert.equal(aborts, 1);
+    assert.equal(f.counts().submissions, 1);
+    assert.equal((await f.row()).encrypted_neutral_request, row.encrypted_neutral_request);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("an explicit fail-neutral capability is required and a successful abort RPC without a state effect stays unknown", async () => {
+  const f = await fixture();
+  try {
+    const deadline =
+      (f.source().views.event as { terms: { end_ms: number } }).terms.end_ms + 2100000;
+    f.source().block = {
+      height: "101",
+      hash: encodeBase58(Buffer.alloc(32, 16)),
+      timestampMs: deadline,
+    };
+    assert.equal((await f.run()).status, "awaiting_liability");
+    let aborts = 0;
+    const gateway = {
+      ...f.gateway,
+      failNeutral: async () => {
+        aborts++;
+      },
+    };
+    assert.equal((await f.run(gateway)).status, "broadcast_unknown");
+    const before = await f.row();
+    assert(before.encrypted_neutral_request);
+    assert.equal((await f.run(gateway)).status, "broadcast_unknown");
+    assert.equal((await f.row()).encrypted_neutral_request, before.encrypted_neutral_request);
+    assert.equal(aborts, 2);
+    assert.equal(f.counts().submissions, 0);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("an unknown abort acknowledgement recovers actual refund debt without repeating abort or combining transfers", async () => {
+  const f = await fixture();
+  try {
+    const deadline =
+      (f.source().views.event as { terms: { end_ms: number } }).terms.end_ms + 2100000;
+    f.source().block = {
+      height: "101",
+      hash: encodeBase58(Buffer.alloc(32, 16)),
+      timestampMs: deadline,
+    };
+    let aborts = 0;
+    assert.equal(
+      (
+        await f.run({
+          ...f.gateway,
+          failNeutral: async () => {
+            aborts++;
+            f.owe();
+            throw new Error("Lost abort acknowledgement");
+          },
+        })
+      ).status,
+      "broadcast_unknown",
+    );
+    const before = await f.row();
+    assert.equal(f.counts().submissions, 0);
+    assert.equal(
+      (
+        await f.run({
+          ...f.gateway,
+          failNeutral: async () => {
+            throw new Error("No repeat abort");
+          },
+        })
+      ).status,
+      "observed",
+    );
+    assert.equal(aborts, 1);
+    assert.equal(f.counts().submissions, 1);
+    const after = await f.row();
+    assert.equal(after.encrypted_neutral_request, before.encrypted_neutral_request);
+    assert.equal(after.encrypted_request, before.encrypted_request);
+    assert.equal(after.last_effect, "withdraw");
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("already resolved source state cannot be replaced by a fail-neutral request", async () => {
+  const f = await fixture();
+  try {
+    f.owe();
+    let aborts = 0;
+    assert.equal(
+      (
+        await f.run({
+          ...f.gateway,
+          failNeutral: async () => {
+            aborts++;
+          },
+        })
+      ).status,
+      "observed",
+    );
+    assert.equal(aborts, 0);
+    assert.equal((await f.row()).encrypted_neutral_request, null);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("fail-neutral migration preserves prior withdrawal attribution and rolls back incomplete abort images", async () => {
+  const f = await fixture(),
+    client = await f.pool.connect(),
+    schema = `neutral_rollback_${randomUUID().replaceAll("-", "")}`;
+  try {
+    await client.query("BEGIN");
+    await client.query(`CREATE SCHEMA ${schema}`);
+    await client.query(`SET LOCAL search_path TO ${schema},public`);
+    await client.query("CREATE TABLE app_commitment_consents(id uuid PRIMARY KEY)");
+    await client.query(await readFile("migrations/021-principal-recovery.sql", "utf8"));
+    await client.query("INSERT INTO app_commitment_consents VALUES($1)", [f.consent.id]);
+    await client.query(
+      "INSERT INTO app_principal_recoveries(consent_id,request_hash,encrypted_request,submitted_attempt) VALUES($1,$2,'opaque',1)",
+      [f.consent.id, "a".repeat(64)],
+    );
+    await client.query(await readFile("migrations/022-principal-fail-neutral.sql", "utf8"));
+    assert.equal(
+      (await client.query("SELECT last_effect FROM app_principal_recoveries")).rows[0].last_effect,
+      "withdraw",
+    );
+    await client.query("SAVEPOINT invalid");
+    await assert.rejects(
+      client.query("UPDATE app_principal_recoveries SET neutral_hash=$1", ["b".repeat(64)]),
+      (error) => (error as { code: string }).code === "23514",
+    );
+    await client.query("ROLLBACK TO SAVEPOINT invalid");
+    await client.query("ROLLBACK");
+    assert.equal(
+      (await client.query("SELECT to_regnamespace($1) AS schema", [schema])).rows[0].schema,
+      null,
+    );
+  } finally {
+    await client.query("ROLLBACK");
+    client.release();
+    await f.cleanup();
+  }
+});
+
+test("killed abort and withdrawal processes recover in separate claims with both original request images intact", async () => {
+  const f = await fixture();
+  try {
+    const deadline =
+      (f.source().views.event as { terms: { end_ms: number } }).terms.end_ms + 2100000;
+    f.source().block = {
+      height: "101",
+      hash: encodeBase58(Buffer.alloc(32, 16)),
+      timestampMs: deadline,
+    };
+    let aborts = 0;
+    const gateway = {
+      ...f.gateway,
+      failNeutral: async (event: string) => {
+        assert.equal(event, f.gateway.context.event);
+        aborts++;
+        f.owe();
+      },
+    };
+    assert.equal((await principalProcess(f.config, f.consent.id, gateway, true)).killed, true);
+    const before = await f.row();
+    assert.equal(before.last_effect, "fail_neutral");
+    assert(before.encrypted_neutral_request);
+    await f.pool.query(
+      "UPDATE app_principal_recoveries SET claim_until=clock_timestamp()-interval '1 second' WHERE consent_id=$1",
+      [f.consent.id],
+    );
+    assert.equal(
+      (
+        await principalProcess(
+          f.config,
+          f.consent.id,
+          {
+            ...f.gateway,
+            failNeutral: async () => {
+              throw new Error("No repeated abort");
+            },
+          },
+          true,
+        )
+      ).killed,
+      true,
+    );
+    const paid = await f.row();
+    assert.equal(paid.last_effect, "withdraw");
+    await f.pool.query(
+      "UPDATE app_principal_recoveries SET claim_until=clock_timestamp()-interval '1 second' WHERE consent_id=$1",
+      [f.consent.id],
+    );
+    assert.equal(
+      (
+        await principalProcess(f.config, f.consent.id, {
+          ...f.gateway,
+          failNeutral: async () => {
+            throw new Error("No repeated abort");
+          },
+          submit: async () => {
+            throw new Error("No repeated withdrawal");
+          },
+        })
+      ).status,
+      "observed",
+    );
+    const after = await f.row();
+    assert.equal(after.attempts, 3);
+    assert.equal(aborts, 1);
+    assert.equal(f.counts().submissions, 1);
+    assert.equal(after.encrypted_neutral_request, before.encrypted_neutral_request);
+    assert.equal(after.encrypted_request, before.encrypted_request);
+    assert.equal(after.neutral_hash, before.neutral_hash);
   } finally {
     await f.cleanup();
   }

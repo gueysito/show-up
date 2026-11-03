@@ -22,6 +22,7 @@ type Start = {
   kind: "start";
   jobId: string;
   jobKind: "attendance" | "closing" | "principal";
+  failNeutral: boolean;
   config: Pick<AuthConfig, "encryptionKey" | "origin">;
   context: SandboxAttendanceGateway["context"];
   evidencePublicKey: string;
@@ -29,7 +30,11 @@ type Start = {
 let sequence = 0,
   started = false;
 const pending = new Map<number, { resolve: (value: unknown) => void; reject: () => void }>();
-function rpc(method: "read" | "sign" | "submit", params: unknown[], signal: AbortSignal) {
+function rpc(
+  method: "read" | "sign" | "submit" | "failNeutral",
+  params: unknown[],
+  signal: AbortSignal,
+) {
   return new Promise<unknown>((resolve, reject) => {
     const id = ++sequence;
     const cancel = () => {
@@ -97,6 +102,13 @@ process.on("message", async (message: unknown) => {
       const gateway: SandboxPrincipalGateway = {
         context: common.context,
         read: common.read,
+        ...(input.failNeutral
+          ? {
+              failNeutral: async (event: string, signal: AbortSignal) => {
+                await rpc("failNeutral", [event], signal);
+              },
+            }
+          : {}),
         submit: async (id, signal) => {
           await rpc("submit", [id], signal);
         },

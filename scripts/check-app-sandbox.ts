@@ -1,3 +1,4 @@
+import { AppFailure } from "../src/server/http/security";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -112,6 +113,7 @@ type Published = {
 };
 const results: {
   mode: string;
+  scenario: "attended" | "outage";
   attendance: string;
   principalPaid: string;
   liveSubmissionAllowed: false;
@@ -121,14 +123,22 @@ const results: {
     submissions: number;
     originalRequestPreserved: true;
   };
-  closingRecovery: {
+  neutralRecovery?: {
+    signal: "SIGKILL";
+    attempts: number;
+    abortSubmissions: number;
+    principalSubmissions: number;
+    originalRequestPreserved: true;
+    neutralRequestPreserved: true;
+  };
+  closingRecovery?: {
     signal: "SIGKILL";
     attempts: number;
     signatureRequests: number;
     submissions: number;
     signedEnvelopePreserved: true;
   };
-  workerRecovery: {
+  workerRecovery?: {
     signal: "SIGKILL";
     attempts: number;
     signatureRequests: number;
@@ -137,8 +147,12 @@ const results: {
   };
 }[] = [];
 try {
-  for (const mode of ["online", "physical"] as const) {
-    await receive(mode, "setup");
+  const cases = (["attended", "outage"] as const).flatMap((scenario) =>
+    (["online", "physical"] as const).map((mode) => ({ scenario, mode })),
+  );
+  for (const { scenario, mode } of cases) {
+    const channel = scenario === "outage" ? `${mode}-outage` : mode;
+    await receive(channel, "setup");
     const f = await accountFixtures([[], ["host"], []]);
     try {
       // Generated test keys encrypt only this run's disposable PostgreSQL records.
@@ -209,11 +223,11 @@ try {
           staffClient.release();
         }
       }
-      await send(mode, "setup", {
+      await send(channel, "setup", {
         event: contractReference(eventId),
         excluded: credentials.map(contractReference),
       });
-      const published = await receive<Published>(mode, "consent"),
+      const published = await receive<Published>(channel, "consent"),
         material = published.terms;
       draft.startsAt = new Date(material.start_ms).toISOString();
       draft.endsAt = new Date(material.end_ms).toISOString();
@@ -248,10 +262,10 @@ try {
         selected.chainId = "sandbox";
       const consent = createCommitmentConsent(config.origin, terms, published.issuedAt, profile),
         session = hash(f.accounts[0].value);
-      await send(mode, "consent", {
+      await send(channel, "consent", {
         digest: nearMessageDigest(consentWalletMessage(consent)).toString("base64"),
       });
-      const walletProof = await receive<WalletSignature>(mode, "signature");
+      const walletProof = await receive<WalletSignature>(channel, "signature");
       const wire = contractAuthorization(
         config.origin,
         consent,
@@ -286,8 +300,8 @@ try {
           [consent.id],
         )
       ).rows[0];
-      await send(mode, "signature", { authorization: wire.authorization });
-      const source = await receive<Snapshot>(mode, "funded");
+      await send(channel, "signature", { authorization: wire.authorization });
+      const source = await receive<Snapshot>(channel, "funded");
       assert.equal(
         validateSettlementState(source.context, source.views, source.block).registration?.booked,
         true,
@@ -355,6 +369,196 @@ try {
         row.encrypted_candidate,
       ) as AttendanceCandidateInput;
       assert.equal(candidate.packet.classification, "on_time");
+      async function verifyOriginals() {
+        const unchanged = (
+          await f.pool.query(
+            "SELECT candidate_hash,encrypted_candidate FROM app_attendance_candidates WHERE id=$1",
+            [row.id],
+          )
+        ).rows[0];
+        assert.equal(unchanged.candidate_hash, row.candidate_hash);
+        assert.equal(unchanged.encrypted_candidate, row.encrypted_candidate);
+        assert.deepEqual(
+          (
+            await f.pool.query(
+              "SELECT consent_hash,encrypted_consent,encrypted_proof FROM app_commitment_consents WHERE id=$1",
+              [consent.id],
+            )
+          ).rows[0],
+          originalApproval,
+        );
+      }
+      if (scenario === "outage") {
+        await send(channel, "funded", { receipt: candidate.packet.receipt, outage: true });
+        const evidence = await receive<Snapshot>(channel, "outage_evidence");
+        assert.equal(
+          (
+            await deliveryProcess(config, row.id, {
+              context: source.context,
+              evidencePublicKey: published.evidencePublicKey,
+              read: async () => structuredClone(evidence),
+              sign: async () => {
+                throw new Error("Expired evidence cannot be newly signed");
+              },
+              submit: async () => {
+                throw new Error("Expired evidence cannot be submitted");
+              },
+            })
+          ).status,
+          "awaiting_reconciliation",
+        );
+        const barrier = await freezeAttendanceEvidence(
+          f.pool,
+          config,
+          eventId,
+          evidence,
+          published.evidencePublicKey,
+          evidence.block.timestampMs,
+        );
+        assert.equal(barrier.candidateCount, 1);
+        await assert.rejects(
+          prepareAttendanceCheckpoint(
+            f.pool,
+            config,
+            { eventId, sources: [evidence], accepted: [] },
+            evidence.block.timestampMs,
+          ),
+          (error) => error instanceof AppFailure && error.status === 409,
+        );
+        assert.equal(
+          (
+            await f.pool.query("SELECT 1 FROM app_attendance_checkpoints WHERE event_id=$1", [
+              eventId,
+            ])
+          ).rowCount,
+          0,
+        );
+        await send(channel, "outage_evidence", { unreconciled: true });
+        let latest = await receive<Snapshot>(channel, "outage_ready"),
+          aborts = 0,
+          withdrawals = 0;
+        const gateway: SandboxPrincipalGateway = {
+          context: source.context,
+          read: async () => structuredClone(latest),
+          failNeutral: async (event, signal) => {
+            aborts++;
+            assert.equal(event, source.context.event);
+            await send(channel, "outage_ready", { event });
+            latest = await receive<Snapshot>(channel, "outage_aborted", signal);
+          },
+          submit: async (liabilityId, signal) => {
+            withdrawals++;
+            assert.equal(liabilityId, `${source.context.authorization.registration}:principal`);
+            await send(channel, "outage_aborted", { liabilityId });
+            latest = await receive<Snapshot>(channel, "outage_paid", signal);
+          },
+        };
+        assert.equal((await principalProcess(config, consent.id, gateway, true)).killed, true);
+        const before = (
+          await f.pool.query("SELECT * FROM app_principal_recoveries WHERE consent_id=$1", [
+            consent.id,
+          ])
+        ).rows[0];
+        assert.equal(before.last_effect, "fail_neutral");
+        assert(before.encrypted_neutral_request);
+        await f.pool.query(
+          "UPDATE app_principal_recoveries SET claim_until=clock_timestamp()-interval '1 second' WHERE consent_id=$1",
+          [consent.id],
+        );
+        assert.equal(
+          (
+            await principalProcess(
+              config,
+              consent.id,
+              {
+                ...gateway,
+                failNeutral: async () => {
+                  throw new Error("No repeated abort");
+                },
+              },
+              true,
+            )
+          ).killed,
+          true,
+        );
+        const paid = (
+          await f.pool.query("SELECT * FROM app_principal_recoveries WHERE consent_id=$1", [
+            consent.id,
+          ])
+        ).rows[0];
+        assert.equal(paid.last_effect, "withdraw");
+        await f.pool.query(
+          "UPDATE app_principal_recoveries SET claim_until=clock_timestamp()-interval '1 second' WHERE consent_id=$1",
+          [consent.id],
+        );
+        assert.equal(
+          (
+            await principalProcess(config, consent.id, {
+              ...gateway,
+              failNeutral: async () => {
+                throw new Error("No repeated abort");
+              },
+              submit: async () => {
+                throw new Error("No repeated withdrawal");
+              },
+            })
+          ).status,
+          "observed",
+        );
+        const recovered = (
+          await f.pool.query("SELECT * FROM app_principal_recoveries WHERE consent_id=$1", [
+            consent.id,
+          ])
+        ).rows[0];
+        assert.equal(recovered.attempts, 3);
+        assert.equal(aborts, 1);
+        assert.equal(withdrawals, 1);
+        assert.equal(recovered.encrypted_request, before.encrypted_request);
+        assert.equal(recovered.encrypted_neutral_request, before.encrypted_neutral_request);
+        assert.equal(recovered.neutral_hash, before.neutral_hash);
+        const facts = validateSettlementState(source.context, latest.views, latest.block);
+        assert.equal(facts.eventState, "aborted");
+        assert.equal(facts.registration?.attendance, null);
+        assert.equal(facts.principal?.gross, "5000000");
+        assert.equal(facts.principal?.remaining, "0");
+        assert.equal(facts.accounting.unallocated, "0");
+        assert.equal(
+          (
+            await f.pool.query(
+              "SELECT state,signed_hash FROM app_attendance_deliveries WHERE candidate_id=$1",
+              [row.id],
+            )
+          ).rows[0].state,
+          "awaiting_reconciliation",
+        );
+        await verifyOriginals();
+        results.push({
+          mode,
+          scenario,
+          attendance: "pending_then_aborted",
+          principalPaid: "5000000",
+          liveSubmissionAllowed: false,
+          principalRecovery: {
+            signal: "SIGKILL",
+            attempts: 3,
+            submissions: 1,
+            originalRequestPreserved: true,
+          },
+          neutralRecovery: {
+            signal: "SIGKILL",
+            attempts: 3,
+            abortSubmissions: aborts,
+            principalSubmissions: withdrawals,
+            originalRequestPreserved: true,
+            neutralRequestPreserved: true,
+          },
+        });
+        await send(channel, "outage_paid", { recovered: true });
+        console.log(
+          `PASS: ${mode} unreconciled candidate fails neutral in actual sandbox; principal paid 5000000; live route disabled`,
+        );
+        continue;
+      }
       let latest = source,
         signatureRequests = 0,
         submissions = 0;
@@ -364,12 +568,12 @@ try {
         read: async () => structuredClone(latest),
         sign: async (receipt, signal) => {
           signatureRequests++;
-          await send(mode, "funded", { receipt });
+          await send(channel, "funded", { receipt });
           const signed = await receive<{
             source: Snapshot;
             proof: string;
             evidencePublicKey: string;
-          }>(mode, "signed", signal);
+          }>(channel, "signed", signal);
           assert.equal(signed.evidencePublicKey, published.evidencePublicKey);
           latest = signed.source;
           return signed.proof;
@@ -386,8 +590,8 @@ try {
             ),
             true,
           );
-          await send(mode, "signed", { submit: true });
-          latest = (await receive<{ source: Snapshot }>(mode, "accepted", signal)).source;
+          await send(channel, "signed", { submit: true });
+          latest = (await receive<{ source: Snapshot }>(channel, "accepted", signal)).source;
         },
       };
       const killed = await deliveryProcess(config, row.id, gateway, true);
@@ -425,14 +629,14 @@ try {
       assert.equal(recoveredDelivery.encrypted_signed, preparedDelivery.encrypted_signed);
       assert.equal(recoveredDelivery.signed_hash, preparedDelivery.signed_hash);
       assert.equal(recoveredDelivery.attempts, 2);
-      await send(mode, "accepted", { recovered: true });
+      await send(channel, "accepted", { recovered: true });
       const reconciliation = await receive<{
         source: Snapshot;
         receipt: unknown;
         proof: string;
         evidencePublicKey: string;
         u64BoundaryProof: string;
-      }>(mode, "reconcile");
+      }>(channel, "reconcile");
       assert.equal(canonicalJson(reconciliation.source.context), canonicalJson(source.context));
       const closingAt = reconciliation.source.block.timestampMs;
       const barrier = await freezeAttendanceEvidence(
@@ -499,9 +703,9 @@ try {
         sign: async (checkpoint, signal) => {
           closingSignatures++;
           assert.equal(attendanceCheckpointWire(checkpoint), prepared.wire);
-          await send(mode, "reconcile", { checkpointWire: prepared.wire });
+          await send(channel, "reconcile", { checkpointWire: prepared.wire });
           const signed = await receive<{ source: Snapshot; checkpointProof: string }>(
-            mode,
+            channel,
             "closing_signed",
             signal,
           );
@@ -514,8 +718,8 @@ try {
           assert(
             verifyAttendanceCheckpoint(checkpoint, signature, reconciliation.evidencePublicKey),
           );
-          await send(mode, "closing_signed", { submit: true });
-          closingSource = (await receive<{ source: Snapshot }>(mode, "closed", signal)).source;
+          await send(channel, "closing_signed", { submit: true });
+          closingSource = (await receive<{ source: Snapshot }>(channel, "closed", signal)).source;
         },
       };
       assert.equal((await closingProcess(config, prepared.id, closingGateway, true)).killed, true);
@@ -554,8 +758,9 @@ try {
       assert.equal(recoveredClosing.signed_hash, beforeClosingRecovery.signed_hash);
       assert.equal(closingSignatures, 1);
       assert.equal(closingSubmissions, 1);
-      await send(mode, "closed", { recovered: true });
-      let principalSource = (await receive<{ source: Snapshot }>(mode, "principal_ready")).source,
+      await send(channel, "closed", { recovered: true });
+      let principalSource = (await receive<{ source: Snapshot }>(channel, "principal_ready"))
+          .source,
         principalSubmissions = 0;
       const principalGateway: SandboxPrincipalGateway = {
         context: source.context,
@@ -563,8 +768,8 @@ try {
         submit: async (liabilityId, signal) => {
           principalSubmissions++;
           assert.equal(liabilityId, `${source.context.authorization.registration}:principal`);
-          await send(mode, "principal_ready", { liabilityId });
-          principalSource = (await receive<{ source: Snapshot }>(mode, "principal_paid", signal))
+          await send(channel, "principal_ready", { liabilityId });
+          principalSource = (await receive<{ source: Snapshot }>(channel, "principal_paid", signal))
             .source;
         },
       };
@@ -603,14 +808,14 @@ try {
       assert.equal(recoveredPrincipal.encrypted_request, beforePrincipalRecovery.encrypted_request);
       assert.equal(recoveredPrincipal.request_hash, beforePrincipalRecovery.request_hash);
       assert.equal(principalSubmissions, 1);
-      await send(mode, "principal_paid", { recovered: true });
+      await send(channel, "principal_paid", { recovered: true });
       const returned = await receive<{
         receipt: unknown;
         proof: string;
         evidencePublicKey: string;
         checkpointProof: string;
         returned: Snapshot;
-      }>(mode, "returned");
+      }>(channel, "returned");
       assert.equal(
         verifyAttendancePacket(
           candidate.packet,
@@ -639,25 +844,10 @@ try {
       assert.equal(settled.principal?.gross, "5000000");
       assert.equal(settled.principal?.remaining, "0");
       assert.equal(settled.sourceQualified, false);
-      const unchanged = (
-        await f.pool.query(
-          "SELECT candidate_hash,encrypted_candidate FROM app_attendance_candidates WHERE id=$1",
-          [row.id],
-        )
-      ).rows[0];
-      assert.equal(unchanged.candidate_hash, row.candidate_hash);
-      assert.equal(unchanged.encrypted_candidate, row.encrypted_candidate);
-      assert.deepEqual(
-        (
-          await f.pool.query(
-            "SELECT consent_hash,encrypted_consent,encrypted_proof FROM app_commitment_consents WHERE id=$1",
-            [consent.id],
-          )
-        ).rows[0],
-        originalApproval,
-      );
+      await verifyOriginals();
       results.push({
         mode,
+        scenario,
         attendance: "on_time",
         principalPaid: "5000000",
         liveSubmissionAllowed: false,
@@ -682,7 +872,7 @@ try {
           signedEnvelopePreserved: true,
         },
       });
-      await send(mode, "returned", { verified: true });
+      await send(channel, "returned", { verified: true });
       console.log(
         `PASS: ${mode} PostgreSQL candidate accepted in actual sandbox; principal paid 5000000; live route disabled`,
       );

@@ -134,7 +134,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
         [actor.id],
       ),
       await client.query(
-        `SELECT p.consent_id,p.state,p.attempts,p.submitted_attempt,p.observed_height,p.observed_hash,p.last_error
+        `SELECT p.consent_id,p.state,p.attempts,p.submitted_attempt,p.observed_height,p.observed_hash,p.last_error,p.last_effect
         FROM app_principal_recoveries p JOIN app_commitment_consents c ON c.id=p.consent_id
         WHERE c.account_id=$1 ORDER BY p.updated_at,p.consent_id`,
         [actor.id],

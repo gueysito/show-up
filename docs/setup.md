@@ -490,6 +490,21 @@ ledger/accounting/liability facts. These watermarks survive a signer/source fail
 before submission; they record observed source state, not confirmed payment or a
 complete intake-health signal.
 
+Migration `022-principal-fail-neutral.sql` preserves prior withdrawal attribution
+and adds an immutable abort image. An explicitly supplied sandbox capability may
+call only `fail_neutral` for the frozen event at or after its verified end + 35
+minutes. No host outage reason or local clock can advance it. Abort and withdrawal
+use separate claims; unknown responses preserve both images and source state.
+Own exports include the last fixed method, excluding the private request images.
+
+The bridge runs normal attendance and unreconciled-evidence cases for each mode.
+In the latter, an accepted but expired/undelivered candidate prevents a complete
+checkpoint. The actual contract rejects early abort, then refunds through one
+permitted abort and one withdrawal after the deadline. Killed processes recover
+both effects with original ciphertext intact. These cases exercise native
+principal; broader sponsor/NFT abort checks remain separate contract evidence.
+This does not establish complete live intake-health coverage.
+
 No live signing gateway, complete intake/outage monitor or runtime transfer daemon
 is enabled. Dropped-transaction qualification still needs the planned source/witness
 integration; an unknown request cannot clear debt.

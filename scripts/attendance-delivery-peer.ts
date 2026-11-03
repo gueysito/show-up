@@ -100,6 +100,15 @@ function runProcess(
                   value.params[0] as Parameters<SandboxClosingGateway["sign"]>[0],
                   signal,
                 );
+        } else if (value.method === "failNeutral") {
+          if (input.kind !== "principal" || !input.gateway.failNeutral)
+            throw new Error("Fail-neutral capability is unavailable");
+          await input.gateway.failNeutral(value.params[0] as string, signal);
+          if (killAfterSubmission) {
+            killed = true;
+            child.kill("SIGKILL");
+            return;
+          }
         } else if (value.method === "submit") {
           if (input.kind === "attendance")
             await input.gateway.submit(
@@ -136,6 +145,7 @@ function runProcess(
       kind: "start",
       jobId,
       jobKind: input.kind,
+      failNeutral: input.kind === "principal" && Boolean(input.gateway.failNeutral),
       config: { encryptionKey: config.encryptionKey, origin: config.origin },
       context: gateway.context,
       evidencePublicKey: input.kind === "principal" ? "" : input.gateway.evidencePublicKey,
