@@ -9,6 +9,17 @@ export class RpcCooldown extends Error {
     super("RPC service unavailable (429)");
   }
 }
+// A missing account is usable planning evidence only when the server binds it
+// to the exact requested account and block. Other RPC failures remain errors.
+export class NearAccountNotFound extends Error {
+  constructor(
+    readonly accountId: string,
+    readonly blockHash: string,
+    readonly blockHeight: string,
+  ) {
+    super("NEAR account is absent at the requested block");
+  }
+}
 const allowed = {
   near: new Set(["status", "block", "query", "tx", "EXPERIMENTAL_protocol_config"]),
   evm: new Set([
@@ -117,9 +128,13 @@ export class ReadOnlyRpc {
     if (
       family === "near" &&
       method === "query" &&
-      !["view_account", "view_access_key", "view_access_key_list", "call_function"].includes(
-        String(record(params).request_type),
-      )
+      ![
+        "view_account",
+        "view_access_key",
+        "view_access_key_list",
+        "view_code",
+        "call_function",
+      ].includes(String(record(params).request_type))
     )
       throw new Error("Unapproved read-only NEAR query");
     const id = ++this.nextId;
@@ -166,6 +181,34 @@ export class ReadOnlyRpc {
       const envelope = record(await responseJson(response));
       const error =
         envelope.error && typeof envelope.error === "object" ? record(envelope.error) : undefined;
+      if (
+        family === "near" &&
+        method === "query" &&
+        envelope.jsonrpc === "2.0" &&
+        envelope.id === id &&
+        !("result" in envelope) &&
+        error?.code === -32000 &&
+        error.cause &&
+        typeof error.cause === "object"
+      ) {
+        const cause = record(error.cause),
+          request = record(params);
+        if (cause.name === "UNKNOWN_ACCOUNT" && cause.info && typeof cause.info === "object") {
+          const info = record(cause.info);
+          if (
+            request.request_type === "view_account" &&
+            typeof request.account_id === "string" &&
+            typeof request.block_id === "string" &&
+            info.requested_account_id === request.account_id &&
+            info.block_hash === request.block_id
+          )
+            throw new NearAccountNotFound(
+              request.account_id,
+              request.block_id,
+              unsigned(info.block_height, 64).toString(),
+            );
+        }
+      }
       if (
         envelope.jsonrpc === "2.0" &&
         envelope.id === id &&

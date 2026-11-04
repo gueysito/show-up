@@ -55,10 +55,56 @@ The implicit account is suitable as the project funding/controller wallet. It ca
 hold contract code, but its 64-character ID cannot support the current child-account
 layout within NEAR's 64-character account-ID limit. Keeping that layout requires
 a short named parent, created through the `near` account's documented factory.
-Naming, exact factory/account/code checks, public-key installation, attached funds,
-gas, signing runtime and one-attempt/reconciliation limits must be frozen in an
-unsigned account-registration batch before approval. No `.near` name is claimed
-registered and no testnet tool or credential file has been repointed.
+The [unsigned registration proposal](evidence/near-mainnet-account-preparation-2026-11-04.json)
+now fixes the candidate name, factory code, original public key and limits below.
+No `.near` name is registered or usable as a funding destination yet, and no
+testnet tool or credential file has been repointed.
+
+### Unsigned named-account registration
+
+The read-only preparer runs without credentials:
+
+```sh
+node --import tsx scripts/near-mainnet-account-plan.ts
+```
+
+It writes a public-data proposal under `/private/tmp`, never signs, and always
+returns `readyToSign: false`. Two registered mainnet sources agree at one finalized
+block on factory code `HiyC5tB1gBDpgR4x1guEp1orBde5PXqUYGoWaZfX3JGX`, its downloaded
+bytes/hash and its declared [source revision](https://github.com/near/near-linkdrop/tree/9a6bb316f6b7c83b504ce9c94a80c37178097655).
+This is source metadata, not an independently reproduced build. Both sources
+report the implicit controller and proposed name absent in the saved read.
+
+| Proposal field | Exact bound |
+| --- | --- |
+| Network / signer | NEAR mainnet / the implicit funding address above |
+| Receiver / operation | `near` / one `create_account` call |
+| Candidate account | `showup-dev-14989f.near`, unregistered; **do not send funds here** |
+| New FullAccess key | The existing public key recorded above |
+| Attached principal / tokens / contract deployment | **0 NEAR / none / none** |
+| Prepaid gas / maximum purchase price | 100 Tgas / 1,000,000,000 yoctoNEAR per gas unit |
+| Total and per-attempt fee cap | **0.102 NEAR**; one signed image, zero write retries |
+| Recovery | No principal is advanced. Reconcile the original hash/nonce and complete receipts after uncertainty; never create another image while it can still succeed. No deletion is approved. |
+
+The pinned factory forwards the attached amount and installs the requested key.
+[Zero-balance accounts](https://docs.near.org/integrations/accounts) permit the
+bare account/key without an initial storage deposit. The current protocol charges
+0.007 NEAR for creation through its gas-refund accounting; that is consumed,
+not recoverable collateral. Other execution fees still apply. The observed block
+gas price is 100,000,000 yoctoNEAR, while the minimum **purchase** price is
+1,000,000,000. The preparer uses the latter and conservatively reserves outer
+action charges: 0.101202558634721 NEAR, below the 0.102 cap. This is a gas-purchase
+upper bound, not a dry execution or predicted consumption. The cap is about $0.39
+at the earlier $3.78/NEAR snapshot; it is already within the proposed 0.25 NEAR
+wallet allocation, not additional funding. Unused gas refunds remain project funds.
+
+Funded-controller checks require the original sole FullAccess key, no contract or
+locked balance, and enough native balance above a conservative storage reserve.
+Name, factory, protocol and gas changes stop preparation. Finalized funding,
+owner approval of the exact batch and its signing runtime, and fresh pre-signing
+checks remain mandatory. Afterwards verify the new zero-balance account and its
+key at a common finalized block. Funding/deploying its future child contracts is
+a separate priced batch; a zero-balance controller cannot pay that future gas yet.
 
 ### Cost and recovery boundaries
 

@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { canonicalHash, canonicalJson } from "../../src/server/protocol/canonical";
-import { parseRpcJson, ReadOnlyRpc, RpcCooldown, unsigned } from "../../src/server/protocol/rpc";
+import {
+  NearAccountNotFound,
+  parseRpcJson,
+  ReadOnlyRpc,
+  RpcCooldown,
+  unsigned,
+} from "../../src/server/protocol/rpc";
 
 test("attestations preserve exact integers and canonical nested context without executable values", () => {
   assert.equal(
@@ -123,6 +129,61 @@ test("an explicit RPC cooldown stops immediate retries and preserves the server 
     return true;
   });
   assert.equal(calls, 1);
+});
+
+test("NEAR account absence must identify the exact requested account and finalized block", async () => {
+  const params = {
+    request_type: "view_account",
+    account_id: "uncreated.near",
+    block_id: "1".repeat(32),
+  };
+  const info = {
+    requested_account_id: params.account_id,
+    block_hash: params.block_id,
+    block_height: 100,
+  };
+  function client(change: object = {}) {
+    return new ReadOnlyRpc("near-public", async (_url, options) => {
+      const request = JSON.parse(String(options?.body));
+      return Response.json({
+        jsonrpc: "2.0",
+        id: request.id,
+        error: { code: -32000, cause: { name: "UNKNOWN_ACCOUNT", info: { ...info, ...change } } },
+      });
+    });
+  }
+  await assert.rejects(client().read("query", params), (error) => {
+    assert.ok(error instanceof NearAccountNotFound);
+    assert.equal(error.accountId, params.account_id);
+    assert.equal(error.blockHash, params.block_id);
+    assert.equal(error.blockHeight, "100");
+    return true;
+  });
+  for (const change of [{ requested_account_id: "other.near" }, { block_hash: "2".repeat(32) }])
+    await assert.rejects(
+      client(change).read("query", params),
+      (error) => !(error instanceof NearAccountNotFound),
+    );
+  await assert.rejects(
+    client().read("query", { ...params, request_type: "view_access_key" }),
+    (error) => !(error instanceof NearAccountNotFound),
+  );
+  await assert.rejects(
+    client().read("query", { ...params, block_id: 100 }),
+    (error) => !(error instanceof NearAccountNotFound),
+  );
+  const code = new ReadOnlyRpc("near-public", async (_url, options) => {
+    const request = JSON.parse(String(options?.body));
+    assert.equal(request.params.request_type, "view_code");
+    return Response.json({
+      jsonrpc: "2.0",
+      id: request.id,
+      result: { code_base64: "AGFzbQEAAAA=" },
+    });
+  });
+  assert.deepEqual(await code.read("query", { ...params, request_type: "view_code" }), {
+    code_base64: "AGFzbQEAAAA=",
+  });
 });
 
 test("RPC correlates response IDs, preserves pending null, rejects errors/bounds and uses bounded transient retries", async () => {
