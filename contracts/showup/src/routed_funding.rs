@@ -27,6 +27,15 @@ pub(crate) fn validate_policy(
             && policy.quote_key.0 != evidence,
         "Separate routing quote key required"
     );
+    if let Some(returns) = &policy.returns {
+        observer::validate_profile(&returns.observer, credential, evidence);
+        require!(
+            returns.max_attempts > 0
+                && returns.max_attempts <= 3
+                && returns.observer.key != policy.quote_key,
+            "Bounded returns and separate observer required"
+        );
+    }
     for network in ["near", "base", "ethereum", "solana"] {
         require!(
             policy
@@ -55,7 +64,7 @@ pub(crate) fn validate_policy(
         }
     }
 }
-fn timestamp(value: &Value) -> u64 {
+pub(crate) fn timestamp(value: &Value) -> u64 {
     chrono::DateTime::parse_from_rfc3339(text(value))
         .expect("Invalid routing time")
         .timestamp_millis()
@@ -135,14 +144,7 @@ impl Escrow {
                 && fields["customRecipientMsg"] == message(&authorization.registration),
             "Routing request differs from its original authorization"
         );
-        require!(
-            !request.contains_key("virtualChainRecipient")
-                && !request.contains_key("virtualChainRefundRecipient")
-                && !request.contains_key("referral")
-                && !request.get("insured").is_some_and(|v| v != &json!(false))
-                && !request.get("depositMode").is_some_and(|v| v != "SIMPLE"),
-            "Unsupported routing modifier"
-        );
+        routing_quote::plain_route(request);
         let input = money(&fields["amountIn"]);
         let minimum_input = money(&fields["minAmountIn"]);
         let principal = authorization.principal.0;

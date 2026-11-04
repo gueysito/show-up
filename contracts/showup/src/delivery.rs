@@ -31,6 +31,7 @@ impl Escrow {
             number,
             amount: U128(amount),
         });
+        self.money_changed();
         ext_token::ext(self.token.clone())
             .with_attached_deposit(NearToken::from_yoctonear(1))
             .with_static_gas(Gas::from_tgas(25))
@@ -54,18 +55,26 @@ impl Escrow {
         item.pending = None;
         // TooLong means successful execution. Never retry a successful transfer
         // because its return body was large; read zero bytes to bound callback cost.
-        if !matches!(env::promise_result_checked(0, 0), Err(PromiseError::Failed)) {
+        let delivered = if !matches!(env::promise_result_checked(0, 0), Err(PromiseError::Failed)) {
             item.paid.0 += amount.0;
             self.owed -= amount.0;
             self.delivered += amount.0;
             true
         } else {
             false
-        }
+        };
+        self.money_changed();
+        delivered
     }
 }
 
 impl Escrow {
+    pub(crate) fn money_changed(&mut self) {
+        self.financial_epoch = self
+            .financial_epoch
+            .checked_add(1)
+            .expect("Financial epoch overflow");
+    }
     pub(crate) fn add_liability(&mut self, id: String, destination: Destination, amount: u128) {
         require!(amount > 0, "Empty liability");
         if let Some(item) = self.liabilities.get_mut(&id) {

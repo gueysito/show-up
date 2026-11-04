@@ -113,6 +113,7 @@ impl Escrow {
             .received
             .checked_add(amount.0)
             .expect("Amount overflow");
+        self.money_changed();
         PromiseOrValue::Value(U128(0))
     }
 }

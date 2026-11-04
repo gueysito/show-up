@@ -74,6 +74,77 @@ pub struct RoutingPolicy {
     pub sender: AccountId,
     pub quote_key: Base64VecU8,
     pub assets: Vec<FundingAsset>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub returns: Option<RoutingReturns>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct RoutingReturns {
+    pub observer: ObserverPolicy,
+    pub max_attempts: u8,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone, Default)]
+pub struct RoutedReturns {
+    pub fees_used: U128,
+    pub paused: bool,
+    pub attempts: Vec<RoutedReturn>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct RoutedReturn {
+    pub number: u64,
+    pub liability: String,
+    pub quote_hash: String,
+    pub deposit: AccountId,
+    pub destination: Destination,
+    pub gross: U128,
+    pub quoted_net: U128,
+    pub minimum_net: U128,
+    pub refund_fee: U128,
+    pub deadline_ms: u64,
+    pub state: String,
+    pub observation: Option<ReturnObservation>,
+    pub conflict: Option<ReturnObservation>,
+    pub balance_epoch: Option<u64>,
+    pub balance_checks: u8,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone, PartialEq, Eq)]
+pub struct ReturnObservation {
+    pub format: String,
+    pub domain: String,
+    pub deployment: AccountId,
+    pub manifest: String,
+    pub event: String,
+    pub rules_hash: String,
+    pub registration: String,
+    pub liability: String,
+    pub number: u64,
+    pub image_hash: String,
+    pub profile_hash: String,
+    pub sources: [String; 2],
+    pub kind: String,
+    pub network: String,
+    pub chain_id: String,
+    pub asset: String,
+    pub recipient: String,
+    pub amount: U128,
+    pub transaction: String,
+    pub event_index: u32,
+    pub transaction_block_height: U64,
+    pub transaction_block_hash: String,
+    pub transaction_ms: u64,
+    pub block_height: U64,
+    pub block_hash: String,
+    pub block_ms: u64,
+    pub observed_ms: u64,
+    pub expires_ms: u64,
+    pub finalized: bool,
 }
 
 #[near(serializers = [borsh, json])]

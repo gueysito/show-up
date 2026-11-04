@@ -34,6 +34,33 @@ pub(crate) fn authenticate(
     let hash = digest.iter().map(|byte| format!("{byte:02x}")).collect();
     (parsed, selected, hash)
 }
+pub(crate) fn plain_route(request: &near_sdk::serde_json::Map<String, Value>) {
+    for key in [
+        "referral",
+        "virtualChainRecipient",
+        "virtualChainRefundRecipient",
+    ] {
+        require!(!request.contains_key(key), "Unsupported routing modifier");
+    }
+    // The API inserts this observed service-fee entry even for appFees: [].
+    // Metadata is unsigned: it is a compatibility check, not fee-distribution
+    // proof. Signed input/net bounds enforce the actual maximum cost.
+    require!(request.get("appFees").is_none_or(|v|v.as_array().is_some_and(Vec::is_empty)
+        || v==&json!([{"recipient":"5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd","fee":1}])),
+        "Unapproved routing fee metadata");
+    require!(
+        request
+            .get("rebates")
+            .is_none_or(|v| v.as_array().is_some_and(Vec::is_empty)),
+        "Rebates are not authorized"
+    );
+    require!(
+        request.get("insured").is_none_or(|v| v == false)
+            && request.get("depositMode").is_none_or(|v| v == "SIMPLE"),
+        "Unsupported routing option"
+    );
+}
+
 #[near]
 impl Escrow {
     /// Authenticate historical provider bytes without calling a provider or

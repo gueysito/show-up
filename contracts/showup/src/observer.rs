@@ -8,32 +8,41 @@ pub(crate) fn validate_policy(terms: &Terms, credential: &[u8; 32], evidence: &[
             terms.custody_proof_policy.is_some(),
             "External custody policy missing"
         );
+        validate_profile(policy, credential, evidence);
         require!(
-            policy.key.0.len() == 32
-                && policy.key.0 != credential
-                && policy.key.0 != evidence
-                && terms
-                    .draw_policy
-                    .as_ref()
-                    .is_none_or(|draw| draw.key != policy.key),
+            terms
+                .draw_policy
+                .as_ref()
+                .is_none_or(|draw| draw.key != policy.key),
             "Separate observer key required"
         );
-        require!(valid_id(&policy.profile_hash), "Invalid observer profile");
-        require!(
-            policy.sources[0] != policy.sources[1]
-                && policy.operators[0] != policy.operators[1]
-                && policy
-                    .sources
-                    .iter()
-                    .chain(&policy.operators)
-                    .all(|id| !id.is_empty()
-                        && id.len() <= 64
-                        && id
-                            .bytes()
-                            .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))),
-            "Distinct fixed observer sources/operators required"
-        );
     }
+}
+
+pub(crate) fn validate_profile(
+    policy: &ObserverPolicy,
+    credential: &[u8; 32],
+    evidence: &[u8; 32],
+) {
+    require!(
+        policy.key.0.len() == 32 && policy.key.0 != credential && policy.key.0 != evidence,
+        "Separate observer key required"
+    );
+    require!(valid_id(&policy.profile_hash), "Invalid observer profile");
+    require!(
+        policy.sources[0] != policy.sources[1]
+            && policy.operators[0] != policy.operators[1]
+            && policy
+                .sources
+                .iter()
+                .chain(&policy.operators)
+                .all(|id| !id.is_empty()
+                    && id.len() <= 64
+                    && id
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || b"._-".contains(&byte))),
+        "Distinct fixed observer sources/operators required"
+    );
 }
 
 pub(crate) fn chain(network: &str) -> &str {

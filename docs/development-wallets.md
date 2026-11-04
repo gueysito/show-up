@@ -96,9 +96,9 @@ costs. That artifact also rejects mainnet initialization and external
 funding; it is not the final mainnet artifact or a deployment recommendation.
 Stripping its 262,158-byte name section would still leave code collateral above
 $28 at this price and would require separate artifact verification. The subsequent
-local routed-receiver artifact is 1,088,062 bytes: 10.88062 NEAR, about $41.13,
+local routed-return artifact is 1,208,397 bytes: 12.08397 NEAR, about $45.68,
 in code collateral at the same rate/price. SHA-256
-`9b20678f7cfe025bd455401764ed76b7c8d0d0af5e1068e06759cebbda48519c`;
+`3b74c25b125112ba6902f9c52776fdc7f6899c218eb591e7b205c4e8f4bf1154`;
 it remains mainnet-incompatible and was not publicly deployed. Global-contract publication burns more for a new unique deployment,
 so it is not a cheaper substitute for this experiment.
 

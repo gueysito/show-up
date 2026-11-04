@@ -1,4 +1,4 @@
-# ADR-0006: Bind routed receipts to stored financial consent
+# ADR-0006: Bind routed receipts and returns to financial consent
 
 ## Decision
 
@@ -46,8 +46,49 @@ cannot alter signed terms. The frozen provider sender remains a trust dependency
 its actual source-to-receipt attribution must pass G1 before real enrollment.
 Storage layout changes require a fresh disposable deployment; no public upgrade or
 state migration is authorized. Mainnet initialization and public routing remain
-disabled. External return execution, actual provider receipts, draw/custody proofs
+disabled. Public return execution, actual provider receipts, draw/custody proofs
 and source qualification remain incomplete.
+
+### Bounded return prototype
+
+Optional frozen return policy adds a separate observer profile and one to three
+attempts per original principal/refund liability. Only the configured executor can
+submit a return. The contract verifies the provider's exact-input quote against
+that existing liability, its original destination, positive minimum net, cumulative
+fee budget and a fresh bounded deadline. Deposit addresses cannot be reused.
+The token transfer and its callback keep the gross amount in flight; successful
+dispatch alone cannot settle debt or authorize another send.
+
+The sandbox prototype uses a signed destination witness bound to the immutable
+return image and a unique chain/token/transaction/transfer index. Its profile pins
+two source labels and operators. Replays cannot settle twice; conflicts and fees
+outside original limits preserve pending debt and pause further routing. Witnesses
+remain platform-attested. Actual monetary source independence, transaction
+correlation and the funded-use trust model still require qualification and explicit
+bounded approval; this local prototype does not grant public monetary authority.
+
+A routed refund must return to escrow. In addition to its witness, the pinned
+token's balance must cover existing held obligations plus that refund before the
+original remaining principal becomes spendable again. A financial version counter
+rejects a stale asynchronous balance result after another money operation. At most
+three explicit balance checks are allowed; unavailable evidence or exhausted
+limits keep debt pending. Fees already consumed are retained across retries and
+shared by the registration's principal/refund liabilities. No automatic top-up or
+new destination is permitted.
+
+`paid` records gross settled entitlement, including authorized consumed fees.
+Return history separates net delivery, refund recovery and fees; refunded principal
+remains owed less only those fees. The native-only application observer cannot
+interpret this as qualified external delivery. Its routed integration remains work
+before live application funding.
+
+The provider currently inserts a one-basis-point service-fee entry even when the
+request supplies `appFees: []`; the fresh signed dry read and historical public
+fixture agree. The [documented fee schedule](https://docs.near-intents.org/resources/fees)
+describes additional authentication-dependent charges. Showup adds no fee recipient;
+the compatibility guard permits only the observed provider entry or an empty list.
+That unsigned metadata proves no distribution. Signed gross/net bounds and actual
+delivery amounts enforce cost; a changed provider schedule requires fresh review.
 
 ## Rejected alternatives
 
@@ -62,13 +103,18 @@ and source qualification remain incomplete.
 - `contracts/showup/src/routed_funding.rs`
 - `contracts/showup/src/funding_signature.rs`
 - `contracts/showup/src/financial.rs`
+- `contracts/showup/src/routed_return.rs`
 - `src/server/commitments/contract-authorization.ts`
 
 ## Verification / guardrails
 
-`contracts/sandbox-tests/tests/routed_funding.rs` exercises all four wallet families
+`contracts/sandbox-tests/tests/routed_funding.rs` exercises all four network profiles
 against actual disposable token receipts and original NEAR principal delivery,
 plus substitution, source control and receipt-accounting failures.
 `scripts/check-routed-funding.ts` independently verifies application signatures,
 wire images, quote hashes and principal conservation. These use generated fixture
 keys and tokens, never public provider execution or owner keys.
+Its return cases exercise actual sandbox token dispatch and cash recovery with
+explicitly synthetic destination/transaction witnesses. `scripts/check-routed-returns.ts`
+independently replays original consent, return images, fee accumulation and cash
+plus in-flight conservation. These do not prove destination-chain delivery.

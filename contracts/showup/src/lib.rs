@@ -11,6 +11,7 @@ mod nft;
 mod observer;
 mod recovery;
 mod routed_funding;
+mod routed_return;
 mod routing_quote;
 mod routing_quote_fields;
 mod signing;
@@ -32,6 +33,9 @@ pub struct Escrow {
     events: LookupMap<String, Event>,
     registrations: LookupMap<String, Registration>,
     routed_funding: LookupMap<String, RoutedFunding>,
+    routed_returns: LookupMap<String, RoutedReturns>,
+    routed_deposits: LookupMap<AccountId, String>,
+    return_receipts: LookupMap<String, String>,
     active_participants: LookupMap<String, String>,
     active_wallets: LookupMap<String, String>,
     nonces: LookupMap<String, String>,
@@ -47,6 +51,8 @@ pub struct Escrow {
     received: u128,
     delivered: u128,
     owed: u128,
+    routed_in_flight: u128,
+    financial_epoch: u64,
 }
 
 #[near]
@@ -82,6 +88,9 @@ impl Escrow {
             events: LookupMap::new(b"e"),
             registrations: LookupMap::new(b"r"),
             routed_funding: LookupMap::new(&b"rf"[..]),
+            routed_returns: LookupMap::new(&b"rr"[..]),
+            routed_deposits: LookupMap::new(&b"rd"[..]),
+            return_receipts: LookupMap::new(&b"rx"[..]),
             active_participants: LookupMap::new(b"p"),
             active_wallets: LookupMap::new(b"w"),
             nonces: LookupMap::new(b"n"),
@@ -97,6 +106,8 @@ impl Escrow {
             received: 0,
             delivered: 0,
             owed: 0,
+            routed_in_flight: 0,
+            financial_epoch: 0,
         }
     }
 
@@ -166,6 +177,15 @@ impl Escrow {
                 &self.credential_key,
                 &self.evidence_key,
             );
+            if let Some(returns) = &policy.returns {
+                require!(
+                    terms
+                        .draw_policy
+                        .as_ref()
+                        .is_none_or(|draw| draw.key != returns.observer.key),
+                    "Separate return observer and draw keys required"
+                );
+            }
         }
         if let Some(prize) = &terms.native_nft {
             require!(
@@ -280,8 +300,12 @@ impl Escrow {
         self.liabilities.get(&id).cloned()
     }
     pub fn accounting(&self) -> near_sdk::serde_json::Value {
-        near_sdk::serde_json::json!({"received": U128(self.received), "delivered": U128(self.delivered),
-            "owed": U128(self.owed), "unallocated": U128(self.received - self.delivered - self.owed)})
+        let mut value = near_sdk::serde_json::json!({"received": U128(self.received), "delivered": U128(self.delivered),
+            "owed": U128(self.owed), "unallocated": U128(self.received - self.delivered - self.owed)});
+        if self.routed_in_flight > 0 {
+            value["routed_in_flight"] = near_sdk::serde_json::json!(U128(self.routed_in_flight));
+        }
+        value
     }
 }
 

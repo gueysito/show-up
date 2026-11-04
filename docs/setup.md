@@ -380,6 +380,20 @@ The policy is sandbox-only: it does not qualify actual source-chain routing,
 external payout, provider custody or mainnet application funding. Ordinary browser
 funding remains gated; no owner-runtime or public deployment is changed.
 
+The optional sandbox return policy now freezes an observer profile and at most
+three attempts per principal/refund liability. `route_return` checks the existing
+debt, original destination, authenticated exact-input quote, minimum net and remaining
+shared fee budget, then sends only that gross amount to its fixed NEAR deposit
+address. A successful token callback records **submitted**, preserving debt and
+blocking another send. Signed destination witnesses are bound to that image and
+unique transfer; conflicts or over-cap outcomes pause routing. A provider refund
+requires actual escrow cash coverage before reusing principal, with bounded balance
+rechecks and a version check against intervening money operations. Return history
+keeps fees and net delivery distinct from gross settled entitlement. The tests use
+synthetic witnesses and actual disposable cash; public monetary observation,
+provider attribution and application reconciliation remain unqualified. See
+[ADR-0006](adr/0006-routed-registration-binding.md#bounded-return-prototype).
+
 From an available event, choose **Review wallets and commitment destinations**.
 Select independently verified source, source-refund and principal-payout wallets;
 source refunds must use the source network. **Review destinations and fee availability**
