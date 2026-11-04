@@ -92,9 +92,12 @@ pass both jobs. `e0f287f` prepared the bounded executor; `c610981` records the
 public trial and recovery below, with both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41743437861)
 passing. The separately approved retained-deployment result is recorded below.
 
-Updated remaining integration estimate: **2–4 focused local days after the required
-protocol proofs provide qualified paths**, excluding external turnaround and
-provider-driven redesign. The earlier 5–8-day reforecast included the now delivered
+The previous **2–4 focused local days after qualified protocol paths** estimate
+was conditional, not a measured agent-throughput forecast or a delivery promise.
+Reforecast the concrete critical path in execution hours after pricing and checking
+the required integrations; separate owner/provider/device waiting and unresolved
+provider-driven redesign. Do not substitute a shorter unsupported estimate.
+The earlier 5–8-day reforecast included the now delivered
 publication binding, wallet review, recovery status, user release and ordinary bot
 journeys. Remaining: source-dependent publication prerequisites (0.5–1 day),
 qualified quote/consent/funding wiring (1–2 days), settlement-dependent clearance
@@ -170,18 +173,34 @@ read phase once after a cooldown of at most ten minutes. Signing, submission and
 transaction identities are outside that retry boundary. The actual recovery
 completed across a 60-second source cooldown without restarting. Focused observed-
 regression checks plus format/lint/types/unit pass; unchanged browser/build/Rust
-evidence is reused and required CI remains separate. Both jobs passed for the
-pre-execution checkpoint in [CI 41747186484](https://github.com/gueysito/show-up/actions/runs/41747186484).
+evidence is reused. Both required jobs passed for `d47a0b0` in
+[CI 41757130902](https://github.com/gueysito/show-up/actions/runs/41757130902).
 All two-source, credential, native-budget and principal gates remain intact.
 
-Immediate owner handoff: confirm whether dedicated NEAR-mainnet and Base-mainnet
-project wallets exist and supply only their public addresses, or request the
-owner-operated setup instructions. These are inputs to the exact P2/G1 experiment
-plan, not signing/spending/deployment approval. No additional testnet funding is
-needed for the completed recovery. Separate draw/custody/asset/source qualification,
-private bot configuration plus explicit messages/ingress approval, and actual
-iOS/Android checks remain required before full acceptance. The source-dependent
-2–4-local-day integration estimate above is unchanged and excludes those gates.
+Immediate owner handoff: mainnet accounts are not set up. Prepare a current,
+minimum-cost funding and P2/G1 experiment plan, with no new signing or deployment.
+The owner prefers reuse of the existing project EVM/Solana keys and existing NEAR
+key where suitable; do not generate replacement wallet keys. Prepare a verified
+NEAR mainnet account/address compatible with the actual deployment plan, then
+present funding instructions in order: NEAR, Solana, Base and Ethereum. The EVM
+address is shared; chain-specific balances/gas remain separate. Use public metadata
+for address preparation, never private key values. If account registration needs
+a paid public transaction, present its bounded approval before execution.
+
+Initial external funding target: **at most $20 equivalent across all project
+wallets combined, ideally less**. Price the smallest valid principal, gas, account/
+contract storage, provider charges, funding-transfer costs and bounded original-
+principal recovery before recommending amounts. Reuse returned principal serially
+where possible; distinguish recoverable funds/collateral from consumed fees.
+Show exact network, asset identity, verified address, atomic/native amount, USD
+estimate and fee/recovery ceilings for each transfer. Do not invent an allocation,
+claim the entire goal fits this target without evidence, omit a required network
+or infer automatic top-ups. If more is necessary, show the exact additional amount
+and reason for owner approval. The owner will fund the confirmed addresses; actual
+public signing/deployment remains subject to the exact approved experiment plan.
+No additional testnet funding is needed for the completed recovery. Separate
+draw/custody/asset/source qualification, private bot configuration plus explicit
+messages/ingress approval, and iOS/Android evidence remain required for acceptance.
 
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and
@@ -193,7 +212,7 @@ running merely to accumulate verification evidence. Milestones 5–7 remain excl
 | --- | --- | --- |
 | External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | Native public escrow deposit and cancellation recovery verified; live qualification gated | The approved retained trial finalized six normal calls through a funded seat, then three original-recovery calls cancelled the event, withdrew escrow and returned all 5 test USDC. The driver passed final two-source checks and released account claims. `48ce63f`/`084f76c` add safe diagnostics and authority ordering/expiry guards; this checkpoint honors actual RPC cooldowns and retries only the failed read phase once. Focused regressions and format/lint/types/unit pass; unchanged browser/build/Rust evidence is reused, required CI remains separate. Normal release, Intents/mainnet, actual draw/custody/coverage, other networks and full milestone 4 remain incomplete. [Public receipt and snapshot limitations](evidence/native-testnet-8529d901-add9-4b0a-9dab-ae9d43142fee.json), [operator boundaries](setup.md#financial-consent-preparation). |
+| P1–P5 | Native escrow/cancellation recovery verified; minimum-cost mainnet plan next | `d47a0b0` finalized six normal calls through a funded seat and three recovery calls returning all 5 test USDC, with final two-source checks and released account claims. Its bounded read cooldowns, authority ordering and original-image handling pass focused/full local checks and both CI jobs. This documentation checkpoint records approved key-reuse planning, absent mainnet setup and the initial shared $20 funding target above; no new account, funding, signing or deployment was performed. Normal public release, Intents/mainnet, actual draw/custody/coverage, other networks and full milestone 4 remain incomplete. [Receipt and limits](evidence/native-testnet-8529d901-add9-4b0a-9dab-ae9d43142fee.json), [operator boundaries](setup.md#financial-consent-preparation). |
 | I1 | Development sign-in/linking verified; optional bot identity prerequisite added | This checkpoint preserves the signed Telegram `profile.id` separately from OIDC `sub`, encrypted in the same identity record; legacy enrichment keeps the original account, rejects changed bindings and collects nothing new during restricted recovery. Own export includes the retained ID. 78 unit, 176 PostgreSQL, seven affected Chromium journeys and isolated build/static checks pass; the new regression fails against the old writer. Owner-verified Google/Telegram sign-in/linking remains prior evidence; no owner app/key change, bot-message consent, actual-phone or release claim. [Setup](setup.md#secure-local-identity-setup). |
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Saved-rule publication bound in sandbox; live prerequisites gated | `8ca2941` binds normal saved drafts/fixed staff to one encrypted salted material image and actual native publication. Both-mode attended/outage principal journeys and affected host/privacy browser checks pass; CI41690057149 passes. Qualified escrow, reserve/prize/provider evidence and public authority remain prerequisites for live publication. [Publication](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). |

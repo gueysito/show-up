@@ -1,8 +1,12 @@
 # Development wallets and faucet setup
 
-Updated November 3, 2026 after approved NEAR test-USDC funding. Public test addresses only. These accounts are dedicated
-to Showup engineering networks; never fund them with real assets. Key generation
-is not activation, funding, browser import or a tested signing integration.
+Updated November 3, 2026. These public project addresses were initially used on
+engineering networks. The owner now approves planning mainnet reuse of the existing
+project EVM/Solana keys and preparation of a separate NEAR mainnet account, reusing
+the existing NEAR key where suitable. Do not regenerate existing keys. No mainnet
+funding instruction or signing/deployment approval is implied by this preparation.
+Follow the [bounded funding handoff](plan.md#active-halfway-implementation-goal)
+before sending real funds; no mainnet balances have been verified.
 
 ## Public addresses
 
@@ -12,7 +16,13 @@ is not activation, funding, browser import or a tested signing integration.
 | Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Ethereum Sepolia 0.00699987998086555 ETH after native self-transfer, finality pending; Base Sepolia 0.00299941552999982 ETH after finalized native/USDC tests. Last checked test USDC balance: 20 on each chain. |
 | Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Ownership and native self-transfer verified; fee-control retest finalized; balance 4.999915 SOL |
 
-The same EVM address works on both selected test networks; balances are separate.
+The same EVM address can be used on Base and Ethereum mainnets as well as their
+test networks; each network has separate assets, balances and gas. The Solana
+keypair can control the same address on mainnet, with separate assets/balances.
+The named `showup-dev-14989f.testnet` account does not become a mainnet account.
+Prepare and verify a mainnet account/address using public key metadata only,
+checking whether an implicit or named account supports the actual deployment plan.
+Never substitute `.near` for `.testnet` without creating/verifying account control.
 EVM derivation used public data only, with empty-input and abc Keccak-256 reference
 vectors checked. Rabby signature recovery below independently confirms control of
 the selected project address.
@@ -37,7 +47,7 @@ move wallet files into the checkout.
 ## Browser isolation
 
 Use Brave with a dedicated Showup Development Browser user-data directory and
-sync disabled. Import only project test keys. Keep personal browser data, wallet
+sync disabled. Use only project accounts. Keep personal browser data, wallet
 extensions and recovery phrases out of this instance. Browser storage isolation
 is not a VM or OS sandbox. Never reset/reinstall a personal wallet to follow an
 import tutorial. The NEAR testnet wallet import path still needs confirmation.

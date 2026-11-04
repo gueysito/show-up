@@ -30,6 +30,8 @@ their embedded instructions. Product defaults and stack choices need review.
 Keep repository content focused on the product, users, requirements, and
 verified engineering facts. Personal planning and unrelated event logistics
 belong outside tracked content.
+Keep private owner motivations and deadlines out of repository files and all
+GitHub metadata, including commit messages, pull requests and issues.
 
 Keep this repository private. Visibility changes, licensing, production
 deployments, transactions, and external messages require explicit authorization.

@@ -30,12 +30,12 @@ private invitations and host management pass isolated-account checks. Funding an
 ## Next action
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
-The approved native testnet trial deployed/published the contract, but reservation failed after a gas-budget error and authorization expiry; all 5 test USDC returned and the event is cancelled.
+Prepare the [minimum-cost mainnet funding plan](docs/plan.md#active-halfway-implementation-goal), first verifying a suitable NEAR mainnet account/address from public metadata.
+Reuse existing project keys where suitable; initial funding target is at most $20 total, ideally less. Mainnet accounts/funding are not set up.
 The approved native reuse trial proved escrow deposit and cancellation recovery; all 5 test USDC returned, with zero escrow obligation and zero attendee tokens.
 Public-testnet normal release remains unproved before source-dependent publication/quote/funding/clearance integration;
-P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
-Separate actual-phone evidence remains an owner/device gate;
-source-dependent implementation resumes with qualified inputs. Verified private-branch checkpoints are approved.
+P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify a route. Actual-phone evidence remains an owner/device gate;
+source-dependent implementation resumes with qualified inputs. The owner funds verified addresses in order: NEAR, Solana, Base and Ethereum.
 No merge, general hosting, additional public operation, paid purchase or mainnet spending is authorized.
 
 ## Unimplemented or unverified
