@@ -526,8 +526,11 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       operatorStage = "execute_original_step";
       if (state.completed.includes(name)) return;
       if (!state.images[name]) {
-        const preparedActions = await actions(),
-          access = await verifyAccess(signerAccount, signer);
+        operatorStage = "prepare_original_actions";
+        const preparedActions = await actions();
+        operatorStage = "verify_original_signer";
+        const access = await verifyAccess(signerAccount, signer);
+        operatorStage = "sign_original_image";
         state.images[name] = {
           ...signNativeTransaction(
             { signer: signerAccount, receiver, actions: preparedActions, ...access },
@@ -536,6 +539,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
           signer: signerAccount,
           phase: "prepared",
         };
+        operatorStage = "persist_original_image";
         await save();
       }
       if (
@@ -546,6 +550,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
         state.images[name].validUntilMs = Number(state.authorization.expires_ms);
         await save();
       }
+      operatorStage = "submit_original_image";
       await submitOriginalNativeImage(state.images[name], save);
       state.completed.push(name);
       await save();
@@ -940,7 +945,25 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
       ["Error", "TypeError", "RangeError", "AbortError", "TimeoutError"].includes(error.name)
         ? error.name
         : "Error";
-    console.error(JSON.stringify({ status: "stopped", stage: operatorStage, category }));
+    const reasons = new Map([
+      ["RPC service unavailable", "rpc_unavailable"],
+      ["Invalid or failed RPC response", "rpc_response_invalid"],
+      ["Finalized sources disagree", "finalized_source_conflict"],
+      ["Finalized source is stale or future-dated", "finalized_source_time"],
+      ["Native signer control does not match both finalized sources", "signer_source_conflict"],
+      ["Native source block mismatch", "source_block_mismatch"],
+      ["Invalid RPC integer", "rpc_integer_invalid"],
+      ["Wrong RPC network", "rpc_network_mismatch"],
+      ["Invalid provider response", "rpc_object_invalid"],
+    ]);
+    const rpcHttpStatus =
+      error instanceof Error && /^RPC service unavailable \(([1-5][0-9]{2})\)$/.exec(error.message);
+    const reason =
+      error instanceof Error
+        ? (reasons.get(error.message) ??
+          (rpcHttpStatus ? `rpc_http_${rpcHttpStatus[1]}` : undefined))
+        : undefined;
+    console.error(JSON.stringify({ status: "stopped", stage: operatorStage, category, reason }));
     console.error(
       "Native engineering stopped. Preserve its private state and reconcile the original transaction before any further signing.",
     );

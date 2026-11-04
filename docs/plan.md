@@ -18,6 +18,12 @@ The owner subsequently approved gas-only amendment
 `c50abf32e3dd2c80cea170125d6e0c118848f5aab73f469575b38565efd81ca6`:
 200 Tgas for the replacement and remaining calls, with the original nonce,
 recipient/authorization, no top-up and unchanged principal/native limits.
+The owner then approved retained-deployment operation
+`8529d901-add9-4b0a-9dab-ae9d43142fee`, exact plan hash
+`3487fd2379259bc80d314e1ce0918d1d275c53c6752328a929f435091812aede`:
+the specified 1-test-NEAR internal attendee top-up and 5-test-USDC round trip,
+200 Tgas per call, retained keys/deployment and the same 20-test-NEAR ceiling.
+Execution and original-operation reconciliation are now authorized for that plan.
 On November 2 the owner separately authorized the temporary Telegram sign-in
 tunnel at `https://liable-pleat-maritime.ngrok-free.dev` and its narrow app
 configuration change. This does not authorize other hosts or general deployment.
@@ -142,7 +148,8 @@ and publish a fresh event, then reserve/fund/release/withdraw/return that princi
 Calls are capped at 200 Tgas. The 20-test-NEAR total ceiling and at most four
 original-recovery images remain; retained native funding/storage is not deleted.
 Fresh consent is made during execution, after approval, and the recovered
-operation cannot be reopened for funding. No public signing has run for this plan.
+operation cannot be reopened for funding. The owner approved this exact plan;
+execution is in progress using the same saved state and original transaction images.
 Both public sources matched deployment/token/storage, empty escrow/attendee token
 balances, zero debt and the original finalized constructor's public authority keys.
 Execution rechecks these facts before loading keys and requires both retained
@@ -151,7 +158,18 @@ claim prevents another operation from borrowing the accounts after an uncertain
 stop; only this same approved operation can resume until balances reconcile.
 Focused reuse/key-claim and RPC checks and full format/lint/types/unit checks pass;
 required private-branch CI remains separate. Existing browser/build/Rust
-evidence is reused because those inputs are unchanged. Approval is the next gate.
+evidence is reused because those inputs are unchanged. Both required jobs pass in
+[CI 41747186484](https://github.com/gueysito/show-up/actions/runs/41747186484).
+The initial executor stopped after creating empty operation state; resumption
+preserved the same account claim and finalized top-up, allocation, fresh event,
+publication, reservation and token deposit. Both sources then confirmed a funded
+registration and exactly 5 test USDC in escrow at block 276127655. No release image
+was saved; its prepared authorization expired during the source-read stops.
+Approved original-event cancellation/withdrawal recovery is in progress. The
+archival source returned HTTP 429 with `Retry-After: 387`; honor its cooldown
+before resuming the same operation. New fixed diagnostic labels distinguish
+source rate limits and signer/image stages without exposing error bodies or keys.
+Normal release and final principal recovery remain unclaimed until observed.
 
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and
@@ -163,7 +181,7 @@ running merely to accumulate verification evidence. Milestones 5–7 remain excl
 | --- | --- | --- |
 | External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | Native deployment/recovery observed; reused-deployment proof prepared | `c610981` records the failed reservation and original 5-test-USDC recovery; cancelled event, root 20 test USDC, attendee/escrow zero and zero owed agree at one finalized block. This checkpoint prepares the separate nine-step reuse plan above with fresh consent, original key references and durable account claims. Actual public reads and focused reuse/RPC checks pass; public execution still requires exact approval. No normal escrow funding/release or route qualification is claimed. [Prior receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json), [operator boundaries](setup.md#financial-consent-preparation). |
+| P1–P5 | Native escrow deposit observed; approved original recovery in progress | `6f233be` and both CI jobs pass for retained reuse. The owner approved the exact nine-step plan; six calls finalized and both sources confirmed a funded seat and 5 test USDC in escrow at block 276127655. No release image was saved before its authorization expired. This checkpoint adds fixed source-error/stage diagnostics; focused operator and full format/lint/types/unit checks pass. Honor the archival source's 387-second HTTP-429 cooldown, then resume approved cancellation/withdrawal recovery under the same claim/hash. No normal release, completed recovery or route qualification is claimed yet. [Prior receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json), [operator boundaries](setup.md#financial-consent-preparation). |
 | I1 | Development sign-in/linking verified; optional bot identity prerequisite added | This checkpoint preserves the signed Telegram `profile.id` separately from OIDC `sub`, encrypted in the same identity record; legacy enrichment keeps the original account, rejects changed bindings and collects nothing new during restricted recovery. Own export includes the retained ID. 78 unit, 176 PostgreSQL, seven affected Chromium journeys and isolated build/static checks pass; the new regression fails against the old writer. Owner-verified Google/Telegram sign-in/linking remains prior evidence; no owner app/key change, bot-message consent, actual-phone or release claim. [Setup](setup.md#secure-local-identity-setup). |
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Saved-rule publication bound in sandbox; live prerequisites gated | `8ca2941` binds normal saved drafts/fixed staff to one encrypted salted material image and actual native publication. Both-mode attended/outage principal journeys and affected host/privacy browser checks pass; CI41690057149 passes. Qualified escrow, reserve/prize/provider evidence and public authority remain prerequisites for live publication. [Publication](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). |
