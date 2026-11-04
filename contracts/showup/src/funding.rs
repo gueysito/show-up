@@ -12,12 +12,21 @@ enum Deposit {
     Sponsor {
         event: String,
     },
+    RoutedCommitment {
+        registration: String,
+    },
 }
 
 #[near]
 impl Escrow {
     pub fn reserve(&mut self, authorization: Authorization, proof: Base64VecU8) -> String {
         let _ = self.check_authorization(&authorization, &proof);
+        self.reserve_checked(authorization)
+    }
+}
+
+impl Escrow {
+    pub(crate) fn reserve_checked(&mut self, authorization: Authorization) -> String {
         require!(now() < authorization.expires_ms, "Authorization expired");
         if let Some(existing) = self.registrations.get(&authorization.registration) {
             require!(
@@ -60,7 +69,10 @@ impl Escrow {
         );
         "reserved".into()
     }
+}
 
+#[near]
+impl Escrow {
     pub fn ft_on_transfer(
         &mut self,
         sender_id: AccountId,
@@ -93,6 +105,9 @@ impl Escrow {
                 authorization,
                 proof,
             } => self.receive(*authorization, proof, amount.0, &sender_id),
+            Deposit::RoutedCommitment { registration } => {
+                self.receive_routed(&registration, amount.0, &sender_id)
+            }
         }
         self.received = self
             .received
@@ -107,6 +122,15 @@ impl Escrow {
         &self,
         auth: &Authorization,
         proof: &Base64VecU8,
+    ) -> Option<financial::FundingConsent> {
+        self.check_authorization_for_route(auth, proof, false)
+    }
+
+    pub(crate) fn check_authorization_for_route(
+        &self,
+        auth: &Authorization,
+        proof: &Base64VecU8,
+        routed: bool,
     ) -> Option<financial::FundingConsent> {
         require!(
             auth.domain == self.domain
@@ -138,7 +162,7 @@ impl Escrow {
         self.valid_destination(&auth.refund);
         self.valid_destination(&auth.source);
         require!(
-            auth.source.network == "near",
+            routed || auth.source.network == "near",
             "External funding source unqualified"
         );
         self.valid_destination(&auth.payout);
@@ -153,7 +177,11 @@ impl Escrow {
                 "Registration binding changed"
             );
         }
-        self.check_financial_consent(auth)
+        if routed {
+            self.check_financial_consent_for_route(auth, true)
+        } else {
+            self.check_financial_consent(auth)
+        }
     }
 
     fn check_active(&self, auth: &Authorization) {
@@ -202,6 +230,10 @@ impl Escrow {
     ) {
         let consent = self.check_authorization(&auth, &proof);
         require!(
+            !self.routed_funding.contains_key(&auth.registration),
+            "Routed registration requires its stored reference"
+        );
+        require!(
             auth.source.address == sender.as_str(),
             "Wrong funding wallet"
         );
@@ -211,7 +243,7 @@ impl Escrow {
                 env::signer_account_id().as_str() == auth.source.address
                     && key.as_bytes().len() == 33
                     && key.as_bytes()[0] == 0
-                    && key.as_bytes()[1..] == consent.public_key,
+                    && Some(key.as_bytes()[1..].try_into().unwrap()) == consent.public_key,
                 "Financial consent key does not match the actual source signer"
             );
             require!(
@@ -219,6 +251,10 @@ impl Escrow {
                 "Source amount exceeds financial consent"
             );
         }
+        self.apply_funding_receipt(auth, amount);
+    }
+
+    pub(crate) fn apply_funding_receipt(&mut self, auth: Authorization, amount: u128) {
         self.clean_reservations(&auth.event);
         let existing = self.registrations.get(&auth.registration).cloned();
         let event = self.events.get(&auth.event).unwrap();

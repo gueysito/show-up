@@ -1,11 +1,15 @@
-//! Explicit native non-production financial consent. No external funding route.
+//! Financial signatures for explicit non-production profiles. No qualified route.
 use crate::*;
 use near_sdk::base64::{Engine, engine::general_purpose::STANDARD};
 use near_sdk::serde_json::{Map, Value, json};
 
 pub(crate) struct FundingConsent {
-    pub public_key: [u8; 32],
+    pub public_key: Option<[u8; 32]>,
     pub maximum_input: u128,
+    pub quote_hash: String,
+    pub quote_expires_ms: u64,
+    pub issued_ms: u64,
+    pub routing_fee_maximum: u128,
 }
 
 pub(crate) fn valid_origin(value: &str) -> bool {
@@ -17,7 +21,7 @@ pub(crate) fn valid_origin(value: &str) -> bool {
                     .all(|byte| byte.is_ascii_alphanumeric() || b".-:[]".contains(&byte))
         })
 }
-fn object<'a>(value: &'a Value, fields: &str) -> &'a Map<String, Value> {
+pub(crate) fn object<'a>(value: &'a Value, fields: &str) -> &'a Map<String, Value> {
     let parsed = value
         .as_object()
         .expect("Financial consent object required");
@@ -29,7 +33,7 @@ fn object<'a>(value: &'a Value, fields: &str) -> &'a Map<String, Value> {
     );
     parsed
 }
-fn text(value: &Value) -> &str {
+pub(crate) fn text(value: &Value) -> &str {
     value.as_str().expect("Financial consent text required")
 }
 fn number(value: &Value) -> u64 {
@@ -40,7 +44,7 @@ fn number(value: &Value) -> u64 {
     );
     result
 }
-fn money(value: &Value) -> u128 {
+pub(crate) fn money(value: &Value) -> u128 {
     let value = text(value);
     require!(
         !value.is_empty()
@@ -79,7 +83,7 @@ fn iso(value: u64) -> String {
     .expect("Financial time range")
     .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
 }
-fn base64<const N: usize>(value: &Value) -> [u8; N] {
+pub(crate) fn base64<const N: usize>(value: &Value) -> [u8; N] {
     let encoded = text(value);
     let bytes = STANDARD.decode(encoded).expect("Invalid financial base64");
     require!(
@@ -88,13 +92,20 @@ fn base64<const N: usize>(value: &Value) -> [u8; N] {
     );
     bytes.try_into().expect("Financial byte length")
 }
-fn wallet(value: &Value, expected: &Destination, token: &AccountId, chain_id: &str) {
+fn wallet(
+    value: &Value,
+    expected: &Destination,
+    token: &AccountId,
+    chain_id: &str,
+    policy: Option<&RoutingPolicy>,
+) {
     let value = object(value, "address,chainId,network");
+    let asset = policy.map(|policy| routed_funding::asset(policy, &expected.network));
     require!(
-        text(&value["network"]) == "near"
-            && text(&value["chainId"]) == chain_id
-            && expected.network == "near"
-            && expected.asset == token.as_str()
+        text(&value["network"]) == expected.network
+            && text(&value["chainId"]) == asset.map_or(chain_id, |asset| asset.chain_id.as_str())
+            && expected.asset == asset.map_or(token.as_str(), |asset| asset.contract.as_str())
+            && (policy.is_some() || expected.network == "near")
             && text(&value["address"]) == expected.address,
         "Native financial destination changed or external route unqualified"
     );
@@ -102,6 +113,14 @@ fn wallet(value: &Value, expected: &Destination, token: &AccountId, chain_id: &s
 
 impl Escrow {
     pub(crate) fn check_financial_consent(&self, auth: &Authorization) -> Option<FundingConsent> {
+        self.check_financial_consent_for_route(auth, false)
+    }
+
+    pub(crate) fn check_financial_consent_for_route(
+        &self,
+        auth: &Authorization,
+        routed: bool,
+    ) -> Option<FundingConsent> {
         let (environment, chain_id, warning) = if self.domain
             == "showup.engineering.authorization.v1"
         {
@@ -118,6 +137,13 @@ impl Escrow {
             )
         };
         let event = self.events.get(&auth.event).expect("Unknown event");
+        let policy = routed.then(|| {
+            event
+                .terms
+                .routing_policy
+                .as_ref()
+                .expect("Routed policy missing")
+        });
         let Some(origin) = &event.terms.wallet_consent_origin else {
             require!(
                 auth.wallet_consent.is_none(),
@@ -161,12 +187,37 @@ impl Escrow {
                 && reference(&terms["participant"]) == auth.participant,
             "Financial deployment or registration binding changed"
         );
-        wallet(&terms["source"], &auth.source, &self.token, chain_id);
-        wallet(&terms["refund"], &auth.refund, &self.token, chain_id);
-        wallet(&terms["payout"], &auth.payout, &self.token, chain_id);
+        wallet(
+            &terms["source"],
+            &auth.source,
+            &self.token,
+            chain_id,
+            policy,
+        );
+        wallet(
+            &terms["refund"],
+            &auth.refund,
+            &self.token,
+            chain_id,
+            policy,
+        );
+        wallet(
+            &terms["payout"],
+            &auth.payout,
+            &self.token,
+            chain_id,
+            policy,
+        );
+        require!(
+            auth.refund.network == auth.source.network,
+            "Source refund network changed"
+        );
+        let source_asset = policy.map(|policy| routed_funding::asset(policy, &auth.source.network));
         let input = object(&terms["inputAsset"], "contract,decimals");
         require!(
-            text(&input["contract"]) == self.token.as_str() && number(&input["decimals"]) == 6,
+            text(&input["contract"])
+                == source_asset.map_or(self.token.as_str(), |asset| asset.contract.as_str())
+                && number(&input["decimals"]) == 6,
             "Wrong financial settlement asset"
         );
         let principal = money(&terms["principal"]);
@@ -184,7 +235,7 @@ impl Escrow {
             "Financial principal or fee limits changed"
         );
         let _ = money(&terms["sourceGasMaximum"]);
-        let _ = money(&terms["routingFeeMaximum"]);
+        let routing_fee_maximum = money(&terms["routingFeeMaximum"]);
         require!(
             valid_id(text(&terms["quoteHash"])),
             "Invalid financial quote binding"
@@ -223,7 +274,7 @@ impl Escrow {
             auth.wallet_tag
                 == hash(&json!({"format":"showup.funding.wallet.v1",
             "deployment":auth.deployment,"environment":environment,"manifest":self.manifest,
-            "event":auth.event,"family":"near","address":auth.source.address})),
+            "event":auth.event,"family":if ["base", "ethereum"].contains(&auth.source.network.as_str()) {"evm"} else {auth.source.network.as_str()},"address":auth.source.address})),
             "Financial wallet tag changed"
         );
         require!(
@@ -256,44 +307,15 @@ impl Escrow {
             message.len() <= 8192 && text(&consent["message"]) == message,
             "Financial wallet message changed"
         );
-        let proof = object(&envelope["proof"], "accountId,publicKey,signature");
-        require!(
-            text(&proof["accountId"]) == auth.source.address,
-            "Financial signer account changed"
-        );
-        let public_key = text(&proof["publicKey"])
-            .strip_prefix("ed25519:")
-            .expect("Financial Ed25519 key required");
-        let bytes = bs58::decode(public_key)
-            .into_vec()
-            .expect("Invalid financial public key");
-        require!(
-            bs58::encode(&bytes).into_string() == public_key,
-            "Noncanonical financial public key"
-        );
-        let public_key: [u8; 32] = bytes.try_into().expect("Financial public key length");
-        let signature = base64::<64>(&proof["signature"]);
-        let nonce = base64::<32>(&consent["nonce"]);
-        let recipient = origin.strip_prefix("https://").unwrap();
-        let callback = format!(
-            "{origin}/account/commitments?consent={}",
-            text(&consent["id"])
-        );
-        let payload = near_sdk::borsh::to_vec(&(
-            2_u32.pow(31) + 413,
-            message,
-            nonce,
-            recipient,
-            Some(callback),
-        ))
-        .unwrap();
-        require!(
-            env::ed25519_verify(&signature, env::sha256(payload), &public_key),
-            "Invalid source financial signature"
-        );
+        let public_key =
+            funding_signature::verify(auth, consent, &envelope["proof"], &message, origin);
         Some(FundingConsent {
             public_key,
             maximum_input,
+            quote_hash: text(&terms["quoteHash"]).into(),
+            quote_expires_ms: quote_expires,
+            issued_ms: issued,
+            routing_fee_maximum,
         })
     }
 }

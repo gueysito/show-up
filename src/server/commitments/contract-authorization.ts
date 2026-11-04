@@ -19,6 +19,15 @@ export function contractReference(uuid: string): string {
   return uuid.replaceAll("-", "").padStart(64, "0");
 }
 
+// Allocate the opaque registration before quoting. Full financial consent binds
+// the resulting authenticated quote, avoiding a quote/consent hash cycle.
+export function routedCommitmentReference(registration: string): string {
+  return canonicalJson({
+    kind: "routed_commitment",
+    registration: contractReference(registration),
+  });
+}
+
 export function contractAuthorization(
   origin: string,
   consent: CommitmentConsent,

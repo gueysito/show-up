@@ -363,8 +363,22 @@ SDK's selected-field hash and Ed25519 verification with the fixed provider key.
 Its selected-field block is authenticated; it explicitly leaves expected-request,
 freshness and funding checks false. Dry fee fields remain excluded; wet quote
 deadlines can mask the echoed request deadline, which is reported as unauthenticated.
-This primitive is not yet connected to routed receipt or payout state transitions.
 `contracts:check` includes an independent Node replay of its sandbox output.
+
+The local `reserve_routed` path now stores the original credential authorization,
+source-wallet financial signature and authenticated quote before a short
+`routed_commitment` token message can fund its registration. Frozen rules pin the
+provider sender, quote key and four asset identities. Actual NEAR source control
+is checked at reservation; EVM/Solana signatures allow a NEAR relayer without
+requiring an attendee NEAR wallet. Request and response deadlines are checked
+separately. [ADR-0006](adr/0006-routed-registration-binding.md) records the binding.
+Disposable token tests exercise all four source-wallet families, cancellation and
+original NEAR payout, plus short/excess/duplicate/late receipt debt and substitution
+failures. Independent Node replay matches the application wire and signature
+formats. External refund liabilities remain unpaid when delivery is unqualified.
+The policy is sandbox-only: it does not qualify actual source-chain routing,
+external payout, provider custody or mainnet application funding. Ordinary browser
+funding remains gated; no owner-runtime or public deployment is changed.
 
 From an available event, choose **Review wallets and commitment destinations**.
 Select independently verified source, source-refund and principal-payout wallets;
@@ -1021,7 +1035,7 @@ uses long test epochs for clock jumps; published economic windows are unchanged.
 Current native-M4 evidence is ARM64; the CI job independently exercises AMD64.
 The Trixie runtime supplies the GLIBC needed by the pinned sandbox binary.
 
-The prototype accepts only its sandbox authorization domain. Direct funding checks
+The prototype accepts only its pinned non-production authorization domains. Direct funding checks
 the actual token sender, signed source/refund/payout destinations, event/rules,
 participant/wallet uniqueness, capacity and authorization expiry. Only actual token
 receipt creates a funded sandbox seat. Principal liabilities outlive failed

@@ -55,6 +55,35 @@ pub struct Terms {
     pub observer_policy: Option<ObserverPolicy>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub wallet_consent_origin: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub routing_policy: Option<RoutingPolicy>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct FundingAsset {
+    pub network: String,
+    pub chain_id: String,
+    pub contract: String,
+    pub route_asset: String,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone)]
+pub struct RoutingPolicy {
+    pub sender: AccountId,
+    pub quote_key: Base64VecU8,
+    pub assets: Vec<FundingAsset>,
+}
+
+#[near(serializers = [borsh, json])]
+#[derive(Clone, PartialEq, Eq)]
+pub struct RoutedFunding {
+    pub authorization_hash: String,
+    pub provider: AccountId,
+    pub quote_hash: String,
+    pub deposit_address: String,
+    pub quote_deadline_ms: u64,
 }
 
 /// Operator-qualified source profile is frozen with the event. Source labels

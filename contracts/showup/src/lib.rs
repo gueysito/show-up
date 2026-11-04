@@ -6,9 +6,11 @@ mod delivery;
 mod draw;
 mod financial;
 mod funding;
+mod funding_signature;
 mod nft;
 mod observer;
 mod recovery;
+mod routed_funding;
 mod routing_quote;
 mod routing_quote_fields;
 mod signing;
@@ -29,6 +31,7 @@ pub struct Escrow {
     evidence_key: [u8; 32],
     events: LookupMap<String, Event>,
     registrations: LookupMap<String, Registration>,
+    routed_funding: LookupMap<String, RoutedFunding>,
     active_participants: LookupMap<String, String>,
     active_wallets: LookupMap<String, String>,
     nonces: LookupMap<String, String>,
@@ -78,6 +81,7 @@ impl Escrow {
             evidence_key,
             events: LookupMap::new(b"e"),
             registrations: LookupMap::new(b"r"),
+            routed_funding: LookupMap::new(&b"rf"[..]),
             active_participants: LookupMap::new(b"p"),
             active_wallets: LookupMap::new(b"w"),
             nonces: LookupMap::new(b"n"),
@@ -148,6 +152,19 @@ impl Escrow {
             require!(
                 financial::valid_origin(origin),
                 "Invalid financial consent origin"
+            );
+        }
+        if let Some(policy) = &terms.routing_policy {
+            require!(
+                self.domain == "showup.sandbox.authorization.v1"
+                    && terms.wallet_consent_origin.is_some(),
+                "Routed funding remains local sandbox only"
+            );
+            routed_funding::validate_policy(
+                policy,
+                &self.token,
+                &self.credential_key,
+                &self.evidence_key,
             );
         }
         if let Some(prize) = &terms.native_nft {
