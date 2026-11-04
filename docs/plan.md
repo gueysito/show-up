@@ -170,6 +170,11 @@ archival source returned HTTP 429 with `Retry-After: 387`; honor its cooldown
 before resuming the same operation. New fixed diagnostic labels distinguish
 source rate limits and signer/image stages without exposing error bodies or keys.
 Normal release and final principal recovery remain unclaimed until observed.
+The next operator correction checks signer control before preparing short-lived
+authority, so an RPC stop cannot consume a newly created release window. The
+existing first-broadcast expiry guard now also covers release; it cannot renew
+the retained expired action or bypass original-image reconciliation. Focused
+native deadline/unknown-ack checks pass; no new test infrastructure was added.
 
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and

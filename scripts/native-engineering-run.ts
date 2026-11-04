@@ -526,10 +526,12 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       operatorStage = "execute_original_step";
       if (state.completed.includes(name)) return;
       if (!state.images[name]) {
-        operatorStage = "prepare_original_actions";
-        const preparedActions = await actions();
+        // Read signer control before creating short-lived action authority. An
+        // RPC cooldown must not consume its window before we can save an image.
         operatorStage = "verify_original_signer";
         const access = await verifyAccess(signerAccount, signer);
+        operatorStage = "prepare_original_actions";
+        const preparedActions = await actions();
         operatorStage = "sign_original_image";
         state.images[name] = {
           ...signNativeTransaction(
@@ -542,12 +544,14 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
         operatorStage = "persist_original_image";
         await save();
       }
-      if (
-        ["reserve_original_authorization", "fund_original_registration"].includes(name) &&
-        state.authorization &&
-        state.images[name].validUntilMs !== Number(state.authorization.expires_ms)
-      ) {
-        state.images[name].validUntilMs = Number(state.authorization.expires_ms);
+      const authority =
+        name === "release_original_registration"
+          ? state.release
+          : ["reserve_original_authorization", "fund_original_registration"].includes(name)
+            ? state.authorization
+            : undefined;
+      if (authority && state.images[name].validUntilMs !== Number(authority.expires_ms)) {
+        state.images[name].validUntilMs = Number(authority.expires_ms);
         await save();
       }
       operatorStage = "submit_original_image";
