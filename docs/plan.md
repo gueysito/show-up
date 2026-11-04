@@ -1,5 +1,111 @@
 # Showup plan
 
+This is the single task tracker. The full product vision lives in [the PRD](prd.md);
+what works now lives in [current state](../CURRENT_STATE.md). Working rules and
+authority live in [AGENTS.md](../AGENTS.md).
+
+The plan has three parts:
+
+1. **V1** — one complete working loop on mainnet. This is the current goal.
+2. **V2 roadmap** — the rest of the PRD, kept intact for later.
+3. **Reference** — the earlier plan and its evidence, superseded but kept for history.
+
+## V1 goal
+
+A host publishes an event. Attendees commit a small deposit from **NEAR, Solana, Base
+or Ethereum**; NEAR Intents converts it and **USDC lands in the Showup escrow contract
+on NEAR mainnet**. Attendees check in at the event. When it closes, the contract:
+
+- returns each attendee's deposit (less disclosed transaction fees),
+- splits no-show deposits equally among attendees (never to the host), and
+- if the host added a prize, draws one attendee to receive it: a USDC prize pot,
+  an **ERC-721 NFT held on Ethereum mainnet** and released by the NEAR contract through
+  Chain Signatures, or both.
+
+Everything runs in the real web app against real contract state, with transaction
+links anyone can check on block explorers.
+
+### V1 simplifications (deliberate; the PRD version is V2)
+
+| Area | V1 | V2 (PRD) |
+| --- | --- | --- |
+| Payout destination | USDC on NEAR to the attendee's NEAR account (stretch: back to the source chain via Intents) | Default payout on the funding chain, any supported chain |
+| Rewards | Forfeitures split equally + one optional draw prize (USDC pot and/or Ethereum NFT) | Sponsor budget with 40/60 hybrid, equal-only and draw-only presets |
+| Draw randomness | NEAR on-chain randomness from the contract is acceptable | Bound, recoverable verifiable-randomness request (section 15) |
+| Attendance | One mode, chosen by what is most complete: personal QR scanned by host, or host live code | Both digital and physical modes, Telegram code replies |
+| NFT prize networks | Ethereum mainnet ERC-721 via Chain Signatures | NEAR, Base, Solana and Ethereum |
+| Participation | None | Quizzes, daily streaks, series badges |
+| Notifications | None | Telegram bot reminders and receipts |
+| Access | Host sign-in as already built; attendees sign in and connect a wallet | Invitation roles, account export/deletion, recovery links |
+| Failure handling | Clean cancel/abort that returns principal; basic retries | Full crash/outage recovery, fee caps, fail-neutral evidence checkpoints |
+
+Keep existing code for V2 features in place but out of the V1 user path (hidden or
+flagged off). Do not delete it.
+
+### Mainnet budget
+
+V1 mainnet budget: **50 USD total** across NEAR, Solana, Base and Ethereum, covering
+contract storage collateral, deposits, gas, Intents fees and the NFT. NEAR Intents has
+no testnet, so cross-chain routes are exercised on mainnet with small amounts. If
+contract storage collateral pushes the total past the budget, shrink the contract
+(for example by moving V2-only code out of the deployed build) before asking for more.
+
+## V1 work packages
+
+Work in this order. A package is done when its acceptance line is true in the real app
+and its evidence row below has tx links. One package may start before the previous one
+is fully polished if it is blocked on an external step.
+
+| ID | Package | Acceptance |
+| --- | --- | --- |
+| V1-1 | **Mainnet escrow** | V1 contract builds with money-path tests passing (deposit, refund, forfeiture split, draw, NFT release, cancel). Deployed to a NEAR mainnet account; storage collateral and account recorded. One manual 1–2 USD USDC deposit and refund round trip succeeds. |
+| V1-2 | **Publish an event** | A signed-in host creates an event in the app (title, time, deposit amount, capacity, optional prize) and publishes it to the mainnet contract. The public event page shows the live on-chain terms. |
+| V1-3 | **Deposit from NEAR** | An attendee signs in, connects a NEAR wallet, sees the deposit and fee breakdown, deposits USDC (or NEAR converted via Intents), and the app shows the seat as confirmed only after the escrow receipt is observed on chain. |
+| V1-4 | **Deposit from Base, Solana and Ethereum** | Same journey from a Base wallet, a Solana wallet and an Ethereum wallet using the NEAR Intents 1Click API: quote → wallet approval → live routing status → USDC confirmed in escrow and bound to that attendee's registration. Order: Base, Solana, Ethereum. |
+| V1-5 | **Check-in** | Attendees check in at the event through the chosen mode; the host sees who is checked in, live. Check-ins are recorded against the funded registration and reach the contract at close. |
+| V1-6 | **Close and settle** | Host closes the event (or the deadline closes it). Contract returns attendee deposits, splits no-show deposits equally among attendees, and draws the prize winner. Attendees see their receipt: deposit back + share + prize, with tx links. Host sees a results page. |
+| V1-7 | **Ethereum NFT prize** | Host attaches an ERC-721 on Ethereum mainnet. It moves into a Chain Signatures–derived custody address controlled by the escrow contract before publication. At settlement the contract signs its transfer to the winner's Ethereum address; the app shows the Etherscan link. Cancel returns it to the host. |
+| V1-8 | **Refund to source chain (stretch)** | Attendees who deposited from Base, Solana or Ethereum receive their USDC back on that chain via Intents. Skip if V1-1 to V1-7 are not solid. |
+| V1-9 | **Polish and front door** | Landing page that explains Showup in one screen; event, deposit, check-in and results screens look finished on desktop and phone; live status animations for routing and the draw reveal. README rewritten to describe exactly what runs, how to run it from a fresh clone, the architecture (diagram) and the mainnet contract and tx links. Fresh-clone setup verified. |
+
+### V1 evidence
+
+One row per finished package: what was verified, with tx/explorer links. Keep it short.
+
+| ID | Date | Evidence |
+| --- | --- | --- |
+| — | — | — |
+
+### Mainnet spend ledger
+
+| Date | Chain | Purpose | Amount (USD) | Tx |
+| --- | --- | --- | --- | --- |
+| — | — | — | — | — |
+
+## V2 roadmap
+
+The rest of the [PRD](prd.md), in rough priority order. Existing code and ADRs for these
+remain the starting point.
+
+1. Payouts on any supported chain by default; destination changes with proof of control.
+2. Sponsor reward budgets with equal-only, draw-only and 40/60 hybrid presets.
+3. Verifiable, recoverable draw randomness (PRD section 15) and prize acceptance/decline/replacement.
+4. Both attendance modes, with Telegram code replies.
+5. Quizzes (up to two per event) and daily streaks with the 1.25× boost; series badges.
+6. Telegram bot: reminders, check-in prompts, quiz buttons, receipts.
+7. NFT prizes on NEAR, Base and Solana in addition to Ethereum.
+8. Host invitations and roles, account export and deletion, own recovery links.
+9. Fee caps, requotes, route minimums and full per-route acceptance tests (PRD section 8).
+10. Crash/outage recovery, fail-neutral evidence checkpoints and reconciliation hardening (PRD section 14).
+11. Host results report with cost per verified check-in (PRD section 19).
+12. Public hosted deployment and wider (non-invite) access.
+
+## Reference: pre-V1 plan (superseded)
+
+Everything below is the earlier plan and evidence, kept for history and as V2 design
+input. Its approvals, gates and "active" goals no longer govern work; V1 above and
+[AGENTS.md](../AGENTS.md) do.
+
 This is the single task tracker. Requirements live in [the PRD](prd.md);
 maturity and the next action live in [current state](../CURRENT_STATE.md).
 Owner approval on November 2, 2026 authorizes the larger halfway slice through
@@ -28,7 +134,7 @@ On November 2 the owner separately authorized the temporary Telegram sign-in
 tunnel at `https://liable-pleat-maritime.ngrok-free.dev` and its narrow app
 configuration change. This does not authorize other hosts or general deployment.
 
-## Active halfway implementation goal
+### Active halfway implementation goal
 
 Goal: working, verified milestone-4 journeys, not a percentage claim. Exposure:
 local pilot with fictional data. Existing ADRs and PRD acceptance remain binding.
@@ -275,7 +381,7 @@ draw-only save, in-person preview and two-question cap passed the exercised path
 Workspace clearing showed an empty form/list and its success message. This is
 manual evidence for these paths, not a claim that every guide variation was tested.
 
-### I3 follow-up: accepted walkthrough requirements
+#### I3 follow-up: accepted walkthrough requirements
 
 The owner approved integrating these requirements on November 2, 2026 after
 reviewing the feedback. Requirements live in the PRD; this is the execution
@@ -290,7 +396,7 @@ authorized by the active halfway goal above.**
 | UX-06: save conflict | Implement prominent recovery warning; two-tab test proves the newer save survives and discard requires explicit choice. | Implemented; local browser checks pass. |
 | UX-07: question choices | Implement separate choice controls and clear short-answer editing; browser check two, three, four and six choices, targeted errors and correct-answer consistency. | Implemented; local browser checks pass. |
 
-### Recommended next bounded goal: invite-only host workspace
+#### Recommended next bounded goal: invite-only host workspace
 
 **Superseded by the larger halfway goal above.** Historical proposal: build a coherent
 host-access and event-management slice of existing I1/I2/I3 rather than treating
@@ -321,7 +427,7 @@ they must not appear as real login in the owner-facing app or pass the live gate
 The fresh kickoff should explicitly authorize the selected implementation scope
 and goal creation; this documentation task does not start that goal.
 
-### Browser verification before each owner handoff
+#### Browser verification before each owner handoff
 
 The owner requested this sequence for subsequent builds, beginning with the next goal:
 
@@ -415,7 +521,7 @@ canonical successful receipt has not yet reached finalized status, so
 read-only finality confirmation is the remaining wallet check. See the wallet guide for evidence
 and limits; no application implementation is claimed.
 
-## Implementation plan for approval
+### Implementation plan for approval
 
 This expands the existing seven proposed outcomes into executable milestones;
 it does not create a second tracker or authorize implementation/deployment.
@@ -446,7 +552,7 @@ and cross-chain authorization dominate uncertainty. No network or attendance mod
 is removed to fit a calendar. If a milestone exceeds twice its estimate, stop and
 reforecast with evidence, rather than silently reducing acceptance.
 
-### Verification commands to establish in outcome 1
+#### Verification commands to establish in outcome 1
 
 Use the chosen package manager's locked install and exact scripts for `format:check`,
 `lint`, `typecheck`, `test:unit`, `test:integration`, `test:e2e`, and `build`; Rust
@@ -455,7 +561,7 @@ selected sandbox runner. These are planned commands, not currently available.
 Keep existing repository hooks active. Separate tests requiring external providers
 or funds from offline CI so CI cannot unexpectedly spend real money.
 
-### Security and stop conditions
+#### Security and stop conditions
 
 Check server authorization, user-to-user ID swaps, admin access, rate limits,
 error redaction, input/query handling, CSRF/CORS, server secret isolation, dependency
@@ -469,7 +575,7 @@ signing or new draw request. Native-chain and cross-chain proofs remain separate
 External attestation is accepted for restricted, inexpensive allowlisted assets; its implementation must pass verification before publication. No production
 security claims follow from documentation or a passing unit test alone.
 
-### What requires the owner, and when
+#### What requires the owner, and when
 
 - Before implementation: approve this plan. Routine package/version selection and
   test implementation belong to engineering; return only for material scope/risk changes.
@@ -478,7 +584,7 @@ security claims follow from documentation or a passing unit test alone.
 - Before hosting: approve deployment destination, operating budget, recovery and
   security evidence. Preserve claim access and accepted liabilities after shutdown.
 
-## How to execute this plan
+### How to execute this plan
 
 Except for the completed F1–F4 and bounded I3 work recorded above, tasks below
 remain planned. Their IDs decompose the seven existing
@@ -492,7 +598,7 @@ contract deployments, wallet use, account purchases or transactions. Keep the re
 private unless separately authorized. Ordinary technical choices are engineering
 responsibility; escalate only material changes to cost, scope, behavior or trust.
 
-### Dependency map
+#### Dependency map
 
 ```mermaid
 flowchart LR
@@ -511,7 +617,7 @@ access. Passing mocks does not pass an integration gate. Start G1/G2 investigati
 early enough to change an adapter before building all dependent screens. Both
 attendance modes and all four networks remain release requirements.
 
-### Planned code boundaries
+#### Planned code boundaries
 
 These directories are proposed destinations, not files to create during planning.
 
@@ -530,14 +636,14 @@ Do not add a generic microservice framework or separate datastore for every feat
 Store integer atomic amounts and serialize large integers as strings. Keep versioned
 rules and contract schemas explicit; frontend calculations never authorize payouts.
 
-## Detailed work packages
+### Detailed work packages
 
 Effort is allocated by the milestone ranges above, not added on top. Each row is a
 reviewable work package, potentially several small commits. Check dependencies at
 its start and record actual effort at its end. Source IDs link to official references
 below; prescriptions not explicitly stated by those sources are Showup design choices.
 
-### 1. Reproducible foundation
+#### 1. Reproducible foundation
 
 Prerequisite: implementation approval. Owner: implementing engineer.
 
@@ -552,7 +658,7 @@ Exit: runnable local infrastructure and evidence of migration/job recovery. Do n
 present the shell as a working payments product. Exact application commands are
 introduced here and then become required for subsequent checkpoints.
 
-### 2. Early protocol proofs
+#### 2. Early protocol proofs
 
 Prerequisite: F1/F2 and approved external access when needed. No fees are spent by
 default. Use real engineering test networks for signing and NFTs; Intents needs a
@@ -570,7 +676,7 @@ Exit: evidence for architecture viability, not blanket security approval. Depend
 failure blocks only affected integrations; never silently replace custody with a hot
 wallet or use random browser output. Preserve actual chain traces without identities.
 
-### 3. Identity, invitations and commitments
+#### 3. Identity, invitations and commitments
 
 Prerequisite: F1–F4. P2 blocks real-money enrollment, not offline implementation.
 
@@ -586,7 +692,7 @@ Exit: G5 and invitation/capacity/money checks pass. Request credentials only whe
 live provider callbacks are needed; name required keys, never ask to paste secrets
 into chat or store them in the repo.
 
-### 4. Both attendance modes
+#### 4. Both attendance modes
 
 Prerequisite: identity and committed-registration engine; digital and physical
 experiences use the same evidence ledger.
@@ -601,7 +707,7 @@ experiences use the same evidence ledger.
 Exit: ATT-01–03 and LIVE checks for both modes, not a digital-only pilot. Late
 attendance preserves refund/equal/streak but excludes all draw entries.
 
-### 5. Rewards, draw and NFT claims
+#### 5. Rewards, draw and NFT claims
 
 Prerequisite: attendance rules and P3–P5. Use PRD accounting examples as independent
 test vectors, including empty and single-participant sets.
@@ -617,7 +723,7 @@ test vectors, including empty and single-participant sets.
 Exit: complete QUIZ/STREAK/DRAW/CLAIM/NFT acceptance. The two-minute recovery target
 is not a guarantee of instantaneous external settlement.
 
-### 6. Delivery, reports and operational preparation
+#### 6. Delivery, reports and operational preparation
 
 Prerequisite: canonical liabilities/claim decisions. Hosting and funds still need
 separate approval; write configuration/runbooks before activating paid services.
@@ -630,7 +736,7 @@ separate approval; write configuration/runbooks before activating paid services.
 | D4 Operations | Railway web/worker/Postgres, private networking, alerts, backup/restore, redaction, resource budgets, migrations and rollback. [DOC10] | Restore rehearsal and worker restart preserve obligations. Health means more than HTTP uptime; alert on stalled funds. |
 | D5 Retirement | Inventory unpaid/accepted prizes, 30-day claim windows and refund liabilities before shutdown. Publish recovery access and operator responsibilities. | No service teardown strands accepted funds. Define how reconciler/claim access continues; expiration is not permission to seize owed assets. |
 
-### 7. End-to-end verification and release review
+#### 7. End-to-end verification and release review
 
 Prerequisite: all earlier exits, approved exposure configuration and funds for real
 integration evidence. Developer convenience must not weaken funded deployment rules.
@@ -643,7 +749,7 @@ integration evidence. Developer convenience must not weaken funded deployment ru
 | V4 Clean-clone reproduction | Follow setup without author intervention, inspect containers and default network flags, run production build and appropriate checks. | Another operator reproduces the documented outcome; no hidden keys or fake transaction history. |
 | V5 Release receipt | Record commit/build hashes, manifests, checks, unresolved limitations, actual network evidence and rollback/recovery procedure. | Owner approves target and budget before deployment; verify live expected content after activation. No blanket readiness claim from a Git push. |
 
-## Evidence, configuration and external prerequisites
+### Evidence, configuration and external prerequisites
 
 Each task completion record in this tracker must identify: commit; command/scenario;
 expected versus observed result; environment and version; evidence location; any
@@ -659,7 +765,7 @@ session logs. Public chain evidence must not contain a social identity directory
 | Mainnet wallets and all-in caps | P2/D2 | Public addresses only in planning; caps include provider/signing fees, gas, storage, retries and reserves. No automatic replenishment. |
 | Railway account, domain, region, backups and budget | D4/V5 | Configure only after approval; distinguish platform spend from recoverable principal and reward funding. |
 
-### Verification commands and isolation
+#### Verification commands and isolation
 
 Outcome 1 establishes one package manager and real scripts before documenting them
 as runnable. Required script families: formatting, lint, typecheck, unit tests,
@@ -673,7 +779,7 @@ live payment evidence in the visitor-facing product. Validate database concurren
 against PostgreSQL, contract transitions against the sandbox, actual provider
 responses in integration tests, and actual wallet/audio behavior on phones. [DOC4, DOC11]
 
-### First implementation session, after explicit approval
+#### First implementation session, after explicit approval
 
 1. Read current state, this tracker and both ADRs; fetch and report remote overlap.
 2. Revalidate selected versions/advisories, then execute F1 without floating scaffold
@@ -689,7 +795,7 @@ compress it merely because the desired start is imminent. At 2× a package/miles
 forecast, stop and explain the evidence and options; changing required scope needs
 owner approval. Long external waits do not justify fake integration results.
 
-## Official reference index
+### Official reference index
 
 Reviewed for planning on October 31, 2026. Follow the selected stable version at
 implementation time; a documentation example is not a dependency pin. These sources
@@ -709,7 +815,7 @@ justify mechanisms, not proof that Showup already implements them.
 | DOC10 | [Railway services](https://docs.railway.com/guides/services), [PostgreSQL](https://docs.railway.com/guides/postgresql), [cost control](https://docs.railway.com/pricing/cost-control) | Later operations planning; backup/restore behavior must be checked against chosen service configuration |
 | DOC11 | [Playwright best practices](https://playwright.dev/docs/best-practices) | Isolated user-visible tests and resilient locators |
 
-## Initial wallet test sequence
+### Initial wallet test sequence
 
 This is preparation within P1/I4, not approval for application implementation or
 mainnet work. Three test groups, in order:

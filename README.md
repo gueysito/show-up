@@ -1,53 +1,47 @@
 # Showup
 
-Showup turns an RSVP into a refundable commitment. Attendees place a deposit,
-check in, and recover their deposit less disclosed transaction fees. Sponsors fund rewards; optional quizzes
-and attendance streaks add participation benefits. Hosts see reconciled
-attendance and spending results.
+**Turn an RSVP into a refundable commitment.**
 
-The initial audience is wallet-familiar communities running X Spaces and small
-in-person events. The proposed product is a responsive website with optional
-PWA installation and Telegram reminders. Event audio stays on its existing platform.
+Free RSVPs are cheap, so people don't show up. Showup asks attendees to put down a small
+deposit. Show up and you get it back. Don't, and your deposit is split among the people
+who did. Hosts can add a prize — a USDC pot, an NFT, or both — that one attendee wins.
 
-**Status: local event-draft workspace.** You can prepare, validate, save and reopen
-drafts with fictional details. F1–F4 and the bounded I3 draft subset are implemented.
-Owner checks verify Google/Telegram sign-in and explicit linking through the approved
-development tunnel. Publication and funding remain unverified. Invitations and
-private host draft management have isolated fixture evidence. The five draft UX
-improvements are implemented under the active [halfway goal](docs/plan.md#active-halfway-implementation-goal).
-A local NEAR contract prototype proves token receipt, principal recovery, signed
-attendance and first-round proof boundaries in a disposable sandbox. Read-only
-provider pricing verifies actual quote signatures; app funding remains disabled.
-Separate wallet-control UI and encrypted records pass isolated tests. Immutable
-event/fee/destination consent has internal signature and database evidence; its
-wire now matches actual native sandbox funding and principal return with source-key
-enforcement. Application funding integration, actual wallets and qualified enrollment
-remain distinct gates.
-Own-account financial history displays approved terms with explicit unconfirmed-escrow status.
-Event commitment review connects verified wallet destinations and preserves NEAR
-wallet-return context; qualified quote/fee approval and funding remain disabled.
-Native synthetic NFT custody also exercises receipt, fixed-recipient retry and return.
-Start with the
-[10–15 minute review guide](docs/verification.md) and [local setup](docs/setup.md).
+Attendees can pay from **NEAR, Solana, Base or Ethereum**. NEAR Intents converts the
+deposit, and the money sits in a Showup escrow contract on NEAR that enforces the rules:
+the host never holds attendee funds and never receives a share of forfeited deposits.
+NFT prizes stay on their own chain and are released by the NEAR contract through
+NEAR Chain Signatures.
 
-## Start here
+> Attendees fund the commitment. Hosts fund the excitement.
 
-1. Read [current state](CURRENT_STATE.md) for what exists and the next action.
-2. Read the [product requirements](docs/prd.md) for journeys, money rules,
-   boundaries, proposed architecture, and acceptance criteria.
-3. Use [the plan](docs/plan.md) as the single task tracker.
-4. Read [AGENTS.md](AGENTS.md) before changing anything.
+## Status
 
-The [technical scope](docs/technical-scope.md) connects current platform
-documentation to the unresolved choices and proof obligations in the PRD.
-The accepted [framework and authentication decision](docs/adr/0001-application-and-authentication.md)
-records the Next.js, Node.js, openid-client, and PostgreSQL session direction.
-The [runtime and access requirements](docs/prd.md#165-runtime-and-exposure) select
-Docker Compose and Railway, with invitation-only mainnet access and real
-transactions under approved limits. These are planned capabilities, not a live service.
+V1 is in active development: one complete loop on mainnet — publish, deposit from any
+of the four chains, check in, settle, prize. See [current state](CURRENT_STATE.md) for
+exactly what works today and [the plan](docs/plan.md) for V1 progress and the V2 roadmap.
 
-Project-only test account addresses and funding instructions are in
-[development wallets](docs/development-wallets.md). No private keys are tracked.
+## How V1 works
+
+1. **Host** signs in, creates an event (time, deposit, capacity, optional prize) and
+   publishes it to the escrow contract.
+2. **Attendee** connects a wallet on NEAR, Solana, Base or Ethereum, reviews the deposit
+   and fees, and commits. NEAR Intents routes the deposit into USDC in escrow.
+3. **At the event,** attendees check in and the host sees attendance live.
+4. **At close,** the contract returns deposits, splits no-show deposits among attendees
+   and draws the prize winner. Everyone gets a receipt with explorer links.
+
+## Architecture
+
+- **Web app:** Next.js and TypeScript, PostgreSQL, and a background worker
+  ([ADR-0001](docs/adr/0001-application-and-authentication.md)).
+- **Escrow contract:** Rust on NEAR (`contracts/showup`), the source of truth for money.
+- **Cross-chain deposits:** NEAR Intents 1Click API.
+- **Cross-chain prizes:** NEAR Chain Signatures ([ADR-0002](docs/adr/0002-nft-custody.md)).
+
+## Run it locally
+
+See [setup](docs/setup.md). The full product vision is in the [PRD](docs/prd.md).
+Project wallet addresses (no keys) are in [development wallets](docs/development-wallets.md).
 
 ## Repository checks
 
@@ -59,8 +53,4 @@ sh .standards/check-standards.sh
 ```
 
 Setup activates the commit template and Git checks, preserving any existing
-active hooks. The check should report the front door and baseline as passing.
-See [standards maintenance](.standards/README.md) for scope and provenance.
-
-Implementation evidence is recorded in the plan. Other product behavior remains
-planned; technical sources in the PRD do not prove working integrations.
+active hooks. See [standards maintenance](.standards/README.md) for scope and provenance.

@@ -3,9 +3,10 @@
 
 **Product baseline:** 1.0 · **Source prepared:** October 21, 2026 · **Product edition:** November 2, 2026
 
-**Status:** Product requirements. The bounded F1–F4 local foundation is implemented;
-the I3 event-draft subset is implemented. Contracts, live integrations and pilot results
-do not exist. See [current implementation evidence](plan.md).
+**Status:** This PRD is the full product vision (the V2 target). V1 ships a deliberate
+subset first; [the plan's V1 section](plan.md#v1-goal) defines it and lists every
+simplification. Where this document and the V1 section differ, the V1 section governs
+V1 work and this document governs V2.
 
 This product edition preserves the owner's supplied requirements and technical references.
 Accepted choices are identified below; other defaults remain proposals for discussion.
