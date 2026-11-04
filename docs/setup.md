@@ -349,6 +349,15 @@ remain incomplete.
 
 ## Financial-consent preparation
 
+Read-only provider pricing now supports both exact-output entry and exact-input
+return quotes between NEAR USDC and each external USDC network. Return results
+keep gross principal, quoted net output and minimum net output separate. Signed
+amounts and destinations are verified; dry fee details remain unauthenticated.
+The [initial funding guide](development-wallets.md#mainnet-preparation-and-initial-funding)
+records actual public dry prices and deployment collateral separately. This adds
+no browser funding operation, deposit address, signature request, reservation or
+route qualification; actual authorization/escrow/return gates stay closed.
+
 From an available event, choose **Review wallets and commitment destinations**.
 Select independently verified source, source-refund and principal-payout wallets;
 source refunds must use the source network. **Review destinations and fee availability**

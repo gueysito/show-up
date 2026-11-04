@@ -6,7 +6,112 @@ project EVM/Solana keys and preparation of a separate NEAR mainnet account, reus
 the existing NEAR key where suitable. Do not regenerate existing keys. No mainnet
 funding instruction or signing/deployment approval is implied by this preparation.
 Follow the [bounded funding handoff](plan.md#active-halfway-implementation-goal)
-before sending real funds; no mainnet balances have been verified.
+before sending real funds; the initial mainnet reads below show no funds.
+
+## Mainnet preparation and initial funding
+
+Public reads on November 4 at 04:28–04:30 UTC (November 3 in Denver) confirm the
+addresses below. This is an initial wallet-funding proposal, approximately **$9.11**,
+not the full milestone budget or authority to sign/spend. Send directly on the
+specified network, native gas first, then Circle USDC. No bridges or exchange
+withdrawals are needed for these owner-wallet transfers. Sender transaction fees
+are additional; their exact values require the sender's actual wallet quote.
+
+| Order / exact mainnet | Verified project address | Exact initial amount | Approximate USD |
+| --- | --- | --- | --- |
+| 1. NEAR mainnet | `14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc` | **0.25 NEAR**, native; no USDC yet | $0.95 |
+| 2. Solana mainnet-beta | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | **0.003 SOL + 2.54 USDC** | $2.81 |
+| 3. Base mainnet, chain 8453 | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | **0.00002 ETH + 2.54 USDC** | $2.58 |
+| 4. Ethereum mainnet, chain 1 | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | **0.0001 ETH + 2.54 USDC** | $2.76 |
+
+USDC amounts are 2,540,000 atomic units, six decimals. Use only these
+[Circle token identities](https://developers.circle.com/stablecoins/usdc-contract-addresses):
+
+- Solana mint: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`.
+- Base: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`.
+- Ethereum: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`.
+
+For Solana, use the wallet's **Send USDC** flow to the project wallet address;
+the mint identifies the asset and is not the receiving address. Its associated
+token account may need creation. Two public RPCs agree on 1,488,440 lamports
+(0.00148844 SOL) rent for a 165-byte token account. That is refundable collateral
+only if an empty account can later be closed under its owner's authority, not
+a consumed transaction fee. The 0.003 SOL allocation covers a token-account rent
+allowance, a system-account balance allowance and bounded transfer fees. Base and
+Ethereum have separate balances despite the shared address. The EVM native
+allocations are fee reserves, not predicted consumption or permission for retries.
+
+The NEAR address is the exact 32-byte hex encoding of the recorded public key
+`ed25519:2PQ8rQ56kQV6dFeiMNwEmbbQvxiTXGFPLt2uk4UyU8cB`. It comes from the prior
+public ownership/transfer receipts; no private key was read. Both mainnet RPCs
+report `UNKNOWN_ACCOUNT`, so it is **derived and uninitialized**, not an active
+account with freshly verified mainnet key membership. A native NEAR transfer
+[activates the implicit account and installs its public key](https://docs.near.org/protocol/tutorials/creating-implicit-and-named-accounts).
+Use a plain NEAR send, no memo or function call. Do not send to the testnet name.
+Do not send NEAR USDC until token storage is registered and verified. The pinned
+mainnet USDC contract reports a 0.00125-NEAR storage minimum on both sources.
+
+The implicit account is suitable as the project funding/controller wallet. It can
+hold contract code, but its 64-character ID cannot support the current child-account
+layout within NEAR's 64-character account-ID limit. Keeping that layout requires
+a short named parent, created through the `near` account's documented factory.
+Naming, exact factory/account/code checks, public-key installation, attached funds,
+gas, signing runtime and one-attempt/reconciliation limits must be frozen in an
+unsigned account-registration batch before approval. No `.near` name is claimed
+registered and no testnet tool or credential file has been repointed.
+
+### Cost and recovery boundaries
+
+The [public preparation receipt](evidence/mainnet-funding-preparation-2026-11-04.json)
+preserves chain identities, empty balances, two-source NEAR storage/protocol facts,
+two-source Solana rent and nine verified provider-signed dry quotes. Price snapshot:
+NEAR $3.78, SOL $91.45, ETH $2,256.47, USDC about $0.999468. These are estimates,
+not an exchange-rate promise. EVM gas-price samples were 0.006 gwei on Base and
+0.0488694 gwei on Ethereum; the zero-value native transfer estimate was 21,000 gas.
+No source-wallet USDC transfer or Base total L1/operator fee was simulated.
+
+| Source | Input quoted for 2.50 USDC in NEAR | Quoted return from 2.50 USDC | Minimum quoted return, 1% tolerance |
+| --- | --- | --- | --- |
+| Base | 2.530248 USDC | 2.497265 USDC | 2.472292 USDC |
+| Solana | 2.530317 USDC | 2.255634 USDC | 2.233077 USDC |
+| Ethereum | 2.530240 USDC | 2.199654 USDC | 2.177657 USDC |
+
+The input includes a 1% slippage buffer that may be returned; it is not all fee
+consumption. Proposed first-experiment input ceiling is 2.54 USDC per external
+network for 2.50 USDC gross principal. Possible return-fee ceilings for review are
+0.05 USDC Base, 0.30 USDC Solana and 0.35 USDC Ethereum, leaving positive minimum
+net amounts. These are proposed limits, not signed consent, current executable
+quotes or per-field authenticated fee details. Requote against the actual deployed
+escrow and registered recipient before a bounded approval. No deposit address was
+requested. The existing app/contract floor remains 2.50 USDC; signed 1-USDC pricing
+does not change it. Rejected 0.10-USDC requests returned higher bridge-minimum hints,
+not guaranteed minima. A sequential return can be reused, but fees reduce it;
+another full-principal attempt may need a separately priced and approved top-up.
+
+**The complete milestone does not currently fit $10 or $20.** The existing
+1,007,612-byte WASM alone requires 10.07612 NEAR of regular code storage collateral,
+**$38.09**, at both sources' live 10^19-yoctoNEAR/byte rate. That alone exceeds
+$20 by $18.09, excluding state, accounts, gas, stablecoin principal and provider
+costs. The current artifact also rejects mainnet initialization and external
+funding; it is not the final mainnet artifact or a deployment recommendation.
+Stripping its 262,158-byte name section would still leave code collateral above
+$28 at this price and would require separate artifact verification. No artifact
+was changed. Global-contract publication burns more for a new unique deployment,
+so it is not a cheaper substitute for this experiment.
+
+Storage collateral stays locked while required data/code remains; current recovery
+tools do not release it automatically. Unspent native balances and returned USDC
+remain project assets. Gas, actual provider fees and failed-attempt costs are
+consumed. The final mainnet artifact, bounded state allowance, key/upgrade authority,
+gas/recovery plan, OutLayer execution cost, engineering custody assets/signing and
+source qualification still need pricing/verification. **Do not fund the collateral
+shortfall yet:** publish the exact additional requirement when those inputs are
+known. Keep public deployment/signing gated and all routes disabled.
+
+After owner transfers, verify finalized arrival and exact token/mint/amount before
+any approved use, including NEAR FullAccess key membership. A wallet notification,
+submitted hash or funding alone grants no execution authority. No automatic top-up
+or resend is allowed; uncertain submissions retain their original identity.
 
 ## Public addresses
 

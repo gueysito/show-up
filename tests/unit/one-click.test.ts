@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
 import publicDry from "../fixtures/one-click-dry-public.json";
+import publicReturn from "../fixtures/one-click-return-dry-public.json";
 import { decodeBase58, encodeBase58 } from "../../src/server/protocol/encoding";
 import { quoteMessage, verifyQuoteSignature } from "../../src/server/protocol/quote-signature";
 import {
   dryQuoteRequest,
+  dryReturnQuoteRequest,
   OneClickReadOnly,
   validateQuoteTerms,
   type QuoteRequest,
@@ -27,6 +29,86 @@ const expected: QuoteRequest = {
   deadline: publicDry.quoteRequest.deadline,
   quoteWaitingTimeMs: 3000,
 };
+
+test("signed return pricing preserves gross principal and a separate minimum net output", () => {
+  const now = Date.parse(publicReturn.timestamp);
+  const request = dryReturnQuoteRequest({
+    network: "base",
+    amount: "2500000",
+    refundTo: publicReturn.quoteRequest.refundTo,
+    recipient: publicReturn.quoteRequest.recipient,
+    now: Date.parse(publicReturn.quoteRequest.deadline) - 300_000,
+  });
+  assert.equal(verifyQuoteSignature(publicReturn), true);
+  const result = validateQuoteTerms(publicReturn, request, now);
+  assert.equal(result.principal, "2500000");
+  assert.equal(result.amountIn, result.principal);
+  assert.equal(result.quotedOutput, "2497265");
+  assert.equal(result.minimumOutput, "2472292");
+  assert.equal(result.fundingAllowed, false);
+  assert.equal("depositAddress" in result, false);
+  for (const field of ["originAsset", "destinationAsset", "refundTo", "recipient", "amount"]) {
+    const changed = structuredClone(publicReturn);
+    Object.assign(changed.quoteRequest, { [field]: "substituted" });
+    assert.equal(verifyQuoteSignature(changed), false, field);
+    assert.throws(() => validateQuoteTerms(changed, request, now), /changed/);
+  }
+  for (const [field, value] of [
+    ["amountIn", "2500001"],
+    ["minAmountIn", "2499999"],
+    ["minAmountOut", "0"],
+    ["minAmountOut", "2497266"],
+  ]) {
+    const changed = structuredClone(publicReturn);
+    Object.assign(changed.quote, { [field]: value });
+    assert.throws(() => validateQuoteTerms(changed, request, now), /principal/);
+  }
+  assert.throws(() => validateQuoteTerms(publicReturn, request, now + 300_000), /time/);
+});
+
+test("return pricing cannot request a wet quote, change the settlement asset or price a native send", async () => {
+  const request = dryReturnQuoteRequest({
+    network: "ethereum",
+    amount: "2500000",
+    refundTo: publicReturn.quoteRequest.refundTo,
+    recipient: publicReturn.quoteRequest.recipient,
+  });
+  let calls = 0;
+  const adapter = new OneClickReadOnly(async () => {
+    calls++;
+    return Response.json({});
+  });
+  await assert.rejects(adapter.dryQuote({ ...request, dry: false }), /only/);
+  await assert.rejects(
+    adapter.dryQuote({ ...request, originAsset: "nep141:wrong.near" }),
+    /Invalid dry/,
+  );
+  await assert.rejects(
+    adapter.dryQuote({ ...request, destinationAsset: "nep141:wrong.near" }),
+    /Unapproved/,
+  );
+  assert.throws(() => dryReturnQuoteRequest({ ...request, network: "near" }), /no cross-chain/);
+  assert.equal(calls, 0);
+  const keys = generateKeyPairSync("ed25519");
+  for (const network of ["base", "ethereum", "solana"] as const) {
+    const pricing = dryReturnQuoteRequest({
+      network,
+      amount: "2500000",
+      refundTo: publicReturn.quoteRequest.refundTo,
+      recipient: network === "solana" ? encodeBase58(Buffer.alloc(32, 2)) : request.recipient,
+    });
+    const response = {
+      ...publicReturn,
+      quoteRequest: pricing,
+      timestamp: new Date().toISOString(),
+    };
+    response.signature = `ed25519:${encodeBase58(sign(null, quoteMessage(response), keys.privateKey))}`;
+    await assert.rejects(
+      new OneClickReadOnly(async () => Response.json(response)).dryQuote(pricing),
+      /signature/,
+    );
+  }
+});
 
 test("public dry response verifies against the pinned production key without authorizing funds", () => {
   assert.equal(verifyQuoteSignature(publicDry), true);

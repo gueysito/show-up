@@ -5,7 +5,7 @@ import { record, verifyQuoteSignature } from "./quote-signature";
 
 export type QuoteRequest = {
   dry: boolean;
-  swapType: "EXACT_OUTPUT";
+  swapType: "EXACT_OUTPUT" | "EXACT_INPUT";
   slippageTolerance: number;
   originAsset: string;
   depositType: "ORIGIN_CHAIN";
@@ -65,6 +65,37 @@ export function dryQuoteRequest(input: {
   };
 }
 
+// Prices delivery of an existing NEAR USDC liability. This is not a payout
+// instruction: neither dry response fields nor provider status authorize a send.
+export function dryReturnQuoteRequest(input: {
+  network: Network;
+  amount: string;
+  refundTo: string;
+  recipient: string;
+  now?: number;
+}): QuoteRequest {
+  if (input.network === "near") throw new Error("Native NEAR return needs no cross-chain quote");
+  const destination = networkIdentity(input.network).assets.find((asset) => asset.id === "usdc")!;
+  if (integerAmount(input.amount) <= 0n) throw new Error("Principal must be positive");
+  validAddress("near", input.refundTo);
+  validAddress(input.network, input.recipient);
+  return {
+    dry: true,
+    swapType: "EXACT_INPUT",
+    slippageTolerance: 100,
+    originAsset: `nep141:${networkManifest.settlement.contract}`,
+    depositType: "ORIGIN_CHAIN",
+    destinationAsset: destination.routeAsset,
+    amount: input.amount,
+    refundTo: input.refundTo,
+    refundType: "ORIGIN_CHAIN",
+    recipient: input.recipient,
+    recipientType: "DESTINATION_CHAIN",
+    deadline: new Date((input.now ?? Date.now()) + 5 * 60_000).toISOString(),
+    quoteWaitingTimeMs: 3000,
+  };
+}
+
 // Independent policy check: the signature's flattened deadline can hide a changed
 // echoed request deadline. Compare the request itself, then bound both deadlines.
 export function validateQuoteTerms(
@@ -107,8 +138,13 @@ export function validateQuoteTerms(
     amountIn <= 0n ||
     minimumIn <= 0n ||
     minimumIn > amountIn ||
-    amountOut !== integerAmount(expected.amount) ||
-    minimumOut !== amountOut
+    minimumOut <= 0n ||
+    minimumOut > amountOut ||
+    (expected.swapType === "EXACT_OUTPUT"
+      ? amountOut !== integerAmount(expected.amount) || minimumOut !== amountOut
+      : expected.swapType !== "EXACT_INPUT" ||
+        amountIn !== integerAmount(expected.amount) ||
+        minimumIn !== amountIn)
   )
     throw new Error("Quote does not cover the full principal");
   if (expected.dry && (quote.depositAddress || quote.depositMemo))
@@ -128,7 +164,9 @@ export function validateQuoteTerms(
   }
   return {
     amountIn: amountIn.toString(),
-    principal: amountOut.toString(),
+    principal: expected.amount,
+    quotedOutput: amountOut.toString(),
+    minimumOutput: minimumOut.toString(),
     expiresAt: expected.deadline,
     // Provider dry quotes do not sign fee details, estimates or appFees. Do not
     // copy those fields into consent or payment instructions.
@@ -195,18 +233,23 @@ export class OneClickReadOnly {
 
   async dryQuote(request: QuoteRequest) {
     if (request.dry !== true) throw new Error("This adapter only prepares dry pricing");
+    const returning = request.swapType === "EXACT_INPUT";
     const network = networkManifest.networks.find((network) =>
       network.assets.some(
-        (asset) => asset.id === "usdc" && asset.routeAsset === request.originAsset,
+        (asset) =>
+          asset.id === "usdc" &&
+          asset.routeAsset === (returning ? request.destinationAsset : request.originAsset),
       ),
     );
     if (!network) throw new Error("Unapproved pricing asset");
-    const allowed = dryQuoteRequest({
-      network: network.id as Network,
+    const input = {
       amount: request.amount,
       refundTo: request.refundTo,
       recipient: request.recipient,
-    });
+    };
+    const allowed = returning
+      ? dryReturnQuoteRequest({ ...input, network: network.id as Network })
+      : dryQuoteRequest({ ...input, network: network.id as Network });
     if (
       Object.keys(request).length !== Object.keys(allowed).length ||
       Object.entries(allowed).some(

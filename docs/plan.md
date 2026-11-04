@@ -177,7 +177,23 @@ evidence is reused. Both required jobs passed for `d47a0b0` in
 [CI 41757130902](https://github.com/gueysito/show-up/actions/runs/41757130902).
 All two-source, credential, native-budget and principal gates remain intact.
 
-Immediate owner handoff: mainnet accounts are not set up. Prepare a current,
+Initial funding preparation now has [public read/quote evidence](evidence/mainnet-funding-preparation-2026-11-04.json)
+and exact owner-transfer instructions in the [wallet guide](development-wallets.md#mainnet-preparation-and-initial-funding).
+The existing NEAR public key derives a valid, uninitialized implicit mainnet
+address; no private key was read. The proposed initial wallet batch is about
+$9.11, including 2.54 USDC per external network and native account/gas allowances.
+It excludes deployment: code-only collateral for the current 1,007,612-byte
+artifact is 10.07612 NEAR, about $38.09, before state/gas/provider costs. Both
+mainnet sources confirm the storage rate; the current artifact rejects mainnet
+and external funding, so do not fund/deploy it as-is. Final artifact/costs and
+account-registration/signing batches remain prerequisites. No full $20 fit is claimed.
+This checkpoint extends actual signed dry pricing to return routes, preserving
+gross principal and quoted/minimum net separately. Focused/full unit and static
+checks and an isolated production build pass; actual adapter return pricing passes with funding disallowed. No
+UI/schema/contract/key/runtime change or public transaction occurred. Existing
+browser/PostgreSQL/Rust evidence is reused; source-dependent G1 remains next.
+
+Original bounded funding handoff: mainnet accounts are not set up. Prepare a current,
 minimum-cost funding and P2/G1 experiment plan, with no new signing or deployment.
 The owner prefers reuse of the existing project EVM/Solana keys and existing NEAR
 key where suitable; do not generate replacement wallet keys. Prepare a verified
@@ -212,7 +228,7 @@ running merely to accumulate verification evidence. Milestones 5–7 remain excl
 | --- | --- | --- |
 | External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | Native escrow/cancellation recovery verified; minimum-cost mainnet plan next | `d47a0b0` finalized six normal calls through a funded seat and three recovery calls returning all 5 test USDC, with final two-source checks and released account claims. Its bounded read cooldowns, authority ordering and original-image handling pass focused/full local checks and both CI jobs. This documentation checkpoint records approved key-reuse planning, absent mainnet setup and the initial shared $20 funding target above; no new account, funding, signing or deployment was performed. Normal public release, Intents/mainnet, actual draw/custody/coverage, other networks and full milestone 4 remain incomplete. [Receipt and limits](evidence/native-testnet-8529d901-add9-4b0a-9dab-ae9d43142fee.json), [operator boundaries](setup.md#financial-consent-preparation). |
+| P1–P5 | Initial mainnet funding/address plan priced; attributable funding/return remains next | This checkpoint adds verified exact-input return pricing, keeping gross principal and quoted/minimum net distinct and funding disabled. Seven affected and all 92 unit checks, format/lint/types, isolated production build and actual read-only return pricing pass. Nine actual dry quote signatures and public funding/storage facts support the approximately $9.11 initial wallet proposal; existing WASM code collateral alone exceeds $38, and final mainnet deployment/provider costs remain unpriced. No account creation, key access, public signing or spending. Reuse `d47a0b0`'s successful native cancellation/principal recovery; normal public release, G1, draw/custody/coverage and full milestone 4 remain incomplete. [Funding evidence](evidence/mainnet-funding-preparation-2026-11-04.json), [limits](development-wallets.md#cost-and-recovery-boundaries). |
 | I1 | Development sign-in/linking verified; optional bot identity prerequisite added | This checkpoint preserves the signed Telegram `profile.id` separately from OIDC `sub`, encrypted in the same identity record; legacy enrichment keeps the original account, rejects changed bindings and collects nothing new during restricted recovery. Own export includes the retained ID. 78 unit, 176 PostgreSQL, seven affected Chromium journeys and isolated build/static checks pass; the new regression fails against the old writer. Owner-verified Google/Telegram sign-in/linking remains prior evidence; no owner app/key change, bot-message consent, actual-phone or release claim. [Setup](setup.md#secure-local-identity-setup). |
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Saved-rule publication bound in sandbox; live prerequisites gated | `8ca2941` binds normal saved drafts/fixed staff to one encrypted salted material image and actual native publication. Both-mode attended/outage principal journeys and affected host/privacy browser checks pass; CI41690057149 passes. Qualified escrow, reserve/prize/provider evidence and public authority remain prerequisites for live publication. [Publication](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). |
