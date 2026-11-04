@@ -358,6 +358,14 @@ records actual public dry prices and deployment collateral separately. This adds
 no browser funding operation, deposit address, signature request, reservation or
 route qualification; actual authorization/escrow/return gates stay closed.
 
+The sandbox contract's read-only `inspect_routing_quote` now reproduces the pinned
+SDK's selected-field hash and Ed25519 verification with the fixed provider key.
+Its selected-field block is authenticated; it explicitly leaves expected-request,
+freshness and funding checks false. Dry fee fields remain excluded; wet quote
+deadlines can mask the echoed request deadline, which is reported as unauthenticated.
+This primitive is not yet connected to routed receipt or payout state transitions.
+`contracts:check` includes an independent Node replay of its sandbox output.
+
 From an available event, choose **Review wallets and commitment destinations**.
 Select independently verified source, source-refund and principal-payout wallets;
 source refunds must use the source network. **Review destinations and fee availability**

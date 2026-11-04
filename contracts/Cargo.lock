@@ -2842,6 +2842,7 @@ dependencies = [
  "bs58 0.5.1",
  "chrono",
  "near-sdk",
+ "serde_json",
 ]
 
 [[package]]

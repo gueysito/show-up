@@ -1,5 +1,15 @@
 # Test the local event-draft workspace
 
+## Contract quote inspection, November 4 UTC
+
+`sh scripts/contracts.sh test quote_`: two focused checks pass, including actual
+sandbox verification of the recorded provider signature and the SDK's wet-field
+selection/deadline collision. `node --import tsx scripts/check-routing-quote.ts`
+independently reproduces both payload hashes; its wet input is synthetic and
+unauthenticated. No state/funding authority is created. Rust format/Clippy/WASM,
+the unchanged 380-version advisory/age gate, seven affected JS checks and static
+checks pass. Prior unchanged application build/browser/database evidence is reused.
+
 The larger halfway goal is active and incomplete. UX-03–07 are implemented;
 live identity, funding, publication, contracts and attendance are not yet verified.
 The original foundation walkthrough below remains useful historical evidence.

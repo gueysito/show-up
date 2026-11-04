@@ -9,6 +9,8 @@ mod funding;
 mod nft;
 mod observer;
 mod recovery;
+mod routing_quote;
+mod routing_quote_fields;
 mod signing;
 mod types;
 

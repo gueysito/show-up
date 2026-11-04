@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
 import publicDry from "../fixtures/one-click-dry-public.json";
-import publicReturn from "../fixtures/one-click-return-dry-public.json";
+import publicReturn from "../../contracts/sandbox-tests/fixtures/one-click-return-dry-public.json";
 import { decodeBase58, encodeBase58 } from "../../src/server/protocol/encoding";
 import { quoteMessage, verifyQuoteSignature } from "../../src/server/protocol/quote-signature";
 import {

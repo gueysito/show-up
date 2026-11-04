@@ -89,14 +89,16 @@ not guaranteed minima. A sequential return can be reused, but fees reduce it;
 another full-principal attempt may need a separately priced and approved top-up.
 
 **The complete milestone does not currently fit $10 or $20.** The existing
-1,007,612-byte WASM alone requires 10.07612 NEAR of regular code storage collateral,
+1,007,612-byte funding-snapshot WASM at `5725e5c` alone requires 10.07612 NEAR of regular code storage collateral,
 **$38.09**, at both sources' live 10^19-yoctoNEAR/byte rate. That alone exceeds
 $20 by $18.09, excluding state, accounts, gas, stablecoin principal and provider
-costs. The current artifact also rejects mainnet initialization and external
+costs. That artifact also rejects mainnet initialization and external
 funding; it is not the final mainnet artifact or a deployment recommendation.
 Stripping its 262,158-byte name section would still leave code collateral above
-$28 at this price and would require separate artifact verification. No artifact
-was changed. Global-contract publication burns more for a new unique deployment,
+$28 at this price and would require separate artifact verification. The subsequent
+local quote-verifier artifact is 1,022,462 bytes: 10.22462 NEAR, about $38.65,
+in code collateral at the same rate/price. It remains mainnet-incompatible and
+was not publicly deployed. Global-contract publication burns more for a new unique deployment,
 so it is not a cheaper substitute for this experiment.
 
 Storage collateral stays locked while required data/code remains; current recovery
