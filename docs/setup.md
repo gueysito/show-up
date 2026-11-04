@@ -394,6 +394,27 @@ synthetic witnesses and actual disposable cash; public monetary observation,
 provider attribution and application reconciliation remain unqualified. See
 [ADR-0006](adr/0006-routed-registration-binding.md#bounded-return-prototype).
 
+`compareTokenTransferSources` reads only registered, same-network/environment RPC
+candidates and compares actual pinned-USDC transfer facts at finalized inclusion.
+NEAR requires the original transaction signer as its RPC lookup key, which may
+differ from the token sender. Receipt-array ordering cannot change its event ID:
+the ordinal packs byte-sorted receipt position, log position and event-data position
+into three eight-bit fields. ERC-20 uses the log index; SPL uses outer-instruction
+position in the high sixteen bits and zero for top-level or inner position plus
+one in the low bits. Token-account owner/mint metadata and net credit are checked
+for SPL, including resolved v0 accounts; failed CPIs and unsupported token programs
+cannot supply payment evidence. Self-transfers produce zero delivery credit.
+The [public read receipt](evidence/token-transfer-reads-2026-11-04.json) reuses actual
+NEAR deposit/cancellation-return and Base Sepolia self-transfer transactions;
+sanitized regression inputs omit actions and financial envelopes. Other EVM/SPL
+variants remain offline fixtures. Matching data does not qualify RPC independence,
+asset authorities, provider-route causality or a funding route; no receipt is
+signed and no seat/debt is mutated. Source formats:
+[NEAR events](https://docs.near.org/smart-contracts/anatomy/events),
+[ERC-20](https://eips.ethereum.org/EIPS/eip-20),
+[Solana metadata](https://solana.com/docs/rpc/http/gettransaction) and
+[SPL ABI](https://github.com/solana-program/token/blob/f62a0b05415e64b0af0823864bbb2df2a49f5d49/interface/src/instruction.rs).
+
 From an available event, choose **Review wallets and commitment destinations**.
 Select independently verified source, source-refund and principal-payout wallets;
 source refunds must use the source network. **Review destinations and fee availability**

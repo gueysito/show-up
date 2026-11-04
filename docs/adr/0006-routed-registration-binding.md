@@ -118,3 +118,12 @@ Its return cases exercise actual sandbox token dispatch and cash recovery with
 explicitly synthetic destination/transaction witnesses. `scripts/check-routed-returns.ts`
 independently replays original consent, return images, fee accumulation and cash
 plus in-flight conservation. These do not prove destination-chain delivery.
+
+The read-only `token-transfer-sources.ts` layer now compares registered sources for
+pinned USDC NEP-141, ERC-20 and canonical SPL transfers, including legacy/v0 CPI
+instructions. It binds inclusion, recipient ownership, amount and a stable transfer
+ordinal, keeping self-transfers and refunded/debited receipts from becoming new
+delivery credit. Actual retained NEAR deposit/cancellation-return and Base Sepolia
+self-transfer reads match two sources; Ethereum and SPL variations have offline
+fixtures. Provider-route causality, monetary source qualification and application
+reconciliation remain separate gates, and every result keeps funding disallowed.

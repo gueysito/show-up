@@ -1,0 +1,134 @@
+{
+  "format": "showup.token-transfer-reads.v1",
+  "purpose": "New read-only parser against existing finalized engineering receipts; no new financial operation.",
+  "capturedAt": "2026-11-04T06:46:24.282Z",
+  "reads": [
+    {
+      "id": "near-funding",
+      "result": {
+        "fact": {
+          "network": "near",
+          "chainId": "testnet",
+          "asset": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+          "transaction": "H3HXsLk27hfJx9TXdYra5tHXiXMsWhugKq7wvUzBMbkH",
+          "source": "a-2750f947d3.showup-dev-14989f.testnet",
+          "recipient": "e-2750f947d3.showup-dev-14989f.testnet",
+          "amount": "5000000",
+          "eventIndex": 0,
+          "receiptId": "34Ki83g2sErXf7PNzkTmRMaoJHvvxDgqYf9kpNk7g7fY",
+          "blockHash": "GbhmTmEB8BkVTLqStcD7TRa7SvFEcbE7ALmZcaFcGyL1",
+          "creditedAmount": "5000000",
+          "blockHeight": "276127536",
+          "timestampMs": 1793755434038,
+          "finalizedAtHeight": "276159650",
+          "attributionQualified": false,
+          "fundingAllowed": false,
+          "transactionSucceeded": true
+        },
+        "finality": {
+          "network": "near",
+          "chainId": "testnet",
+          "block": {
+            "height": "276159650",
+            "hash": "DZDrd9sJ32n2mcbhgKrAEdozTT8kNgMKnay8DB5etjgW",
+            "timestampMs": 1793774608864
+          },
+          "sourceIds": ["near-testnet-archival", "near-testnet-fastnear"],
+          "operatorClaims": ["near-public", "fastnear"],
+          "matched": true,
+          "independenceVerified": false,
+          "assetEvidence": false,
+          "fundingAllowed": false
+        },
+        "matched": true,
+        "independenceVerified": false,
+        "attributionQualified": false,
+        "fundingAllowed": false
+      }
+    },
+    {
+      "id": "near-principal",
+      "result": {
+        "fact": {
+          "network": "near",
+          "chainId": "testnet",
+          "asset": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+          "transaction": "29JRUBCi3n6gjwsfGffDkqKmZ2Z2kCUHH66ufQogB3mu",
+          "source": "e-2750f947d3.showup-dev-14989f.testnet",
+          "recipient": "a-2750f947d3.showup-dev-14989f.testnet",
+          "amount": "5000000",
+          "eventIndex": 327680,
+          "receiptId": "GwyqMQaGAkdSfXiDk6cyWarb8a4PnP1GwjNX7MsqnFrZ",
+          "blockHash": "DDBAxJQ1nkkPiQVarKPKwoBxTCJenf681i4RP5gzcCJs",
+          "creditedAmount": "5000000",
+          "blockHeight": "276129766",
+          "timestampMs": 1793756726568,
+          "finalizedAtHeight": "276159684",
+          "attributionQualified": false,
+          "fundingAllowed": false,
+          "transactionSucceeded": true
+        },
+        "finality": {
+          "network": "near",
+          "chainId": "testnet",
+          "block": {
+            "height": "276159684",
+            "hash": "6obXSQcndPrr5LMwQGExuu1jvQofuryfxKangMZZGTNJ",
+            "timestampMs": 1793774629219
+          },
+          "sourceIds": ["near-testnet-archival", "near-testnet-fastnear"],
+          "operatorClaims": ["near-public", "fastnear"],
+          "matched": true,
+          "independenceVerified": false,
+          "assetEvidence": false,
+          "fundingAllowed": false
+        },
+        "matched": true,
+        "independenceVerified": false,
+        "attributionQualified": false,
+        "fundingAllowed": false
+      }
+    },
+    {
+      "id": "base-self-transfer",
+      "result": {
+        "fact": {
+          "network": "base",
+          "chainId": "84532",
+          "asset": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+          "transaction": "0xf6a8170a426732d75a37541ada079e8aa6fce8e84387320dd92331709cd8f9ac",
+          "source": "0xae74d31cb01a0f11cdece5a374ac5539dd20d77a",
+          "recipient": "0xae74d31cb01a0f11cdece5a374ac5539dd20d77a",
+          "amount": "10000",
+          "eventIndex": 0,
+          "creditedAmount": "0",
+          "blockHeight": "53185675",
+          "blockHash": "0x838a5386332b18f524dc949c303af49a994f67c7daaf2b364b20fba0ad0cc716",
+          "timestampMs": 1793559003000,
+          "finalizedAtHeight": "54257354",
+          "attributionQualified": false,
+          "fundingAllowed": false
+        },
+        "finality": {
+          "network": "base",
+          "chainId": "84532",
+          "block": {
+            "height": "54257354",
+            "hash": "0xe98deca2b15e17eb4e35752fbe0d86cacf3835c03f2ec159ba96a5eb6cc7f320",
+            "timestampMs": 1793773339000
+          },
+          "sourceIds": ["base-sepolia-public", "base-sepolia-publicnode"],
+          "operatorClaims": ["base-public", "allnodes-publicnode"],
+          "matched": true,
+          "independenceVerified": false,
+          "assetEvidence": false,
+          "fundingAllowed": false
+        },
+        "matched": true,
+        "independenceVerified": false,
+        "attributionQualified": false,
+        "fundingAllowed": false
+      }
+    }
+  ]
+}
