@@ -8,7 +8,7 @@ is not activation, funding, browser import or a tested signing integration.
 
 | Network | Public address | Verified state |
 | --- | --- | --- |
-| NEAR testnet | `showup-dev-14989f.testnet` | After approved deployment/recovery: 2.731911336684227399999999 test NEAR and 20 test USDC. Original 5 test USDC returned; child accounts/keys retained. [Receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json). |
+| NEAR testnet | `showup-dev-14989f.testnet` | Approved reuse deposited 5 test USDC into escrow and returned it through cancellation recovery; driver checks restored at least 20 test USDC. Native balance last observed at the funding stage: 1.731322261486299899999998 test NEAR, before subsequent recovery fees; no final native remeasurement. Child accounts/keys retained. [Receipt](evidence/native-testnet-8529d901-add9-4b0a-9dab-ae9d43142fee.json). |
 | Base Sepolia / Ethereum Sepolia | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | Ethereum Sepolia 0.00699987998086555 ETH after native self-transfer, finality pending; Base Sepolia 0.00299941552999982 ETH after finalized native/USDC tests. Last checked test USDC balance: 20 on each chain. |
 | Solana devnet | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | Ownership and native self-transfer verified; fee-control retest finalized; balance 4.999915 SOL |
 
@@ -91,10 +91,14 @@ loaded no key and enabled no application route. The separately approved native
 operator loaded only the original testnet key for its exact plan and budget.
 The trial's reservation failed after a prepaid-gas error and authorization expiry.
 Approved recovery returned the original 5 test USDC and cancelled the event.
-Both sources agree at finalized block `276118428` on the current table balance,
+Both sources agreed at finalized block `276118428` on restoration of 20 test USDC,
 zero attendee/escrow test USDC and zero owed. No normal funded round trip or
 application route qualification is claimed. Child native balances/storage and
 recovery keys are retained; no account/key deletion or application-key change occurred.
+The later separately approved reuse trial did reach actual escrow funding, then
+cancelled and recovered all 5 test USDC. Its driver passed two-source terminal
+checks and restored at least the original 20-test-USDC root baseline. See the
+current table/receipt for limits; public-testnet normal release and live routing remain unproved.
 
 At 18:25 UTC on November 1, public RPC checks reconfirmed Ethereum Sepolia chain ID
 11155111 and Base Sepolia 84532. Native balances were 6999999980865550 wei and

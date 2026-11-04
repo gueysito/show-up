@@ -1,0 +1,135 @@
+{
+  "format": "showup.native-engineering.receipt.v1",
+  "operationId": "8529d901-add9-4b0a-9dab-ae9d43142fee",
+  "network": "near-testnet",
+  "approvedPlanHash": "3487fd2379259bc80d314e1ce0918d1d275c53c6752328a929f435091812aede",
+  "reuseOf": "2750f947-d374-424d-9b4c-328379227ada",
+  "accounts": {
+    "rootAccount": "showup-dev-14989f.testnet",
+    "escrowAccount": "e-2750f947d3.showup-dev-14989f.testnet",
+    "attendeeAccount": "a-2750f947d3.showup-dev-14989f.testnet"
+  },
+  "token": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+  "manifest": "c051ff3fff68cfcdb1efdacc280882c5e0c185cc23e78319f4eb77a3c1ab8cdc",
+  "contractArtifact": {
+    "bytes": 1007612,
+    "sha256": "12be79b214a3a93dc239cbcabb65fb25274eb54963fb2118ad2cb27ff79c8276",
+    "codeHash": "2GAoAZYrBfDL2vk1yx8AAegShWGPC2hnJVjCwrKLJJfX"
+  },
+  "maximumNative": "20000000000000000000000000",
+  "maximumTestTokenPrincipal": "5000000",
+  "gasPerCall": "200000000000000",
+  "outcome": {
+    "publicationObserved": true,
+    "reservationAccepted": true,
+    "escrowFundingObserved": true,
+    "normalReleaseWithdrawalRoundTripPassed": false,
+    "eventCancellationRecoveryPassed": true,
+    "releaseImageCreated": false,
+    "originalPrincipalReturned": "5000000",
+    "sourceQualified": false,
+    "liveFundingAllowed": false
+  },
+  "transactions": [
+    {
+      "step": "top_up_retained_attendee",
+      "hash": "BxyDnci2WTRuvP4W8Y2adi7YdWwWHdXpowur8RXqBtLg",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "allocate_exact_test_principal",
+      "hash": "FUQf2KjJZ82iDQZztEk3LRbYJvoy4dmauicTixV2UFPS",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "create_fixed_event",
+      "hash": "3AmfDSNA2ZbjK9XUkwJpebJvvoYgFR7PsFV5s5yY6Fgy",
+      "signer": "e-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "publish",
+      "hash": "2NvruUpNr524Z2rSXipWwsUc4BCCvu4NpUaey64N5sHJ",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "reserve_original_authorization",
+      "hash": "5VNucwsEsj7wFp711Fyku2CFZ8Xhjkv9e8Wbicv1iTq",
+      "signer": "a-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "fund_original_registration",
+      "hash": "H3HXsLk27hfJx9TXdYra5tHXiXMsWhugKq7wvUzBMbkH",
+      "signer": "a-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "recover_original_event",
+      "hash": "43PFHvnQHUFLwXX8ibcVM3HpQGYYrkcQ4C5AfWd8nJNn",
+      "signer": "showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "recover_original_principal",
+      "hash": "29JRUBCi3n6gjwsfGffDkqKmZ2Z2kCUHH66ufQogB3mu",
+      "signer": "a-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    },
+    {
+      "step": "recover_test_tokens_to_project_wallet",
+      "hash": "AKVTdY3xrcUveFFzofVxNRq1x3QZNNYrg7khxKaFsc3z",
+      "signer": "a-2750f947d3.showup-dev-14989f.testnet",
+      "phase": "final"
+    }
+  ],
+  "fundingObservation": {
+    "operationId": "8529d901-add9-4b0a-9dab-ae9d43142fee",
+    "eventState": "published",
+    "registrationState": "funded",
+    "tokenBalance": "5000000",
+    "accounting": {
+      "received": "5000000",
+      "delivered": "0",
+      "owed": "0",
+      "unallocated": "5000000"
+    },
+    "rootNative": "1731322261486299899999998",
+    "rootTestUsdc": "15000000",
+    "attendeeTestUsdc": "0",
+    "block": {
+      "height": "276127655",
+      "hash": "bK7qe9eaDSrgvNHyiui6ciBfmLJbbW1x9Qmvs43DWYn",
+      "timestampMs": 1793755506382
+    },
+    "sourceIds": ["near-testnet-archival", "near-testnet-fastnear"]
+  },
+  "finalReconciliation": {
+    "method": "Approved recovery driver completed with exit code zero",
+    "sourceIds": ["near-testnet-archival", "near-testnet-fastnear"],
+    "eventCancelled": true,
+    "escrowTestUsdc": "0",
+    "accountingOwed": "0",
+    "registrationBooked": false,
+    "attendeeTestUsdc": "0",
+    "rootTestUsdcAtLeast": "20000000",
+    "accountClaimsReleased": true,
+    "observationScope": "The driver checks each exact read against both sources at a common finalized block. Its terminal checks were separate reads; no new combined final snapshot or native balance measurement is claimed."
+  },
+  "sourceStop": {
+    "http": 429,
+    "source": "near-testnet-archival",
+    "preparedReleaseExpiredBeforeImage": true,
+    "recoveryReadCooldownPassed": true,
+    "additionalSnapshotStopped": true
+  },
+  "retention": "Retained accounts and original keys preserved. Reuse state contains only a key-source reference; application credentials were not accessed or regenerated.",
+  "limits": [
+    "Normal user release was not exercised; escrow return used approved event cancellation and original-principal withdrawal.",
+    "An additional combined post-recovery snapshot hit rate limiting; successful driver checks and finalized original images are reused.",
+    "No mainnet, application route, Intents attribution, other-network custody/draw/coverage qualification, bot messages, actual devices or full milestone-4 completion."
+  ]
+}

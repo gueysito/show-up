@@ -13,9 +13,43 @@ import {
 import {
   acquireRetainedClaim,
   retainedSigningKeys,
+  readNativeWithCooldown,
   submitOriginalNativeImage,
 } from "../../scripts/native-engineering-run";
 import { canonicalHash } from "../../src/server/protocol/canonical";
+import { RpcCooldown } from "../../src/server/protocol/rpc";
+
+test("native read recovery waits for the server window and retries only one read phase", async () => {
+  const attempts: string[] = [];
+  const pause = async (milliseconds: number) => {
+    assert.equal(milliseconds, 61_000);
+    attempts.push("cooldown");
+  };
+  const value = await readNativeWithCooldown(
+    async () => {
+      attempts.push("read");
+      if (attempts.length === 1) throw new RpcCooldown(160_000);
+      return "original-state";
+    },
+    pause,
+    () => 100_000,
+  );
+  assert.equal(value, "original-state");
+  assert.deepEqual(attempts, ["read", "cooldown", "read"]);
+  let repeated = 0;
+  await assert.rejects(
+    readNativeWithCooldown(
+      async () => {
+        repeated++;
+        throw new RpcCooldown(160_000);
+      },
+      pause,
+      () => 100_000,
+    ),
+    RpcCooldown,
+  );
+  assert.equal(repeated, 2);
+});
 
 test("native images match the independently decoded pinned NEAR V0 wire vector", async () => {
   const vector = JSON.parse(

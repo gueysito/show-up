@@ -3,12 +3,13 @@
 import { constants } from "node:fs";
 import { mkdir, open, readFile, rename, unlink } from "node:fs/promises";
 import { randomBytes, randomUUID } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { canonicalHash, canonicalJson } from "../src/server/protocol/canonical";
 import { decodeBase58 } from "../src/server/protocol/encoding";
-import { parseRpcJson, ReadOnlyRpc, unsigned } from "../src/server/protocol/rpc";
+import { parseRpcJson, ReadOnlyRpc, RpcCooldown, unsigned } from "../src/server/protocol/rpc";
 import { record } from "../src/server/protocol/quote-signature";
 import { compareFinalizedHeads } from "../src/server/protocol/finalized-heads";
 import { compareEngineeringSettlementState } from "../src/server/protocol/settlement-state";
@@ -292,7 +293,26 @@ async function sources() {
   }
   return { ...compared, read };
 }
+// Retry only a failed read phase, once, after the provider's explicit cooldown.
+// Never wrap signing, persistence or write RPCs in this retry boundary.
+export async function readNativeWithCooldown<T>(
+  read: () => Promise<T>,
+  pause: (milliseconds: number) => Promise<unknown> = delay,
+  now: () => number = Date.now,
+) {
+  try {
+    return await read();
+  } catch (error) {
+    if (!(error instanceof RpcCooldown) || error.retryAt > now() + 600_000) throw error;
+    console.log(JSON.stringify({ status: "waiting_for_source_cooldown", retryAt: error.retryAt }));
+    await pause(Math.max(0, error.retryAt - now()) + 1000);
+    return read();
+  }
+}
 async function verifyAccess(account: string, signer: NativeKey) {
+  return readNativeWithCooldown(() => readAccess(account, signer));
+}
+async function readAccess(account: string, signer: NativeKey) {
   const source = await sources();
   const { a, b } = await source.read({
     request_type: "view_access_key",
@@ -308,6 +328,9 @@ async function verifyAccess(account: string, signer: NativeKey) {
   return { nonce: (unsigned(a.nonce, 64) + 1n).toString(), blockHash: source.block.hash };
 }
 async function tokenBalance(state: State, account: string) {
+  return readNativeWithCooldown(() => readTokenBalance(state, account));
+}
+async function readTokenBalance(state: State, account: string) {
   const source = await sources();
   const { a, b } = await source.read({
     request_type: "call_function",
@@ -329,19 +352,22 @@ async function tokenBalance(state: State, account: string) {
   return result;
 }
 async function observe(state: State) {
-  if (!state.authorization) throw new Error("Original native authorization unavailable");
-  return compareEngineeringSettlementState({
-    environment: "engineering",
-    deployment: state.plan.escrowAccount,
-    token: state.plan.token,
-    domain: state.plan.domain,
-    manifest: state.plan.manifest,
-    event: contractReference(state.event),
-    rulesHash: String(state.terms.rules_hash),
-    escrowCodeHash: state.plan.artifact.codeHash,
-    tokenCodeHash: state.plan.facts.tokenCodeHash,
-    authorization: state.authorization,
-  });
+  const authorization = state.authorization;
+  if (!authorization) throw new Error("Original native authorization unavailable");
+  return readNativeWithCooldown(() =>
+    compareEngineeringSettlementState({
+      environment: "engineering",
+      deployment: state.plan.escrowAccount,
+      token: state.plan.token,
+      domain: state.plan.domain,
+      manifest: state.plan.manifest,
+      event: contractReference(state.event),
+      rulesHash: String(state.terms.rules_hash),
+      escrowCodeHash: state.plan.artifact.codeHash,
+      tokenCodeHash: state.plan.facts.tokenCodeHash,
+      authorization,
+    }),
+  );
 }
 
 async function run(planPath: string, approvedHash: string, mode: "execute" | "resume" | "recover") {

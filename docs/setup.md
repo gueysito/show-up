@@ -497,6 +497,20 @@ operation's private keys without copying or generating them; a persistent parent
 claim serializes use of those accounts until the new operation settles or recovers.
 An interrupted operation must resume/recover under its own approved hash. Another
 operation cannot replace that claim, and stale crash locks still need review.
+An explicit RPC `Retry-After` stops immediate transport retries. The operator can
+wait up to ten minutes and repeat the failed read phase once, with a fresh block
+comparison; signing and submission are outside this retry boundary. A repeated or
+longer cooldown stops with the original state intact. Signer reads precede new
+short-lived action authority, and the first-broadcast expiry guard also covers
+release images. Retained expired authority is never renewed automatically.
+The approved reuse trial subsequently proved an actual 5-test-USDC escrow deposit
+and full return through event cancellation and original-principal withdrawal.
+The recovery driver passed final two-source checks and released its account claims.
+Normal release was not exercised in this public trial: its prepared authority expired during source
+stops before any transaction image was saved. An additional combined snapshot
+hit rate limiting; the receipt reuses the passing driver checks and exact hashes,
+without claiming a new combined snapshot or final native balance measurement.
+[Reuse receipt](evidence/native-testnet-8529d901-add9-4b0a-9dab-ae9d43142fee.json).
 This tool cannot activate application funding, qualify an asset/route, prove the
 other three networks or establish full milestone-4 completion.
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { canonicalHash, canonicalJson } from "../../src/server/protocol/canonical";
-import { parseRpcJson, ReadOnlyRpc, unsigned } from "../../src/server/protocol/rpc";
+import { parseRpcJson, ReadOnlyRpc, RpcCooldown, unsigned } from "../../src/server/protocol/rpc";
 
 test("attestations preserve exact integers and canonical nested context without executable values", () => {
   assert.equal(
@@ -108,6 +108,21 @@ test("native signer preflight can read one access key at the original finalized 
       { final_execution_status: "FINAL" },
     );
   }
+});
+
+test("an explicit RPC cooldown stops immediate retries and preserves the server window", async () => {
+  let calls = 0;
+  const before = Date.now();
+  const rpc = new ReadOnlyRpc("near-testnet-archival", async () => {
+    calls++;
+    return new Response(null, { status: 429, headers: { "retry-after": "60" } });
+  });
+  await assert.rejects(rpc.read("status", []), (error) => {
+    assert.ok(error instanceof RpcCooldown);
+    assert.ok(error.retryAt >= before + 60_000 && error.retryAt <= Date.now() + 60_000);
+    return true;
+  });
+  assert.equal(calls, 1);
 });
 
 test("RPC correlates response IDs, preserves pending null, rejects errors/bounds and uses bounded transient retries", async () => {

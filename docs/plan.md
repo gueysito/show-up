@@ -90,7 +90,7 @@ browser/native evidence is retained. Release CI [41695563149](https://github.com
 and engineering-profile CI [41703542800](https://github.com/gueysito/show-up/actions/runs/41703542800)
 pass both jobs. `e0f287f` prepared the bounded executor; `c610981` records the
 public trial and recovery below, with both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41743437861)
-passing. This checkpoint prepares retained-deployment reuse without executing it.
+passing. The separately approved retained-deployment result is recorded below.
 
 Updated remaining integration estimate: **2–4 focused local days after the required
 protocol proofs provide qualified paths**, excluding external turnaround and
@@ -131,14 +131,14 @@ preserving original-hash reconciliation, and closes an unfunded published event
 during recovery. Focused operator/RPC regressions and full format/lint/types/unit
 checks pass; unchanged browser/build/Rust evidence is reused. The post-close driver
 check stopped; a separate same-block, two-source observation verified closure and
-all balances. This checkpoint prepares the fresh reuse operation below;
-new public execution requires its own exact approval. Other bounded requests remain actual Base/Ethereum/Solana and
+all balances. The separately approved reuse operation is recorded below;
+any further public operation needs exact approval. Other bounded requests remain actual Base/Ethereum/Solana and
 MPC/draw/Intents assets/budgets, optional bot token/message approval, and iOS/Android
 checks. These remain separate gates, not part of this native approval.
 Source-dependent application integration and the combined funded walkthrough
 remain incomplete; no full milestone-4 completion is claimed.
 
-Prepared reuse operation `8529d901-add9-4b0a-9dab-ae9d43142fee`, plan hash
+Approved reuse operation `8529d901-add9-4b0a-9dab-ae9d43142fee`, plan hash
 `3487fd2379259bc80d314e1ce0918d1d275c53c6752328a929f435091812aede`,
 at `/private/tmp/showup-native-engineering-8529d901-add9-4b0a-9dab-ae9d43142fee.json`.
 It reuses the retained escrow/attendee and original authority keys; it neither
@@ -147,34 +147,41 @@ the project root to the retained attendee, allocate exactly 5 test USDC, create
 and publish a fresh event, then reserve/fund/release/withdraw/return that principal.
 Calls are capped at 200 Tgas. The 20-test-NEAR total ceiling and at most four
 original-recovery images remain; retained native funding/storage is not deleted.
-Fresh consent is made during execution, after approval, and the recovered
-operation cannot be reopened for funding. The owner approved this exact plan;
-execution is in progress using the same saved state and original transaction images.
-Both public sources matched deployment/token/storage, empty escrow/attendee token
-balances, zero debt and the original finalized constructor's public authority keys.
-Execution rechecks these facts before loading keys and requires both retained
-account keys to control their on-chain accounts before any transfer. A durable
-claim prevents another operation from borrowing the accounts after an uncertain
-stop; only this same approved operation can resume until balances reconcile.
-Focused reuse/key-claim and RPC checks and full format/lint/types/unit checks pass;
-required private-branch CI remains separate. Existing browser/build/Rust
-evidence is reused because those inputs are unchanged. Both required jobs pass in
-[CI 41747186484](https://github.com/gueysito/show-up/actions/runs/41747186484).
-The initial executor stopped after creating empty operation state; resumption
-preserved the same account claim and finalized top-up, allocation, fresh event,
-publication, reservation and token deposit. Both sources then confirmed a funded
-registration and exactly 5 test USDC in escrow at block 276127655. No release image
-was saved; its prepared authorization expired during the source-read stops.
-Approved original-event cancellation/withdrawal recovery is in progress. The
-archival source returned HTTP 429 with `Retry-After: 387`; honor its cooldown
-before resuming the same operation. New fixed diagnostic labels distinguish
-source rate limits and signer/image stages without exposing error bodies or keys.
-Normal release and final principal recovery remain unclaimed until observed.
-The next operator correction checks signer control before preparing short-lived
-authority, so an RPC stop cannot consume a newly created release window. The
-existing first-broadcast expiry guard now also covers release; it cannot renew
-the retained expired action or bypass original-image reconciliation. Focused
-native deadline/unknown-ack checks pass; no new test infrastructure was added.
+Six normal calls finalized through reservation and actual escrow funding. Both
+sources confirmed a funded registration and exactly 5 test USDC in escrow at
+block 276127655. Source-read stops consumed the prepared release window before
+any release image was saved; the archival source returned repeated HTTP 429s.
+The approved recovery then finalized event cancellation, original principal
+withdrawal and return of all 5 test USDC to the project wallet. The driver exited
+zero after two-source checks of zero escrow obligation, zero attendee tokens and
+restoration of at least the original 20-test-USDC root balance; account claims
+were released. Keys/accounts remain retained, with no key copies/regeneration.
+[Public receipt and exact hashes](evidence/native-testnet-8529d901-add9-4b0a-9dab-ae9d43142fee.json).
+An additional combined final snapshot hit rate limiting; reuse the successful
+driver checks rather than repeating them. No new combined snapshot or final native
+balance measurement is claimed. **Public-testnet normal release remains unproved**; this is
+actual engineering escrow deposit/cancellation recovery, not application funding
+or mainnet/Intents qualification. This recovered operation cannot reopen deposits.
+
+`48ce63f` adds fixed source/stage diagnostics; `084f76c` checks signer control
+before preparing short-lived authority and guards release expiry. This checkpoint
+honors explicit `Retry-After` without immediate retries and repeats only a failed
+read phase once after a cooldown of at most ten minutes. Signing, submission and
+transaction identities are outside that retry boundary. The actual recovery
+completed across a 60-second source cooldown without restarting. Focused observed-
+regression checks plus format/lint/types/unit pass; unchanged browser/build/Rust
+evidence is reused and required CI remains separate. Both jobs passed for the
+pre-execution checkpoint in [CI 41747186484](https://github.com/gueysito/show-up/actions/runs/41747186484).
+All two-source, credential, native-budget and principal gates remain intact.
+
+Immediate owner handoff: confirm whether dedicated NEAR-mainnet and Base-mainnet
+project wallets exist and supply only their public addresses, or request the
+owner-operated setup instructions. These are inputs to the exact P2/G1 experiment
+plan, not signing/spending/deployment approval. No additional testnet funding is
+needed for the completed recovery. Separate draw/custody/asset/source qualification,
+private bot configuration plus explicit messages/ingress approval, and actual
+iOS/Android checks remain required before full acceptance. The source-dependent
+2–4-local-day integration estimate above is unchanged and excludes those gates.
 
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and
@@ -186,7 +193,7 @@ running merely to accumulate verification evidence. Milestones 5–7 remain excl
 | --- | --- | --- |
 | External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | Native escrow deposit observed; approved original recovery in progress | `6f233be` and both CI jobs pass for retained reuse. The owner approved the exact nine-step plan; six calls finalized and both sources confirmed a funded seat and 5 test USDC in escrow at block 276127655. No release image was saved before its authorization expired. This checkpoint adds fixed source-error/stage diagnostics; focused operator and full format/lint/types/unit checks pass. Honor the archival source's 387-second HTTP-429 cooldown, then resume approved cancellation/withdrawal recovery under the same claim/hash. No normal release, completed recovery or route qualification is claimed yet. [Prior receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json), [operator boundaries](setup.md#financial-consent-preparation). |
+| P1–P5 | Native public escrow deposit and cancellation recovery verified; live qualification gated | The approved retained trial finalized six normal calls through a funded seat, then three original-recovery calls cancelled the event, withdrew escrow and returned all 5 test USDC. The driver passed final two-source checks and released account claims. `48ce63f`/`084f76c` add safe diagnostics and authority ordering/expiry guards; this checkpoint honors actual RPC cooldowns and retries only the failed read phase once. Focused regressions and format/lint/types/unit pass; unchanged browser/build/Rust evidence is reused, required CI remains separate. Normal release, Intents/mainnet, actual draw/custody/coverage, other networks and full milestone 4 remain incomplete. [Public receipt and snapshot limitations](evidence/native-testnet-8529d901-add9-4b0a-9dab-ae9d43142fee.json), [operator boundaries](setup.md#financial-consent-preparation). |
 | I1 | Development sign-in/linking verified; optional bot identity prerequisite added | This checkpoint preserves the signed Telegram `profile.id` separately from OIDC `sub`, encrypted in the same identity record; legacy enrichment keeps the original account, rejects changed bindings and collects nothing new during restricted recovery. Own export includes the retained ID. 78 unit, 176 PostgreSQL, seven affected Chromium journeys and isolated build/static checks pass; the new regression fails against the old writer. Owner-verified Google/Telegram sign-in/linking remains prior evidence; no owner app/key change, bot-message consent, actual-phone or release claim. [Setup](setup.md#secure-local-identity-setup). |
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Saved-rule publication bound in sandbox; live prerequisites gated | `8ca2941` binds normal saved drafts/fixed staff to one encrypted salted material image and actual native publication. Both-mode attended/outage principal journeys and affected host/privacy browser checks pass; CI41690057149 passes. Qualified escrow, reserve/prize/provider evidence and public authority remain prerequisites for live publication. [Publication](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). |

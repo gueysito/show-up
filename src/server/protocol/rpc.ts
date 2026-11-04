@@ -4,6 +4,11 @@ import { record } from "./quote-signature";
 import { canonicalJson } from "./canonical";
 
 export const rpcCandidates = candidates;
+export class RpcCooldown extends Error {
+  constructor(readonly retryAt: number) {
+    super("RPC service unavailable (429)");
+  }
+}
 const allowed = {
   near: new Set(["status", "block", "query", "tx", "EXPERIMENTAL_protocol_config"]),
   evm: new Set([
@@ -138,6 +143,16 @@ export class ReadOnlyRpc {
         if (attempt === 2 || signal?.aborted) throw new Error("RPC service unavailable");
         await delay(250 * (attempt + 1), undefined, { signal });
         continue;
+      }
+      if (response.status === 429 && response.headers.has("retry-after")) {
+        const header = response.headers.get("retry-after")!;
+        const retryAt = /^\d{1,8}$/.test(header)
+          ? Date.now() + Number(header) * 1000
+          : Date.parse(header);
+        if (Number.isSafeInteger(retryAt) && retryAt >= Date.now()) {
+          await response.body?.cancel();
+          throw new RpcCooldown(retryAt);
+        }
       }
       if ((response.status === 429 || response.status >= 500) && attempt < 2) {
         await response.body?.cancel();
