@@ -31,7 +31,7 @@ private invitations and host management pass isolated-account checks. Funding an
 
 Continue [the active halfway goal](docs/plan.md#active-halfway-implementation-goal):
 The approved native testnet trial deployed/published the contract, but reservation failed after a gas-budget error and authorization expiry; all 5 test USDC returned and the event is cancelled.
-Prepare a fresh native proof using the retained deployment and corrected gas/deadline handling; another public operation needs exact approval.
+A fresh native reuse plan is prepared with corrected gas/deadline handling; [its exact execution approval](docs/plan.md#active-halfway-implementation-goal) remains required.
 Normal escrow funding/release remains unproved before source-dependent publication/quote/funding/clearance integration;
 P2/G1/P3/G2 actual integrations remain gated; typed construction does not qualify an external route.
 Separate actual-phone evidence remains an owner/device gate;

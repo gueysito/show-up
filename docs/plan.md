@@ -82,8 +82,9 @@ return context; `9937770` connects original recovery status and actual deletion 
 `297770e` implements optional bot consent and bound replies. Existing affected
 browser/native evidence is retained. Release CI [41695563149](https://github.com/gueysito/show-up/actions/runs/41695563149)
 and engineering-profile CI [41703542800](https://github.com/gueysito/show-up/actions/runs/41703542800)
-pass both jobs. This checkpoint prepares the bounded native testnet executor,
-including fixed signed images and original-principal recovery, without running it.
+pass both jobs. `e0f287f` prepared the bounded executor; `c610981` records the
+public trial and recovery below, with both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41743437861)
+passing. This checkpoint prepares retained-deployment reuse without executing it.
 
 Updated remaining integration estimate: **2–4 focused local days after the required
 protocol proofs provide qualified paths**, excluding external turnaround and
@@ -118,18 +119,39 @@ Executed review artifact: operation `2750f947-d374-424d-9b4c-328379227ada`, SHA-
 `/private/tmp/showup-native-engineering-2750f947-d374-424d-9b4c-328379227ada.json`.
 It pins the WASM/code, token, accounts, fourteen normal steps and bounded original
 recovery. Application keys were never accessed or regenerated. The retained child
-accounts/state remain available. This checkpoint fixes the missing read-only
+accounts/state remain available. `c610981` fixes the missing read-only
 access-key query, uses 200 Tgas, blocks new near-expiry financial broadcasts while
 preserving original-hash reconciliation, and closes an unfunded published event
 during recovery. Focused operator/RPC regressions and full format/lint/types/unit
 checks pass; unchanged browser/build/Rust evidence is reused. The post-close driver
 check stopped; a separate same-block, two-source observation verified closure and
-all balances. Next: prepare a fresh native proof reusing the retained deployment;
+all balances. This checkpoint prepares the fresh reuse operation below;
 new public execution requires its own exact approval. Other bounded requests remain actual Base/Ethereum/Solana and
 MPC/draw/Intents assets/budgets, optional bot token/message approval, and iOS/Android
 checks. These remain separate gates, not part of this native approval.
 Source-dependent application integration and the combined funded walkthrough
 remain incomplete; no full milestone-4 completion is claimed.
+
+Prepared reuse operation `8529d901-add9-4b0a-9dab-ae9d43142fee`, plan hash
+`3487fd2379259bc80d314e1ce0918d1d275c53c6752328a929f435091812aede`,
+at `/private/tmp/showup-native-engineering-8529d901-add9-4b0a-9dab-ae9d43142fee.json`.
+It reuses the retained escrow/attendee and original authority keys; it neither
+redeploys nor creates/copies keys. Nine normal steps transfer 1 test NEAR from
+the project root to the retained attendee, allocate exactly 5 test USDC, create
+and publish a fresh event, then reserve/fund/release/withdraw/return that principal.
+Calls are capped at 200 Tgas. The 20-test-NEAR total ceiling and at most four
+original-recovery images remain; retained native funding/storage is not deleted.
+Fresh consent is made during execution, after approval, and the recovered
+operation cannot be reopened for funding. No public signing has run for this plan.
+Both public sources matched deployment/token/storage, empty escrow/attendee token
+balances, zero debt and the original finalized constructor's public authority keys.
+Execution rechecks these facts before loading keys and requires both retained
+account keys to control their on-chain accounts before any transfer. A durable
+claim prevents another operation from borrowing the accounts after an uncertain
+stop; only this same approved operation can resume until balances reconcile.
+Focused reuse/key-claim and RPC checks and full format/lint/types/unit checks pass;
+required private-branch CI remains separate. Existing browser/build/Rust
+evidence is reused because those inputs are unchanged. Approval is the next gate.
 
 Critical path: publication/escrow binding → attendee commitment and funded capacity →
 shared attendance/normal or fail-neutral return → recovery/privacy. Optional bot and
@@ -141,7 +163,7 @@ running merely to accumulate verification evidence. Milestones 5–7 remain excl
 | --- | --- | --- |
 | External preflight | Google/Telegram development sign-in and linking verified | November 2: owner confirmed Telegram sign-in, refresh, logout and re-sign-in, then explicit Google linking and logout/Google sign-in returning to the exact same account. Aggregate checks confirm both providers on one account without printing identity values. Both fixed issuers use advertised HTTPS `client_secret_post` authentication. Nine focused auth/exchange checks, all 40 current unit tests, format/lint/types and build pass; isolated Chrome shows both provider controls enabled. Correct Google callback/S256 and public account HTTP 200 verified. Exact-host production-only loopback launcher and anonymous-workspace 404 checks remain verified. This checkpoint records the setup follow-up; separate phone evidence and mainnet funds/public signing/service-budget gates remain open. [Setup and commands](setup.md#approved-ngrok-sign-in-check). Runtime audit: zero vulnerabilities. |
 | UX-03–07 | Implemented; locally verified | `770424a` (private CI passed): 7 unit, 12 PostgreSQL and 11 Chromium checks; desktop/mobile browser inspection. [Evidence and exclusions](verification.md#halfway-ux-checkpoint-november-2). |
-| P1–P5 | Native public deployment/recovery observed; normal escrow round trip failed | This checkpoint executes the approved operation and gas amendment above, records the exact public receipts and fixes access-key reads, prepaid-gas sizing and expiry/recovery behavior. Original 5 test USDC returned; cancelled event, root 20 test USDC, attendee/escrow zero and zero owed agree at one finalized block. No normal escrow funding/release or route qualification is claimed. Next: fresh native proof on the retained deployment, then the still-gated provider/four-network proofs. [Receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json), [operator boundaries](setup.md#financial-consent-preparation). |
+| P1–P5 | Native deployment/recovery observed; reused-deployment proof prepared | `c610981` records the failed reservation and original 5-test-USDC recovery; cancelled event, root 20 test USDC, attendee/escrow zero and zero owed agree at one finalized block. This checkpoint prepares the separate nine-step reuse plan above with fresh consent, original key references and durable account claims. Actual public reads and focused reuse/RPC checks pass; public execution still requires exact approval. No normal escrow funding/release or route qualification is claimed. [Prior receipt](evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json), [operator boundaries](setup.md#financial-consent-preparation). |
 | I1 | Development sign-in/linking verified; optional bot identity prerequisite added | This checkpoint preserves the signed Telegram `profile.id` separately from OIDC `sub`, encrypted in the same identity record; legacy enrichment keeps the original account, rejects changed bindings and collects nothing new during restricted recovery. Own export includes the retained ID. 78 unit, 176 PostgreSQL, seven affected Chromium journeys and isolated build/static checks pass; the new regression fails against the old writer. Owner-verified Google/Telegram sign-in/linking remains prior evidence; no owner app/key change, bot-message consent, actual-phone or release claim. [Setup](setup.md#secure-local-identity-setup). |
 | I2 | Implemented; isolated verification passes | `ac19b14` (private CI passed): admin-only 15-day host links, event-scoped host/admin links, consent, atomic redemption/replay, unused expiry/revocation, encrypted link recovery and shared limits. The live sign-in gate is cleared; the full admin-to-host walkthrough remains to be exercised. |
 | I3 | Saved-rule publication bound in sandbox; live prerequisites gated | `8ca2941` binds normal saved drafts/fixed staff to one encrypted salted material image and actual native publication. Both-mode attended/outage principal journeys and affected host/privacy browser checks pass; CI41690057149 passes. Qualified escrow, reserve/prize/provider evidence and public authority remain prerequisites for live publication. [Publication](setup.md#publication-requirements), [decision](adr/0005-publication-material-commitment.md). |

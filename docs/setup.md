@@ -481,6 +481,22 @@ remaining. Already submitted images still reconcile after expiry. Recovery also
 closes an unfunded published event, preserving the original keys/images and all
 principal. A fresh public operation needs a new concrete approval; use the retained
 deployment when preparing it rather than assuming another deployment is funded.
+The read-only preparation option is:
+
+```sh
+node --import tsx scripts/native-engineering-plan.ts --reuse-retained
+```
+
+Reuse pins the prior public receipt, deployed code and finalized initialization
+keys, existing token storage and zero unresolved funds. It proposes a fresh event
+and authorization, a 1-test-NEAR transfer from root to the retained attendee, and
+the same 5-test-USDC principal round trip at 200 Tgas, under the 20-test-NEAR total
+ceiling. It skips creation/deployment/initialization/storage steps. Only public
+facts are read during preparation. The approved executor references the recovered
+operation's private keys without copying or generating them; a persistent parent
+claim serializes use of those accounts until the new operation settles or recovers.
+An interrupted operation must resume/recover under its own approved hash. Another
+operation cannot replace that claim, and stale crash locks still need review.
 This tool cannot activate application funding, qualify an asset/route, prove the
 other three networks or establish full milestone-4 completion.
 

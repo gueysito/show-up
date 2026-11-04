@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { randomBytes, verify, createPublicKey } from "node:crypto";
 import test from "node:test";
 import {
@@ -8,7 +10,12 @@ import {
   signNativeTransaction,
   type NativeAction,
 } from "../../scripts/lib/native-engineering-transaction";
-import { submitOriginalNativeImage } from "../../scripts/native-engineering-run";
+import {
+  acquireRetainedClaim,
+  retainedSigningKeys,
+  submitOriginalNativeImage,
+} from "../../scripts/native-engineering-run";
+import { canonicalHash } from "../../src/server/protocol/canonical";
 
 test("native images match the independently decoded pinned NEAR V0 wire vector", async () => {
   const vector = JSON.parse(
@@ -183,4 +190,89 @@ test("expired prepared financial images cannot broadcast but submitted images st
   await submitOriginalNativeImage(image, async () => {}, transport);
   assert.equal(calls, 1);
   assert.equal(image.phase, "final");
+});
+
+test("retained signing requires recovered images and the authority keys deployed on chain", () => {
+  const seeds = {
+    escrow: Buffer.alloc(32, 1).toString("base64"),
+    attendee: Buffer.alloc(32, 2).toString("base64"),
+    credential: Buffer.alloc(32, 3).toString("base64"),
+    evidence: Buffer.alloc(32, 4).toString("base64"),
+  };
+  const priorPlan = {
+    escrowAccount: "e.fictional.testnet",
+    attendeeAccount: "a.fictional.testnet",
+  };
+  const planHash = canonicalHash(priorPlan);
+  const plan = {
+    ...priorPlan,
+    keySourcePlanHash: planHash,
+    facts: {
+      retained: {
+        credentialKey: nativeKey(Buffer.from(seeds.credential, "base64")).publicBytes.toString(
+          "base64",
+        ),
+        evidenceKey: nativeKey(Buffer.from(seeds.evidence, "base64")).publicBytes.toString(
+          "base64",
+        ),
+      },
+    },
+  } as Parameters<typeof retainedSigningKeys>[0];
+  const source = {
+    plan: priorPlan,
+    planHash,
+    seeds,
+    recoveryStarted: true,
+    completed: ["recover_test_tokens_to_project_wallet", "recover_original_event"],
+    images: { reserve: { phase: "failed" }, recovery: { phase: "final" } },
+  } as Parameters<typeof retainedSigningKeys>[1];
+  const before = canonicalHash(source);
+  const keys = retainedSigningKeys(plan, source);
+  assert.equal(keys.credential.publicBytes.toString("base64"), plan.facts.retained!.credentialKey);
+  assert.equal(canonicalHash(source), before, "Reuse must not modify recovered state");
+  assert.throws(
+    () => retainedSigningKeys(plan, { ...source, recoveryStarted: undefined }),
+    /not recovered/,
+  );
+  assert.throws(
+    () =>
+      retainedSigningKeys(plan, {
+        ...source,
+        images: { pending: { ...source.images.reserve, phase: "submitted" } },
+      }),
+    /not recovered/,
+  );
+  assert.throws(
+    () =>
+      retainedSigningKeys(plan, {
+        ...source,
+        seeds: { ...seeds, evidence: Buffer.alloc(32, 5).toString("base64") },
+      }),
+    /authority keys differ/,
+  );
+});
+
+test("a stopped reuse operation retains its account claim for only that approved operation", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "showup-retained-claim-"));
+  const path = join(directory, "source.lock");
+  try {
+    const first = await acquireRetainedClaim(path, "original-operation", "original-plan", false);
+    await first.close();
+    await assert.rejects(
+      acquireRetainedClaim(path, "another-operation", "another-plan", true),
+      /another operation/,
+    );
+    await assert.rejects(
+      acquireRetainedClaim(path, "original-operation", "changed-plan", true),
+      /another operation/,
+    );
+    const resumed = await acquireRetainedClaim(path, "original-operation", "original-plan", true);
+    await resumed.close();
+    assert.deepEqual(JSON.parse(await readFile(path, "utf8")), {
+      operationId: "original-operation",
+      planHash: "original-plan",
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 });

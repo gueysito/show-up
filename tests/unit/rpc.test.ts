@@ -89,6 +89,24 @@ test("native signer preflight can read one access key at the original finalized 
     });
     assert.deepEqual(await rpc.read("query", params), result);
     assert.equal(calls, 1);
+    const status = new ReadOnlyRpc(id, async (_url, options) => {
+      const request = JSON.parse(String(options?.body));
+      assert.equal(request.method, "tx");
+      assert.equal(request.params.wait_until, "NONE");
+      return Response.json({
+        jsonrpc: "2.0",
+        id: request.id,
+        result: { final_execution_status: "FINAL" },
+      });
+    });
+    assert.deepEqual(
+      await status.read("tx", {
+        tx_hash: "original-init",
+        sender_account_id: "e.fictional.testnet",
+        wait_until: "NONE",
+      }),
+      { final_execution_status: "FINAL" },
+    );
   }
 });
 

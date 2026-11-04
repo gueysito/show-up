@@ -7,9 +7,11 @@ import { ReadOnlyRpc, unsigned } from "../src/server/protocol/rpc";
 import { record } from "../src/server/protocol/quote-signature";
 import { decodeBase58, encodeBase58 } from "../src/server/protocol/encoding";
 import { createHash } from "node:crypto";
+import retainedReceipt from "../docs/evidence/native-testnet-2750f947-d374-424d-9b4c-328379227ada.json" with { type: "json" };
 
 export const nativeEngineeringRoot = "showup-dev-14989f.testnet";
 export const nativeEngineeringGas = "200000000000000";
+export const retainedNativeDeployment = retainedReceipt;
 const rootAccount = nativeEngineeringRoot;
 const native = 10n ** 24n;
 const maximumNative = 20n * native;
@@ -17,7 +19,10 @@ const principal = "5000000";
 
 // Public metadata only. Preparation never loads a key, signs, creates accounts,
 // funds an event or calls a mutating RPC method. Execution needs owner approval.
-export async function prepareNativeEngineeringPlan(transport: typeof fetch = fetch) {
+export async function prepareNativeEngineeringPlan(
+  transport: typeof fetch = fetch,
+  reuseRetained = false,
+) {
   const first = new ReadOnlyRpc("near-testnet-archival", transport),
     second = new ReadOnlyRpc("near-testnet-fastnear", transport),
     signal = AbortSignal.timeout(30_000);
@@ -42,6 +47,8 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
     sha256: digest.toString("hex"),
     codeHash: encodeBase58(digest),
   };
+  if (reuseRetained && canonicalJson(artifact) !== canonicalJson(retainedReceipt.contractArtifact))
+    throw new Error("Retained deployment artifact differs from the recorded receipt");
   async function facts(client: ReadOnlyRpc) {
     const query = async (
       request_type: string,
@@ -62,8 +69,8 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
         throw new Error("Engineering preflight view differs from the finalized block");
       return response;
     };
-    const call = async (method_name: string, args: object) => {
-      const response = await query("call_function", asset.usdc, {
+    const call = async (method_name: string, args: object, account = asset.usdc) => {
+      const response = await query("call_function", account, {
         method_name,
         args_base64: Buffer.from(canonicalJson(args)).toString("base64"),
       });
@@ -88,6 +95,91 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
       throw new Error("Engineering network or token precision differs from the pinned profile");
     if (typeof token.code_hash !== "string") throw new Error("Engineering token code unavailable");
     decodeBase58(token.code_hash, 32);
+    let retained = null;
+    if (reuseRetained) {
+      const { escrowAccount, attendeeAccount } = retainedReceipt.accounts;
+      const initializationHash = retainedReceipt.transactions.find(
+        (item) => item.step === "initialize_engineering_profile",
+      )!.hash;
+      const [
+        escrow,
+        attendee,
+        escrowTokens,
+        attendeeTokens,
+        escrowStorage,
+        attendeeStorage,
+        ledger,
+        initialized,
+      ] = await Promise.all([
+        query("view_account", escrowAccount),
+        query("view_account", attendeeAccount),
+        call("ft_balance_of", { account_id: escrowAccount }),
+        call("ft_balance_of", { account_id: attendeeAccount }),
+        call("storage_balance_of", { account_id: escrowAccount }),
+        call("storage_balance_of", { account_id: attendeeAccount }),
+        call("accounting", {}, escrowAccount),
+        client.read(
+          "tx",
+          {
+            tx_hash: initializationHash,
+            sender_account_id: escrowAccount,
+            wait_until: "NONE",
+          },
+          signal,
+        ),
+      ]);
+      const initialization = record(initialized),
+        transaction = record(initialization.transaction);
+      const actions = transaction.actions;
+      if (!Array.isArray(actions) || actions.length !== 1)
+        throw new Error("Retained initialization unavailable");
+      const action = record(record(actions[0]).FunctionCall);
+      if (
+        initialization.final_execution_status !== "FINAL" ||
+        transaction.hash !== initializationHash ||
+        transaction.signer_id !== escrowAccount ||
+        transaction.receiver_id !== escrowAccount ||
+        action.method_name !== "new" ||
+        typeof action.args !== "string" ||
+        action.args.length > 4096
+      )
+        throw new Error("Retained initialization differs from its receipt");
+      const init = record(JSON.parse(Buffer.from(action.args, "base64").toString("utf8")));
+      for (const field of ["credential_key", "evidence_key"])
+        if (typeof init[field] !== "string" || Buffer.from(init[field], "base64").length !== 32)
+          throw new Error("Retained authority key unavailable");
+      const accounting = record(ledger);
+      const nativeStorageCost =
+        unsigned(escrow.storage_usage, 64) *
+        unsigned(record(protocol.runtime_config).storage_amount_per_byte, 128);
+      if (unsigned(escrow.amount, 128) < nativeStorageCost + native)
+        throw new Error(
+          "Retained escrow needs reviewed native funding above its storage collateral",
+        );
+      if (
+        escrow.code_hash !== artifact.codeHash ||
+        attendee.code_hash !== encodeBase58(Buffer.alloc(32)) ||
+        init.token !== asset.usdc ||
+        init.domain !== engineeringManifest.signingDomain ||
+        init.manifest !== engineeringManifestHash ||
+        init.credential_key === init.evidence_key ||
+        unsigned(escrowTokens, 128) !== 0n ||
+        unsigned(attendeeTokens, 128) !== 0n ||
+        unsigned(accounting.owed, 128) !== 0n ||
+        unsigned(accounting.unallocated, 128) !== 0n ||
+        unsigned(accounting.received, 128) !== unsigned(accounting.delivered, 128) ||
+        unsigned(record(escrowStorage).total, 128) < unsigned(record(storage).min, 128) ||
+        unsigned(record(attendeeStorage).total, 128) < unsigned(record(storage).min, 128)
+      )
+        throw new Error("Retained deployment has changed or holds unresolved funds");
+      retained = {
+        escrowNativeBalance: unsigned(escrow.amount, 128).toString(),
+        attendeeNativeBalance: unsigned(attendee.amount, 128).toString(),
+        credentialKey: String(init.credential_key),
+        evidenceKey: String(init.evidence_key),
+        escrowCodeHash: String(escrow.code_hash),
+      };
+    }
     return {
       rootNativeBalance: unsigned(account.amount, 128).toString(),
       rootTokenBalance: unsigned(balance, 128).toString(),
@@ -97,6 +189,7 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
         record(protocol.runtime_config).storage_amount_per_byte,
         128,
       ).toString(),
+      retained,
     };
   }
   const [a, b] = await Promise.all([facts(first), facts(second)]);
@@ -107,35 +200,54 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
     throw new Error("Engineering storage budget requires a new review");
   // WASM plus bounded event-state allowance, rounded up, with one native token
   // left free in escrow. This is execution funding, separate from test principal.
-  const escrowNative =
-    ((BigInt(wasm.length + 65_536) * storagePrice + native - 1n) / native + 1n) * native;
-  const attendeeNative = native / 4n;
-  const requiredNative =
-    escrowNative + attendeeNative + 2n * BigInt(a.tokenStorageMinimum) + 2n * native;
+  const escrowNative = reuseRetained
+    ? 0n
+    : ((BigInt(wasm.length + 65_536) * storagePrice + native - 1n) / native + 1n) * native;
+  const attendeeNative = reuseRetained ? native : native / 4n;
+  const requiredNative = reuseRetained
+    ? (native * 3n) / 2n
+    : escrowNative + attendeeNative + 2n * BigInt(a.tokenStorageMinimum) + 2n * native;
   if (requiredNative > maximumNative)
     throw new Error("Engineering artifact exceeds the proposed native budget");
   const operationId = randomUUID(),
     suffix = operationId.replaceAll("-", "").slice(0, 10);
   const requirements = [
     ...(BigInt(a.rootNativeBalance) < requiredNative ? ["fund_project_testnet_native_wallet"] : []),
-    ...(BigInt(a.rootNativeBalance) > maximumNative
+    ...(BigInt(a.rootNativeBalance) +
+      BigInt(a.retained?.escrowNativeBalance ?? "0") +
+      BigInt(a.retained?.attendeeNativeBalance ?? "0") >
+    maximumNative
       ? ["review_isolated_native_spending_budget"]
       : []),
     ...(BigInt(a.rootTokenBalance) < BigInt(principal)
       ? ["fund_project_testnet_token_wallet"]
       : []),
-    "owner_public_signing_and_deployment_approval",
+    reuseRetained
+      ? "owner_public_signing_reuse_approval"
+      : "owner_public_signing_and_deployment_approval",
   ];
   const plan = {
-    format: "showup.native-engineering.plan.v1",
+    format: reuseRetained
+      ? "showup.native-engineering.reuse-plan.v1"
+      : "showup.native-engineering.plan.v1",
+    ...(reuseRetained
+      ? {
+          reuseOf: retainedReceipt.operationId,
+          keySourcePlanHash: retainedReceipt.originalPlanHash,
+        }
+      : {}),
     operationId,
     network: "near-testnet",
     domain: engineeringManifest.signingDomain,
     manifest: engineeringManifestHash,
     rootAccount,
     walletConsentOrigin: "https://liable-pleat-maritime.ngrok-free.dev",
-    escrowAccount: `e-${suffix}.${rootAccount}`,
-    attendeeAccount: `a-${suffix}.${rootAccount}`,
+    escrowAccount: reuseRetained
+      ? retainedReceipt.accounts.escrowAccount
+      : `e-${suffix}.${rootAccount}`,
+    attendeeAccount: reuseRetained
+      ? retainedReceipt.accounts.attendeeAccount
+      : `a-${suffix}.${rootAccount}`,
     token: asset.usdc,
     artifact,
     scope: {
@@ -160,12 +272,16 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
     observedBlock: compared.block,
     sourceIds: compared.sourceIds,
     steps: [
-      "create_escrow",
-      "create_attendee",
-      "deploy_pinned_wasm",
-      "initialize_engineering_profile",
-      "register_escrow_token_storage",
-      "register_attendee_token_storage",
+      ...(reuseRetained
+        ? ["top_up_retained_attendee"]
+        : [
+            "create_escrow",
+            "create_attendee",
+            "deploy_pinned_wasm",
+            "initialize_engineering_profile",
+            "register_escrow_token_storage",
+            "register_attendee_token_storage",
+          ]),
       "allocate_exact_test_principal",
       "create_fixed_event",
       "publish",
@@ -197,9 +313,9 @@ export async function prepareNativeEngineeringPlan(transport: typeof fetch = fet
 }
 
 if (process.argv[1] && new URL(import.meta.url).pathname === process.argv[1]) {
-  if (process.argv.length !== 2)
+  if (process.argv.length > 3 || (process.argv[2] && process.argv[2] !== "--reuse-retained"))
     throw new Error("Preparation accepts no key, RPC or execution argument.");
-  const result = await prepareNativeEngineeringPlan();
+  const result = await prepareNativeEngineeringPlan(fetch, process.argv[2] === "--reuse-retained");
   const path = `/private/tmp/showup-native-engineering-${result.plan.operationId}.json`;
   await writeFile(path, JSON.stringify(result, null, 2), { flag: "wx", mode: 0o600 });
   console.log(

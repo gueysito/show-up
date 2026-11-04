@@ -20,6 +20,7 @@ import {
 import {
   nativeEngineeringRoot,
   nativeEngineeringGas,
+  retainedNativeDeployment,
   prepareNativeEngineeringPlan,
 } from "./native-engineering-plan";
 import { engineeringManifest, engineeringManifestHash } from "../src/server/protocol/manifest";
@@ -41,10 +42,12 @@ type Image = {
   phase: "prepared" | "submitted" | "final" | "failed";
   validUntilMs?: number;
 };
+type Seeds = { escrow: string; attendee: string; credential: string; evidence: string };
 type State = {
   plan: Plan;
   planHash: string;
-  seeds: { escrow: string; attendee: string; credential: string; evidence: string };
+  seeds?: Seeds;
+  keySourceOperation?: string;
   event: string;
   registration: string;
   participant: string;
@@ -164,6 +167,34 @@ async function privateJson(path: string | URL) {
     await file.close();
   }
 }
+// The caller already owns its operation's exclusive lock. A graceful stop keeps
+// this durable claim, so another operation cannot borrow uncertain signing keys.
+export async function acquireRetainedClaim(
+  path: string | URL,
+  operationId: string,
+  planHash: string,
+  resuming: boolean,
+) {
+  let file;
+  try {
+    file = await open(path, "wx", 0o600);
+  } catch (error) {
+    if (!resuming || (error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    const claim = record(await privateJson(path));
+    if (claim.operationId !== operationId || claim.planHash !== planHash)
+      throw new Error("Retained accounts are claimed by another operation");
+    return open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  }
+  try {
+    await file.writeFile(JSON.stringify({ operationId, planHash }));
+    await file.sync();
+    return file;
+  } catch (error) {
+    await file.close();
+    throw error;
+  }
+}
+
 async function durableJson(path: string | URL, value: unknown, initial = false) {
   const target = initial ? path : `${typeof path === "string" ? path : fileURLToPath(path)}.next`;
   const file = await open(target, "wx", 0o600);
@@ -181,8 +212,53 @@ async function durableJson(path: string | URL, value: unknown, initial = false) 
     await parent.close();
   }
 }
-function key(state: State, name: keyof State["seeds"]) {
+function key(state: Pick<State, "seeds">, name: keyof Seeds) {
+  if (!state.seeds) throw new Error("Original retained key source unavailable");
   return nativeKey(Buffer.from(state.seeds[name], "base64"));
+}
+
+// No file access or key generation. The new operation retains only a reference
+// to this recovered source; returned signers stay in process memory.
+export function retainedSigningKeys(
+  plan: Pick<Plan, "keySourcePlanHash" | "escrowAccount" | "attendeeAccount"> & {
+    facts: { retained: { credentialKey: string; evidenceKey: string } | null };
+  },
+  source: {
+    plan: Pick<Plan, "escrowAccount" | "attendeeAccount">;
+    planHash: string;
+    seeds?: Seeds;
+    recoveryStarted?: true;
+    completed: readonly string[];
+    images: Record<string, Pick<Image, "phase">>;
+  },
+) {
+  if (
+    source.planHash !== plan.keySourcePlanHash ||
+    canonicalHash(source.plan) !== plan.keySourcePlanHash ||
+    !source.recoveryStarted ||
+    source.plan.escrowAccount !== plan.escrowAccount ||
+    source.plan.attendeeAccount !== plan.attendeeAccount ||
+    !source.completed.includes("recover_test_tokens_to_project_wallet") ||
+    !source.completed.includes("recover_original_event") ||
+    Object.values(source.images).some(
+      (image) => image.phase !== "final" && image.phase !== "failed",
+    )
+  )
+    throw new Error("Original operation is not recovered for retained reuse");
+  const keys = {
+    escrow: key(source, "escrow"),
+    attendee: key(source, "attendee"),
+    credential: key(source, "credential"),
+    evidence: key(source, "evidence"),
+  };
+  const expected = plan.facts.retained;
+  if (
+    !expected ||
+    keys.credential.publicBytes.toString("base64") !== expected.credentialKey ||
+    keys.evidence.publicBytes.toString("base64") !== expected.evidenceKey
+  )
+    throw new Error("Retained authority keys differ from deployed initialization");
+  return keys;
 }
 const proof = (signer: NativeKey, value: unknown) => signer.sign(json(value)).toString("base64");
 async function sources() {
@@ -277,6 +353,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
     throw new Error("An exact prepared plan and approved hash are required");
   const envelope = record(await privateJson(planPath)),
     plan = envelope.plan as Plan;
+  const reuseRetained = plan.format === "showup.native-engineering.reuse-plan.v1";
   if (
     envelope.planHash !== approvedHash ||
     canonicalHash(plan) !== approvedHash ||
@@ -286,27 +363,33 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
   // Recompute the current artifact and all fixed operation constraints. Balances
   // may change after owner funding; destinations, costs and code may not.
   operatorStage = "read_public_preflight";
-  const fresh = resume ? null : (await prepareNativeEngineeringPlan()).plan;
+  const fresh = resume ? null : (await prepareNativeEngineeringPlan(fetch, reuseRetained)).plan;
   const suffix = plan.operationId.replaceAll("-", "").slice(0, 10);
   const expected = fresh && {
     ...fresh,
     operationId: plan.operationId,
-    escrowAccount: `e-${suffix}.${fresh.rootAccount}`,
-    attendeeAccount: `a-${suffix}.${fresh.rootAccount}`,
+    escrowAccount: reuseRetained ? fresh.escrowAccount : `e-${suffix}.${fresh.rootAccount}`,
+    attendeeAccount: reuseRetained ? fresh.attendeeAccount : `a-${suffix}.${fresh.rootAccount}`,
     facts: plan.facts,
     observedBlock: plan.observedBlock,
     requirements: plan.requirements,
   };
   if (
-    plan.format !== "showup.native-engineering.plan.v1" ||
+    (!reuseRetained && plan.format !== "showup.native-engineering.plan.v1") ||
     plan.network !== "near-testnet" ||
     plan.rootAccount !== nativeEngineeringRoot ||
     plan.domain !== engineeringManifest.signingDomain ||
     plan.manifest !== engineeringManifestHash ||
     plan.token !== engineeringManifest.networks.find((item) => item.id === "near")!.usdc ||
     plan.walletConsentOrigin !== "https://liable-pleat-maritime.ngrok-free.dev" ||
-    plan.escrowAccount !== `e-${suffix}.${nativeEngineeringRoot}` ||
-    plan.attendeeAccount !== `a-${suffix}.${nativeEngineeringRoot}` ||
+    (reuseRetained
+      ? plan.reuseOf !== retainedNativeDeployment.operationId ||
+        plan.keySourcePlanHash !== retainedNativeDeployment.originalPlanHash ||
+        plan.escrowAccount !== retainedNativeDeployment.accounts.escrowAccount ||
+        plan.attendeeAccount !== retainedNativeDeployment.accounts.attendeeAccount
+      : plan.reuseOf !== undefined ||
+        plan.escrowAccount !== `e-${suffix}.${nativeEngineeringRoot}` ||
+        plan.attendeeAccount !== `a-${suffix}.${nativeEngineeringRoot}`) ||
     (fresh &&
       (canonicalJson(plan) !== canonicalJson(expected) ||
         plan.facts.tokenCodeHash !== fresh.facts.tokenCodeHash ||
@@ -341,7 +424,23 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
     lockPath = new URL(`${plan.operationId}.lock`, directory);
   operatorStage = "acquire_operation_lock";
   const lock = await open(lockPath, "wx", 0o600);
+  let sourceLock: Awaited<ReturnType<typeof open>> | undefined;
+  let sourceSettled = false;
+  const sourceLockPath = reuseRetained ? new URL(`${plan.reuseOf}.lock`, directory) : null;
   try {
+    let retainedKeys: ReturnType<typeof retainedSigningKeys> | undefined;
+    if (reuseRetained) {
+      // Serialize operations using these same retained accounts and keys. The
+      // recovered operation remains immutable; only its existing keys are read.
+      sourceLock = await acquireRetainedClaim(
+        sourceLockPath!,
+        plan.operationId,
+        approvedHash,
+        resume,
+      );
+      const keySource = (await privateJson(new URL(`${plan.reuseOf}.json`, directory))) as State;
+      retainedKeys = retainedSigningKeys(plan, keySource);
+    }
     operatorStage = "initialize_operation_state";
     let state: State;
     if (resume) {
@@ -349,12 +448,14 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       if (state.planHash !== approvedHash || canonicalJson(state.plan) !== canonicalJson(plan))
         throw new Error("Retained native state differs from approval");
     } else {
-      const seeds = {
-        escrow: randomBytes(32).toString("base64"),
-        attendee: randomBytes(32).toString("base64"),
-        credential: randomBytes(32).toString("base64"),
-        evidence: randomBytes(32).toString("base64"),
-      };
+      const seeds = reuseRetained
+        ? undefined
+        : {
+            escrow: randomBytes(32).toString("base64"),
+            attendee: randomBytes(32).toString("base64"),
+            credential: randomBytes(32).toString("base64"),
+            evidence: randomBytes(32).toString("base64"),
+          };
       const event = randomUUID(),
         registration = randomUUID(),
         participant = randomUUID();
@@ -389,7 +490,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       state = {
         plan,
         planHash: approvedHash,
-        seeds,
+        ...(reuseRetained ? { keySourceOperation: plan.reuseOf } : { seeds }),
         event,
         registration,
         participant,
@@ -401,12 +502,20 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       await durableJson(statePath, state, true);
     }
     const save = () => durableJson(statePath, state);
+    if (reuseRetained && (state.keySourceOperation !== plan.reuseOf || state.seeds !== undefined))
+      throw new Error("Retained key reference differs from approval");
     if (state.recoveryStarted && mode !== "recover")
       throw new Error("Continue original recovery; new deposits are closed");
-    const escrow = key(state, "escrow"),
-      attendee = key(state, "attendee"),
-      credential = key(state, "credential"),
-      evidence = key(state, "evidence");
+    const { escrow, attendee, credential, evidence } = retainedKeys ?? {
+      escrow: key(state, "escrow"),
+      attendee: key(state, "attendee"),
+      credential: key(state, "credential"),
+      evidence: key(state, "evidence"),
+    };
+    if (reuseRetained) {
+      await verifyAccess(plan.escrowAccount, escrow);
+      await verifyAccess(plan.attendeeAccount, attendee);
+    }
     async function step(
       name: string,
       signerAccount: string,
@@ -529,6 +638,7 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
         BigInt(await tokenBalance(state, plan.rootAccount)) < BigInt(state.rootTokenBaseline)
       )
         throw new Error("Native original principal still requires reconciliation");
+      sourceSettled = true;
       console.log(
         JSON.stringify({
           operationId: plan.operationId,
@@ -539,54 +649,60 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       );
       return;
     }
-    const child = (publicKey: string, deposit: string): NativeAction[] => [
-      { kind: "create" },
-      { kind: "transfer", deposit },
-      { kind: "add_key", publicKey },
-    ];
-    await step("create_escrow", plan.rootAccount, root, plan.escrowAccount, () =>
-      child(escrow.publicKey, plan.budget.escrowNative),
-    );
-    await step("create_attendee", plan.rootAccount, root, plan.attendeeAccount, () =>
-      child(attendee.publicKey, plan.budget.attendeeNative),
-    );
-    await step("deploy_pinned_wasm", plan.escrowAccount, escrow, plan.escrowAccount, async () => {
-      const code = await readFile(
-        new URL(
-          "../contracts/.cache/target/wasm32-unknown-unknown/release/showup_escrow.wasm",
-          import.meta.url,
-        ),
-      );
-      if (createHash("sha256").update(code).digest("hex") !== plan.artifact.sha256)
-        throw new Error("Deployment artifact differs from approval");
-      return [{ kind: "deploy", code }];
-    });
-    await step(
-      "initialize_engineering_profile",
-      plan.escrowAccount,
-      escrow,
-      plan.escrowAccount,
-      () => [
-        call("new", {
-          token: plan.token,
-          domain: plan.domain,
-          manifest: plan.manifest,
-          credential_key: credential.publicBytes.toString("base64"),
-          evidence_key: evidence.publicBytes.toString("base64"),
-        }),
-      ],
-    );
-    for (const [name, account_id] of [
-      ["register_escrow_token_storage", plan.escrowAccount],
-      ["register_attendee_token_storage", plan.attendeeAccount],
-    ])
-      await step(name, plan.rootAccount, root, plan.token, () => [
-        call(
-          "storage_deposit",
-          { account_id, registration_only: true },
-          plan.budget.tokenStorageMinimum,
-        ),
+    if (reuseRetained) {
+      await step("top_up_retained_attendee", plan.rootAccount, root, plan.attendeeAccount, () => [
+        { kind: "transfer", deposit: plan.budget.attendeeNative },
       ]);
+    } else {
+      const child = (publicKey: string, deposit: string): NativeAction[] => [
+        { kind: "create" },
+        { kind: "transfer", deposit },
+        { kind: "add_key", publicKey },
+      ];
+      await step("create_escrow", plan.rootAccount, root, plan.escrowAccount, () =>
+        child(escrow.publicKey, plan.budget.escrowNative),
+      );
+      await step("create_attendee", plan.rootAccount, root, plan.attendeeAccount, () =>
+        child(attendee.publicKey, plan.budget.attendeeNative),
+      );
+      await step("deploy_pinned_wasm", plan.escrowAccount, escrow, plan.escrowAccount, async () => {
+        const code = await readFile(
+          new URL(
+            "../contracts/.cache/target/wasm32-unknown-unknown/release/showup_escrow.wasm",
+            import.meta.url,
+          ),
+        );
+        if (createHash("sha256").update(code).digest("hex") !== plan.artifact.sha256)
+          throw new Error("Deployment artifact differs from approval");
+        return [{ kind: "deploy", code }];
+      });
+      await step(
+        "initialize_engineering_profile",
+        plan.escrowAccount,
+        escrow,
+        plan.escrowAccount,
+        () => [
+          call("new", {
+            token: plan.token,
+            domain: plan.domain,
+            manifest: plan.manifest,
+            credential_key: credential.publicBytes.toString("base64"),
+            evidence_key: evidence.publicBytes.toString("base64"),
+          }),
+        ],
+      );
+      for (const [name, account_id] of [
+        ["register_escrow_token_storage", plan.escrowAccount],
+        ["register_attendee_token_storage", plan.attendeeAccount],
+      ])
+        await step(name, plan.rootAccount, root, plan.token, () => [
+          call(
+            "storage_deposit",
+            { account_id, registration_only: true },
+            plan.budget.tokenStorageMinimum,
+          ),
+        ]);
+    }
     await step("allocate_exact_test_principal", plan.rootAccount, root, plan.token, () => [
       call("ft_transfer", { receiver_id: plan.attendeeAccount, amount: "5000000" }, "1"),
     ]);
@@ -774,9 +890,12 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
     if (
       (await tokenBalance(state, plan.attendeeAccount)) !== "0" ||
       BigInt(await tokenBalance(state, plan.rootAccount)) < BigInt(state.rootTokenBaseline) ||
-      source.accounting.owed !== "0"
+      source.accounting.owed !== "0" ||
+      source.tokenBalance !== "0" ||
+      source.registration?.booked
     )
       throw new Error("Native final balances still require reconciliation");
+    sourceSettled = true;
     console.log(
       JSON.stringify({
         operationId: plan.operationId,
@@ -788,6 +907,10 @@ async function run(planPath: string, approvedHash: string, mode: "execute" | "re
       }),
     );
   } finally {
+    if (sourceLock) {
+      await sourceLock.close();
+      if (sourceSettled) await unlink(sourceLockPath!);
+    }
     await lock.close();
     await unlink(lockPath);
   }
