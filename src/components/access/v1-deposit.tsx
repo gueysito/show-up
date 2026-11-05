@@ -3,8 +3,12 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import type { OwnWallet } from "../../server/wallets/service";
 import { formatUsdc } from "../../domain/event-draft";
+import { V1RouteReview, type V1RouteSummary } from "./v1-route-review";
 
 type Status = {
+  sourceNetwork?: string;
+  sourceAddress?: string;
+  route?: V1RouteSummary | null;
   state: string;
   funded: boolean;
   registrationId?: string;
@@ -27,11 +31,53 @@ export function V1Deposit({
 }) {
   const near = wallets.filter((wallet) => wallet.network === "near");
   const [walletId, setWalletId] = useState(near.length === 1 ? near[0].id : "");
+  const sources = wallets.filter((wallet) => ["near", "base", "ethereum"].includes(wallet.network));
+  const [sourceWalletId, setSourceWalletId] = useState(near.length === 1 ? near[0].id : "");
+  const selectedSource = sources.find((wallet) => wallet.id === sourceWalletId);
+  const [routing, setRouting] = useState(false);
   const [consent, setConsent] = useState(false),
     [status, setStatus] = useState<Status | null>(null),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false);
-  const operation = useRef<{ walletId: string; operationId: string } | null>(null);
+  const sourceNetwork = status?.sourceNetwork ?? selectedSource?.network ?? "near";
+  const operation = useRef<{
+    walletId: string;
+    sourceWalletId: string;
+    operationId: string;
+  } | null>(null);
+  useEffect(() => {
+    if (!routing) return;
+    const controller = new AbortController();
+    async function poll() {
+      try {
+        for (let attempt = 0; attempt < 12; attempt++) {
+          const response = await fetch(`/api/commitments/mainnet?event=${eventId}`, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          const result = await response.json();
+          if (!response.ok)
+            throw new Error(result.error ?? "Routing status unavailable. Check again shortly.");
+          if (controller.signal.aborted) return;
+          setStatus(result);
+          if (result.funded) {
+            setMessage("Escrow confirms your deposit. Your seat is funded.");
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          if (controller.signal.aborted) return;
+        }
+        setMessage("The original route is still pending. Check deposit status; do not pay twice.");
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setMessage(error instanceof Error ? error.message : "Check the original routing status.");
+      } finally {
+        if (!controller.signal.aborted) setRouting(false);
+      }
+    }
+    void poll();
+    return () => controller.abort();
+  }, [routing, eventId]);
   useEffect(() => {
     // Transaction hashes and wallet errors are untrusted return parameters.
     if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
@@ -49,8 +95,12 @@ export function V1Deposit({
   async function action(kind: "register" | "pay" | "confirm") {
     setBusy(true);
     setMessage("");
-    if (!operation.current || operation.current.walletId !== walletId)
-      operation.current = { walletId, operationId: crypto.randomUUID() };
+    if (
+      !operation.current ||
+      operation.current.walletId !== walletId ||
+      operation.current.sourceWalletId !== sourceWalletId
+    )
+      operation.current = { walletId, sourceWalletId, operationId: crypto.randomUUID() };
     try {
       const response = await fetch("/api/commitments/mainnet", {
         method: "POST",
@@ -59,7 +109,7 @@ export function V1Deposit({
           operation: kind,
           eventId,
           operationId: kind === "register" ? operation.current.operationId : crypto.randomUUID(),
-          ...(kind === "register" ? { rulesHash, walletId } : {}),
+          ...(kind === "register" ? { rulesHash, walletId, sourceWalletId } : {}),
         }),
       });
       const result = await response.json();
@@ -122,12 +172,26 @@ export function V1Deposit({
       style={{ overflowWrap: "anywhere" }}
     >
       <h2>{status?.funded ? "Deposit confirmed" : "Deposit USDC on NEAR"}</h2>
-      <p>{`${amount} USDC commitment. Pay from your verified NEAR wallet; refunds go to that same wallet.`}</p>
+      <p>
+        {sourceNetwork === "near"
+          ? `${amount} USDC commitment. Pay from your verified NEAR wallet; refunds go to that same wallet.`
+          : `${amount} USDC commitment in NEAR escrow. Pay from ${sourceNetwork.toUpperCase()}; event payouts go to your NEAR wallet.`}
+      </p>
       <dl>
         <dt>Routing fee</dt>
-        <dd>0 USDC, direct NEAR transfer</dd>
-        <dt>Separate NEAR gas reserve</dt>
-        <dd>Up to 0.16 NEAR; unused gas is returned</dd>
+        <dd>
+          {sourceNetwork === "near"
+            ? "0 USDC, direct NEAR transfer"
+            : "Included in the signed quote shown before approval"}
+        </dd>
+        <dt>
+          {sourceNetwork === "near" ? "Separate NEAR gas reserve" : "Separate source-chain gas"}
+        </dt>
+        <dd>
+          {sourceNetwork === "near"
+            ? "Up to 0.16 NEAR; unused gas is returned"
+            : "Source-chain gas is separate and shown in the quote review"}
+        </dd>
         <dt>Refund rule</dt>
         <dd>
           Attend to receive your deposit back. No-show deposits are shared among checked-in
@@ -136,7 +200,27 @@ export function V1Deposit({
       </dl>
       {(!status || status.state === "none") && (
         <>
-          <label htmlFor="v1-deposit-wallet">NEAR deposit and refund wallet</label>
+          <label htmlFor="v1-source-wallet">Pay from wallet</label>
+          <select
+            id="v1-source-wallet"
+            style={{ width: "100%", minWidth: 0 }}
+            value={sourceWalletId}
+            disabled={busy}
+            onChange={(event) => {
+              const id = event.target.value;
+              setSourceWalletId(id);
+              setConsent(false);
+              if (wallets.find((wallet) => wallet.id === id)?.network === "near") setWalletId(id);
+            }}
+          >
+            <option value="">Choose a verified source wallet</option>
+            {sources.map((wallet) => (
+              <option key={wallet.id} value={wallet.id}>
+                {`${wallet.network.toUpperCase()} · ${wallet.address}`}
+              </option>
+            ))}
+          </select>
+          <label htmlFor="v1-deposit-wallet">NEAR deposit and payout wallet</label>
           <select
             id="v1-deposit-wallet"
             style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
@@ -144,6 +228,7 @@ export function V1Deposit({
             disabled={busy}
             onChange={(event) => {
               setWalletId(event.target.value);
+              if (sourceNetwork === "near") setSourceWalletId(event.target.value);
               setConsent(false);
             }}
           >
@@ -171,15 +256,26 @@ export function V1Deposit({
           <button
             type="button"
             className="primary-button"
-            disabled={busy || !walletId || !consent}
+            disabled={busy || !walletId || !sourceWalletId || !consent}
             onClick={() => action("register")}
           >
             Prepare my deposit
           </button>
         </>
       )}
-      {status?.wallet && <p>{`Deposit and refund wallet: ${status.wallet}`}</p>}
-      {status?.state === "registered" && !status.funded && (
+      {status?.wallet && (
+        <p>{`Pay from: ${status.sourceAddress ?? status.wallet}. NEAR payout wallet: ${status.payout ?? status.wallet}`}</p>
+      )}
+      {status?.state === "registered" && !status.funded && sourceNetwork !== "near" && (
+        <V1RouteReview
+          eventId={eventId}
+          network={sourceNetwork}
+          address={status.sourceAddress!}
+          initial={status.route}
+          onSubmitted={() => setRouting(true)}
+        />
+      )}
+      {status?.state === "registered" && !status.funded && sourceNetwork === "near" && (
         <>
           <p>
             Your registration is ready. Approve the exact USDC payment in your wallet. This

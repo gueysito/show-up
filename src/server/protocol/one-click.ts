@@ -17,6 +17,7 @@ export type QuoteRequest = {
   recipientType: "DESTINATION_CHAIN";
   deadline: string;
   quoteWaitingTimeMs: number;
+  customRecipientMsg?: string;
 };
 
 export function integerAmount(value: unknown): bigint {
@@ -116,7 +117,11 @@ export function validateQuoteTerms(
     "virtualChainRefundRecipient",
     "customRecipientMsg",
   ])
-    if (request[key]) throw new Error("Unexpected route modifier");
+    if (
+      request[key] &&
+      (key !== "customRecipientMsg" || request[key] !== expected.customRecipientMsg)
+    )
+      throw new Error("Unexpected route modifier");
   if ((request.depositMode && request.depositMode !== "SIMPLE") || request.insured)
     throw new Error("Unsupported unsigned route option");
   const timestamp = Date.parse(String(response.timestamp));
@@ -175,7 +180,7 @@ export function validateQuoteTerms(
   };
 }
 
-async function boundedJson(response: Response): Promise<unknown> {
+export async function boundedJson(response: Response): Promise<unknown> {
   if (!response.body || Number(response.headers.get("content-length")) > 262144) {
     await response.body?.cancel();
     throw new Error("Invalid provider response size");

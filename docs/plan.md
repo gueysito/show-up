@@ -113,9 +113,14 @@ One concise row per package; distinguish local preparation from mainnet completi
 | V1-2 complete | 2026-11-05 | The app supports [zero-prize publication](https://nearblocks.io/txns/3Fn5FDSUu9vDXqor28yHGjKAH489D96h3wznJhUsxaca) and a real [1-USDC host-funded prize](https://nearblocks.io/txns/97ykKBBkmiJ9UJnumoNss5oXkdhgSh7sQdnY7e3iM4mq), [publication](https://nearblocks.io/txns/3HRPSdJqxRUEDjwWtGW53oXc6mam7jWyRvE7acVGg6s9) and [full cancel/refund](https://nearblocks.io/txns/Aa2521htpgPDxQuwnXD5Zz9LyKLzNgRpLxcSvMbCkK68). Mobile browser verifies live terms; 112 unit, 189 database, 46 ordinary browser cases and focused token-refund/independent-decoder sandbox checks pass, plus build/code checks. Auth used a preauthenticated host and isolated owner-wallet approval, not live provider/external wallet UI. Next: V1-3 deposits; NFT remains V1-7. |
 | V1-3 complete | 2026-11-05 | An attendee prepared its owned NEAR wallet, [registered](https://nearblocks.io/txns/3PcvqJPn8wSxxNkumbt8ZiuGZ9kKqgmRpQMsWBJBhuHv), approved a real [1-USDC deposit](https://nearblocks.io/txns/JCi8SuJpQ2eBUFoyrbXtQkwRJGdccJ2BCquH7gun1P4B), saw its funded seat in the mobile browser, and received a [full cancel/refund](https://nearblocks.io/txns/GRiMCKFTzYCM2qtD516F2gt8vv6PTCDqm927H62G785H). 113 unit, 190 database and 46 ordinary browser cases plus independent native-USDC decoding pass; the live browser case passes with paced RPC reads. Engineering host/wallet qualification remains as in V1-2. Next: V1-4 Base, Solana, Ethereum. |
 
+| V1-4 prepared; provider blocked | 2026-11-05 | Owned source/payout binding, signed exact-output quotes and Base/Ethereum USDC wallet transfers pass 115 unit/191 database cases and build/code checks. Routing status and source hashes cannot fund a seat. Read-only Base/Solana USDC→NEAR USDC probes return HTTP 400 “Quoting for this pair is not available”; current provider token IDs still match. No cross-chain funds sent. Solana wallet transfer remains to connect. Continue V1-5/6 independently. |
+
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.
+GitHub [run 41991538690](https://github.com/gueysito/show-up/actions/runs/41991538690)
+did not start any jobs: account billing/spending limit requires owner attention.
+Continue local checks; do not rerun jobs or weaken required checks.
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra

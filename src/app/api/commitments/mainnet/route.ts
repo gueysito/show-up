@@ -17,6 +17,12 @@ import {
 } from "../../../../server/commitments/v1-registration";
 import { isUuid } from "../../../../server/events/drafts";
 import { findPrivacySession } from "../../../../server/privacy/access";
+import {
+  prepareV1Route,
+  prepareV1RoutePayment,
+  readV1RouteState,
+  recordV1SourceTransaction,
+} from "../../../../server/commitments/v1-route";
 
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {
@@ -42,12 +48,24 @@ async function handle(request: Request) {
       const params = new URL(request.url).searchParams;
       if ([...params.keys()].some((key) => key !== "event") || params.getAll("event").length !== 1)
         throw new AppFailure(400, "Choose your event.");
-      result = await readV1RegistrationState(
+      const state = await readV1RegistrationState(
         database.pool,
         config,
         session.tokenHash,
         params.get("event")!,
       );
+      result = {
+        ...state,
+        ...("sourceNetwork" in state &&
+          state.sourceNetwork !== "near" && {
+            route: await readV1RouteState(
+              database.pool,
+              config,
+              session.tokenHash,
+              params.get("event")!,
+            ),
+          }),
+      };
     } else {
       const body = await jsonBody(request);
       if (
@@ -59,11 +77,18 @@ async function handle(request: Request) {
         throw new AppFailure(400, "Invalid deposit operation.");
       const fields =
         body.operation === "register"
-          ? ["operation", "operationId", "eventId", "rulesHash", "walletId"]
-          : ["operation", "operationId", "eventId"];
+          ? ["operation", "operationId", "eventId", "rulesHash", "walletId", "sourceWalletId"]
+          : body.operation === "source"
+            ? ["operation", "operationId", "eventId", "sourceHash"]
+            : ["operation", "operationId", "eventId"];
       if (Object.keys(body).some((key) => !fields.includes(key)))
         throw new AppFailure(400, "Unexpected deposit fields.");
       if (body.operation === "register") {
+        if (
+          body.sourceWalletId !== undefined &&
+          (typeof body.sourceWalletId !== "string" || !isUuid(body.sourceWalletId))
+        )
+          throw new AppFailure(400, "Choose your source wallet.");
         if (typeof body.rulesHash !== "string" || typeof body.walletId !== "string")
           throw new AppFailure(400, "Review the event and your own wallet.");
         result = await prepareV1Registration(
@@ -74,6 +99,28 @@ async function handle(request: Request) {
           body.eventId,
           body.rulesHash,
           body.walletId,
+          undefined,
+          body.sourceWalletId as string | undefined,
+        );
+      } else if (body.operation === "quote")
+        result = await prepareV1Route(database.pool, config, session.tokenHash, body.eventId);
+      else if (body.operation === "route-pay")
+        result = await prepareV1RoutePayment(
+          database.pool,
+          config,
+          session.tokenHash,
+          body.eventId,
+        );
+      else if (body.operation === "source") {
+        if (typeof body.sourceHash !== "string")
+          throw new AppFailure(400, "Use the original source transaction hash.");
+        result = await recordV1SourceTransaction(
+          database.pool,
+          config,
+          session.tokenHash,
+          body.operationId,
+          body.eventId,
+          body.sourceHash,
         );
       } else if (body.operation === "pay")
         result = await prepareV1Deposit(database.pool, config, session.tokenHash, body.eventId);

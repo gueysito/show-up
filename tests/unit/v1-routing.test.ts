@@ -1,0 +1,163 @@
+import assert from "node:assert/strict";
+import { generateKeyPairSync, sign } from "node:crypto";
+import test from "node:test";
+import { Interface } from "ethers";
+import { encodeBase58 } from "../../src/server/protocol/encoding";
+import { quoteMessage } from "../../src/server/protocol/quote-signature";
+import { v1RouteRequest, validateV1Route } from "../../src/server/protocol/v1-routing";
+import { prepareV1EvmPayment } from "../../src/server/protocol/v1-evm-payment";
+import { v1Deployment } from "../../src/server/protocol/v1-escrow";
+
+test("signed cross-chain quotes bind the native token, exact output, fixed message, source refund and expiry", () => {
+  const keys = generateKeyPairSync("ed25519"),
+    publicKey = `ed25519:${encodeBase58(Buffer.from(keys.publicKey.export({ format: "jwk" }).x!, "base64url"))}`;
+  const request = v1RouteRequest(
+    "base",
+    "0x1111111111111111111111111111111111111111",
+    "5b6160bc-b2bd-4c14-8c3e-7175fcfe38a2",
+    "1000000",
+  );
+  const unsigned = {
+    timestamp: new Date().toISOString(),
+    quoteRequest: request,
+    quote: {
+      amountIn: "1100000",
+      minAmountIn: "1090000",
+      amountOut: "1000000",
+      minAmountOut: "1000000",
+      depositAddress: "0x2222222222222222222222222222222222222222",
+      deadline: request.deadline,
+    },
+  };
+  function signed(value: typeof unsigned) {
+    return {
+      ...value,
+      signature: `ed25519:${encodeBase58(sign(null, quoteMessage(value), keys.privateKey))}`,
+    };
+  }
+  const quote = signed(unsigned);
+  assert.throws(() => validateV1Route("base", request, quote), /signature/);
+  const route = validateV1Route("base", request, quote, Date.now(), false, publicKey);
+  assert.equal(route.input, "1100000");
+  assert.equal(route.principal, "1000000");
+  assert.throws(
+    () => validateV1Route("ethereum", request, quote, Date.now(), false, publicKey),
+    /policy/,
+  );
+  assert.throws(
+    () =>
+      validateV1Route(
+        "base",
+        { ...request, recipient: "attacker.near" },
+        quote,
+        Date.now(),
+        false,
+        publicKey,
+      ),
+    /policy/,
+  );
+  assert.equal(request.recipient, v1Deployment.account);
+  assert.equal(request.customRecipientMsg, "deposit:5b6160bc-b2bd-4c14-8c3e-7175fcfe38a2");
+  for (const change of [
+    { recipient: "attacker.near" },
+    { refundTo: "0x3333333333333333333333333333333333333333" },
+    { customRecipientMsg: "deposit:other" },
+    { originAsset: "other" },
+  ]) {
+    const altered = { ...unsigned, quoteRequest: { ...request, ...change } };
+    assert.throws(
+      () => validateV1Route("base", request, signed(altered), Date.now(), false, publicKey),
+      /changed/,
+    );
+  }
+  for (const change of [
+    { amountOut: "999999" },
+    { minAmountOut: "999999" },
+    { amountIn: "2000001" },
+    { depositAddress: "0x0000000000000000000000000000000000000000" },
+  ]) {
+    assert.throws(() =>
+      validateV1Route(
+        "base",
+        request,
+        signed({ ...unsigned, quote: { ...unsigned.quote, ...change } }),
+        Date.now(),
+        false,
+        publicKey,
+      ),
+    );
+  }
+  assert.throws(
+    () =>
+      validateV1Route("base", request, quote, Date.parse(request.deadline) + 1, false, publicKey),
+    /Expired|deadline/,
+  );
+});
+
+test("EVM payment requests transfer only the quoted USDC and enforce independent chain, balance and gas limits", async () => {
+  const request = v1RouteRequest(
+    "base",
+    "0x1111111111111111111111111111111111111111",
+    "5b6160bc-b2bd-4c14-8c3e-7175fcfe38a2",
+    "1000000",
+  );
+  const route = {
+    network: "base" as const,
+    request,
+    response: {},
+    input: "1100000",
+    principal: "1000000",
+    depositAddress: "0x2222222222222222222222222222222222222222",
+    expiresAt: request.deadline,
+  };
+  let chain = "0x2105",
+    balance = "0x124f80",
+    price = "0xf4240";
+  const transport: typeof fetch = async (_url, init) => {
+    const input = JSON.parse(String(init?.body));
+    const result =
+      input.method === "eth_chainId"
+        ? chain
+        : input.method === "eth_getBalance"
+          ? "0x5af3107a4000"
+          : input.method === "eth_call"
+            ? balance
+            : price;
+    return Response.json({ jsonrpc: "2.0", id: input.id, result });
+  };
+  const payment = await prepareV1EvmPayment(route, request.refundTo, transport);
+  assert.equal(payment.transaction.to, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
+  assert.equal(payment.transaction.value, "0x0");
+  assert.equal(payment.transaction.gas, "0x186a0");
+  const decoded = new Interface([
+    "function transfer(address to,uint256 amount)",
+  ]).decodeFunctionData("transfer", payment.transaction.data);
+  assert.equal(decoded[0].toLowerCase(), route.depositAddress);
+  assert.equal(decoded[1], 1100000n);
+  chain = "0x1";
+  const ethereum = await prepareV1EvmPayment(
+    {
+      ...route,
+      network: "ethereum",
+      request: v1RouteRequest(
+        "ethereum",
+        request.refundTo,
+        "5b6160bc-b2bd-4c14-8c3e-7175fcfe38a2",
+        "1000000",
+      ),
+    },
+    request.refundTo,
+    transport,
+  );
+  assert.equal(ethereum.transaction.chainId, "0x1");
+  assert.equal(ethereum.transaction.to, "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
+  chain = "0x2105";
+  balance = "0xf4240";
+  await assert.rejects(prepareV1EvmPayment(route, request.refundTo, transport), /USDC amount/);
+  balance = "0x124f80";
+  chain = "0x1";
+  await assert.rejects(prepareV1EvmPayment(route, request.refundTo, transport), /chain changed/);
+  chain = "0x2105";
+  price = "0x3b9aca00";
+  await assert.rejects(prepareV1EvmPayment(route, request.refundTo, transport), /gas/);
+});

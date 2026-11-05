@@ -24,6 +24,8 @@ const allowed = {
   near: new Set(["status", "block", "query", "tx", "EXPERIMENTAL_protocol_config"]),
   evm: new Set([
     "eth_chainId",
+    "eth_gasPrice",
+    "eth_getBalance",
     "eth_getBlockByNumber",
     "eth_getBlockByHash",
     "eth_getTransactionByHash",

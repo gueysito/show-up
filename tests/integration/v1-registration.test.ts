@@ -270,6 +270,16 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
     );
     registration!.sender = "attendee.near";
     registration!.funded = true;
+    await f.pool.query("UPDATE app_v1_registrations SET funding_height=101 WHERE id=$1", [
+      first.registrationId,
+    ]);
+    await assert.rejects(
+      readV1RegistrationState(f.pool, config, session, eventId, transport),
+      /source mismatch/,
+    );
+    await f.pool.query("UPDATE app_v1_registrations SET funding_height=NULL WHERE id=$1", [
+      first.registrationId,
+    ]);
     assert.equal(
       (await readV1RegistrationState(f.pool, config, session, eventId, transport)).funded,
       true,

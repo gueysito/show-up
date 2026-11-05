@@ -32,7 +32,7 @@ V1-1 is complete: the reviewed 321,207-byte artifact is atomically deployed and
 initialized at `showup-dev-14989f.near`. A real 1-USDC deposit/cancel/refund restores
 the controller to 2.549953 USDC and leaves escrow at zero; [transaction evidence](docs/plan.md#v1-evidence).
 The artifact retains its passing 53-test Rust/independent-replay CI evidence.
-Current checks: 113 unit, 190 database and 46 browser cases; build and code checks pass.
+Current checks: 115 unit and 191 database cases; build and code checks pass.
 The 3.73-wNEAR top-up was converted to native NEAR. Known allocation remains about
 $27.20/$50; no further funding is requested. BasedHeads #2829 is selected, not moved.
 V1-2 is complete: zero-prize publication and [funded USDC prize publication](https://nearblocks.io/txns/3HRPSdJqxRUEDjwWtGW53oXc6mam7jWyRvE7acVGg6s9)
@@ -42,4 +42,7 @@ external wallet UI and a new provider login were not qualified by these checks.
 V1-3 is complete: the browser confirms a real [1-USDC attendee deposit](https://nearblocks.io/txns/JCi8SuJpQ2eBUFoyrbXtQkwRJGdccJ2BCquH7gun1P4B)
 and its full cancellation refund. Both RPCs confirm 2.549953 USDC restored and zero held.
 V1 RPC reads/submissions share pacing; unknown writes retain their original hashes.
-Next: cross-chain deposits (V1-4), starting with Base. No hosting setup is needed.
+V1-4 local Base/Ethereum payment adapters preserve signed quote terms and confirm
+funding only from escrow. Live Base/Solana quotes return provider HTTP 400:
+“Quoting for this pair is not available.” No cross-chain payment was sent.
+Next: V1-5 live-code check-in, then V1-6 settlement while routing is blocked.

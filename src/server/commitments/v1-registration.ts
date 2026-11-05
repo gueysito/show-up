@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import type { OwnWallet } from "../wallets/service";
+import { walletAddress } from "../wallets/proof";
 import { usdcAtomic } from "../../domain/event-draft";
 import type pg from "pg";
 import type { AuthConfig } from "../auth/config";
@@ -18,6 +20,7 @@ import {
 import { prepareV1WalletPayment } from "../protocol/v1-wallet-payment";
 
 export type V1RegistrationImage = {
+  source?: { network: "base" | "ethereum" | "solana"; walletId: string; address: string };
   format: "showup.v1.registration.v1";
   id: string;
   eventId: string;
@@ -57,7 +60,7 @@ export function storedV1Registration(key: string, row: V1RegistrationRow): V1Reg
     throw new Error("V1 registration integrity");
   return image;
 }
-async function owned(
+export async function ownedV1Registration(
   pool: pg.Pool,
   key: string,
   session: string,
@@ -102,6 +105,7 @@ export async function prepareV1Registration(
   rulesHash: string,
   walletId: string,
   transport?: typeof fetch,
+  sourceWalletId?: string,
 ) {
   const entry = await readEventEntry(pool, config, eventId, session, transport);
   if (entry.viewer !== "attendee")
@@ -113,7 +117,7 @@ export async function prepareV1Registration(
     config.encryptionKey,
     session,
     operationId,
-    { eventId, rulesHash, walletId },
+    { eventId, rulesHash, walletId, ...(sourceWalletId && { sourceWalletId }) },
     "event.v1-registration-requested",
     async (client, actor) => {
       const event = (
@@ -140,11 +144,42 @@ export async function prepareV1Registration(
       ).rows[0];
       if (previous) {
         const image = storedV1Registration(config.encryptionKey, previous);
-        if (image.walletId !== walletId)
+        if (
+          image.walletId !== walletId ||
+          (image.source?.walletId ?? image.walletId) !== (sourceWalletId ?? walletId)
+        )
           throw new AppFailure(409, "The original deposit wallet is locked. Check its status.");
         return { eventId, registrationId: previous.id, state: previous.state as string };
       }
       const wallet = await ownedV1Sponsor(client, config.encryptionKey, actor.id, walletId);
+      let source: V1RegistrationImage["source"];
+      if (sourceWalletId && sourceWalletId !== walletId) {
+        if (!isUuid(sourceWalletId))
+          throw new AppFailure(400, "Choose your verified source wallet.");
+        const row = (
+          await client.query(
+            "SELECT encrypted_wallet FROM app_wallets WHERE id=$1 AND account_id=$2 AND revoked_at IS NULL",
+            [sourceWalletId, actor.id],
+          )
+        ).rows[0];
+        if (!row) throw new AppFailure(404, "Your source wallet is unavailable.");
+        const own = unseal(
+          config.encryptionKey,
+          `wallet:${actor.id}:${sourceWalletId}`,
+          row.encrypted_wallet,
+        ) as OwnWallet;
+        if (!["base", "ethereum", "solana"].includes(own.network))
+          throw new AppFailure(
+            422,
+            "For a direct NEAR deposit choose the same NEAR wallet for deposit and payout.",
+          );
+        walletAddress(own.network, own.address);
+        source = {
+          network: own.network as "base" | "ethereum" | "solana",
+          walletId: sourceWalletId,
+          address: own.address,
+        };
+      }
       if (wallet.address === entry.escrow!.sponsor)
         throw new AppFailure(403, "The prize funding wallet cannot receive attendee payouts.");
       const payoutIndex = identityIndex(
@@ -180,10 +215,11 @@ export async function prepareV1Registration(
         accountId: actor.id,
         rulesHash,
         walletId,
-        sender: wallet.address,
+        sender: source ? "intents.near" : wallet.address,
         payout: wallet.address,
         amount: usdcAtomic(amount)!.toString(),
         startMs: Date.parse(entry.escrow!.startsAt),
+        ...(source && { source }),
       };
       await client.query(
         "INSERT INTO app_v1_registrations(id,event_id,account_id,payout_index,image_hash,encrypted_image) VALUES($1,$2,$3,$4,$5,$6)",
@@ -219,7 +255,7 @@ export async function readV1RegistrationState(
   eventId: string,
   transport?: typeof fetch,
 ) {
-  const saved = await owned(pool, config.encryptionKey, session, eventId, true);
+  const saved = await ownedV1Registration(pool, config.encryptionKey, session, eventId, true);
   if (!saved) return { state: "none", funded: false };
   const { row, image } = saved;
   let funded = false,
@@ -231,7 +267,7 @@ export async function readV1RegistrationState(
     if (
       !matchesV1Registration(record, image) ||
       !row.source_height ||
-      BigInt(snapshot.block.height) < BigInt(row.source_height)
+      BigInt(snapshot.block.height) < BigInt(row.funding_height ?? row.source_height)
     )
       throw new Error("V1 registration source mismatch");
     funded = record!.funded === true;
@@ -265,17 +301,19 @@ export async function readV1RegistrationState(
     wallet: image.sender,
     payout: image.payout,
     amountAtomic: image.amount,
+    sourceNetwork: image.source?.network ?? "near",
+    sourceAddress: image.source?.address ?? image.sender,
     transactionUrl: row.transaction_hash ? v1TransactionUrl(row.transaction_hash) : null,
   };
 }
-export async function prepareV1Deposit(
+export async function requireV1UnfundedRegistration(
   pool: pg.Pool,
   config: AuthConfig,
   session: string,
   eventId: string,
   transport?: typeof fetch,
 ) {
-  const saved = await owned(pool, config.encryptionKey, session, eventId);
+  const saved = await ownedV1Registration(pool, config.encryptionKey, session, eventId);
   if (saved?.row.state === "funded")
     throw new AppFailure(409, "Your deposit has arrived. Do not pay again.");
   if (!saved || saved.row.state !== "registered")
@@ -297,6 +335,27 @@ export async function prepareV1Deposit(
     snapshot.event!.funded.length >= Number(snapshot.event!.capacity)
   )
     throw new AppFailure(409, "The event is full. Do not send a deposit.");
+  return { row, image, snapshot };
+}
+export async function prepareV1Deposit(
+  pool: pg.Pool,
+  config: AuthConfig,
+  session: string,
+  eventId: string,
+  transport?: typeof fetch,
+) {
+  const { row, image, snapshot } = await requireV1UnfundedRegistration(
+    pool,
+    config,
+    session,
+    eventId,
+    transport,
+  );
+  if (image.source)
+    throw new AppFailure(
+      422,
+      "Review the cross-chain quote before paying from your source wallet.",
+    );
   const wallet = await ownedV1Sponsor(pool, config.encryptionKey, row.account_id, image.walletId);
   if (wallet.address !== image.sender) throw new Error("Frozen deposit wallet mismatch");
   return prepareV1WalletPayment(
@@ -317,7 +376,7 @@ export async function confirmV1Deposit(
   eventId: string,
   transport?: typeof fetch,
 ) {
-  const saved = await owned(pool, config.encryptionKey, session, eventId);
+  const saved = await ownedV1Registration(pool, config.encryptionKey, session, eventId);
   if (!saved || !["registered", "funded"].includes(saved.row.state))
     throw new AppFailure(409, "Check your original registration status first.");
   const snapshot = await readV1Snapshot(eventId, transport),
@@ -334,7 +393,7 @@ export async function confirmV1Deposit(
       "Escrow has not confirmed this deposit. Wait and check again; do not pay twice.",
     );
   await pool.query(
-    "UPDATE app_v1_registrations SET state='funded',funding_height=$2 WHERE id=$1 AND account_id=$3 AND state IN ('registered','funded')",
+    "UPDATE app_v1_registrations SET state='funded',funding_height=GREATEST(funding_height,$2::numeric) WHERE id=$1 AND account_id=$3 AND state IN ('registered','funded')",
     [saved.row.id, snapshot.block.height, saved.row.account_id],
   );
   return { state: "funded", funded: true, registrationId: saved.row.id };
