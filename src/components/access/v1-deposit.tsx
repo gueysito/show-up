@@ -116,7 +116,11 @@ export function V1Deposit({
     }
   }
   return (
-    <section className="saved-panel" aria-label="NEAR USDC deposit">
+    <section
+      className="saved-panel"
+      aria-label="NEAR USDC deposit"
+      style={{ overflowWrap: "anywhere" }}
+    >
       <h2>{status?.funded ? "Deposit confirmed" : "Deposit USDC on NEAR"}</h2>
       <p>{`${amount} USDC commitment. Pay from your verified NEAR wallet; refunds go to that same wallet.`}</p>
       <dl>
@@ -135,6 +139,7 @@ export function V1Deposit({
           <label htmlFor="v1-deposit-wallet">NEAR deposit and refund wallet</label>
           <select
             id="v1-deposit-wallet"
+            style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
             value={walletId}
             disabled={busy}
             onChange={(event) => {

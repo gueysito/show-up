@@ -1,3 +1,4 @@
+import { V1ReadOnlyRpc, v1PacedSubmission } from "../src/server/protocol/v1-rpc";
 import { setTimeout as pause } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import pg from "pg";
@@ -5,7 +6,7 @@ import { loadAuthEnvironment, privateWorkerEnvironment } from "./auth-environmen
 import { databaseConfig } from "../src/server/config";
 import { canonicalHash, canonicalJson } from "../src/server/protocol/canonical";
 import { record } from "../src/server/protocol/quote-signature";
-import { ReadOnlyRpc, unsigned } from "../src/server/protocol/rpc";
+import { unsigned } from "../src/server/protocol/rpc";
 import {
   matchesV1Terms,
   readV1Record,
@@ -23,7 +24,7 @@ export async function signV1OwnerCalls(
   snapshot: Awaited<ReturnType<typeof readV1Snapshot>>,
   actions: NativeAction[],
 ) {
-  const client = new ReadOnlyRpc("near-fastnear");
+  const client = new V1ReadOnlyRpc("near-fastnear");
   const protocol = record(
     await client.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }),
   );
@@ -35,7 +36,7 @@ export async function signV1OwnerCalls(
     throw new Error("V1 gas purchase policy changed");
   const keys = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (id) => {
-      const rpc = new ReadOnlyRpc(id),
+      const rpc = new V1ReadOnlyRpc(id),
         params = { account_id: v1Deployment.owner, block_id: snapshot.block.hash };
       const [account, list] = await Promise.all([
         rpc.read("query", { ...params, request_type: "view_account" }),
@@ -77,7 +78,7 @@ export async function signV1OwnerCalls(
 }
 
 export function v1PublicationGateway(): V1PublicationGateway {
-  const client = new ReadOnlyRpc("near-fastnear");
+  const client = new V1ReadOnlyRpc("near-fastnear");
   return {
     snapshot: readV1Snapshot,
     async prepare(image, phase = "atomic") {
@@ -120,18 +121,20 @@ export function v1PublicationGateway(): V1PublicationGateway {
     },
     async submit(image) {
       // A single write, with no transport retries. Subsequent runs only call tx.
-      const response = await fetch(v1Deployment.writeOrigin, {
-        method: "POST",
-        redirect: "error",
-        headers: { "content-type": "application/json" },
-        signal: AbortSignal.timeout(20_000),
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: "v1-publication",
-          method: "send_tx",
-          params: { signed_tx_base64: image.signedBase64, wait_until: "NONE" },
+      const response = await v1PacedSubmission(() =>
+        fetch(v1Deployment.writeOrigin, {
+          method: "POST",
+          redirect: "error",
+          headers: { "content-type": "application/json" },
+          signal: AbortSignal.timeout(20_000),
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: "v1-publication",
+            method: "send_tx",
+            params: { signed_tx_base64: image.signedBase64, wait_until: "NONE" },
+          }),
         }),
-      });
+      );
       if (response.status !== 200)
         throw new Error("Reconcile the original publication transaction");
       const result = record(await response.json());

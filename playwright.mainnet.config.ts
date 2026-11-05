@@ -14,6 +14,7 @@ export default defineConfig({
   testDir: "./tests/mainnet",
   retries: 0,
   workers: 1,
+  expect: { timeout: 30000 },
   testMatch: deposit
     ? "**/deposit.spec.ts"
     : replay

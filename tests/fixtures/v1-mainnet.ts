@@ -1,3 +1,4 @@
+import { V1ReadOnlyRpc } from "../../src/server/protocol/v1-rpc";
 import assert from "node:assert/strict";
 import { mkdir, writeFile, rename } from "node:fs/promises";
 import { v1PublicationGateway } from "../../scripts/v1-publication-worker";
@@ -8,7 +9,7 @@ import {
   type NativeAction,
 } from "../../scripts/lib/native-engineering-transaction";
 import { readV1Snapshot, v1Deployment } from "../../src/server/protocol/v1-escrow";
-import { ReadOnlyRpc, unsigned } from "../../src/server/protocol/rpc";
+import { unsigned } from "../../src/server/protocol/rpc";
 import { record } from "../../src/server/protocol/quote-signature";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { canonicalJson } from "../../src/server/protocol/canonical";
@@ -44,11 +45,12 @@ export async function mainnetJournal(name: string) {
         return result;
       } catch (error) {
         if (attempt === 2) throw error;
-        await new Promise((resolve) => setTimeout(resolve, 3000));
+        const limited = error instanceof Error && /429|cooldown/i.test(error.message);
+        await new Promise((resolve) => setTimeout(resolve, limited ? 31000 : 3000));
       }
     throw new Error("Original financial image needs reconciliation");
   }
-  async function submit(name: string, image: SignedV1Publication) {
+  async function send(name: string, image: SignedV1Publication) {
     if (images[name])
       throw new Error("Original image already retained; reconcile without another send");
     images[name] = image;
@@ -58,15 +60,18 @@ export async function mainnetJournal(name: string) {
     } catch {
       /* The write may have succeeded; only query the retained hash. */
     }
+  }
+  async function submit(name: string, image: SignedV1Publication) {
+    await send(name, image);
     return final(name, image);
   }
-  return { directory, path, images, finals, save, submit, final };
+  return { directory, path, images, finals, save, send, submit, final };
 }
 export async function mainnetOwnerNonce(block: string) {
   const nonces = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (id) => {
       const result = record(
-        await new ReadOnlyRpc(id).read("query", {
+        await new V1ReadOnlyRpc(id).read("query", {
           request_type: "view_access_key",
           account_id: v1Deployment.owner,
           public_key: v1Deployment.publicKey,
@@ -84,7 +89,7 @@ export async function mainnetOwnerNonce(block: string) {
 export async function mainnetUsdc(block: string) {
   const values = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (endpoint) => {
-      const rpc = new ReadOnlyRpc(endpoint);
+      const rpc = new V1ReadOnlyRpc(endpoint);
       return Promise.all(
         [v1Deployment.owner, v1Deployment.account].map(async (account_id) => {
           const result = record(

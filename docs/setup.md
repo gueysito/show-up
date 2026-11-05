@@ -1151,6 +1151,11 @@ uses the two-source contract registration flag; return parameters cannot fund a 
 Keep financial browser checks separate from synthetic database tests. The explicit
 `SHOWUP_MAINNET_DEPOSIT=1` check creates a new event, funds one USDC and refunds it
 after cancellation, retaining its original public signed images before each send.
+Live V1 RPC calls use the deployment tool's one-second admission pacing per provider,
+honor cooldowns and begin network deadlines after admission. Writes still submit only
+their original signed image once. Injected test transports stay unpaced. Numbered
+deposit-check attempts retain separate journals and require every prior attempt to
+be cancelled/refunded before another starts; never delete a journal to bypass this.
 
 ```sh
 export SHOWUP_CONTAINER_E2E=1

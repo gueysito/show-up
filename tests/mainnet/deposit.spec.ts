@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { accountFixtures } from "../fixtures/accounts";
 import { verifyNearWallet } from "../fixtures/near-wallet";
 import { validDraft } from "../fixtures/draft";
@@ -28,7 +29,17 @@ test("attendee reviews and funds a real native-USDC seat through the browser, th
 }) => {
   if (process.env.SHOWUP_MAINNET_DEPOSIT !== "1")
     throw new Error("Explicit mainnet deposit execution required");
-  const journal = await mainnetJournal("attendee-deposit"),
+  const journals = ["attendee-deposit", "attendee-deposit-verified", "attendee-deposit-paced"];
+  const attempt = Number(process.env.SHOWUP_MAINNET_DEPOSIT_ATTEMPT ?? "1");
+  if (!Number.isInteger(attempt) || attempt < 1 || attempt > journals.length)
+    throw new Error("Review the retained financial attempts before continuing");
+  for (const name of journals.slice(0, attempt - 1)) {
+    const prior = JSON.parse(await readFile(`contracts/.cache/v1-browser/${name}.json`, "utf8"));
+    expect(prior.phase).toBe("refunded");
+    expect(prior.finalUsdc).toEqual(prior.initialUsdc);
+    expect((await readV1Snapshot(prior.eventId)).event?.status).toBe("cancelled");
+  }
+  const journal = await mainnetJournal(journals[attempt - 1]),
     f = await accountFixtures([["host"], []]);
   const key = process.env.SHOWUP_E2E_ENCRYPTION_KEY!,
     config = authConfig({
@@ -108,7 +119,13 @@ test("attendee reviews and funds a real native-USDC seat through the browser, th
         await runV1Publication(f.pool, key, {
           ...native,
           async submit(image) {
-            await journal.submit("publication", image);
+            await journal.send("publication", image);
+          },
+          async final(image) {
+            const result = await native.final(image);
+            journal.finals.publication = result;
+            await journal.save({ phase: "publication_final" });
+            return result;
           },
         })
       ).state,
@@ -136,7 +153,13 @@ test("attendee reviews and funds a real native-USDC seat through the browser, th
         await runV1Registration(f.pool, key, {
           ...gateway,
           async submit(image) {
-            await journal.submit("registration", image);
+            await journal.send("registration", image);
+          },
+          async final(image) {
+            const result = await gateway.final(image);
+            journal.finals.registration = result;
+            await journal.save({ phase: "registration_final" });
+            return result;
           },
         })
       ).state,

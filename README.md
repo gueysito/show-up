@@ -26,7 +26,9 @@ cancellation and full refund succeeded; [transactions](docs/plan.md#v1-evidence)
 Host publication runs from the app into mainnet with or without a host-funded USDC
 prize. Browser checks with a preauthenticated test host verified a real 1-USDC prize,
 publication and full cancellation refund. Public terms are checked against two
-mainnet RPCs. Attendee deposits and NFT release are next.
+mainnet RPCs. Attendees can now register and deposit native USDC from a verified NEAR
+wallet, with funded-seat confirmation and a verified full cancellation refund.
+Cross-chain deposits, check-in/settlement and NFT release remain in progress.
 [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works

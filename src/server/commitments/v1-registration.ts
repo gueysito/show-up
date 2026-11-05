@@ -57,12 +57,18 @@ export function storedV1Registration(key: string, row: V1RegistrationRow): V1Reg
     throw new Error("V1 registration integrity");
   return image;
 }
-async function owned(pool: pg.Pool, key: string, session: string, eventId: string) {
+async function owned(
+  pool: pg.Pool,
+  key: string,
+  session: string,
+  eventId: string,
+  recovery = false,
+) {
   if (!isUuid(eventId)) throw new AppFailure(400, "Choose a saved event.");
   const actor = (
     await pool.query(
-      `SELECT a.id FROM app_accounts a JOIN app_sessions s ON s.account_id=a.id WHERE s.token_hash=$1 AND a.state='active' AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()`,
-      [session],
+      `SELECT a.id FROM app_accounts a JOIN app_sessions s ON s.account_id=a.id WHERE s.token_hash=$1 AND a.state=ANY($2::text[]) AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()`,
+      [session, recovery ? ["active", "deletion_requested"] : ["active"]],
     )
   ).rows[0];
   if (!actor) throw new AppFailure(401, "Sign in again to review your deposit.");
@@ -95,8 +101,9 @@ export async function prepareV1Registration(
   eventId: string,
   rulesHash: string,
   walletId: string,
+  transport?: typeof fetch,
 ) {
-  const entry = await readEventEntry(pool, config, eventId, session);
+  const entry = await readEventEntry(pool, config, eventId, session, transport);
   if (entry.viewer !== "attendee")
     throw new AppFailure(403, "Only an attendee can prepare this deposit.");
   if (!entry.escrow || entry.registration === "closed" || entry.rulesHash !== rulesHash)
@@ -210,9 +217,9 @@ export async function readV1RegistrationState(
   config: AuthConfig,
   session: string,
   eventId: string,
-  transport: typeof fetch = fetch,
+  transport?: typeof fetch,
 ) {
-  const saved = await owned(pool, config.encryptionKey, session, eventId);
+  const saved = await owned(pool, config.encryptionKey, session, eventId, true);
   if (!saved) return { state: "none", funded: false };
   const { row, image } = saved;
   let funded = false,
@@ -266,7 +273,7 @@ export async function prepareV1Deposit(
   config: AuthConfig,
   session: string,
   eventId: string,
-  transport: typeof fetch = fetch,
+  transport?: typeof fetch,
 ) {
   const saved = await owned(pool, config.encryptionKey, session, eventId);
   if (saved?.row.state === "funded")
@@ -308,7 +315,7 @@ export async function confirmV1Deposit(
   config: AuthConfig,
   session: string,
   eventId: string,
-  transport: typeof fetch = fetch,
+  transport?: typeof fetch,
 ) {
   const saved = await owned(pool, config.encryptionKey, session, eventId);
   if (!saved || !["registered", "funded"].includes(saved.row.state))

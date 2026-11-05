@@ -46,6 +46,7 @@ export async function readEventEntry(
   config: AuthConfig,
   eventId: string,
   sessionHash?: string,
+  transport?: typeof fetch,
 ): Promise<EventEntry> {
   if (!isUuid(eventId)) throw new AppFailure(404, "Event unavailable.");
   const entry = await transaction<EventEntry>(pool, async (client) => {
@@ -67,6 +68,7 @@ export async function readEventEntry(
        AND (e.data->>'access'='open' OR e.owner_id=$2
          OR EXISTS(SELECT 1 FROM app_event_access x WHERE x.event_id=e.id AND x.account_id=$2)
          OR EXISTS(SELECT 1 FROM app_commitment_consents c WHERE c.event_id=e.id AND c.account_id=$2)
+         OR EXISTS(SELECT 1 FROM app_v1_registrations c WHERE c.event_id=e.id AND c.account_id=$2)
          OR EXISTS(SELECT 1 FROM app_event_validators v WHERE v.event_id=e.id AND v.account_id=$2 AND v.revoked_at IS NULL)) FOR SHARE OF e`,
         [eventId, actor?.id ?? null],
       )
@@ -113,7 +115,7 @@ export async function readEventEntry(
     };
   });
   // Access is checked before any mainnet read or public projection.
-  const escrow = await readV1PublishedTerms(pool, config.encryptionKey, eventId);
+  const escrow = await readV1PublishedTerms(pool, config.encryptionKey, eventId, transport);
   if (!escrow) return entry;
   return {
     ...entry,

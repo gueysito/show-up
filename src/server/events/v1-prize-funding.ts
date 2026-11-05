@@ -17,7 +17,7 @@ export async function prepareV1PrizeFunding(
   session: string,
   eventId: string,
   revision: number,
-  transport: typeof fetch = fetch,
+  transport?: typeof fetch,
 ) {
   const state = await readV1PublicationState(
     pool,

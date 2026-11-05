@@ -1,7 +1,8 @@
+import { V1ReadOnlyRpc } from "./v1-rpc";
 import type { AuthConfig } from "../auth/config";
 import { canonicalJson } from "./canonical";
 import { record } from "./quote-signature";
-import { ReadOnlyRpc, unsigned } from "./rpc";
+import { unsigned } from "./rpc";
 import { v1Deployment, type V1Snapshot } from "./v1-escrow";
 import { AppFailure } from "../http/security";
 import {
@@ -19,11 +20,11 @@ export async function prepareV1WalletPayment(
   reference: string,
   amount: string,
   purpose: "prize" | "deposit",
-  transport: typeof fetch = fetch,
+  transport?: typeof fetch,
 ) {
   const facts = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (endpoint) => {
-      const rpc = new ReadOnlyRpc(endpoint, transport),
+      const rpc = new V1ReadOnlyRpc(endpoint, transport),
         signal = AbortSignal.timeout(20000);
       async function query(account_id: string, request_type: string, extra: object = {}) {
         const result = record(

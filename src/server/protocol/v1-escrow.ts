@@ -1,6 +1,7 @@
+import { V1ReadOnlyRpc } from "./v1-rpc";
 import { canonicalJson } from "./canonical";
 import { compareFinalizedHeads, type FinalizedHeader } from "./finalized-heads";
-import { ReadOnlyRpc, unsigned } from "./rpc";
+import { unsigned } from "./rpc";
 import { record } from "./quote-signature";
 
 export const v1Deployment = {
@@ -39,12 +40,12 @@ export function matchesV1Terms(event: Record<string, unknown>, terms: V1Terms) {
 
 export async function readV1Snapshot(
   eventId: string,
-  transport: typeof fetch = fetch,
+  transport?: typeof fetch,
 ): Promise<V1Snapshot> {
   if (!/^[a-z0-9-]{1,64}$/.test(eventId)) throw new Error("Invalid V1 event reference");
   const clients = [
-    new ReadOnlyRpc("near-fastnear", transport),
-    new ReadOnlyRpc("near-drpc", transport),
+    new V1ReadOnlyRpc("near-fastnear", transport),
+    new V1ReadOnlyRpc("near-drpc", transport),
   ];
   const signal = AbortSignal.timeout(30_000);
   const finality = await compareFinalizedHeads("near", clients[0], clients[1], Date.now(), signal);
@@ -93,13 +94,13 @@ export async function readV1Record(
   method: "get_registration" | "get_claim",
   id: string,
   block: FinalizedHeader,
-  transport: typeof fetch = fetch,
+  transport?: typeof fetch,
 ) {
   if (!/^[a-z0-9:-]{1,132}$/.test(id)) throw new Error("Invalid V1 record reference");
   const values = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (endpoint) => {
       const result = record(
-        await new ReadOnlyRpc(endpoint, transport).read(
+        await new V1ReadOnlyRpc(endpoint, transport).read(
           "query",
           {
             request_type: "call_function",

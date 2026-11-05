@@ -147,11 +147,29 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
     const rules = (await f.pool.query("SELECT rules_hash FROM app_events WHERE id=$1", [eventId]))
       .rows[0].rules_hash;
     await assert.rejects(
-      prepareV1Registration(f.pool, config, hostSession, randomUUID(), eventId, rules, wallet.id),
+      prepareV1Registration(
+        f.pool,
+        config,
+        hostSession,
+        randomUUID(),
+        eventId,
+        rules,
+        wallet.id,
+        transport,
+      ),
       /Only an attendee/,
     );
     await assert.rejects(
-      prepareV1Registration(f.pool, config, session, randomUUID(), eventId, rules, otherWallet.id),
+      prepareV1Registration(
+        f.pool,
+        config,
+        session,
+        randomUUID(),
+        eventId,
+        rules,
+        otherWallet.id,
+        transport,
+      ),
       /unavailable/,
     );
     await assert.rejects(
@@ -163,6 +181,7 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
         eventId,
         "0".repeat(64),
         wallet.id,
+        transport,
       ),
       /Reopen/,
     );
@@ -175,9 +194,19 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
         eventId,
         rules,
         wallet.id,
+        transport,
       );
     assert.deepEqual(
-      await prepareV1Registration(f.pool, config, session, operation, eventId, rules, wallet.id),
+      await prepareV1Registration(
+        f.pool,
+        config,
+        session,
+        operation,
+        eventId,
+        rules,
+        wallet.id,
+        transport,
+      ),
       first,
     );
     let prepares = 0,
@@ -276,6 +305,15 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
       intent: createDeletionConfirmation(config, f.accounts[1].id, session, deletionOperation),
     });
     assert(deletion.holdReasons.includes("financial_reconciliation"));
+    const restricted = hash(deletion.sessionValue!);
+    assert.equal(
+      (await readV1RegistrationState(f.pool, config, restricted, eventId, transport)).funded,
+      true,
+    );
+    await assert.rejects(
+      prepareV1Deposit(f.pool, config, restricted, eventId, transport),
+      /Sign in again/,
+    );
   } finally {
     globalThis.fetch = originalFetch;
     await f.cleanup();

@@ -16,6 +16,7 @@ import {
   confirmV1Deposit,
 } from "../../../../server/commitments/v1-registration";
 import { isUuid } from "../../../../server/events/drafts";
+import { findPrivacySession } from "../../../../server/privacy/access";
 
 export const dynamic = "force-dynamic";
 async function handle(request: Request) {
@@ -25,10 +26,12 @@ async function handle(request: Request) {
     if (!config) return new Response(null, { status: 404 });
     guardRequest(request, config.origin, request.method !== "GET");
     database = createDatabase();
-    const session = await requireSession(
-      database.pool,
-      (await cookies()).get(sessionCookie)?.value,
-    );
+    const cookie = (await cookies()).get(sessionCookie)?.value;
+    const session =
+      request.method === "GET"
+        ? await findPrivacySession(database.pool, cookie)
+        : await requireSession(database.pool, cookie);
+    if (!session) throw new AppFailure(401, "Sign in again to review your deposit.");
     await limit(
       database.pool,
       `v1-deposit:${session.accountId}`,

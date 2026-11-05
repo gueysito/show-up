@@ -1,3 +1,4 @@
+import { v1RpcPacer } from "../src/server/protocol/v1-rpc";
 // Local V1 operator, under AGENTS.md's mainnet budget. No .env or remote signer.
 import { constants } from "node:fs";
 import { mkdir, open, readFile, rename, writeFile } from "node:fs/promises";
@@ -161,42 +162,7 @@ function retryAt(response: Response, now: number) {
   const until = /^\d{1,8}$/.test(header) ? now + Number(header) * 1000 : Date.parse(header);
   return Number.isSafeInteger(until) && until >= now ? until : undefined;
 }
-export function v1RpcPacer(
-  wait: (milliseconds: number, signal?: AbortSignal) => Promise<unknown> = (milliseconds, signal) =>
-    pause(milliseconds, undefined, { signal }),
-  now: () => number = Date.now,
-) {
-  const pending = new Map<string, Promise<unknown>>(),
-    next = new Map<string, number>();
-  return {
-    cooldown(origin: string, until: number) {
-      next.set(origin, Math.max(next.get(origin) ?? 0, until + 1000));
-    },
-    async run<T>(origin: string, operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-      const previous = pending.get(origin) ?? Promise.resolve();
-      const admission = previous
-        .catch(() => {})
-        .then(async () => {
-          signal?.throwIfAborted();
-          if (!next.has(origin)) next.set(origin, now() + 1000);
-          while (next.get(origin)! > now()) {
-            await wait(next.get(origin)! - now(), signal);
-            signal?.throwIfAborted();
-          }
-          signal?.throwIfAborted();
-          next.set(origin, now() + 1000);
-        });
-      pending.set(
-        origin,
-        admission.then(
-          () => undefined,
-          () => undefined,
-        ),
-      );
-      return admission.then(operation);
-    },
-  };
-}
+export { v1RpcPacer } from "../src/server/protocol/v1-rpc";
 const pacer = v1RpcPacer();
 async function transport(input: string | URL | Request, init?: RequestInit) {
   let response = await fetch(input, { ...init, redirect: "error" });

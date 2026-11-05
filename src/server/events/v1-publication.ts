@@ -332,6 +332,7 @@ export async function readV1PublishedTerms(
   pool: pg.Pool,
   key: string,
   eventId: string,
+  transport?: typeof fetch,
 ): Promise<V1PublicEscrow | null> {
   const row = (
     await pool.query(
@@ -343,7 +344,7 @@ export async function readV1PublishedTerms(
   ).rows[0] as V1PublicationRow | undefined;
   if (!row) return null;
   const image = storedV1Publication(key, row);
-  const snapshot = await readV1Snapshot(eventId);
+  const snapshot = await readV1Snapshot(eventId, transport);
   if (
     !snapshot.event ||
     !["published", "cancelled", "settled"].includes(String(snapshot.event.status)) ||
