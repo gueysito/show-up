@@ -28,8 +28,9 @@ Working rules are in [AGENTS.md](AGENTS.md).
   balance and zero held by escrow. Cumulative receipts and payouts are 14.25 USDC
   each. Allocation remains below $50; no additional owner funding is requested.
 
-Checks use preauthenticated engineering accounts and isolated project-wallet
-approval. External wallet UI, a fresh provider login and a real phone remain to verify.
+Mainnet transaction checks used preauthenticated engineering accounts and isolated
+project-wallet approval. The owner completed Google sign-in on a real phone;
+session refresh and external-wallet approval remain to verify.
 The existing app baseline passes 195 database and 48 ordinary browser cases;
 the network-fee correction passes 131 unit and six isolated database cases.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
@@ -41,7 +42,8 @@ there are no pending native transaction queues.
 - V1-9: front door and V1 preview run locally; desktop/390/320 layouts and real
   host navigation pass. A clean clone installs/builds on pinned Node 24 and serves
   home/preview/database health with HTTP 200. Both provider sign-in screens open
-  through the pilot in a fresh iPhone-sized browser; the owner phone journey remains.
+  through the pilot in a fresh iPhone-sized browser; owner Google sign-in passed
+  on a real phone and the wallet journey remains.
   Hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 
 The owner-local app runs at `https://localhost:3443`. The existing approved
@@ -49,8 +51,7 @@ The owner-local app runs at `https://localhost:3443`. The existing approved
 the rebuilt production app from `c755607`: home/account/health return HTTP 200;
 anonymous NFT requests return 401 and foreign-origin mutations return 403.
 Phone access depends on the development computer and its existing tunnel staying
-running. A new browser may show ngrok's one-time **Visit Site** screen. Fresh owner
-phone sign-in and external-wallet approval remain to verify.
+running. A new browser may show ngrok's one-time **Visit Site** screen.
 
 The live MyNearWallet `/sign-message` and `/sign` screens now reject app requests
 following its [retirement](https://www.mynearwallet.com/sunset). The earlier
