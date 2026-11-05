@@ -10,8 +10,10 @@ import {
   type NearMobileProofRequest,
 } from "./near-mobile-wallet";
 import { getMeteorWallet, verifyMeteorWallet } from "./meteor-wallet";
+import { connectRabby, type RabbyPrompt } from "./rabby-connect";
 import { connectSolanaWallet } from "./solana-wallet-proof";
 import {
+  evmVerificationMessage,
   injectedEthereumApp,
   mobileWalletUrl,
   type EthereumApp,
@@ -91,12 +93,14 @@ export function WalletManager({
   returnEventId,
   initialNetwork,
   openedWallet,
+  walletConnectProjectId,
 }: {
   initialWallets: OwnWallet[];
   returnChallengeId?: string;
   returnEventId?: string;
   initialNetwork?: WalletChallenge["network"];
   openedWallet?: MobileWallet;
+  walletConnectProjectId?: string;
 }) {
   const [network, setNetwork] = useState<WalletChallenge["network"]>(
     returnChallengeId ? "near" : (initialNetwork ?? "base"),
@@ -108,6 +112,8 @@ export function WalletManager({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [launchLink, setLaunchLink] = useState<{ app: MobileWallet; href: string } | null>(null);
+  const [rabbyPrompt, setRabbyPrompt] = useState<RabbyPrompt | null>(null);
+  const rabbyAttempt = useRef<AbortController | null>(null);
   const [retry, setRetry] = useState(false);
   const pending = useRef<ProofRequest | null>(null);
   const [returnReady, setReturnReady] = useState(Boolean(returnChallengeId));
@@ -127,6 +133,7 @@ export function WalletManager({
     window.dispatchEvent(new Event("eip6963:requestProvider"));
     return () => window.removeEventListener("eip6963:announceProvider", announced);
   }, []);
+  useEffect(() => () => rabbyAttempt.current?.abort(), []);
 
   async function save(request: ProofRequest) {
     pending.current = request;
@@ -201,6 +208,7 @@ export function WalletManager({
     setBusy(true);
     setNotice(null);
     setLaunchLink(null);
+    let rabby: Awaited<ReturnType<typeof connectRabby>> | undefined;
     try {
       if (pending.current) {
         await save(pending.current);
@@ -284,11 +292,25 @@ export function WalletManager({
       } else {
         if (app !== "rabby" && app !== "metamask") return;
         ethereum = evmProviders.current[app] ?? injectedEthereumApp(app);
-        if (!ethereum) return openMobileWallet(app);
-        const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-        if (!Array.isArray(accounts) || typeof accounts[0] !== "string")
-          throw new WalletUiError("Choose an account in your wallet.");
-        address = accounts[0];
+        if (ethereum) {
+          const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+          if (!Array.isArray(accounts) || typeof accounts[0] !== "string")
+            throw new WalletUiError("Choose an account in your wallet.");
+          address = accounts[0];
+        } else if (app === "rabby" && walletConnectProjectId && openedWallet !== app) {
+          const controller = new AbortController();
+          rabbyAttempt.current = controller;
+          setNotice({ error: false, text: "Preparing a connection to Rabby…" });
+          rabby = await connectRabby(
+            walletConnectProjectId,
+            network,
+            AbortSignal.any([controller.signal, AbortSignal.timeout(300_000)]),
+            setRabbyPrompt,
+          );
+          setRabbyPrompt(null);
+          setNotice({ error: false, text: "Preparing your verification message…" });
+          address = rabby.address;
+        } else return openMobileWallet(app);
       }
       const challenge: WalletChallenge = await post({
         operation: "challenge",
@@ -340,20 +362,23 @@ export function WalletManager({
           );
         }
       } else {
-        const chain = await ethereum!.request({ method: "eth_chainId" });
-        if (typeof chain !== "string" || BigInt(chain) !== BigInt(challenge.chainId))
-          throw new WalletUiError(
-            `Switch your wallet to ${networkNames[network]} mainnet, then tap the wallet again. Verification only signs a message.`,
-          );
-        const hex =
-          "0x" +
-          Array.from(new TextEncoder().encode(challenge.message), (byte) =>
-            byte.toString(16).padStart(2, "0"),
-          ).join("");
-        const signature = await ethereum!.request({
-          method: "personal_sign",
-          params: [hex, address],
-        });
+        if (ethereum) {
+          const chain = await ethereum.request({ method: "eth_chainId" });
+          if (typeof chain !== "string" || BigInt(chain) !== BigInt(challenge.chainId))
+            throw new WalletUiError(
+              `Switch your wallet to ${networkNames[network]} mainnet, then tap the wallet again. Verification only signs a message.`,
+            );
+        }
+        const signature = rabby
+          ? await rabby.sign(challenge)
+          : await ethereum!.request({
+              method: "personal_sign",
+              params: [evmVerificationMessage(challenge.message), address],
+            });
+        if (rabby) {
+          setRabbyPrompt(null);
+          setNotice({ error: false, text: "Saving your signed proof…" });
+        }
         if (typeof signature !== "string")
           throw new WalletUiError("Your wallet did not return a message signature.");
         proof = { signature };
@@ -367,14 +392,18 @@ export function WalletManager({
     } catch (error) {
       setNotice({
         error: true,
-        text:
-          error instanceof WalletUiError
+        text: rabbyAttempt.current?.signal.aborted
+          ? "Rabby verification was cancelled. Tap Rabby to start again."
+          : error instanceof WalletUiError
             ? error.message
             : pending.current
               ? "Showup could not confirm that your proof was saved. Try saving the same proof again."
               : "Wallet verification didn’t finish. Unlock the wallet, select your account, and approve the message.",
       });
     } finally {
+      rabby?.close();
+      rabbyAttempt.current = null;
+      setRabbyPrompt(null);
       setBusy(false);
     }
   }
@@ -441,6 +470,27 @@ export function WalletManager({
               ? "Open Phantom"
               : `Open ${appNames[launchLink.app]} browser`}
           </a>
+        </div>
+      )}
+      {rabbyPrompt && (
+        <div className="field">
+          <p>
+            {rabbyPrompt.step === "connect"
+              ? "Choose your account in Rabby, approve the connection, then return here."
+              : "Approve the verification message in Rabby, then return here."}
+          </p>
+          <div className="saved-actions">
+            <a className="secondary-button" href={rabbyPrompt.href}>
+              {rabbyPrompt.step === "connect" ? "Open Rabby to connect" : "Open Rabby to sign"}
+            </a>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => rabbyAttempt.current?.abort()}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
       {busy && !notice && <p role="status">Waiting for your wallet or checking its proof…</p>}

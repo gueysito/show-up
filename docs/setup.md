@@ -305,10 +305,12 @@ server. Existing application encryption/index keys must remain unchanged.
 After social sign-in, choose **Verify and review your wallets**, then select a
 network and a wallet app:
 
-- Base/Ethereum: tap MetaMask or Rabby, select the matching
-  mainnet, and review the host, address, chain, nonce and expiry before signing.
-  If the wallet opens Showup in its own browser, sign in to the same account
-  there if prompted.
+- Base/Ethereum: select the network and tap your wallet. When a WalletConnect
+  project is configured, Rabby can approve the connection and sign the message
+  while Showup stays signed in in the original browser. Use **Open Rabby to
+  connect**, then **Open Rabby to sign** if prompted. Review the host, address,
+  chain, nonce and expiry before signing. If a wallet opens Showup in its own
+  browser, sign in to the same account there if prompted.
   Contract wallets are not verified in this pilot.
 - Solana: tap Phantom and sign the displayed
   message. Private keys remain in the wallet.
@@ -327,6 +329,9 @@ account/session, host, chain, address, nonce or signed message cannot reuse it.
 This proves wallet control only. V1 funding requires separate approval of the
 event rules, destinations and fees, then confirmation of the actual escrow receipt.
 Android Phantom and NEAR Mobile ownership were verified on a real phone.
+To enable the Rabby connection, set the public Reown project ID as
+`SHOWUP_WALLETCONNECT_PROJECT_ID` in the web process. The development tunnel
+reads it from `.env.auth`. Allowlist the exact Showup web origin in Reown.
 
 ## Publication requirements
 

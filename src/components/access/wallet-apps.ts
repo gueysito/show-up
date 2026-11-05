@@ -9,6 +9,15 @@ export type EthereumProvider = {
   providers?: EthereumProvider[];
 };
 
+export function evmVerificationMessage(message: string) {
+  return (
+    "0x" +
+    Array.from(new TextEncoder().encode(message), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("")
+  );
+}
+
 export function injectedEthereumApp(app: EthereumApp) {
   const { ethereum, rabby } = window as Window & {
     ethereum?: EthereumProvider;

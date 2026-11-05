@@ -28,6 +28,7 @@ export default async function WalletPage({
         ? query.app
         : undefined;
   const config = authConfig();
+  const projectId = process.env.SHOWUP_WALLETCONNECT_PROJECT_ID;
   let signedIn = false,
     available = Boolean(config);
   let wallets: OwnWallet[] = [];
@@ -68,6 +69,9 @@ export default async function WalletPage({
           returnEventId={returnEventId}
           initialNetwork={initialNetwork}
           openedWallet={openedWallet}
+          walletConnectProjectId={
+            projectId && /^[0-9a-f]{32}$/i.test(projectId) ? projectId : undefined
+          }
         />
       )}
     </main>
