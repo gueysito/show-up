@@ -2,7 +2,6 @@ import { V1ReadOnlyRpc } from "../../src/server/protocol/v1-rpc";
 import { readV1Snapshot, readV1Record, v1Deployment } from "../../src/server/protocol/v1-escrow";
 import {
   v1Intents,
-  v1RouteAccount,
   readV1RouteAccount,
   readV1IntentsBalance,
 } from "../../src/server/protocol/v1-intents";
@@ -15,7 +14,7 @@ import type { V1IntentsGateway, V1IntentsWithdrawal } from "../../src/worker/v1-
 import type { V1RegistrationImage } from "../../src/server/commitments/v1-registration";
 import {
   v1IntentsAccountTransaction,
-  v1IntentsWithdrawalTransaction,
+  v1SponsoredIntentsWithdrawal,
   signV1IntentsTransaction,
 } from "./native-engineering-transaction";
 import { loadV1MainnetKey } from "./v1-mainnet-key";
@@ -34,15 +33,8 @@ export function v1IntentsGateway(
 ): V1IntentsGateway<V1RegistrationImage | V1IntentsWithdrawal> {
   return {
     submit: (signed) => native.submit(signed),
-    final: (signed, image) =>
-      native.final(
-        signed,
-        kind === "route_account"
-          ? v1Deployment.account
-          : v1RouteAccount(
-              image.format === "showup.v1.registration.v1" ? image.id : image.registration.id,
-            ),
-      ),
+    final: (signed) =>
+      native.final(signed, kind === "route_account" ? v1Deployment.account : v1Deployment.owner),
     async prepare(image) {
       const registration =
           image.format === "showup.v1.registration.v1" ? image : image.registration,
@@ -56,11 +48,12 @@ export function v1IntentsGateway(
         registration.sender !== v1Intents.account ||
         protocol.chain_id !== "mainnet" ||
         protocol.protocol_version !== 87 ||
-        unsigned(record(protocol.runtime_config).min_gas_purchase_price) > 100000000n ||
+        unsigned(record(protocol.runtime_config).min_gas_purchase_price) > 1000000000n ||
         unsigned(record(protocol.runtime_config).storage_amount_per_byte) !== 10000000000000000000n
       )
         throw new Error("Intents native execution profile changed");
       let transaction: ReturnType<typeof v1IntentsAccountTransaction>;
+      let key: Awaited<ReturnType<typeof loadV1MainnetKey>>;
       if (kind === "route_account") {
         if (image.format !== "showup.v1.registration.v1")
           throw new Error("Wrong route account image");
@@ -100,6 +93,7 @@ export function v1IntentsGateway(
           }),
         );
         if (facts[0] !== facts[1]) throw new Error("Route sponsor nonce disagreement");
+        key = await loadV1MainnetKey();
         transaction = v1IntentsAccountTransaction({
           registrationId: image.id,
           nonce: (BigInt(facts[0]) + 1n).toString(),
@@ -123,17 +117,58 @@ export function v1IntentsGateway(
           !matchesV1Registration(reg, registration)
         )
           throw new Error("Intents withdrawal balance, reserve or registration changed");
-        transaction = v1IntentsWithdrawalTransaction({
-          registrationId: registration.id,
-          nonce: (BigInt(account.nonce) + 1n).toString(),
-          blockHash: snapshot.block.hash,
-          amount: image.amount,
-        });
+        const sponsors = await Promise.all(
+          ["near-fastnear", "near-drpc"].map(async (id) => {
+            const source = new V1ReadOnlyRpc(id, transport),
+              params = { account_id: v1Deployment.owner, block_id: snapshot.block.hash },
+              [balance, keys] = await Promise.all([
+                source.read("query", { ...params, request_type: "view_account" }),
+                source.read("query", { ...params, request_type: "view_access_key_list" }),
+              ]),
+              list = record(keys).keys;
+            for (const result of [balance, keys])
+              if (
+                record(result).block_hash !== snapshot.block.hash ||
+                String(record(result).block_height) !== snapshot.block.height
+              )
+                throw new Error("Intents gas sponsor block mismatch");
+            if (
+              record(balance).code_hash !== "1".repeat(32) ||
+              !Array.isArray(list) ||
+              list.length !== 1 ||
+              record(list[0]).public_key !== v1Deployment.publicKey ||
+              record(record(list[0]).access_key).permission !== "FullAccess"
+            )
+              throw new Error("Intents gas sponsor authority changed");
+            if (
+              unsigned(record(balance).amount, 128) -
+                unsigned(record(balance).storage_usage, 64) * 10000000000000000000n <
+              120000000000000000000000n
+            )
+              throw new Error(
+                "Controller needs its existing native gas reserve replenished before forwarding",
+              );
+            return unsigned(record(record(list[0]).access_key).nonce, 64).toString();
+          }),
+        );
+        if (sponsors[0] !== sponsors[1]) throw new Error("Intents gas sponsor nonce disagreement");
+        key = await loadV1MainnetKey();
+        transaction = v1SponsoredIntentsWithdrawal(
+          {
+            registrationId: registration.id,
+            nonce: (BigInt(sponsors[0]) + 1n).toString(),
+            senderNonce: (BigInt(account.nonce) + 1n).toString(),
+            blockHash: snapshot.block.hash,
+            blockHeight: snapshot.block.height,
+            amount: image.amount,
+          },
+          key,
+        );
       }
       return {
-        ...signV1IntentsTransaction(transaction, await loadV1MainnetKey()),
+        ...signV1IntentsTransaction(transaction, key),
         semantic: canonicalHash(image),
-        validUntilMs: Date.now() + 120000,
+        validUntilMs: Date.now() + (kind === "route_account" ? 120000 : 60000),
       };
     },
     async observe(image, minimumHeight) {

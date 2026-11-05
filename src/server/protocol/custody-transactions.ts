@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { getAddress, Interface, Transaction } from "ethers";
 import { decodeBase58 } from "./encoding";
 import { engineeringManifest, networkManifest } from "./manifest";
-import legacyMainnet from "../../../manifests/mainnet.v1.json";
+import legacyMainnet from "../../../manifests/mainnet.v1.json" with { type: "json" };
 
 export type CustodyIntent = {
   deployment: string;

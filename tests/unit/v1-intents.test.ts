@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import {
   v1IntentsAccountTransaction,
   v1IntentsWithdrawalTransaction,
   v1DemoReserveTransaction,
+  v1SponsoredIntentsWithdrawal,
+  type NativeKey,
 } from "../../scripts/lib/native-engineering-transaction";
 import {
   v1RouteAccount,
@@ -90,6 +93,65 @@ test("isolated route accounts deploy no code, reuse only the retained key and fo
     v1DemoReserveTransaction({ account: v1Deployment.owner, nonce: "1", blockHash }),
   );
 });
+test("sponsored withdrawals bind the child nonce, fixed withdrawal, controller and NEP-366 domain", () => {
+  const vector = JSON.parse(
+      readFileSync("contracts/sandbox-tests/fixtures/v1-sponsored-withdrawal.json", "utf8"),
+    ),
+    calls: Buffer[] = [],
+    key = {
+      publicKey: v1Deployment.publicKey,
+      sign: (digest: Buffer) => {
+        calls.push(digest);
+        return Buffer.alloc(64);
+      },
+    } as NativeKey,
+    input = {
+      registrationId,
+      amount: "1000000",
+      nonce: "9007199254740993",
+      senderNonce: "9007199254740994",
+      blockHeight: "100",
+      blockHash,
+    },
+    image = v1SponsoredIntentsWithdrawal(input, key);
+  assert.equal(image.bytes.toString("base64"), vector.unsignedBase64);
+  assert.equal(image.hash, vector.hash);
+  assert.equal(image.delegateDigest.toString("hex"), vector.delegateDigest);
+  assert.deepEqual(calls, [image.delegateDigest]);
+  const tx = reader(image.bytes);
+  assert.equal(tx.text(), v1Deployment.owner);
+  tx.skip(33);
+  assert.equal(tx.u64(), 9007199254740993n);
+  assert.equal(tx.text(), v1RouteAccount(registrationId));
+  tx.skip(32);
+  assert.equal(tx.u32(), 1);
+  assert.equal(tx.byte(), 8);
+  assert.equal(tx.text(), v1RouteAccount(registrationId));
+  assert.equal(tx.text(), "intents.near");
+  assert.equal(tx.u32(), 1);
+  assert.equal(tx.byte(), 2);
+  assert.equal(tx.text(), "ft_withdraw");
+  assert.deepEqual(JSON.parse(tx.text()), {
+    amount: "1000000",
+    memo: null,
+    msg: `deposit:${registrationId}`,
+    receiver_id: v1Deployment.account,
+    token: v1Deployment.token,
+  });
+  assert.equal(tx.u64(), 100000000000000n);
+  assert.equal(tx.u128(), 1n);
+  assert.equal(tx.u64(), 9007199254740994n);
+  assert.equal(tx.u64(), 340n);
+  tx.skip(33);
+  assert.equal(tx.byte(), 0);
+  tx.skip(64);
+  assert.equal(tx.end(), true);
+  for (const amount of ["0", "100000001", "-1"])
+    assert.throws(() => v1SponsoredIntentsWithdrawal({ ...input, amount }, key));
+  assert.throws(() => v1SponsoredIntentsWithdrawal({ ...input, senderNonce: "-1" }, key));
+  assert.throws(() => v1SponsoredIntentsWithdrawal(input, { ...key, publicKey: "ed25519:wrong" }));
+});
+
 test("route balance reads pin native USDC and both source blocks; absent or altered keys cannot receive source approvals", async () => {
   const snapshot: V1Snapshot = {
       event: null,

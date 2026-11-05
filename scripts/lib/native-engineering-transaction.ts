@@ -309,6 +309,68 @@ export function signV1IntentsTransaction(
     ),
   };
 }
+
+// NEP-366: the controller pays gas while the isolated account remains the
+// predecessor of ft_withdraw. Both signatures bind the fixed token/registration.
+// This does not add delegated actions to the ordinary mainnet action envelope.
+export function v1SponsoredIntentsWithdrawal(
+  input: {
+    registrationId: string;
+    amount: string;
+    nonce: string;
+    senderNonce: string;
+    blockHash: string;
+    blockHeight: string;
+  },
+  key: NativeKey,
+) {
+  if (key.publicKey !== v1Deployment.publicKey) throw new Error("Intents signer mismatch");
+  if (!/^[1-9][0-9]*$/.test(input.amount) || BigInt(input.amount) > 100000000n)
+    throw new Error("Intents withdrawal amount outside V1 bounds");
+  const sender = v1RouteAccount(input.registrationId),
+    delegate = Buffer.concat([
+      nativeString(sender),
+      nativeString(v1Intents.account),
+      nativeInteger("1", 4),
+      action({
+        kind: "call",
+        method: "ft_withdraw",
+        args: Buffer.from(
+          canonicalJson({
+            token: v1Deployment.token,
+            receiver_id: v1Deployment.account,
+            amount: input.amount,
+            memo: null,
+            msg: `deposit:${input.registrationId}`,
+          }),
+        ),
+        gas: "100000000000000",
+        deposit: "1",
+      }),
+      nativeInteger(input.senderNonce, 8),
+      nativeInteger((BigInt(input.blockHeight) + 240n).toString(), 8),
+      publicKey(key.publicKey),
+    ]),
+    delegateDigest = createHash("sha256")
+      .update(Buffer.concat([nativeInteger(String(2 ** 30 + 366), 4), delegate]))
+      .digest(),
+    signature = key.sign(delegateDigest);
+  if (signature.length !== 64) throw new Error("Invalid delegate signature");
+  const bytes = Buffer.concat([
+      nativeString(v1Deployment.owner),
+      publicKey(key.publicKey),
+      nativeInteger(input.nonce, 8),
+      nativeString(sender),
+      decodeBase58(input.blockHash, 32),
+      nativeInteger("1", 4),
+      Buffer.from([8]),
+      delegate,
+      Buffer.from([0]),
+      signature,
+    ]),
+    digest = createHash("sha256").update(bytes).digest();
+  return { bytes, digest, hash: encodeBase58(digest), delegateDigest };
+}
 export function signNativeTransaction(
   input: Omit<Parameters<typeof nativeTransaction>[0], "publicKey">,
   key: NativeKey,

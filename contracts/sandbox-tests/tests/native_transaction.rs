@@ -3,6 +3,68 @@ use near_primitives::transaction::{Action, Transaction};
 use serde_json::Value;
 
 #[test]
+fn sponsored_intents_withdrawal_matches_nep366_wire_and_signature_domain() {
+    // Public encoder fixture uses an explicitly invalid zero signature. No
+    // operator signature/key is needed to check the exact NEAR signing digest.
+    let vector: Value =
+        serde_json::from_str(include_str!("../fixtures/v1-sponsored-withdrawal.json")).unwrap();
+    let bytes = STANDARD
+        .decode(vector["unsignedBase64"].as_str().unwrap())
+        .unwrap();
+    let tx: Transaction = borsh::from_slice(&bytes).unwrap();
+    assert_eq!(tx.get_hash_and_size().0.to_string(), vector["hash"]);
+    assert_eq!(
+        tx.signer_id().as_str(),
+        "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc"
+    );
+    assert_eq!(
+        tx.receiver_id().as_str(),
+        "r6c6d5471a0e74941bb3732f131270000.showup-dev-14989f.near"
+    );
+    assert_eq!(tx.nonce().nonce(), 9_007_199_254_740_993);
+    assert_eq!(tx.actions().len(), 1);
+    let Action::Delegate(signed) = &tx.actions()[0] else {
+        panic!("NEP-366 delegate expected")
+    };
+    let delegate = &signed.delegate_action;
+    assert_eq!(delegate.sender_id, *tx.receiver_id());
+    assert_eq!(delegate.receiver_id.as_str(), "intents.near");
+    assert_eq!(delegate.public_key, *tx.public_key());
+    assert_eq!(delegate.nonce, 9_007_199_254_740_994);
+    assert_eq!(delegate.max_block_height, 340);
+    let digest = delegate
+        .get_nep461_hash()
+        .0
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    assert_eq!(digest, vector["delegateDigest"]);
+    assert!(!signed.verify());
+    let actions = delegate
+        .actions
+        .iter()
+        .cloned()
+        .map(Action::from)
+        .collect::<Vec<_>>();
+    assert_eq!(actions.len(), 1);
+    let Action::FunctionCall(call) = &actions[0] else {
+        panic!("Fixed withdrawal expected")
+    };
+    assert_eq!(call.method_name, "ft_withdraw");
+    assert_eq!(call.gas.as_gas(), 100_000_000_000_000);
+    assert_eq!(call.deposit.as_yoctonear(), 1);
+    assert_eq!(
+        serde_json::from_slice::<Value>(&call.args).unwrap(),
+        serde_json::json!({
+            "token":"17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+            "receiver_id":"showup-dev-14989f.near", "amount":"1000000", "memo":null,
+            "msg":"deposit:6c6d5471-a0e7-4941-bb37-32f131270000"
+        })
+    );
+    assert_eq!(borsh::to_vec(&tx).unwrap(), bytes);
+}
+
+#[test]
 fn v1_native_usdc_payment_matches_pinned_near_wire_format() {
     for (raw, prefix) in [
         (
