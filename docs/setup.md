@@ -1,10 +1,10 @@
 # Local setup
 
-This is an unfinished local application. Google/Telegram authentication is
-verified in the development pilot; event publication, live funding and transfers
-remain unavailable. Approved scope is
-the larger halfway implementation goal; see [the plan](plan.md). Implemented and
-verified capabilities are recorded separately from that authorization.
+Showup runs locally with Google/Telegram sign-in and a deployed V1 mainnet escrow.
+Event publication, native-USDC deposits, check-in, settlement and refunds work
+through the app. Cross-chain and NFT verification progress is recorded in
+[current state](../CURRENT_STATE.md) and [the plan](plan.md). The larger V2
+prototype and its sandbox checks remain separate from the V1 user flow.
 
 ## Runtime and dependencies
 
@@ -1146,6 +1146,9 @@ escrow is currently unavailable. Each account reuses the retained project key,
 receives 0.02 NEAR from existing funds and has no deployed code. The private worker
 checks the pinned Intents deployment and two-source balance, then calls
 `ft_withdraw` only for the native USDC token, fixed escrow and `deposit:<registration>`.
+The child signs a NEP-366 delegated action; the controller pays its gas and attached
+yoctoNEAR. This avoids reserving 0.1 NEAR for gas in each child. Before signing, the
+worker checks the controller's two-source key, nonce and liquid gas reserve.
 Provider success and an internal balance alone do not confirm a seat. The actual
 escrow receipt or fixed recovery claim must confirm the forwarded amount. Original
 account/withdrawal transactions are persisted before one submission; unresolved

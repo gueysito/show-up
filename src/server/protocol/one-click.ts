@@ -104,6 +104,7 @@ export function validateQuoteTerms(
   expected: QuoteRequest,
   now = Date.now(),
   historical = false,
+  intentsDeadline = false,
 ) {
   const response = record(value);
   const request = record(response.quoteRequest);
@@ -156,11 +157,20 @@ export function validateQuoteTerms(
     throw new Error("A dry quote must not supply a deposit destination");
   if (!expected.dry) {
     const quoteDeadline = Date.parse(String(quote.deadline));
+    const inactive =
+      quote.timeWhenInactive === undefined
+        ? quoteDeadline
+        : Date.parse(String(quote.timeWhenInactive));
     if (
       !Number.isFinite(quoteDeadline) ||
       quoteDeadline <= timestamp ||
-      quoteDeadline > deadline ||
+      quoteDeadline >
+        deadline + (intentsDeadline && expected.recipientType === "INTENTS" ? 3 * 86400000 : 0) ||
       (!historical && quoteDeadline <= now) ||
+      !Number.isFinite(inactive) ||
+      inactive <= timestamp ||
+      inactive > quoteDeadline ||
+      (!historical && inactive <= now) ||
       typeof quote.depositAddress !== "string" ||
       !quote.depositAddress ||
       quote.depositAddress.length > 128

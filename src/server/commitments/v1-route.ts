@@ -100,6 +100,7 @@ function summary(route: V1Route) {
       : 0n
     ).toString(),
     expiresAt: route.expiresAt,
+    providerDeadline: String((route.response.quote as Record<string, unknown>).deadline),
     depositAddress: route.depositAddress,
   };
 }

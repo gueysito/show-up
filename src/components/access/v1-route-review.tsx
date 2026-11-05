@@ -14,6 +14,7 @@ export type V1RouteSummary = {
   principalAtomic: string;
   routingCostAtomic: string;
   expiresAt: string;
+  providerDeadline?: string;
   depositAddress: string;
   hint?: string;
   sourceHash?: string | null;
@@ -236,8 +237,14 @@ export function V1RouteReview({
                   ? "0.00002 ETH budget including an L1 reserve; review the wallet's final fee"
                   : "Up to 0.00008 ETH"}
             </dd>
-            <dt>Quote expires</dt>
+            <dt>Approve before</dt>
             <dd>{new Date(current.expiresAt).toISOString()}</dd>
+            {current.providerDeadline && (
+              <>
+                <dt>Provider deadline for unresolved routing</dt>
+                <dd>{new Date(current.providerDeadline).toISOString()}</dd>
+              </>
+            )}
             <dt>Routing status</dt>
             <dd>{initial?.hint ?? "WAITING_FOR_PAYMENT"}</dd>
           </dl>

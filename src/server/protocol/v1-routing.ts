@@ -60,7 +60,9 @@ export function validateV1Route(
     throw new Error("V1 route policy mismatch");
   if (!verifyQuoteSignature(value, quoteKey)) throw new Error("Invalid route quote signature");
   const response = record(value),
-    terms = validateQuoteTerms(response, request, now, historical),
+    // Live Intents quotes currently sign a provider deadline three days beyond
+    // the request. This never extends the application's source approval window.
+    terms = validateQuoteTerms(response, request, now, historical, true),
     quote = record(response.quote);
   if (BigInt(terms.amountIn) > BigInt(request.amount) + 1000000n)
     throw new Error("Route cost exceeds one USDC above principal");
@@ -80,7 +82,13 @@ export function validateV1Route(
     input: terms.amountIn,
     principal: request.amount,
     depositAddress: address,
-    expiresAt: String(quote.deadline),
+    expiresAt: new Date(
+      Math.min(
+        Date.parse(request.deadline),
+        Date.parse(String(quote.deadline)),
+        quote.timeWhenInactive ? Date.parse(String(quote.timeWhenInactive)) : Infinity,
+      ),
+    ).toISOString(),
   };
 }
 export async function requestV1Route(

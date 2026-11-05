@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { Interface } from "ethers";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { quoteMessage } from "../../src/server/protocol/quote-signature";
@@ -8,6 +9,23 @@ import { v1RouteRequest, validateV1Route } from "../../src/server/protocol/v1-ro
 import { prepareV1EvmPayment } from "../../src/server/protocol/v1-evm-payment";
 import { v1Deployment } from "../../src/server/protocol/v1-escrow";
 import { v1RouteAccount } from "../../src/server/protocol/v1-intents";
+import { validateQuoteTerms } from "../../src/server/protocol/one-click";
+import type { V1RouteRequest } from "../../src/server/protocol/v1-routing";
+
+test("authentic live Intents quotes retain a short app approval window and a separately bounded provider deadline", () => {
+  const response = JSON.parse(readFileSync("tests/fixtures/v1-intents-quote.json", "utf8")),
+    request = response.quoteRequest as V1RouteRequest,
+    now = Date.parse(response.timestamp),
+    route = validateV1Route("base", request, response, now);
+  assert.equal(route.principal, "1000000");
+  assert.equal(route.expiresAt, request.deadline);
+  assert.equal(Date.parse(response.quote.deadline) - Date.parse(request.deadline), 3 * 86400000);
+  assert.throws(() => validateQuoteTerms(response, request, now), /deadline/);
+  assert.throws(
+    () => validateV1Route("base", request, response, Date.parse(request.deadline) + 1),
+    /Expired|deadline/,
+  );
+});
 
 test("signed cross-chain quotes bind the native token, exact output, fixed message, source refund and expiry", () => {
   const keys = generateKeyPairSync("ed25519"),
@@ -41,6 +59,17 @@ test("signed cross-chain quotes bind the native token, exact output, fixed messa
   const route = validateV1Route("base", request, quote, Date.now(), false, publicKey);
   assert.equal(route.input, "1100000");
   assert.equal(route.principal, "1000000");
+  const extended = signed({
+    ...unsigned,
+    quote: {
+      ...unsigned.quote,
+      deadline: new Date(Date.parse(request.deadline) + 3 * 86400000).toISOString(),
+    },
+  });
+  assert.equal(
+    validateV1Route("base", request, extended, Date.now(), false, publicKey).expiresAt,
+    request.deadline,
+  );
   assert.throws(
     () => validateV1Route("ethereum", request, quote, Date.now(), false, publicKey),
     /policy/,
@@ -79,6 +108,8 @@ test("signed cross-chain quotes bind the native token, exact output, fixed messa
     { amountIn: "2000001" },
     { depositAddress: "0x0000000000000000000000000000000000000000" },
     { depositAddress: request.refundTo },
+    { deadline: new Date(Date.parse(request.deadline) + 3 * 86400000 + 1).toISOString() },
+    { timeWhenInactive: "invalid" },
   ]) {
     assert.throws(() =>
       validateV1Route(
