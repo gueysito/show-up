@@ -51,9 +51,9 @@ there are no pending native transaction queues.
 
 The owner-local app runs at `https://localhost:3443`. The existing approved
 [development pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves
-the rebuilt production app from `56a3cd9`. Wallets and health return HTTP 200;
-the public wallet page serves the updated Solana code, unauthenticated wallet
-requests return 401, and foreign-origin wallet mutations return 403.
+the rebuilt production app from `f909446`. Wallets and health return HTTP 200.
+Unauthenticated wallet requests return 401, and foreign-origin wallet mutations
+return 403.
 Phone access depends on the development computer and its existing tunnel staying
 running. A new browser may show ngrok's one-time **Visit Site** screen.
 
