@@ -14,6 +14,7 @@ import {
   readV1RegistrationState,
   prepareV1Deposit,
   confirmV1Deposit,
+  prepareV1ReceivingAccount,
 } from "../../../../server/commitments/v1-registration";
 import { isUuid } from "../../../../server/events/drafts";
 import { findPrivacySession } from "../../../../server/privacy/access";
@@ -78,9 +79,11 @@ async function handle(request: Request) {
       const fields =
         body.operation === "register"
           ? ["operation", "operationId", "eventId", "rulesHash", "walletId", "sourceWalletId"]
-          : body.operation === "source"
-            ? ["operation", "operationId", "eventId", "sourceHash"]
-            : ["operation", "operationId", "eventId"];
+          : body.operation === "storage"
+            ? ["operation", "operationId", "eventId", "walletId"]
+            : body.operation === "source"
+              ? ["operation", "operationId", "eventId", "sourceHash"]
+              : ["operation", "operationId", "eventId"];
       if (Object.keys(body).some((key) => !fields.includes(key)))
         throw new AppFailure(400, "Unexpected deposit fields.");
       if (body.operation === "register") {
@@ -101,6 +104,16 @@ async function handle(request: Request) {
           body.walletId,
           undefined,
           body.sourceWalletId as string | undefined,
+        );
+      } else if (body.operation === "storage") {
+        if (typeof body.walletId !== "string" || !isUuid(body.walletId))
+          throw new AppFailure(400, "Choose your verified NEAR payout wallet.");
+        result = await prepareV1ReceivingAccount(
+          database.pool,
+          config,
+          session.tokenHash,
+          body.eventId,
+          body.walletId,
         );
       } else if (body.operation === "quote")
         result = await prepareV1Route(database.pool, config, session.tokenHash, body.eventId);

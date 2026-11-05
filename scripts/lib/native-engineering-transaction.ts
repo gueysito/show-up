@@ -140,6 +140,27 @@ export function v1DepositFundingTransaction(
 ) {
   return v1TokenFundingTransaction(input, "deposit");
 }
+export function v1StorageRegistrationTransaction(
+  input: Parameters<typeof v1PrizeFundingTransaction>[0],
+) {
+  if (input.amount !== "0") throw new Error("USDC receiving registration does not transfer USDC");
+  return encodeTransaction(
+    {
+      ...input,
+      receiver: v1Deployment.token,
+      actions: [
+        {
+          kind: "call",
+          method: "storage_deposit",
+          args: Buffer.from(canonicalJson({ account_id: input.signer, registration_only: true })),
+          gas: "30000000000000",
+          deposit: "1250000000000000000000",
+        },
+      ],
+    },
+    new Set([input.signer, v1Deployment.token]),
+  );
+}
 
 function v1TokenFundingTransaction(
   input: Parameters<typeof v1PrizeFundingTransaction>[0],

@@ -13,6 +13,7 @@ import { prepareV1Publication } from "../../src/server/events/v1-publication";
 import {
   prepareV1Registration,
   readV1RegistrationState,
+  prepareV1ReceivingAccount,
 } from "../../src/server/commitments/v1-registration";
 import {
   prepareV1Route,
@@ -48,11 +49,30 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
     block = encodeBase58(Buffer.alloc(32, 7)),
     time = Date.now() - 1000;
   const originalIssuer = networkManifest.providers.oneClick.quotePublicKey;
+  let sourceNonce = "0x0",
+    nonceReads = 0,
+    storageReady = true;
   let snapshot!: V1Snapshot,
     registration: Record<string, unknown> | null = null,
     quote: Record<string, unknown> | null = null;
   const transport: typeof fetch = async (url, init) => {
     const input = JSON.parse(String(init?.body ?? "{}"));
+    if (String(input.method).startsWith("eth_")) {
+      if (input.method === "eth_getTransactionCount") nonceReads++;
+      const result =
+        input.method === "eth_chainId"
+          ? "0x2105"
+          : input.method === "eth_getBalance"
+            ? "0x5af3107a4000"
+            : input.method === "eth_call"
+              ? input.params[0].data.startsWith("0xa9059cbb")
+                ? "0x" + "0".repeat(63) + "1"
+                : "0x16e360"
+              : input.method === "eth_gasPrice"
+                ? "0xf4240"
+                : sourceNonce;
+      return Response.json({ jsonrpc: "2.0", id: input.id, result });
+    }
     if (String(url).includes("1click.chaindefuser.com")) {
       if (String(url).includes("/status"))
         return Response.json({ status: "SUCCESS", quoteResponse: quote });
@@ -105,7 +125,11 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
                               ? snapshot.event
                               : params.method_name === "get_registration"
                                 ? registration
-                                : null,
+                                : params.method_name === "storage_balance_of"
+                                  ? storageReady
+                                    ? { total: "1250000000000000000000", available: "0" }
+                                    : null
+                                  : null,
                           ),
                         ),
                       ],
@@ -176,6 +200,35 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
     const rules = (await f.pool.query("SELECT rules_hash FROM app_events WHERE id=$1", [eventId]))
       .rows[0].rules_hash;
     await assert.rejects(
+      prepareV1ReceivingAccount(f.pool, config, other, eventId, payout.id, transport),
+      /unavailable/,
+    );
+    assert.deepEqual(
+      await prepareV1ReceivingAccount(f.pool, config, session, eventId, payout.id, transport),
+      { ready: true },
+    );
+    storageReady = false;
+    await assert.rejects(
+      prepareV1Registration(
+        f.pool,
+        config,
+        session,
+        randomUUID(),
+        eventId,
+        rules,
+        payout.id,
+        transport,
+        source.id,
+      ),
+      /Enable USDC receiving/,
+    );
+    assert.equal(
+      (await f.pool.query("SELECT 1 FROM app_v1_registrations WHERE event_id=$1", [eventId]))
+        .rowCount,
+      0,
+    );
+    storageReady = true;
+    await assert.rejects(
       prepareV1Registration(
         f.pool,
         config,
@@ -235,6 +288,38 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
     const price = await prepareV1Route(f.pool, config, session, eventId, transport);
     assert.equal(price.inputAtomic, "1100000");
     assert.equal(price.routingCostAtomic, "100000");
+    const payment = await prepareV1RoutePayment(f.pool, config, session, eventId, transport);
+    assert.equal("transaction" in payment && payment.transaction.nonce, "0x0");
+    assert.equal(nonceReads, 4);
+    sourceNonce = "0x1";
+    assert.deepEqual(
+      await prepareV1RoutePayment(f.pool, config, session, eventId, transport),
+      payment,
+    );
+    assert.equal(
+      nonceReads,
+      4,
+      "A retry must return the stored original, without assigning a new nonce",
+    );
+    const frozen = (
+      await f.pool.query(
+        "SELECT payment_hash,encrypted_payment FROM app_v1_route_quotes WHERE registration_id=$1",
+        [prepared.registrationId],
+      )
+    ).rows[0];
+    assert.equal(frozen.encrypted_payment.includes(source.address), false);
+    await f.pool.query("UPDATE app_v1_route_quotes SET payment_hash=$2 WHERE registration_id=$1", [
+      prepared.registrationId,
+      "0".repeat(64),
+    ]);
+    await assert.rejects(
+      prepareV1RoutePayment(f.pool, config, session, eventId, transport),
+      /integrity/,
+    );
+    await f.pool.query("UPDATE app_v1_route_quotes SET payment_hash=$2 WHERE registration_id=$1", [
+      prepared.registrationId,
+      frozen.payment_hash,
+    ]);
     await assert.rejects(ownedV1Route(f.pool, config, other, eventId), /unavailable/);
     assert.equal(
       (await readV1RouteState(f.pool, config, session, eventId, transport))?.hint,

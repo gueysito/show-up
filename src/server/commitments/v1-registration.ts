@@ -18,6 +18,7 @@ import {
   type V1Snapshot,
 } from "../protocol/v1-escrow";
 import { prepareV1WalletPayment } from "../protocol/v1-wallet-payment";
+import { requireV1PayoutStorage, v1PayoutStorageReady } from "../protocol/v1-payout-storage";
 
 export type V1RegistrationImage = {
   source?: { network: "base" | "ethereum" | "solana"; walletId: string; address: string };
@@ -112,6 +113,14 @@ export async function prepareV1Registration(
     throw new AppFailure(403, "Only an attendee can prepare this deposit.");
   if (!entry.escrow || entry.registration === "closed" || entry.rulesHash !== rulesHash)
     throw new AppFailure(409, "Reopen the live event before preparing a deposit.");
+  if (sourceWalletId && sourceWalletId !== walletId) {
+    const wallet = await activePayoutWallet(pool, config, session, walletId);
+    await requireV1PayoutStorage(
+      wallet.address,
+      { block: entry.escrow.block, event: null },
+      transport,
+    );
+  }
   return mutate(
     pool,
     config.encryptionKey,
@@ -300,11 +309,57 @@ export async function readV1RegistrationState(
     recovery,
     wallet: image.sender,
     payout: image.payout,
+    walletId: image.walletId,
     amountAtomic: image.amount,
     sourceNetwork: image.source?.network ?? "near",
     sourceAddress: image.source?.address ?? image.sender,
     transactionUrl: row.transaction_hash ? v1TransactionUrl(row.transaction_hash) : null,
   };
+}
+async function activePayoutWallet(
+  pool: pg.Pool,
+  config: AuthConfig,
+  session: string,
+  walletId: string,
+) {
+  const actor = (
+    await pool.query(
+      "SELECT a.id FROM app_accounts a JOIN app_sessions s ON s.account_id=a.id WHERE s.token_hash=$1 AND a.state='active' AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()",
+      [session],
+    )
+  ).rows[0];
+  if (!actor) throw new AppFailure(401, "Sign in again to prepare your receiving account.");
+  return ownedV1Sponsor(pool, config.encryptionKey, actor.id, walletId);
+}
+export async function prepareV1ReceivingAccount(
+  pool: pg.Pool,
+  config: AuthConfig,
+  session: string,
+  eventId: string,
+  walletId: string,
+  transport?: typeof fetch,
+) {
+  const entry = await readEventEntry(pool, config, eventId, session, transport);
+  if (!entry.escrow || entry.viewer !== "attendee")
+    throw new AppFailure(403, "Open your attendee event before setting up USDC receiving.");
+  const wallet = await activePayoutWallet(pool, config, session, walletId),
+    saved = await ownedV1Registration(pool, config.encryptionKey, session, eventId);
+  if (saved && saved.image.walletId !== walletId)
+    throw new AppFailure(409, "Use the original locked NEAR payout wallet.");
+  if (!saved && entry.registration === "closed")
+    throw new AppFailure(409, "New receiving-account setup for this event is closed.");
+  const snapshot: V1Snapshot = { block: entry.escrow.block, event: null };
+  if (await v1PayoutStorageReady(wallet.address, snapshot, transport)) return { ready: true };
+  return prepareV1WalletPayment(
+    config,
+    snapshot,
+    wallet,
+    eventId,
+    eventId,
+    "0",
+    "storage",
+    transport,
+  );
 }
 export async function requireV1UnfundedRegistration(
   pool: pg.Pool,

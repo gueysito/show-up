@@ -8,6 +8,7 @@ import { AppFailure } from "../http/security";
 import {
   v1PrizeFundingTransaction,
   v1DepositFundingTransaction,
+  v1StorageRegistrationTransaction,
 } from "../../../scripts/lib/native-engineering-transaction";
 
 // Fixed native USDC payment. Wallet identity, amount and reference must come from
@@ -19,9 +20,18 @@ export async function prepareV1WalletPayment(
   eventId: string,
   reference: string,
   amount: string,
-  purpose: "prize" | "deposit",
+  purpose: "prize" | "deposit" | "storage",
   transport?: typeof fetch,
 ) {
+  function decoded(bytes: unknown): unknown {
+    if (
+      !Array.isArray(bytes) ||
+      bytes.length > 256 ||
+      bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
+    )
+      throw new Error("Payment token view encoding");
+    return JSON.parse(Buffer.from(bytes).toString("utf8"));
+  }
   const facts = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (endpoint) => {
       const rpc = new V1ReadOnlyRpc(endpoint, transport),
@@ -52,18 +62,17 @@ export async function prepareV1WalletPayment(
         }),
         rpc.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }, signal),
       ]);
-      const bytes = balance.result;
-      if (
-        !Array.isArray(bytes) ||
-        bytes.length > 128 ||
-        bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
-      )
-        throw new Error("Payment balance encoding");
-      const usdc: unknown = JSON.parse(Buffer.from(bytes).toString("utf8"));
+      const usdc = decoded(balance.result),
+        storagePrice = unsigned(
+          record(record(protocol).runtime_config).storage_amount_per_byte,
+          128,
+        );
+      if (storagePrice !== 10000000000000000000n) throw new Error("Payment storage price changed");
       if (access.permission !== "FullAccess")
         throw new AppFailure(403, "Reverify a current full-access key for your funding wallet.");
       if (
-        unsigned(account.amount, 128) < 160000000000000000000000n ||
+        unsigned(account.amount, 128) - unsigned(account.storage_usage, 64) * storagePrice <
+          (purpose === "storage" ? 161250000000000000000000n : 160000000000000000000000n) ||
         unsigned(usdc, 128) < BigInt(amount)
       )
         throw new AppFailure(
@@ -76,11 +85,33 @@ export async function prepareV1WalletPayment(
         unsigned(record(record(protocol).runtime_config).min_gas_purchase_price) > 1000000000n
       )
         throw new Error("Payment gas purchase policy changed");
+      if (purpose === "storage") {
+        const bounds = record(
+          decoded(
+            (
+              await query(v1Deployment.token, "call_function", {
+                method_name: "storage_balance_bounds",
+                args_base64: Buffer.from("{}").toString("base64"),
+              })
+            ).result,
+          ),
+        );
+        if (unsigned(bounds.min, 128) > 1250000000000000000000n)
+          throw new AppFailure(
+            422,
+            "USDC receiving registration costs changed. Do not approve an outdated amount.",
+          );
+      }
       return unsigned(access.nonce, 64).toString();
     }),
   );
   if (facts[0] !== facts[1]) throw new Error("Payment wallet sources disagree");
-  const build = purpose === "prize" ? v1PrizeFundingTransaction : v1DepositFundingTransaction;
+  const build =
+    purpose === "storage"
+      ? v1StorageRegistrationTransaction
+      : purpose === "prize"
+        ? v1PrizeFundingTransaction
+        : v1DepositFundingTransaction;
   const tx = build({
     signer: wallet.address,
     publicKey: wallet.publicKey,
@@ -106,6 +137,6 @@ export async function prepareV1WalletPayment(
     hash: tx.hash,
     walletUrl: url.href,
     maximumGasYoctoNear: "160000000000000000000000",
-    attachedYoctoNear: "1",
+    attachedYoctoNear: purpose === "storage" ? "1250000000000000000000" : "1",
   };
 }

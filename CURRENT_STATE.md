@@ -20,14 +20,14 @@ Working rules are in [AGENTS.md](AGENTS.md).
 
 Checks use preauthenticated engineering accounts and isolated project-wallet
 approval. External wallet UI, a fresh provider login and a real phone remain to verify.
-116 unit, 193 database and 46 ordinary browser cases plus build/code checks pass.
+119 unit, 193 database and 46 ordinary browser cases plus build/code checks pass.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
 
 ## Remaining
 
-- V1-4: Base/Ethereum route adapters are prepared locally. Live Base/Solana pricing
-  returns HTTP 400 “Quoting for this pair is not available”; no routed funds sent.
-  Connect the Solana transfer adapter while that external blocker remains.
+- V1-4: all three source adapters are prepared locally with stored original payments
+  and NEAR USDC receiving setup. Solana's unsigned transfer simulates on both mainnet
+  RPCs. All three pricing pairs still return HTTP 400; no routed funds sent.
 - V1-7: BasedHeads #2829 is selected, not moved. Ethereum NFT custody/release and
   attendee Ethereum recipient binding still need app integration.
 - V1-9: finish the front door/mobile polish and real-phone journey. Hosting and

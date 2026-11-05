@@ -75,6 +75,7 @@ test("signed cross-chain quotes bind the native token, exact output, fixed messa
     { minAmountOut: "999999" },
     { amountIn: "2000001" },
     { depositAddress: "0x0000000000000000000000000000000000000000" },
+    { depositAddress: request.refundTo },
   ]) {
     assert.throws(() =>
       validateV1Route(
@@ -112,7 +113,9 @@ test("EVM payment requests transfer only the quoted USDC and enforce independent
   };
   let chain = "0x2105",
     balance = "0x124f80",
-    price = "0xf4240";
+    price = "0xf4240",
+    pending = "0x0",
+    transferOk = true;
   const transport: typeof fetch = async (_url, init) => {
     const input = JSON.parse(String(init?.body));
     const result =
@@ -121,14 +124,21 @@ test("EVM payment requests transfer only the quoted USDC and enforce independent
         : input.method === "eth_getBalance"
           ? "0x5af3107a4000"
           : input.method === "eth_call"
-            ? balance
-            : price;
+            ? input.params[0].data.startsWith("0xa9059cbb")
+              ? "0x" + "0".repeat(63) + (transferOk ? "1" : "0")
+              : balance
+            : input.method === "eth_getTransactionCount"
+              ? input.params[1] === "pending"
+                ? pending
+                : "0x0"
+              : price;
     return Response.json({ jsonrpc: "2.0", id: input.id, result });
   };
   const payment = await prepareV1EvmPayment(route, request.refundTo, transport);
   assert.equal(payment.transaction.to, "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913");
   assert.equal(payment.transaction.value, "0x0");
   assert.equal(payment.transaction.gas, "0x186a0");
+  assert.equal(payment.transaction.nonce, "0x0");
   const decoded = new Interface([
     "function transfer(address to,uint256 amount)",
   ]).decodeFunctionData("transfer", payment.transaction.data);
@@ -158,6 +168,18 @@ test("EVM payment requests transfer only the quoted USDC and enforce independent
   chain = "0x1";
   await assert.rejects(prepareV1EvmPayment(route, request.refundTo, transport), /chain changed/);
   chain = "0x2105";
+  transferOk = false;
+  await assert.rejects(
+    prepareV1EvmPayment(route, request.refundTo, transport),
+    /could not be checked/,
+  );
+  transferOk = true;
+  pending = "0x1";
+  await assert.rejects(
+    prepareV1EvmPayment(route, request.refundTo, transport),
+    /pending transaction/,
+  );
+  pending = "0x0";
   price = "0x3b9aca00";
   await assert.rejects(prepareV1EvmPayment(route, request.refundTo, transport), /gas/);
 });

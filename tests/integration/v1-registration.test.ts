@@ -61,7 +61,10 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
             ? {
                 chain_id: "mainnet",
                 protocol_version: 87,
-                runtime_config: { min_gas_purchase_price: "1000000000" },
+                runtime_config: {
+                  min_gas_purchase_price: "1000000000",
+                  storage_amount_per_byte: "10000000000000000000",
+                },
               }
             : {
                 block_hash: block,
@@ -75,7 +78,11 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
                   : params.request_type === "view_access_key"
                     ? { permission: "FullAccess", nonce: 1 }
                     : params.request_type === "view_account"
-                      ? { code_hash: v1Deployment.codeHash, amount: "200000000000000000000000" }
+                      ? {
+                          code_hash: v1Deployment.codeHash,
+                          amount: "200000000000000000000000",
+                          storage_usage: 182,
+                        }
                       : {
                           result: [
                             ...Buffer.from(

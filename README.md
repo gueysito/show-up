@@ -28,7 +28,7 @@ prize. Browser checks with a preauthenticated test host verified a real 1-USDC p
 publication and full cancellation refund. Public terms are checked against two
 mainnet RPCs. Attendees can now register and deposit native USDC from a verified NEAR
 wallet, with funded-seat confirmation and a verified full cancellation refund.
-Base/Ethereum route adapters are prepared locally; live Base/Solana pricing is
+Base/Solana/Ethereum route adapters are prepared locally; live cross-chain pricing is
 currently unavailable from the route provider. Live-code check-in, host/deadline
 closing and fixed-wallet payout receipts now work in the real app on mainnet: two
 1-USDC deposits and a 0.25-USDC prize settled into a verified 2.25-USDC payout to

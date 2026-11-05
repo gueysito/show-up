@@ -3,7 +3,9 @@ const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 // Public byte encoding only. Signature verification uses Node's native crypto.
 export function encodeBase58(bytes: Uint8Array): string {
   if (bytes.length > 128) throw new Error("Oversized public encoding");
-  let value = BigInt(`0x${Buffer.from(bytes).toString("hex") || "0"}`);
+  let value = BigInt(
+    `0x${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("") || "0"}`,
+  );
   let result = "";
   while (value) {
     result = alphabet[Number(value % 58n)] + result;

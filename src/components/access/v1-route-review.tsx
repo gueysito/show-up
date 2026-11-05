@@ -1,6 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
+import {
+  readV1SolanaWallets,
+  subscribeV1SolanaWallets,
+  noV1SolanaWallets,
+  approveV1SolanaPayment,
+} from "./v1-solana-wallet";
 
 export type V1RouteSummary = {
   network: string;
@@ -13,13 +19,24 @@ export type V1RouteSummary = {
   sourceHash?: string | null;
 };
 type EvmWallet = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
+const attemptEvent = "showup-v1-source-attempt";
+function subscribeAttempts(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(attemptEvent, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(attemptEvent, callback);
+  };
+}
 export function V1RouteReview({
+  registrationId,
   eventId,
   network,
   address,
   initial,
   onSubmitted,
 }: {
+  registrationId: string;
   eventId: string;
   network: string;
   address: string;
@@ -31,8 +48,34 @@ export function V1RouteReview({
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [submitted, setSubmitted] = useState(false);
+  // Opaque registration only. No address, quote or signature is stored here.
+  const trackingKey = `showup.v1.source-payment:${registrationId}`;
+  const readAttempt = useCallback(() => {
+    try {
+      return localStorage.getItem(trackingKey) ? "requested" : "clear";
+    } catch {
+      return "unavailable";
+    }
+  }, [trackingKey]);
+  const tracking = useSyncExternalStore(subscribeAttempts, readAttempt, () => "loading"),
+    trackingReady = tracking === "clear";
   const current = quote ?? initial,
-    paid = submitted || Boolean(initial?.sourceHash);
+    paid = submitted || tracking === "requested" || Boolean(initial?.sourceHash);
+  const [solanaWallet, setSolanaWallet] = useState("");
+  const readWallets = useCallback(
+    () => (network === "solana" ? readV1SolanaWallets() : noV1SolanaWallets),
+    [network],
+  );
+  const subscribeWallets = useCallback(
+    (callback: () => void) =>
+      network === "solana" ? subscribeV1SolanaWallets(callback) : () => {},
+    [network],
+  );
+  const solanaWallets = useSyncExternalStore(
+    subscribeWallets,
+    readWallets,
+    () => noV1SolanaWallets,
+  );
   async function post(operation: string, extra: object = {}) {
     const response = await fetch("/api/commitments/mainnet", {
       method: "POST",
@@ -62,12 +105,29 @@ export function V1RouteReview({
     setBusy(true);
     setError("");
     let requested = false;
+    function requesting() {
+      localStorage.setItem(trackingKey, "requested");
+      window.dispatchEvent(new Event(attemptEvent));
+      requested = true;
+      setSubmitted(true);
+    }
     try {
       if (!current || Date.parse(current.expiresAt) <= Date.now())
         throw new Error(
           "This quote expired. Check your original source payment before requesting another.",
         );
       const result = await post("route-pay");
+      if (network === "solana") {
+        const selected =
+          solanaWallets.find((wallet) => wallet.name === solanaWallet) ??
+          (solanaWallets.length === 1 ? solanaWallets[0] : null);
+        if (!selected) throw new Error("Choose a connected Solana wallet to approve this payment.");
+        const hash = await approveV1SolanaPayment(result, current, address, selected, requesting);
+        setSubmitted(true);
+        onSubmitted();
+        await post("source", { sourceHash: hash });
+        return;
+      }
       const ethereum = (window as Window & { ethereum?: EvmWallet }).ethereum;
       if (!ethereum)
         throw new Error(
@@ -79,6 +139,9 @@ export function V1RouteReview({
           ? "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
           : "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
       const tx = result.transaction;
+      const expectedData = `0xa9059cbb${current.depositAddress.slice(2).toLowerCase().padStart(64, "0")}${BigInt(current.inputAtomic).toString(16).padStart(64, "0")}`;
+      const gasCap = network === "base" ? 20000000000000n : 80000000000000n,
+        reserve = network === "base" ? 5000000000000n : 0n;
       if (
         !chain ||
         result.network !== network ||
@@ -87,10 +150,11 @@ export function V1RouteReview({
         String(tx.to).toLowerCase() !== token ||
         tx.value !== "0x0" ||
         typeof tx.data !== "string" ||
-        !/^0xa9059cbb[0-9a-fA-F]{128}$/.test(tx.data) ||
-        `0x${tx.data.slice(34, 74)}`.toLowerCase() !== current.depositAddress.toLowerCase() ||
-        BigInt(`0x${tx.data.slice(74)}`) !== BigInt(current.inputAtomic) ||
-        BigInt(tx.gas) > 100000n
+        tx.data.toLowerCase() !== expectedData ||
+        BigInt(tx.gas) !== 100000n ||
+        BigInt(tx.gasPrice) <= 0n ||
+        BigInt(tx.gas) * BigInt(tx.gasPrice) + reserve > gasCap ||
+        !/^0x(0|[1-9a-f][0-9a-f]{0,15})$/.test(tx.nonce)
       )
         throw new Error("The wallet request differs from your reviewed route.");
       if (BigInt(String(await ethereum.request({ method: "eth_chainId" }))) !== BigInt(chain))
@@ -103,7 +167,7 @@ export function V1RouteReview({
         )
       )
         throw new Error("Choose your verified source account in the wallet.");
-      requested = true;
+      requesting();
       const hash = await ethereum.request({
         method: "eth_sendTransaction",
         params: [
@@ -115,6 +179,7 @@ export function V1RouteReview({
             chainId: chain,
             gas: tx.gas,
             gasPrice: tx.gasPrice,
+            nonce: tx.nonce,
           },
         ],
       });
@@ -124,6 +189,11 @@ export function V1RouteReview({
       onSubmitted();
       await post("source", { sourceHash: hash.toLowerCase() });
     } catch (error) {
+      if ((error as { code?: number }).code === 4001) {
+        localStorage.removeItem(trackingKey);
+        window.dispatchEvent(new Event(attemptEvent));
+        setSubmitted(false);
+      }
       if (requested && (error as { code?: number }).code !== 4001) {
         setSubmitted(true);
         onSubmitted();
@@ -160,9 +230,11 @@ export function V1RouteReview({
             <dd>{`${formatUsdc(BigInt(current.routingCostAtomic))} USDC`}</dd>
             <dt>Source gas is separate</dt>
             <dd>
-              {network === "base"
-                ? "Up to 0.00002 ETH, including an L1 fee reserve"
-                : "Up to 0.00008 ETH"}
+              {network === "solana"
+                ? "Up to 0.0025 SOL, including token-account rent"
+                : network === "base"
+                  ? "0.00002 ETH budget including an L1 reserve; review the wallet's final fee"
+                  : "Up to 0.00008 ETH"}
             </dd>
             <dt>Quote expires</dt>
             <dd>{new Date(current.expiresAt).toISOString()}</dd>
@@ -171,6 +243,28 @@ export function V1RouteReview({
           </dl>
           {!paid && (
             <>
+              {network === "solana" && (
+                <label>
+                  Solana wallet
+                  <select
+                    value={solanaWallet}
+                    onChange={(event) => setSolanaWallet(event.target.value)}
+                    disabled={busy}
+                    style={{ width: "100%", minWidth: 0 }}
+                  >
+                    <option value="">
+                      {solanaWallets.length === 1
+                        ? solanaWallets[0].name
+                        : "Choose your Solana wallet"}
+                    </option>
+                    {solanaWallets.map((wallet) => (
+                      <option key={wallet.name} value={wallet.name}>
+                        {wallet.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label>
                 <input
                   type="checkbox"
@@ -183,7 +277,7 @@ export function V1RouteReview({
               <button
                 type="button"
                 className="primary-button"
-                disabled={busy || !consent}
+                disabled={busy || !consent || !trackingReady}
                 onClick={pay}
               >
                 Approve source USDC payment
@@ -198,6 +292,11 @@ export function V1RouteReview({
         </>
       )}
       {error && <p role="alert">{error}</p>}
+      {tracking === "unavailable" && (
+        <p role="alert">
+          Payment tracking is unavailable in this browser. No wallet approval was requested.
+        </p>
+      )}
     </section>
   );
 }

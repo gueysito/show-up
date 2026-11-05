@@ -59,7 +59,11 @@ export function validateV1Route(
   if (BigInt(terms.amountIn) > BigInt(request.amount) + 1000000n)
     throw new Error("Route cost exceeds one USDC above principal");
   const address = walletAddress(network, String(quote.depositAddress));
-  if (/^0x0{40}$/i.test(address) || address === "11111111111111111111111111111111")
+  if (
+    /^0x0{40}$/i.test(address) ||
+    address === "11111111111111111111111111111111" ||
+    address === walletAddress(network, request.refundTo)
+  )
     throw new Error("Invalid zero routing destination");
   if (quote.depositMemo) throw new Error("Memo routes are not supported in V1");
   if (network !== "solana") getAddress(address);

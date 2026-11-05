@@ -18,8 +18,10 @@ import {
 } from "./v1-registration";
 import type { OwnWallet } from "../wallets/service";
 import { prepareV1EvmPayment } from "../protocol/v1-evm-payment";
+import { prepareV1SolanaPayment } from "../protocol/v1-solana-payment";
 import { mutate } from "../auth/mutations";
 import { decodeBase58 } from "../protocol/encoding";
+import { requireV1PayoutStorage } from "../protocol/v1-payout-storage";
 
 // An owned transaction hint prevents repeat prompts. It never establishes a
 // funded seat; only the contract registration observation can do that.
@@ -180,6 +182,8 @@ export async function ownedV1Route(
         ...saved,
         route: storedRoute(config, row, saved.image),
         sourceHash: row.source_transaction_hash as string | null,
+        paymentHash: row.payment_hash as string | null,
+        encryptedPayment: row.encrypted_payment as string | null,
       }
     : null;
 }
@@ -208,6 +212,7 @@ export async function requireV1RoutePayment(
   transport?: typeof fetch,
 ) {
   const current = await requireV1UnfundedRegistration(pool, config, session, eventId, transport);
+  await requireV1PayoutStorage(current.image.payout, current.snapshot, transport);
   await currentSource(pool, config, current.image);
   const saved = await ownedV1Route(pool, config, session, eventId);
   if (!saved) throw new AppFailure(409, "Review a signed route quote first.");
@@ -231,10 +236,58 @@ export async function prepareV1RoutePayment(
   transport?: typeof fetch,
 ) {
   const saved = await requireV1RoutePayment(pool, config, session, eventId, transport);
-  if (saved.route.network === "solana")
-    throw new AppFailure(
-      422,
-      "Solana payment is being connected. Do not transfer from a quoted address manually.",
+  type Payment =
+    | Awaited<ReturnType<typeof prepareV1EvmPayment>>
+    | Awaited<ReturnType<typeof prepareV1SolanaPayment>>;
+  const context = `v1-route-payment:${saved.image.id}`;
+  function original(row: {
+    payment_hash: string | null;
+    encrypted_payment: string | null;
+  }): Payment | null {
+    if (!row.payment_hash && !row.encrypted_payment) return null;
+    if (!row.payment_hash || !row.encrypted_payment)
+      throw new Error("Original source payment pair mismatch");
+    const payment = unseal(config.encryptionKey, context, row.encrypted_payment) as Payment;
+    if (
+      canonicalHash(payment) !== row.payment_hash ||
+      payment.network !== saved!.route.network ||
+      payment.inputAtomic !== saved!.route.input
+    )
+      throw new Error("Original source payment integrity");
+    if (Date.parse(payment.expiresAt) <= Date.now() + 5000)
+      throw new AppFailure(
+        409,
+        "The original source payment expired. Check its wallet activity and routing status before any replacement.",
+      );
+    return payment;
+  }
+  const stored = original({
+    payment_hash: saved.paymentHash,
+    encrypted_payment: saved.encryptedPayment,
+  });
+  if (stored) return stored;
+  const payment =
+    saved.route.network === "solana"
+      ? await prepareV1SolanaPayment(saved.route, saved.image.source!.address, transport)
+      : await prepareV1EvmPayment(saved.route, saved.image.source!.address, transport);
+  return transaction(pool, async (client) => {
+    const row = (
+      await client.query(
+        "SELECT payment_hash,encrypted_payment,source_transaction_hash FROM app_v1_route_quotes WHERE registration_id=$1 FOR UPDATE",
+        [saved.image.id],
+      )
+    ).rows[0];
+    if (row.source_transaction_hash)
+      throw new AppFailure(
+        409,
+        "The original source payment is already recorded. Do not pay again.",
+      );
+    const existing = original(row);
+    if (existing) return existing;
+    await client.query(
+      "UPDATE app_v1_route_quotes SET payment_hash=$2,encrypted_payment=$3 WHERE registration_id=$1",
+      [saved.image.id, canonicalHash(payment), seal(config.encryptionKey, context, payment)],
     );
-  return prepareV1EvmPayment(saved.route, saved.image.source!.address, transport);
+    return payment;
+  });
 }

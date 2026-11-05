@@ -1173,6 +1173,18 @@ key; no new wallet secret is created. All test USDC was restored. Its final text
 assertion was corrected against the actual paid receipt (`0.00`, not `0`), without
 repeating a financial operation.
 
+Cross-chain deposits use migrations `035-crosschain-quotes.sql` and
+`037-mainnet-route-payments.sql`. The source wallet and NEAR payout wallet stay
+locked to the registration. Signed quotes fix the full escrow amount, routing cost,
+refund address and deposit message; provider status never confirms a seat. EVM
+approval reuses its original nonce; Solana reuses its original Wallet Standard
+message with two-source preflight and simulation. A browser marker prevents repeat
+prompts after an unknown approval. Expired originals require reconciliation, not
+automatic replacement. NEAR payout wallets must enable USDC receiving before source
+payment: the fixed setup request attaches at most 0.00125 NEAR and keeps gas separate.
+Its collateral check subtracts existing account storage. No private wallet key is
+loaded by the web app. Live quote availability currently blocks funded route tests.
+
 ```sh
 export SHOWUP_CONTAINER_E2E=1
 export SHOWUP_BROWSER_CHROME=1

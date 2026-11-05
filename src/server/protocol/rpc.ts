@@ -44,6 +44,10 @@ const allowed = {
     "getSignatureStatuses",
     "getTransaction",
     "getAccountInfo",
+    "getBalance",
+    "getMinimumBalanceForRentExemption",
+    "getFeeForMessage",
+    "simulateTransaction",
   ]),
 };
 

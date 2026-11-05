@@ -26,7 +26,7 @@ export async function prepareV1EvmPayment(
   const facts = await Promise.all(
     endpoints.map(async (endpoint) => {
       const rpc = new ReadOnlyRpc(endpoint, transport);
-      const [chain, native, balance, price] = await Promise.all([
+      const [chain, native, balance, price, nonce, pending] = await Promise.all([
         rpc.read("eth_chainId", []),
         rpc.read("eth_getBalance", [source, "latest"]),
         rpc.read("eth_call", [
@@ -34,13 +34,36 @@ export async function prepareV1EvmPayment(
           "latest",
         ]),
         rpc.read("eth_gasPrice", []),
+        rpc.read("eth_getTransactionCount", [source, "latest"]),
+        rpc.read("eth_getTransactionCount", [source, "pending"]),
       ]);
       if (unsigned(chain).toString() !== network.chainId) throw new Error("Source chain changed");
       if (unsigned(balance, 256) < BigInt(route.input))
         throw new AppFailure(422, "Your source wallet needs the quoted USDC amount.");
-      return { native: unsigned(native, 256), price: unsigned(price, 128) };
+      if (unsigned(nonce, 64) !== unsigned(pending, 64))
+        throw new AppFailure(
+          409,
+          "Your source wallet has a pending transaction. Wait before preparing this payment.",
+        );
+      try {
+        const result = await rpc.read("eth_call", [tx, "latest"]);
+        if (token.decodeFunctionResult("transfer", String(result))[0] !== true)
+          throw new Error("Transfer returned false");
+      } catch {
+        throw new AppFailure(
+          422,
+          "The source USDC transfer could not be checked. No payment was submitted.",
+        );
+      }
+      return {
+        native: unsigned(native, 256),
+        price: unsigned(price, 128),
+        nonce: unsigned(nonce, 64),
+      };
     }),
   );
+  if (facts[0].nonce !== facts[1].nonce)
+    throw new AppFailure(409, "Source nonce providers disagree. Check again shortly.");
   const gas = 100000n,
     price = facts.reduce((max, value) => (value.price > max ? value.price : max), 0n),
     reserve = route.network === "base" ? 5000000000000n : 0n;
@@ -58,6 +81,7 @@ export async function prepareV1EvmPayment(
       chainId: toQuantity(BigInt(network.chainId)),
       gas: toQuantity(gas),
       gasPrice: toQuantity(price),
+      nonce: toQuantity(facts[0].nonce),
     },
     maximumGasWei: maximum.toString(),
     inputAtomic: route.input,
