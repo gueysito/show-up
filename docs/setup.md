@@ -1109,7 +1109,19 @@ The authenticated host workspace saves V1 limits (1–64 attendees, 1–100 USDC
 then **Publish event on mainnet** freezes the saved revision. A separate local
 worker signs one `create_event` + `publish` batch. **Check publication status**
 opens the event page after both RPCs confirm the pinned code and saved terms.
-Only zero-prize events are connected here; prize funding/NFT custody follow separately.
+For a USDC prize (up to 100 USDC), verify a NEAR funding wallet first and choose it
+in the saved draft. **Create prize event escrow** freezes that wallet and amount;
+the worker creates the draft on chain. Check status, then **Approve prize funding
+in MyNearWallet**. The unsigned request calls only the fixed native USDC token's
+`ft_transfer_call`, with the exact prize and `prize:<event ID>` message. The host
+wallet pays this transfer and needs a separate 0.16-NEAR gas reserve. After returning,
+**Confirm prize and publish** checks both RPCs before queuing publication. Callback
+hashes never establish funding. Already-received prizes cannot request another payment.
+NFT custody remains separate. Zero-prize events retain the single atomic batch.
+
+Migration `033-publication-prize-funding.sql` preserves the original creation image,
+hash and gas separately from publication. Awaiting payment does not block other events.
+The signing URL follows the official [MyNearWallet connector](https://github.com/near/wallet-selector/blob/main/packages/my-near-wallet/src/lib/mnw-connect.ts).
 
 Apply local migrations with the existing owner-only auth configuration, then run
 the worker separately from the web process:
@@ -1140,6 +1152,11 @@ node_modules/.bin/playwright test -c playwright.mainnet.config.ts
 This requires the disposable test database and production build described below.
 `SHOWUP_BROWSER_CHROME=1` uses an installed Chrome; CI retains pinned Chromium.
 Mainnet receipts/screenshots stay in ignored `contracts/.cache/v1-browser`.
+The separate `SHOWUP_MAINNET_PRIZE=1` mode funds a 1-USDC prize, publishes it through
+the app and cancels/refunds it. It uses the retained project wallet in an isolated
+Node approval process; the external wallet's interactive UI is not qualified by
+this test. It refuses to start if its earlier financial journal exists. Review and
+reconcile original hashes before any further run; never delete a receipt to retry.
 Inspect existing receipts before repeating this financial check. It creates a real,
 unfunded public event and consumes project gas; it is not part of normal CI.
 For subsequent desktop/mobile checks, reuse the recorded publication without

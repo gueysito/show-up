@@ -6,7 +6,7 @@ import { databaseConfig } from "../src/server/config";
 import { canonicalHash, canonicalJson } from "../src/server/protocol/canonical";
 import { record } from "../src/server/protocol/quote-signature";
 import { ReadOnlyRpc, unsigned } from "../src/server/protocol/rpc";
-import { readV1Snapshot, v1Deployment } from "../src/server/protocol/v1-escrow";
+import { matchesV1Terms, readV1Snapshot, v1Deployment } from "../src/server/protocol/v1-escrow";
 import { runV1Publication, type V1PublicationGateway } from "../src/worker/v1-publication";
 import { signV1MainnetTransaction, type NativeAction } from "./lib/native-engineering-transaction";
 import { loadV1MainnetKey } from "./lib/v1-mainnet-key";
@@ -15,10 +15,18 @@ export function v1PublicationGateway(): V1PublicationGateway {
   const client = new ReadOnlyRpc("near-fastnear");
   return {
     snapshot: readV1Snapshot,
-    async prepare(image) {
+    async prepare(image, phase = "atomic") {
       const snapshot = await readV1Snapshot(image.eventId);
-      if (snapshot.event)
+      if (phase !== "publish" && snapshot.event)
         throw new Error("V1 event already exists; reconcile without another transaction");
+      if (
+        phase === "publish" &&
+        (!snapshot.event ||
+          snapshot.event.status !== "draft" ||
+          snapshot.event.prize_received !== true ||
+          !matchesV1Terms(snapshot.event, image.terms))
+      )
+        throw new Error("V1 exact prize funding is not confirmed");
       const protocol = record(
         await client.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }),
       );
@@ -72,13 +80,15 @@ export function v1PublicationGateway(): V1PublicationGateway {
           deposit: "0",
         },
       ];
+      const selected =
+        phase === "atomic" ? actions : phase === "create" ? [actions[0]] : [actions[1]];
       const signed = signV1MainnetTransaction(
         {
           signer: v1Deployment.owner,
           receiver: v1Deployment.account,
           blockHash: snapshot.block.hash,
           nonce: (BigInt(keys[0]) + 1n).toString(),
-          actions,
+          actions: selected,
         },
         await loadV1MainnetKey(),
       );
@@ -86,6 +96,7 @@ export function v1PublicationGateway(): V1PublicationGateway {
         ...signed,
         semantic: canonicalHash(image.terms),
         validUntilMs: Date.now() + 120_000,
+        phase,
       };
     },
     async submit(image) {

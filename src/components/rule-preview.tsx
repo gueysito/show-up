@@ -202,7 +202,7 @@ function V1RulePreview({ draft, state }: { draft: EventDraft; state: string }) {
         <h3>{state === "draft" ? "Ready when you are" : "Event terms"}</h3>
         <p>
           {state === "draft"
-            ? "Save your draft, then publish it to the mainnet escrow. Start with a zero-prize event while prize funding is being connected."
+            ? "Save your draft, then publish it to the mainnet escrow. A USDC prize must arrive from your chosen verified NEAR wallet before publication."
             : "Review the original publication transaction from the event page. Duplicate the event to change published material terms."}
         </p>
       </div>

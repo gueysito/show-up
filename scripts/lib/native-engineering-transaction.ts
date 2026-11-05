@@ -2,6 +2,8 @@ import { createHash, createPrivateKey, createPublicKey, sign } from "node:crypto
 import { decodeBase58, encodeBase58 } from "../../src/server/protocol/encoding";
 import { walletAddress } from "../../src/server/wallets/proof";
 import { mainnetAccount } from "../near-mainnet-account-plan";
+import { canonicalJson } from "../../src/server/protocol/canonical";
+import { v1Deployment } from "../../src/server/protocol/v1-escrow";
 
 export type NativeAction =
   | { kind: "create" }
@@ -118,6 +120,46 @@ function encodeTransaction(input: NativeTransactionInput, allowed?: ReadonlySet<
 
 export function nativeTransaction(input: NativeTransactionInput) {
   return encodeTransaction(input);
+}
+
+// Public unsigned wallet request. The caller cannot select the token, recipient,
+// method, gas, attached NEAR or message prefix. No project signing key is used.
+export function v1PrizeFundingTransaction(input: {
+  signer: string;
+  publicKey: string;
+  nonce: string;
+  blockHash: string;
+  eventId: string;
+  amount: string;
+}) {
+  if (
+    !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(input.eventId) ||
+    !/^[1-9][0-9]*$/.test(input.amount) ||
+    BigInt(input.amount) > 100_000_000n
+  )
+    throw new Error("Invalid fixed prize funding request");
+  return encodeTransaction(
+    {
+      ...input,
+      receiver: v1Deployment.token,
+      actions: [
+        {
+          kind: "call",
+          method: "ft_transfer_call",
+          gas: "100000000000000",
+          deposit: "1",
+          args: Buffer.from(
+            canonicalJson({
+              receiver_id: v1Deployment.account,
+              amount: input.amount,
+              msg: `prize:${input.eventId}`,
+            }),
+          ),
+        },
+      ],
+    },
+    new Set([input.signer, v1Deployment.token]),
+  );
 }
 
 // Explicit V1 mainnet policy. Legacy engineering callers retain their testnet guard.

@@ -170,6 +170,31 @@ impl V1 {
 }
 
 #[tokio::test]
+async fn v1_native_prize_rejects_wrong_sender_amount_and_duplicate_without_losing_usdc() {
+    let f = V1::new().await;
+    f.event("prize-guard", 1_000_000, 1_000_000, None).await;
+    assert_eq!(f.fund(&f.alice, 1_000_000, "prize:prize-guard").await, "0");
+    assert_eq!(f.fund(&f.host, 999_999, "prize:prize-guard").await, "0");
+    assert_eq!(f.balance(&f.alice).await, 100_000_000);
+    assert_eq!(f.balance(&f.host).await, 100_000_000);
+    assert_eq!(
+        f.view("get_event", json!({"event":"prize-guard"})).await["prize_received"],
+        false
+    );
+    assert_eq!(
+        f.fund(&f.host, 1_000_000, "prize:prize-guard").await,
+        "1000000"
+    );
+    assert_eq!(f.fund(&f.host, 1_000_000, "prize:prize-guard").await, "0");
+    assert_eq!(f.balance(&f.host).await, 99_000_000);
+    f.call("publish", json!({"event":"prize-guard"})).await;
+    f.call("cancel", json!({"event":"prize-guard"})).await;
+    f.call("withdraw", json!({"claim":"prize:prize-guard"}))
+        .await;
+    assert_eq!(f.balance(&f.host).await, 100_000_000);
+}
+
+#[tokio::test]
 async fn v1_real_receipt_cancel_and_fixed_beneficiary_refund() {
     let f = V1::new().await;
     f.event("cancel", 2_000_000, 0, None).await;

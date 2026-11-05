@@ -6,17 +6,19 @@ import {
   storedV1Publication,
   type V1PublicationRow,
   type V1PublicationImage,
+  type V1PublicationPhase,
 } from "../server/events/v1-publication";
-import type { V1Snapshot } from "../server/protocol/v1-escrow";
+import { matchesV1Terms, type V1Snapshot } from "../server/protocol/v1-escrow";
 
 export type SignedV1Publication = {
   hash: string;
   signedBase64: string;
   semantic: string;
   validUntilMs: number;
+  phase?: V1PublicationPhase;
 };
 export type V1PublicationGateway = {
-  prepare: (image: V1PublicationImage) => Promise<SignedV1Publication>;
+  prepare: (image: V1PublicationImage, phase?: V1PublicationPhase) => Promise<SignedV1Publication>;
   submit: (image: SignedV1Publication) => Promise<void>;
   final: (
     image: SignedV1Publication,
@@ -40,6 +42,7 @@ export async function runV1Publication(pool: pg.Pool, key: string, gateway: V1Pu
     if (!row) return { state: "idle" };
     const image = storedV1Publication(key, row),
       eventId = row.event_id;
+    const phase = row.execution_phase ?? "atomic";
     const context = `v1-publication-transaction:${eventId}`;
     let signed: SignedV1Publication;
     if (row.transaction_state === "requested") {
@@ -50,7 +53,7 @@ export async function runV1Publication(pool: pg.Pool, key: string, gateway: V1Pu
         );
         return { state: "failed", eventId };
       }
-      signed = await gateway.prepare(image);
+      signed = await gateway.prepare(image, phase);
       if (signed.semantic !== canonicalHash(image.terms))
         throw new Error("V1 signed terms mismatch");
       await pool.query(
@@ -64,6 +67,8 @@ export async function runV1Publication(pool: pg.Pool, key: string, gateway: V1Pu
       if (signed.hash !== row.transaction_hash || signed.semantic !== canonicalHash(image.terms))
         throw new Error("V1 original image mismatch");
     }
+    if ((signed.phase ?? "atomic") !== phase)
+      throw new Error("V1 original transaction phase mismatch");
     if (row.transaction_state === "prepared") {
       if (Date.now() + 30_000 >= signed.validUntilMs)
         throw new Error("V1 prepared image expired; reconcile before replacement");
@@ -90,10 +95,33 @@ export async function runV1Publication(pool: pg.Pool, key: string, gateway: V1Pu
       throw new Error(
         "V1 state has not reached the original receipt block; reconcile the same hash",
       );
+    if (phase === "create") {
+      if (
+        !snapshot.event ||
+        snapshot.event.status !== "draft" ||
+        !matchesV1Terms(snapshot.event, image.terms)
+      )
+        throw new Error("V1 created prize terms differ");
+      await pool.query(
+        `UPDATE app_publication_images SET transaction_state='awaiting_prize',
+        creation_transaction_hash=transaction_hash,creation_encrypted_transaction=encrypted_transaction,
+        creation_gas_yocto_near=gas_yocto_near,creation_source_height=$2 WHERE event_id=$1 AND transaction_state='submitted'`,
+        [eventId, snapshot.block.height],
+      );
+      return {
+        state: "awaiting_prize",
+        eventId,
+        hash: signed.hash,
+        gasYoctoNear: final.gasYoctoNear,
+      };
+    }
     await observeV1Publication(pool, key, eventId, snapshot);
     return { state: "verified", eventId, hash: signed.hash, gasYoctoNear: final.gasYoctoNear };
   } finally {
-    if (locked) await lock.query("SELECT pg_advisory_unlock(739204081)");
-    lock.release();
+    try {
+      if (locked) await lock.query("SELECT pg_advisory_unlock(739204081)");
+    } finally {
+      lock.release();
+    }
   }
 }

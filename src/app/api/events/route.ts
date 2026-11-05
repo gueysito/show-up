@@ -13,6 +13,10 @@ import {
   readV1PublicationState,
 } from "../../../server/events/v1-publication";
 import {
+  prepareV1PrizeFunding,
+  confirmV1PrizeFunding,
+} from "../../../server/events/v1-prize-funding";
+import {
   AppFailure,
   failureResponse,
   guardRequest,
@@ -49,6 +53,7 @@ async function handle(request: Request) {
             session.tokenHash,
             query.get("publication")!,
             Number(query.get("revision")),
+            config.encryptionKey,
           ),
           { headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } },
         );
@@ -78,9 +83,12 @@ async function handle(request: Request) {
         body.description as string,
       );
     else if (body.operation === "publish") {
+      if (body.sponsorWalletId !== undefined && typeof body.sponsorWalletId !== "string")
+        throw new AppFailure(400, "Choose a verified funding wallet.");
       if (
         Object.keys(body).some(
-          (field) => !["operation", "operationId", "id", "revision"].includes(field),
+          (field) =>
+            !["operation", "operationId", "id", "revision", "sponsorWalletId"].includes(field),
         )
       )
         throw new AppFailure(400, "Unexpected publication fields.");
@@ -92,7 +100,27 @@ async function handle(request: Request) {
         body.operationId,
         body.id,
         body.revision as number,
+        typeof body.sponsorWalletId === "string" ? body.sponsorWalletId : undefined,
       );
+    } else if (body.operation === "fund-prize" || body.operation === "confirm-prize") {
+      if (
+        Object.keys(body).some(
+          (field) => !["operation", "operationId", "id", "revision"].includes(field),
+        )
+      )
+        throw new AppFailure(400, "Unexpected prize funding fields.");
+      await limit(pool, `prize:${session.accountId}`, 5);
+      result =
+        body.operation === "fund-prize"
+          ? await prepareV1PrizeFunding(pool, config, tokenHash, body.id, body.revision as number)
+          : await confirmV1PrizeFunding(
+              pool,
+              key,
+              tokenHash,
+              body.operationId,
+              body.id,
+              body.revision as number,
+            );
     } else if (body.operation === undefined)
       result = await saveAccountDraft(
         pool,

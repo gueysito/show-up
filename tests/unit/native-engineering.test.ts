@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   nativeKey,
   nativeTransaction,
+  v1PrizeFundingTransaction,
   signNativeTransaction,
   type NativeAction,
 } from "../../scripts/lib/native-engineering-transaction";
@@ -18,6 +19,28 @@ import {
 } from "../../scripts/native-engineering-run";
 import { canonicalHash } from "../../src/server/protocol/canonical";
 import { RpcCooldown } from "../../src/server/protocol/rpc";
+
+test("host prize payment matches the independently decoded fixed USDC transfer vector", async () => {
+  const vector = JSON.parse(
+    await readFile(
+      new URL("../../contracts/sandbox-tests/fixtures/v1-prize-transaction.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  const tx = v1PrizeFundingTransaction(vector);
+  assert.equal(tx.bytes.toString("base64"), vector.unsignedBase64);
+  assert.equal(tx.hash, vector.hash);
+  for (const change of [
+    { amount: "0" },
+    { amount: "100000001" },
+    { amount: "-1" },
+    { amount: "1.5" },
+    { eventId: "prize:other" },
+    { signer: "Bad Account" },
+    { nonce: "18446744073709551616" },
+  ])
+    assert.throws(() => v1PrizeFundingTransaction({ ...vector, ...change }));
+});
 
 test("native read recovery waits for the server window and retries only one read phase", async () => {
   const attempts: string[] = [];

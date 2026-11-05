@@ -97,7 +97,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <dt>Reward rules</dt>
         <dd>
           {event.escrow
-            ? "No-show deposits split equally among checked-in attendees."
+            ? `No-show deposits split equally among checked-in attendees.${Number(event.data.sponsorBudget) > 0 ? " One checked-in attendee also receives the funded USDC prize." : ""}`
             : event.data.rewardPreset === "equal"
               ? "Equal split"
               : event.data.rewardPreset === "draw"

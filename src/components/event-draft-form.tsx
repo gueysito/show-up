@@ -74,13 +74,26 @@ export function EventDraftForm({
         const result = await response.json();
         setSaved(result.drafts);
         setReady(true);
+        if (account) {
+          const wanted = new URL(window.location.href).searchParams.get("event");
+          const item = (result.drafts as SavedDraft[]).find((saved) => saved.id === wanted);
+          if (wanted) window.history.replaceState(null, "", "/host");
+          if (item) {
+            setDraft(structuredClone(item.data));
+            setIdentity({ id: item.id, revision: item.revision, state: item.state });
+            setSnapshot(JSON.stringify(item.data));
+            setStatus(
+              "Returned from your wallet. Check publication status to continue with the original event.",
+            );
+          }
+        }
       })
       .catch(() => {
         if (!controller.signal.aborted)
           setStatus("Storage unavailable. Your form is still editable. Reconnect storage to save.");
       });
     return () => controller.abort();
-  }, [persistence, api, headers]);
+  }, [persistence, api, headers, account]);
 
   function change<K extends keyof EventDraft>(key: K, value: EventDraft[K]) {
     setDraft((current) => ({ ...current, [key]: value }));
@@ -412,6 +425,7 @@ export function EventDraftForm({
             )}
             {account && identity && (
               <EventActions
+                prize={draft.sponsorBudget}
                 onPublicationRequested={() =>
                   setIdentity((current) =>
                     current ? { ...current, state: "publication_pending" } : current,

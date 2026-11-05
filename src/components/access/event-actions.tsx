@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { InvitationManager } from "./invitation-manager";
 import type { V1PublicationState } from "../../server/events/v1-publication";
 import { HostCodeWindowManager } from "./host-code-window";
 import { EventValidatorManager } from "./event-validators";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { OwnWallet } from "../../server/wallets/service";
+import { usdcAtomic } from "../../domain/event-draft";
 
 export function EventActions({
   id,
@@ -21,6 +23,7 @@ export function EventActions({
   mode,
   timeZone,
   onPublicationRequested,
+  prize = "0",
 }: {
   id: string;
   revision: number;
@@ -34,11 +37,32 @@ export function EventActions({
   mode: "digital" | "physical";
   timeZone: string;
   onPublicationRequested: () => void;
+  prize?: string;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState("");
   const [readiness, setReadiness] = useState<V1PublicationState | null>(null);
-  const publicationPending = useRef<{ operationId: string; revision: number } | null>(null);
+  const [wallets, setWallets] = useState<OwnWallet[]>([]);
+  const [sponsorWalletId, setSponsorWalletId] = useState("");
+  const hasPrize = (usdcAtomic(prize) ?? 0n) > 0n;
+  const publicationPending = useRef<{
+    operationId: string;
+    revision: number;
+    sponsorWalletId?: string;
+  } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/wallets", { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) return;
+        const result = await response.json();
+        const near = (result.wallets as OwnWallet[]).filter((wallet) => wallet.network === "near");
+        setWallets(near);
+        setSponsorWalletId(near.length === 1 ? near[0].id : "");
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [id]);
   async function checkPublication() {
     setBusy(true);
     setReadiness(null);
@@ -60,8 +84,15 @@ export function EventActions({
   }
   async function publish() {
     setBusy(true);
-    if (publicationPending.current?.revision !== revision)
-      publicationPending.current = { operationId: crypto.randomUUID(), revision };
+    if (
+      publicationPending.current?.revision !== revision ||
+      publicationPending.current?.sponsorWalletId !== (hasPrize ? sponsorWalletId : undefined)
+    )
+      publicationPending.current = {
+        operationId: crypto.randomUUID(),
+        revision,
+        ...(hasPrize && { sponsorWalletId }),
+      };
     try {
       const response = await fetch("/api/events", {
         method: "POST",
@@ -90,6 +121,66 @@ export function EventActions({
           ? error.message
           : "Publication was not confirmed. Check status before retrying.",
       );
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function fundPrize() {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "fund-prize",
+          operationId: crypto.randomUUID(),
+          id,
+          revision,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(
+          result.error ?? "Prize funding is unavailable. Check status before retrying.",
+        );
+      const url = new URL(result.walletUrl);
+      if (
+        url.origin !== "https://app.mynearwallet.com" ||
+        url.pathname !== "/sign" ||
+        new URL(url.searchParams.get("callbackUrl")!).origin !== window.location.origin
+      )
+        throw new Error("Reopen Showup at its configured address before funding.");
+      window.location.assign(url.href);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Check status before funding again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function confirmPrize() {
+    setBusy(true);
+    try {
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          operation: "confirm-prize",
+          operationId: crypto.randomUUID(),
+          id,
+          revision,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.error ?? "The prize is not confirmed yet. Check again.");
+      setReadiness((current) =>
+        current ? { ...current, state: result.state, canFund: false } : current,
+      );
+      setStatus(
+        "Prize receipt confirmed. Publication is queued; check status for the final transaction.",
+      );
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Prize confirmation unavailable.");
     } finally {
       setBusy(false);
     }
@@ -134,17 +225,45 @@ export function EventActions({
       </p>
       {state !== "published" && (
         <div>
+          {hasPrize && (state ?? "draft") === "draft" && (
+            <div>
+              <label htmlFor={`prize-wallet-${id}`}>Prize funding wallet (USDC on NEAR)</label>
+              <select
+                id={`prize-wallet-${id}`}
+                value={sponsorWalletId}
+                disabled={busy}
+                onChange={(event) => setSponsorWalletId(event.target.value)}
+              >
+                <option value="">Choose a verified NEAR wallet</option>
+                {wallets.map((wallet) => (
+                  <option key={wallet.id} value={wallet.id}>
+                    {wallet.address}
+                  </option>
+                ))}
+              </select>
+              <p>
+                <Link href="/account/wallets" prefetch={false}>
+                  Verify a NEAR funding wallet
+                </Link>
+              </p>
+              <p>
+                The wallet you choose pays the exact prize and its transfer gas. The project pays
+                publication gas.
+              </p>
+            </div>
+          )}
           <button
             type="button"
             className="primary-button"
             disabled={
               busy ||
               dirty ||
+              (hasPrize && !sponsorWalletId && (state ?? "draft") === "draft") ||
               (readiness !== null && (!readiness.canPublish || readiness.revision !== revision))
             }
             onClick={publish}
           >
-            Publish event on mainnet
+            {hasPrize ? "Create prize event escrow" : "Publish event on mainnet"}
           </button>
           <button
             type="button"
@@ -158,6 +277,31 @@ export function EventActions({
           {!dirty && readiness?.revision === revision && (
             <section aria-label="Saved publication requirements">
               <p>{readiness.message}</p>
+              {readiness.canFund && (
+                <div>
+                  <p>{`Prize: ${readiness.prizeUsdc} USDC on NEAR. Funding wallet: ${readiness.fundingAddress}.`}</p>
+                  <p>
+                    The wallet may reserve up to 0.16 NEAR for gas; unused gas is returned. This is
+                    separate from the USDC prize.
+                  </p>
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={busy}
+                    onClick={fundPrize}
+                  >
+                    Approve prize funding in MyNearWallet
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary-button"
+                    disabled={busy}
+                    onClick={confirmPrize}
+                  >
+                    Confirm prize and publish
+                  </button>
+                </div>
+              )}
               {readiness.transactionUrl && (
                 <p>
                   <a href={readiness.transactionUrl} target="_blank" rel="noopener noreferrer">

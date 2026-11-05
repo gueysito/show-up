@@ -15,6 +15,12 @@ test("V1 publication converts only bounded saved rules and never inherits V2 rew
   assert.equal(terms.prize, "0");
   assert.equal(terms.nft, null);
   assert.equal(terms.id, id);
+  const prize = v1DraftTerms(id, { ...data, sponsorBudget: "1.25" }, Date.now(), "host.near");
+  assert.equal(prize.prize, "1250000");
+  assert.equal(prize.sponsor, "host.near");
+  assert.throws(() =>
+    v1DraftTerms(id, { ...data, sponsorBudget: "100.000001" }, Date.now(), "host.near"),
+  );
   for (const change of [
     { capacity: 65 },
     { commitment: "0.999999" },

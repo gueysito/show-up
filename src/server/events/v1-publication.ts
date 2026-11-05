@@ -13,6 +13,10 @@ import {
   type V1Terms,
 } from "../protocol/v1-escrow";
 import { isUuid } from "./drafts";
+import type { OwnWallet } from "../wallets/service";
+import { walletAddress } from "../wallets/proof";
+
+export type V1PublicationPhase = "atomic" | "create" | "publish";
 
 export type V1PublicationImage = {
   deployment: typeof publicationProfile;
@@ -23,6 +27,7 @@ export type V1PublicationImage = {
   salt: string;
   materialHash: string;
   terms: V1Terms;
+  sponsorWalletId?: string;
 };
 const publicationProfile = {
   account: v1Deployment.account,
@@ -33,10 +38,15 @@ const publicationProfile = {
 export type V1PublicationState = {
   eventId: string;
   revision: number;
-  state: "draft" | "requested" | "prepared" | "submitted" | "verified" | "failed";
+  state:
+    "draft" | "requested" | "prepared" | "submitted" | "awaiting_prize" | "verified" | "failed";
   canPublish: boolean;
   message: string;
   transactionUrl: string | null;
+  fundingWallets?: OwnWallet[];
+  canFund?: boolean;
+  prizeUsdc?: string;
+  fundingAddress?: string;
 };
 export type V1PublicationRow = {
   event_id: string;
@@ -49,6 +59,8 @@ export type V1PublicationRow = {
   transaction_state: V1PublicationState["state"];
   transaction_hash: string | null;
   encrypted_transaction: string | null;
+  execution_phase?: V1PublicationPhase;
+  creation_source_height?: string | null;
 };
 
 function material(data: EventDraft, salt: string) {
@@ -56,17 +68,27 @@ function material(data: EventDraft, salt: string) {
   void _copy;
   return canonicalHash({ format: "showup.v1.app-material.v1", salt, fixed });
 }
-export function v1DraftTerms(id: string, data: EventDraft, now = Date.now()): V1Terms {
+export function v1DraftTerms(
+  id: string,
+  data: EventDraft,
+  now = Date.now(),
+  sponsor?: string,
+): V1Terms {
   if (!isUuid(id) || !validateDraft(data, now, "v1").ok)
     throw new AppFailure(422, "Save valid future event rules before publishing.");
   if (Buffer.byteLength(data.title) > 160)
     throw new AppFailure(422, "Shorten the event name to fit the on-chain title limit.");
   if (data.quizzes.length) throw new AppFailure(422, "Remove optional questions for this event.");
-  if (usdcAtomic(data.sponsorBudget) !== 0n || data.nft)
+  const prize = usdcAtomic(data.sponsorBudget)!;
+  if (data.nft)
     throw new AppFailure(
       422,
-      "Prize funding and NFT custody are not connected yet. Publish with zero prize, or keep this draft for the prize integration.",
+      "NFT custody is not connected yet. Keep the NFT in your draft until custody is ready.",
     );
+  if (prize > 100_000_000n) throw new AppFailure(422, "Use a prize of at most 100 USDC.");
+  if (prize > 0n && !sponsor)
+    throw new AppFailure(422, "Choose your verified NEAR wallet to fund the prize.");
+  if (sponsor) walletAddress("near", sponsor);
   return {
     id,
     title: data.title,
@@ -74,10 +96,37 @@ export function v1DraftTerms(id: string, data: EventDraft, now = Date.now()): V1
     end_ms: Date.parse(data.endsAt),
     capacity: data.capacity,
     deposit: usdcAtomic(data.commitment)!.toString(),
-    prize: "0",
-    sponsor: v1Deployment.account,
+    prize: prize.toString(),
+    sponsor: prize > 0n ? sponsor! : v1Deployment.account,
     nft: null,
   };
+}
+
+export async function ownedV1Sponsor(
+  client: Pick<pg.PoolClient, "query">,
+  key: string,
+  accountId: string,
+  walletId: string,
+) {
+  if (!isUuid(walletId)) throw new AppFailure(422, "Choose your verified NEAR wallet.");
+  const row = (
+    await client.query(
+      "SELECT id,encrypted_wallet FROM app_wallets WHERE id=$1 AND account_id=$2 AND network='near' AND revoked_at IS NULL",
+      [walletId, accountId],
+    )
+  ).rows[0];
+  if (!row) throw new AppFailure(404, "Your verified NEAR wallet is unavailable.");
+  const wallet = unseal(key, `wallet:${accountId}:${row.id}`, row.encrypted_wallet) as OwnWallet & {
+    proof: { publicKey?: string };
+  };
+  if (
+    wallet.id !== walletId ||
+    wallet.network !== "near" ||
+    !wallet.proof.publicKey?.startsWith("ed25519:")
+  )
+    throw new Error("V1 sponsor wallet integrity");
+  walletAddress("near", wallet.address);
+  return { id: row.id as string, address: wallet.address, publicKey: wallet.proof.publicKey };
 }
 export function storedV1Publication(key: string, row: V1PublicationRow): V1PublicationImage {
   const image = unseal(
@@ -104,6 +153,7 @@ export async function prepareV1Publication(
   operationId: string,
   eventId: string,
   revision: number,
+  sponsorWalletId?: string,
 ) {
   if (!isUuid(eventId) || !Number.isSafeInteger(revision) || revision < 1)
     throw new AppFailure(400, "Choose a saved event revision.");
@@ -112,7 +162,7 @@ export async function prepareV1Publication(
     key,
     session,
     operationId,
-    { eventId, revision },
+    { eventId, revision, ...(sponsorWalletId && { sponsorWalletId }) },
     "event.v1-publication-requested",
     async (client, actor) => {
       hasRole(actor, "host");
@@ -134,10 +184,15 @@ export async function prepareV1Publication(
             409,
             "This draft has an existing publication request. Reconcile it first.",
           );
-        storedV1Publication(key, { ...event, ...previous });
+        const stored = storedV1Publication(key, { ...event, ...previous });
+        if (stored.sponsorWalletId !== sponsorWalletId)
+          throw new AppFailure(409, "The prize funding wallet is locked with the original terms.");
         return { eventId, revision, state: previous.transaction_state as string };
       }
       const salt = token();
+      const prize = usdcAtomic((event.data as EventDraft).sponsorBudget)!;
+      const sponsor =
+        prize > 0n ? await ownedV1Sponsor(client, key, actor.id, sponsorWalletId ?? "") : undefined;
       const image: V1PublicationImage = {
         deployment: publicationProfile,
         format: "showup.v1.mainnet-publication.v1",
@@ -146,16 +201,18 @@ export async function prepareV1Publication(
         revision,
         salt,
         materialHash: material(event.data, salt),
-        terms: v1DraftTerms(eventId, event.data),
+        terms: v1DraftTerms(eventId, event.data, Date.now(), sponsor?.address),
+        ...(sponsor && { sponsorWalletId: sponsor.id }),
       };
       await client.query(
-        `INSERT INTO app_publication_images(event_id,draft_revision,image_hash,encrypted_image,environment)
-      VALUES($1,$2,$3,$4,'near-mainnet-v1')`,
+        `INSERT INTO app_publication_images(event_id,draft_revision,image_hash,encrypted_image,environment,execution_phase)
+      VALUES($1,$2,$3,$4,'near-mainnet-v1',$5)`,
         [
           eventId,
           revision,
           canonicalHash(image),
           seal(key, `publication-image:${actor.id}:${eventId}`, image),
+          prize > 0n ? "create" : "atomic",
         ],
       );
       return { eventId, revision, state: "requested" };
@@ -167,6 +224,7 @@ export async function readV1PublicationState(
   session: string,
   eventId: string,
   revision: number,
+  key?: string,
 ): Promise<V1PublicationState> {
   if (!isUuid(eventId) || !Number.isSafeInteger(revision) || revision < 1)
     throw new AppFailure(400, "Choose a saved event revision.");
@@ -190,16 +248,39 @@ export async function readV1PublicationState(
     if (event.revision !== revision)
       throw new AppFailure(409, "Reload the current saved revision.");
     const row = (
-      await client.query(
-        "SELECT environment,transaction_state,transaction_hash FROM app_publication_images WHERE event_id=$1",
-        [eventId],
-      )
+      await client.query("SELECT * FROM app_publication_images WHERE event_id=$1", [eventId])
     ).rows[0];
+    const fundingWallets: OwnWallet[] = [];
+    if (key) {
+      const wallets = (
+        await client.query(
+          "SELECT id,encrypted_wallet FROM app_wallets WHERE account_id=$1 AND network='near' AND revoked_at IS NULL ORDER BY verified_at DESC LIMIT 50",
+          [actor.id],
+        )
+      ).rows;
+      for (const wallet of wallets) {
+        const value = unseal(
+          key,
+          `wallet:${actor.id}:${wallet.id}`,
+          wallet.encrypted_wallet,
+        ) as OwnWallet;
+        fundingWallets.push({
+          id: wallet.id,
+          network: "near",
+          address: value.address,
+          verifiedAt: value.verifiedAt,
+        });
+      }
+    }
     let message = "Ready to publish on NEAR mainnet. The project pays network gas.";
     let canPublish = event.state === "draft" && !row;
     if (canPublish) {
       try {
-        v1DraftTerms(eventId, event.data);
+        const prize = usdcAtomic((event.data as EventDraft).sponsorBudget)!;
+        if (prize > 0n) {
+          // A wallet is selected explicitly in the publication request.
+          v1DraftTerms(eventId, event.data, Date.now(), fundingWallets[0]?.address);
+        } else v1DraftTerms(eventId, event.data);
       } catch (error) {
         if (!(error instanceof AppFailure)) throw error;
         canPublish = false;
@@ -211,9 +292,11 @@ export async function readV1PublicationState(
       message =
         state === "verified"
           ? "Published and verified on NEAR mainnet."
-          : state === "failed"
-            ? "Publication failed. The frozen request is retained; duplicate this event to start again."
-            : "Publication is queued or awaiting its original transaction. Check status without creating another request.";
+          : state === "awaiting_prize"
+            ? "Event escrow created. Approve the exact USDC prize in your funding wallet, then confirm funding to publish."
+            : state === "failed"
+              ? "Publication failed. The frozen request is retained; duplicate this event to start again."
+              : "Publication is queued or awaiting its original transaction. Check status without creating another request.";
     return {
       eventId,
       revision,
@@ -221,6 +304,13 @@ export async function readV1PublicationState(
       canPublish,
       message,
       transactionUrl: row?.transaction_hash ? v1TransactionUrl(row.transaction_hash) : null,
+      fundingWallets,
+      canFund: state === "awaiting_prize",
+      prizeUsdc: formatUsdc(usdcAtomic((event.data as EventDraft).sponsorBudget)!),
+      ...(key &&
+        row?.environment === "near-mainnet-v1" && {
+          fundingAddress: storedV1Publication(key, { ...event, ...row }).terms.sponsor,
+        }),
     };
   });
 }

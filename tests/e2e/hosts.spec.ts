@@ -55,8 +55,8 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     const review = host.getByRole("button", { name: "Check publication status" });
     await review.click();
     const requirements = host.getByRole("region", { name: "Saved publication requirements" });
-    await expect(requirements).toContainText("Prize funding and NFT custody are not connected yet");
-    await expect(host.getByRole("button", { name: /Publish event on mainnet/ })).toBeDisabled();
+    await expect(requirements).toContainText("Choose your verified NEAR wallet");
+    await expect(host.getByRole("button", { name: /Create prize event escrow/ })).toBeDisabled();
     const ownEvents = await (await host.request.get("/api/events")).json();
     const copy = ownEvents.drafts.find(
       (event: { data: { title: string } }) => event.data.title === "Invited host draft (copy)",

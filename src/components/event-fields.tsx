@@ -279,7 +279,7 @@ export function ParticipationFields({ draft, errors, change, v1 = false }: Props
           <h2>{v1 ? "Optional prize" : "A little more participation"}</h2>
           <p>
             {v1
-              ? "Prize funding and Ethereum NFT custody are being connected separately. Keep the prize at zero to publish now."
+              ? "Fund a USDC prize from your verified NEAR wallet before publication. Ethereum NFT custody is not available yet."
               : "Optional questions. Extra upside, never a condition for principal."}
           </p>
         </div>
