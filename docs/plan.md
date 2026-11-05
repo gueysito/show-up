@@ -140,6 +140,9 @@ USDC approval. The wallet receives one frozen native USDC or storage action, and
 the app waits for its existing two-source confirmation. An isolated browser test
 reopens the original payment after refresh. A real phone deposit/refund remains;
 earlier mainnet receipts used isolated project-wallet approvals.
+The [phone deposit test](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6)
+is published with one seat, 1 USDC and no prize. The public pilot page shows the
+verified mainnet terms.
 NEAR Mobile opened from Showup, signed a real phone message and saved the verified
 wallet through refresh. The Meteor choice passes an isolated test for message-only
 approval with the pinned connector. The wallet page has Phantom, MetaMask and
@@ -230,11 +233,12 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-05 | NEAR | Publish the funded NFT event and bind/fund its attendee | 1 existing USDC held for the test attendee; 0.0013417147346258 NEAR total gas | [Publish](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [register](https://nearblocks.io/txns/5bKjAcEWQSZ3AXDLcSrcci7UsBAg8K15BPd8wNMrYRaD), [deposit](https://nearblocks.io/txns/GieCsPRzt9igQip2AnD8GjTdRFYL9LsUzvnHUouHS29j) |
 | 2026-11-05 | NEAR | Check in, settle, return the attendee's full deposit and sign the fixed NFT release | 1 USDC fully restored; 0.0024419976883588 NEAR total gas from existing funds | [Check-in](https://nearblocks.io/txns/GngvHdQST4Hq3G7SDQN8pLT1yJz6rMb8PvUg9FiXBwd7), [settle](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL), [MPC signature](https://nearblocks.io/txns/5bs7vGKFEwTqgfPFnt1uASNiGLWoAWzx9FCsqcw5RBjL) |
 | 2026-11-05 | Ethereum | Deliver NFT #2829 to its test winner and return it to the original contributor | 0.000162539215967425 ETH winner release fee; 0.000057241602966725 ETH test-return fee; 0.000728079412264359 ETH remains at the event custody address | [Finalized winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f), [finalized test return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) |
+| 2026-11-05 | NEAR | Publish one refundable 1-USDC phone test seat | 0.0003739851787129 NEAR gas from existing funds; no deposit yet | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6) |
 
 About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
-Total agent-consumed gas: **0.0981999434661815 NEAR** (about $0.3977 at $4.05/NEAR).
+Total agent-consumed gas: **0.0985739286448944 NEAR** (about $0.3992 at $4.05/NEAR).
 Before NFT custody preparation, controller native balance was **0.226839523809198299999988 NEAR**;
 escrow native balance is **3.456873783036298799999990 NEAR** after reserve replenishment, including code/state
 collateral. Both accounts have USDC storage registration. Both RPCs confirm

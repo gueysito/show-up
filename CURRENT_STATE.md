@@ -45,13 +45,13 @@ there are no pending native transaction queues.
   host navigation pass. A clean clone installs/builds on pinned Node 24 and serves
   home/preview/database health with HTTP 200. Both provider sign-in screens open
   through the pilot in a fresh iPhone-sized browser. Owner phone sign-in and
-  Android Phantom verification passed. iPhone Safari app-link testing, a supported
-  NEAR wallet and a real phone payment remain.
+  Android Phantom verification passed. iPhone Safari app-link testing, real
+  Meteor approval and a phone payment remain.
   Hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 
 The owner-local app runs at `https://localhost:3443`. The existing approved
 [development pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves
-the rebuilt production app from `abd56aa`. Wallets and health return HTTP 200.
+the rebuilt production app from `a51b339`. Wallets and health return HTTP 200.
 Unauthenticated wallet requests return 401, and foreign-origin wallet mutations
 return 403.
 Phone access depends on the development computer and its existing tunnel staying
@@ -65,3 +65,7 @@ Meteor option passes isolated browser checks. The app prepares native deposit,
 storage and prize approvals for both wallets and checks the original request
 before creating another. The live phone payment/refund remains. The wallet page
 has opening links for Phantom, MetaMask and Rabby.
+
+The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5)
+is published on mainnet with one seat, a 1-USDC deposit and no prize. The next
+action is the real phone deposit, followed by cancellation and refund.
