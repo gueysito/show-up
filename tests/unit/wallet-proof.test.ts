@@ -118,6 +118,24 @@ test("Ed25519 proofs distinguish raw Solana messages from tagged NEAR hashes and
     const bytes = Buffer.from(keys.publicKey.export({ format: "jwk" }).x!, "base64url");
     const address = network === "near" ? "fictional-wallet.near" : encodeBase58(bytes);
     const challenge = createWalletChallenge(origin, network, address, now);
+    if (network === "solana") {
+      // The public Sign In With Solana format accepts named chains, while
+      // the verifier still pins the full genesis ID in the challenge record.
+      assert.match(challenge.message, /^Chain ID: solana:mainnet$/m);
+      assert.notEqual(challenge.chainId, "solana:mainnet");
+      const legacy = {
+        ...challenge,
+        message: challenge.message.replace(
+          "Chain ID: solana:mainnet",
+          `Chain ID: ${challenge.chainId}`,
+        ),
+      };
+      const legacyProof = {
+        signature: sign(null, Buffer.from(legacy.message), keys.privateKey).toString("base64"),
+      };
+      assert(verifyWalletSignature(legacy, legacyProof, origin, now));
+      assert(!verifyWalletSignature(legacy, legacyProof, origin, now + 300_000));
+    }
     const payload =
       network === "near" ? nearMessageDigest(challenge) : Buffer.from(challenge.message);
     const proof: WalletSignature = {

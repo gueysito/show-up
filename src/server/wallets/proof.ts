@@ -38,7 +38,10 @@ export function walletAddress(network: Network, value: string): string {
   return value;
 }
 
-function message(input: Omit<WalletChallenge, "message">) {
+function message(
+  input: Omit<WalletChallenge, "message">,
+  displayedChain = input.network === "solana" ? "solana:mainnet" : input.chainId,
+) {
   const family =
     input.network === "base" || input.network === "ethereum"
       ? "Ethereum"
@@ -54,7 +57,7 @@ function message(input: Omit<WalletChallenge, "message">) {
     "",
     `URI: ${input.origin}/account/wallets`,
     "Version: 1",
-    `Chain ID: ${input.chainId}`,
+    `Chain ID: ${displayedChain}`,
     `Nonce: ${Buffer.from(input.nonce, "base64").toString("hex")}`,
     `Issued At: ${new Date(input.issuedAt).toISOString()}`,
     `Expiration Time: ${new Date(input.expiresAt).toISOString()}`,
@@ -161,7 +164,10 @@ export function verifyWalletSignature(
       challenge.expiresAt - challenge.issuedAt !== 300_000 ||
       now < challenge.issuedAt ||
       now >= challenge.expiresAt ||
-      challenge.message !== message(challenge)
+      (challenge.message !== message(challenge) &&
+        // Let already-issued Solana challenges finish within their original expiry.
+        (challenge.network !== "solana" ||
+          challenge.message !== message(challenge, challenge.chainId)))
     )
       return false;
     base64(challenge.nonce, 32);

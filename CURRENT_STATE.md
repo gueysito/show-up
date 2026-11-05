@@ -30,9 +30,10 @@ Working rules are in [AGENTS.md](AGENTS.md).
 
 Mainnet transaction checks used preauthenticated engineering accounts and isolated
 project-wallet approval. The owner completed Google sign-in on a real phone.
-Telegram sign-in also worked inside Phantom. The first Solana signatures did
-not reach Showup's verifier. The Wallet Standard path passes browser tests;
-session refresh and a real Phantom retry remain to verify.
+Telegram sign-in also worked inside Phantom. The phone did not return a usable
+Solana signature. The app now sends Phantom's documented `solana:mainnet`
+message field and retains the pinned genesis ID in the verifier. Browser tests
+pass, and a real phone approval remains to verify.
 The existing app baseline passes 195 database and 48 ordinary browser cases;
 the network-fee correction passes 131 unit and six isolated database cases.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
