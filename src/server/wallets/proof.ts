@@ -15,7 +15,7 @@ export type WalletChallenge = {
   nonce: string;
   recipient: string;
   callbackUrl: string;
-  nearTransport?: "near-mobile";
+  nearTransport?: "near-mobile" | "meteor";
   returnEventId?: string;
   issuedAt: number;
   expiresAt: number;
@@ -72,12 +72,15 @@ export function createWalletChallenge(
   address: string,
   now = Date.now(),
   returnEventId?: string,
-  nearTransport?: "near-mobile",
+  nearTransport?: WalletChallenge["nearTransport"],
 ): WalletChallenge {
   const url = new URL(origin);
   if (url.protocol !== "https:" || origin !== url.origin || !Number.isSafeInteger(now))
     throw new Error("Wallet verification requires a fixed HTTPS origin and valid time");
-  if (nearTransport !== undefined && (network !== "near" || nearTransport !== "near-mobile"))
+  if (
+    nearTransport !== undefined &&
+    (network !== "near" || (nearTransport !== "near-mobile" && nearTransport !== "meteor"))
+  )
     throw new Error("Invalid wallet signing transport");
   if (
     returnEventId !== undefined &&
@@ -136,7 +139,7 @@ export function nearMessageDigest(
         borshString(challenge.message),
         base64(challenge.nonce, 32),
         borshString(challenge.recipient),
-        ...(challenge.nearTransport === "near-mobile"
+        ...(challenge.nearTransport === "near-mobile" || challenge.nearTransport === "meteor"
           ? [Buffer.from([0])]
           : [Buffer.from([1]), borshString(challenge.callbackUrl)]),
       ]),
@@ -162,7 +165,8 @@ export function verifyWalletSignature(
       challenge.recipient !== url.host ||
       challenge.chainId !== networkIdentity(challenge.network).chainId ||
       (challenge.nearTransport !== undefined &&
-        (challenge.network !== "near" || challenge.nearTransport !== "near-mobile")) ||
+        (challenge.network !== "near" ||
+          (challenge.nearTransport !== "near-mobile" && challenge.nearTransport !== "meteor"))) ||
       challenge.address !== walletAddress(challenge.network, challenge.address) ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(challenge.id) ||
       (challenge.returnEventId !== undefined &&

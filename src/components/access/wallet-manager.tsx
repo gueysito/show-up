@@ -9,6 +9,7 @@ import {
   startNearMobileProof,
   type NearMobileProofRequest,
 } from "./near-mobile-wallet";
+import { verifyMeteorWallet } from "./meteor-wallet";
 import { connectSolanaWallet } from "./solana-wallet-proof";
 
 type EthereumWallet = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
@@ -77,6 +78,7 @@ export function WalletManager({
     returnChallengeId ? "near" : "base",
   );
   const [nearAccount, setNearAccount] = useState("");
+  const [nearWallet, setNearWallet] = useState<"near-mobile" | "meteor">("near-mobile");
   const [nearApproval, setNearApproval] = useState<NearMobileProofRequest | null>(null);
   const [wallets, setWallets] = useState(initialWallets);
   const [busy, setBusy] = useState(false);
@@ -216,12 +218,29 @@ export function WalletManager({
         operationId: crypto.randomUUID(),
         network,
         address,
-        ...(network === "near" && { nearTransport: "near-mobile" }),
+        ...(network === "near" && { nearTransport: nearWallet }),
         ...(returnEventId && { returnEventId }),
       });
       if (new URL(challenge.callbackUrl).origin !== window.location.origin)
         throw new WalletUiError("Reopen Showup at its configured address and start again.");
       if (network === "near") {
+        if (nearWallet === "meteor") {
+          let proof: WalletSignature;
+          try {
+            proof = await verifyMeteorWallet(challenge);
+          } catch {
+            throw new WalletUiError(
+              "Meteor did not return a signature for this NEAR account. Check your selected account and retry.",
+            );
+          }
+          await save({
+            operation: "verify",
+            operationId: crypto.randomUUID(),
+            challengeId: challenge.id,
+            proof,
+          });
+          return;
+        }
         try {
           setNearApproval(await startNearMobileProof(challenge));
         } catch {
@@ -302,6 +321,18 @@ export function WalletManager({
       </div>
       {network === "near" && !returnReady && (
         <div className="field">
+          <label htmlFor="near-wallet-app">NEAR wallet app</label>
+          <select
+            id="near-wallet-app"
+            value={nearWallet}
+            disabled={busy || retry || Boolean(nearApproval)}
+            onChange={(event) =>
+              setNearWallet(event.target.value === "meteor" ? "meteor" : "near-mobile")
+            }
+          >
+            <option value="near-mobile">NEAR Mobile</option>
+            <option value="meteor">Meteor Wallet</option>
+          </select>
           <label htmlFor="near-wallet-account">NEAR account</label>
           <input
             id="near-wallet-account"
@@ -314,8 +345,8 @@ export function WalletManager({
         </div>
       )}
       <p>
-        NEAR Mobile verifies a current full-access key. Base/Ethereum use personal message signing;
-        contract wallets are not verified in this pilot. Solana uses message signing.
+        NEAR Mobile and Meteor verify a current full-access key. Base/Ethereum use personal message
+        signing; contract wallets are not verified in this pilot. Solana uses message signing.
       </p>
       {returnReady && (
         <p role="status">
@@ -353,7 +384,9 @@ export function WalletManager({
                 : nearApproval
                   ? "Check NEAR Mobile approval"
                   : network === "near"
-                    ? "Prepare NEAR Mobile verification"
+                    ? nearWallet === "meteor"
+                      ? "Verify with Meteor Wallet"
+                      : "Prepare NEAR Mobile verification"
                     : "Connect and verify wallet"}
         </button>
         {(retry || returnReady || nearApproval) && (

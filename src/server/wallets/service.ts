@@ -41,7 +41,7 @@ export async function issueWalletChallenge(
     network: string;
     address: string;
     returnEventId?: string;
-    nearTransport?: "near-mobile";
+    nearTransport?: WalletChallenge["nearTransport"];
   },
 ) {
   if (!walletNetworks.some((network) => network === input.network))

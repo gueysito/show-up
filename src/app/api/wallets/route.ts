@@ -44,7 +44,8 @@ async function handle(request: Request) {
       typeof body.network === "string" &&
       typeof body.address === "string" &&
       (body.nearTransport === undefined ||
-        (body.network === "near" && body.nearTransport === "near-mobile")) &&
+        (body.network === "near" &&
+          (body.nearTransport === "near-mobile" || body.nearTransport === "meteor"))) &&
       (body.returnEventId === undefined || typeof body.returnEventId === "string")
     )
       result = await issueWalletChallenge(database.pool, config, session.tokenHash, {
@@ -52,7 +53,7 @@ async function handle(request: Request) {
         network: body.network,
         address: body.address,
         ...(typeof body.returnEventId === "string" && { returnEventId: body.returnEventId }),
-        ...(body.nearTransport === "near-mobile" && { nearTransport: body.nearTransport }),
+        ...(body.nearTransport && { nearTransport: body.nearTransport }),
       });
     else if (
       body.operation === "verify" &&

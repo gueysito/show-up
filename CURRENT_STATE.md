@@ -51,7 +51,7 @@ there are no pending native transaction queues.
 
 The owner-local app runs at `https://localhost:3443`. The existing approved
 [development pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves
-the rebuilt production app from `f909446`. Wallets and health return HTTP 200.
+the rebuilt production app from `abd56aa`. Wallets and health return HTTP 200.
 Unauthenticated wallet requests return 401, and foreign-origin wallet mutations
 return 403.
 Phone access depends on the development computer and its existing tunnel staying
@@ -59,7 +59,7 @@ running. A new browser may show ngrok's one-time **Visit Site** screen.
 
 The live MyNearWallet `/sign-message` and `/sign` screens now reject app requests
 following its [retirement](https://www.mynearwallet.com/sunset). The earlier
-engineering runs bypassed those screens. NEAR Mobile ownership verification now
-has a tested message handoff. The first real NEAR Mobile approval and native
-deposit, storage and prize approvals remain to verify. The wallet page also has
-mobile opening links for Phantom, MetaMask and Rabby.
+engineering runs bypassed those screens. A real phone approved a NEAR Mobile
+message, Showup stored the verified proof and the wallet survived refresh. The
+Meteor option passes isolated browser checks. Native deposit, storage and prize
+approvals remain. The wallet page has opening links for Phantom, MetaMask and Rabby.

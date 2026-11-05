@@ -345,3 +345,50 @@ test("NEAR Mobile handoff sends a message only and rejects a response for anothe
     await fixtures.cleanup();
   }
 });
+
+test("Meteor uses the pinned wallet executor for a message without requesting a key", async ({
+  page,
+  context,
+}) => {
+  const fixtures = await accountFixtures([[]]);
+  const executor =
+    "https://raw.githubusercontent.com/Meteor-Wallet/meteor_wallet_sdk/ef1be35fc3712f2de60a7563aed543d78e73f763/storage/meteor-near-connect-latest.js";
+  try {
+    await fixtures.enter(context, 0);
+    await page.route(`${executor}*`, (route) =>
+      route.fulfill({
+        contentType: "text/javascript",
+        headers: { "access-control-allow-origin": "*" },
+        body: `window.selector.ready({ async signInAndSignMessage(input) {
+        if (input.network !== "mainnet" || input.addFunctionCallKey !== undefined ||
+            input.messageParams.nonce.length !== 32 ||
+            input.messageParams.recipient !== "localhost:3444" ||
+            !input.messageParams.message.includes("No transfer or spending approval is authorized."))
+          throw new Error("Invalid fixture request");
+        window.parent.postMessage({ type: "fixture-meteor-message-reviewed" }, "*");
+        return [{ accountId: "other.near" }];
+      } });`,
+      }),
+    );
+    await page.addInitScript(() =>
+      window.addEventListener("message", (event) => {
+        if (event.data?.type === "fixture-meteor-message-reviewed")
+          document.documentElement.dataset.meteorReviewed = "true";
+      }),
+    );
+    await page.goto("/account/wallets");
+    await page.getByLabel("Wallet network").selectOption("near");
+    await page.getByLabel("NEAR wallet app").selectOption("meteor");
+    await page.getByLabel("NEAR account").fill("fictional-wallet.near");
+    await page.getByRole("button", { name: "Verify with Meteor Wallet" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-meteor-reviewed", "true");
+    await expect(
+      page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
+    ).toContainText("Meteor did not return a signature for this NEAR account");
+    await expect(
+      page.getByText("No wallet control has been verified for this account."),
+    ).toBeVisible();
+  } finally {
+    await fixtures.cleanup();
+  }
+});
