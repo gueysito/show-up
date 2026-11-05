@@ -160,7 +160,7 @@ export function v1NftDeliveryGateway(
           asset: "0x" + BigInt(image.nft.token_id).toString(16).padStart(64, "0"),
           source: image.custody,
           recipient: image.recipient,
-          feeCap: "100000000000000",
+          feeCap: (BigInt(image.envelope.gas_limit) * BigInt(image.envelope.max_fee)).toString(),
         };
       const facts = await Promise.all(
         clients.map(async (rpc) => {

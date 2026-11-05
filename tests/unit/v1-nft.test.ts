@@ -164,13 +164,14 @@ test("NFT fee planning fits current network prices inside the fixed cap and refu
 test("NFT delivery requires the original signed image, finalized inclusion and the exact ERC-721 transfer on both sources", async () => {
   const f = v1NftFixture(),
     recipient = f.recipient.address.toLowerCase(),
-    tx = v1NftReleaseTransaction(f.nft, f.custody, recipient, f.envelope);
+    envelope = { ...f.envelope, max_fee: "10000000000", priority_fee: "1000000000" },
+    tx = v1NftReleaseTransaction(f.nft, f.custody, recipient, envelope);
   tx.signature = f.signer.signingKey.sign(tx.unsignedHash);
   const image = {
       nft: f.nft,
       custody: f.custody,
       recipient,
-      envelope: f.envelope,
+      envelope,
       hash: tx.hash!,
       signedHex: tx.serialized,
       unsigned: tx.unsignedSerialized,
@@ -223,7 +224,7 @@ test("NFT delivery requires the original signed image, finalized inclusion and t
       transactionIndex: "0x0",
       status: "0x1",
       gasUsed: "0x10ac8",
-      effectiveGasPrice: "0xf4240",
+      effectiveGasPrice: toQuantity(5000000000n),
       cumulativeGasUsed: "0x10ac8",
       logs: [log],
     };
@@ -257,7 +258,7 @@ test("NFT delivery requires the original signed image, finalized inclusion and t
   assert.deepEqual(await gateway.observe(image), {
     state: "delivered",
     height: "100",
-    fee: "68296000000",
+    fee: "341480000000000",
   });
   log.topics[2] = "0x" + f.contributor.slice(2).padStart(64, "0");
   await assert.rejects(gateway.observe(image), /transfer log/);

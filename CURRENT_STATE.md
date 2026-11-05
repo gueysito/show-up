@@ -7,9 +7,9 @@ Working rules are in [AGENTS.md](AGENTS.md).
 
 ## Working on mainnet
 
-- V1-1: the same escrow account [upgraded](https://nearblocks.io/txns/9DZA2cRDVL3m2wXJ39FpF4CBB4pcTNKADN5FnPprj1xc)
-  without changing NFT state/accounting; a new [1-USDC deposit](https://nearblocks.io/txns/K2Jf4TKK5QxjZ4GCzmP8g1c6btAWtoe82XnECwRjmRm)
-  and [full refund](https://nearblocks.io/txns/Fq1fF3sH5zNWZwRd2KrATBvXsh1FYvZQsjE1YwnKBjS6) succeeded.
+- V1-1: the same escrow account [upgraded](https://nearblocks.io/txns/3YFQdrpz9f5yr89Fq4yhHEVpmwYZoiegSWwZ4astjFt8)
+  without changing NFT state/accounting; its new [1-USDC deposit](https://nearblocks.io/txns/61G14BvWNdgLoM9sCRamSQgcHWYiZYJX2X7ukFkX3dSK)
+  and [full refund](https://nearblocks.io/txns/DWbiuuU8p5FCHkDPc1BcXTYk6qmJqLDCJHbkPJfGX9Ax) succeeded.
 - V1-2/3: zero-prize and funded-prize publication; native USDC deposits and full
   cancellation refunds through the browser.
 - V1-4: Base, Solana and Ethereum each routed 1 USDC through an isolated Intents
@@ -19,8 +19,10 @@ Working rules are in [AGENTS.md](AGENTS.md).
 - V1-6: two 1-USDC deposits and a 0.25-USDC prize [settled](https://nearblocks.io/txns/Hs7qvG1cBaS6bz3DRF3F5ahY9FeayFXipLRNB19YJwsZ)
   into a [2.25-USDC payout](https://nearblocks.io/txns/3DnWt7mZ31a3j2Q3RdVZ9JmZzADSsBLLUFGMiUmAY2pY).
   Mobile receipt shows principal + share + prize. Test USDC is restored in full.
-- The controller retains 1.366697 USDC after converting existing USDC into NFT gas;
-  escrow holds zero after its upgrade refund. Allocation remains below $50;
+- The NFT test event is [published](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb)
+  and its attendee [deposited 1 USDC](https://nearblocks.io/txns/GieCsPRzt9igQip2AnD8GjTdRFYL9LsUzvnHUouHS29j)
+  with a locked Ethereum recipient. Controller USDC is 0.366697, escrow holds 1,
+  and the controller owns 0.038156 USDC in Intents. Allocation remains below $50;
   no additional owner funding is requested.
 
 Checks use preauthenticated engineering accounts and isolated project-wallet
@@ -36,10 +38,10 @@ there are no pending native transaction queues.
 - V1-7: NFT custody/publication, attendee Ethereum binding, cancellation and signed
   delivery are implemented locally. The test event's Ethereum custody address is
   now derived and verified: `0x098a2830a7C2Bb6eC97d003361F3090CE3ba2CE0`.
-  BasedHeads #2829's owner transfer is finalized in custody. A bounded Ethereum
-  fee correction is verified; a follow-up 0.002-ETH maximum supports observed
-  Ethereum fee spikes and is awaiting deployment. The app request is retained
-  unsigned; no onward NFT transfer has occurred. Its start is 16:33 UTC today.
+  BasedHeads #2829's owner transfer, publication and attendee funding are verified.
+  The 0.002-ETH ceiling is deployed; receipt validation uses the exact signed fee
+  envelope. Check-in/settlement open at 16:33 UTC today, then the real signed NFT
+  release remains. No onward NFT transfer has occurred.
 - V1-9: front door and V1 preview run locally; desktop/390/320 layouts and real
   host navigation pass. A clean clone installs/builds on pinned Node 24 and serves
   home/preview/database health with HTTP 200. The real-phone journey remains.
@@ -47,7 +49,7 @@ there are no pending native transaction queues.
 
 The owner-local app runs at `https://localhost:3443`. The existing approved
 [development pilot](https://liable-pleat-maritime.ngrok-free.dev/account) now serves
-the rebuilt production app from `5e6386b`: home/account/health return HTTP 200;
+the rebuilt production app from `c755607`: home/account/health return HTTP 200;
 anonymous NFT requests return 401 and foreign-origin mutations return 403.
 Phone access depends on the development computer and its existing tunnel staying
 running. Fresh phone sign-in, external-wallet approval and NFT release remain to verify.
