@@ -96,15 +96,12 @@ export async function verifyMeteorWallet(challenge: WalletChallenge): Promise<Wa
   )
     throw new Error("Invalid Meteor challenge");
   const signer = await getMeteorWallet();
-  const accounts = await signer.signInAndSignMessage({
+  const proof = await signer.signMessage({
     network: "mainnet",
-    messageParams: {
-      message: challenge.message,
-      recipient: challenge.recipient,
-      nonce: Uint8Array.from(atob(challenge.nonce), (byte) => byte.charCodeAt(0)),
-    },
+    message: challenge.message,
+    recipient: challenge.recipient,
+    nonce: Uint8Array.from(atob(challenge.nonce), (byte) => byte.charCodeAt(0)),
   });
-  const proof = accounts.find((account) => account.accountId === challenge.address)?.signedMessage;
   if (
     proof?.accountId !== challenge.address ||
     typeof proof.publicKey !== "string" ||

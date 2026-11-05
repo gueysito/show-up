@@ -16,12 +16,12 @@ Showup V1 publishes mainnet events, accepts deposits from NEAR, Base, Solana and
 
 The owner-local app runs at `https://localhost:3443`. The existing [development pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves the updated wallet build and requires the development computer and tunnel to stay running. Health, wallets and the test commitment page return HTTP 200. Anonymous and foreign-origin commitment requests return 401 and 403 respectively. The pilot database was backed up and migrated through 040.
 
-Owner phone checks passed for Google and Telegram sign-in, Android Phantom verification, and NEAR Mobile and Meteor message approval. Meteor showed a service error after approval. Refresh displayed the wallet, and the database confirms two verified NEAR wallets on the account. The wallet page includes Phantom, MetaMask and Rabby opening links.
+Owner phone checks passed for Google and Telegram sign-in, Android Phantom verification, and NEAR Mobile and Meteor message approval. The branded wallet picker and automatic save recovery pass isolated checks, including a lost response after a successful save.
 
 The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) verified a real [1-USDC deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) from Android Chrome and NEAR Mobile and a [full refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) after cancellation. The phone showed both receipts. The pilot explains the Intents distinction when native USDC is short.
 
 ## Remaining
 
-- V1-9: finish the Safari and EVM wallet app-link checks. The home, preview and host navigation pass local phone/desktop layout checks, and the clean-clone build is verified.
+- V1-9: verify Base and Ethereum on Android, then check Safari app links. The home, preview and host navigation pass local phone/desktop layout checks, and the clean-clone build is verified.
 - Permanent hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 - GitHub CI requires account billing attention. Continue using local checks.

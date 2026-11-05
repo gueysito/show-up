@@ -6,23 +6,28 @@ import { createDatabase } from "../../../server/db/client";
 import { listOwnWallets, type OwnWallet } from "../../../server/wallets/service";
 import { WalletManager } from "../../../components/access/wallet-manager";
 import { isUuid } from "../../../server/events/drafts";
+import { walletNetworks } from "../../../server/wallets/proof";
 
 export const dynamic = "force-dynamic";
 export default async function WalletPage({
   searchParams,
 }: {
-  searchParams: Promise<{ challenge?: string; event?: string }>;
+  searchParams: Promise<{ challenge?: string; event?: string; network?: string; app?: string }>;
 }) {
   const query = await searchParams;
   const returnEventId =
     typeof query.event === "string" && isUuid(query.event) ? query.event : undefined;
   const returnChallengeId =
     typeof query.challenge === "string" && isUuid(query.challenge) ? query.challenge : undefined;
+  const initialNetwork = walletNetworks.find((network) => network === query.network);
+  const openedWallet =
+    initialNetwork === "solana" && query.app === "phantom"
+      ? "phantom"
+      : (initialNetwork === "base" || initialNetwork === "ethereum") &&
+          (query.app === "rabby" || query.app === "metamask")
+        ? query.app
+        : undefined;
   const config = authConfig();
-  const walletPage = config ? new URL("/account/wallets", config.origin) : null;
-  const rabby = new URL("https://go.rabby.io/mobile/");
-  rabby.searchParams.set("_cmd", "open-dapp");
-  if (walletPage) rabby.searchParams.set("dapp", walletPage.href);
   let signedIn = false,
     available = Boolean(config);
   let wallets: OwnWallet[] = [];
@@ -49,36 +54,7 @@ export default async function WalletPage({
           </Link>
         </p>
       )}
-      <p>
-        Prove wallet control separately from social sign-in. Your wallet will show a message to
-        review and sign.
-      </p>
-      <p>
-        Verification moves no money and creates no event registration. Event funding requires
-        separate rules, destination and fee approval.
-      </p>
-      {walletPage && (
-        <details>
-          <summary>Open this page in your phone wallet</summary>
-          <ul>
-            <li>
-              <a
-                href={`https://phantom.com/ul/browse/${encodeURIComponent(walletPage.href)}?ref=${encodeURIComponent(walletPage.origin)}`}
-              >
-                Open in Phantom (Solana)
-              </a>
-            </li>
-            <li>
-              <a href={`https://link.metamask.io/dapp/${walletPage.host}${walletPage.pathname}`}>
-                Open in MetaMask (Ethereum or Base)
-              </a>
-            </li>
-            <li>
-              <a href={rabby.href}>Open in Rabby (Ethereum or Base)</a>
-            </li>
-          </ul>
-        </details>
-      )}
+      <p>Verify a wallet with a message signature. Event payments require separate approval.</p>
       {!available ? (
         <p role="alert">Wallet verification is unavailable. Retry when the service is ready.</p>
       ) : !signedIn ? (
@@ -90,6 +66,8 @@ export default async function WalletPage({
           initialWallets={wallets}
           returnChallengeId={returnChallengeId}
           returnEventId={returnEventId}
+          initialNetwork={initialNetwork}
+          openedWallet={openedWallet}
         />
       )}
     </main>

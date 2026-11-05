@@ -161,7 +161,10 @@ NEAR Mobile opened from Showup, signed a real phone message and saved the verifi
 wallet through refresh. Meteor opened on the owner's phone and saved a verified
 NEAR wallet. The wallet appeared after refresh despite a service error following
 approval, and the pilot database confirmed both saved NEAR wallets. The wallet
-page has Phantom, MetaMask and Rabby opening links.
+page shows branded network and wallet choices, resumes the selected network in
+supported mobile apps, and retries an uncertain save with the original proof.
+Isolated browser checks cover the picker, app handoff and recovery. Android
+Base and Ethereum message verification comes next. Safari can follow separately.
 
 V1-9 phone check: Google and Telegram sign-in passed on the phone. On Android,
 the app-opening link opened Showup in Phantom, Solana approval saved one verified

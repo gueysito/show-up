@@ -302,23 +302,24 @@ Apply the normal application migrations, including `005-wallet-control.sql`, bef
 starting a rebuilt app. A private branch push does not update an already running
 server. Existing application encryption/index keys must remain unchanged.
 
-After social sign-in, choose **Verify and review your wallets**:
+After social sign-in, choose **Verify and review your wallets**, then select a
+network and a wallet app:
 
-- Base/Ethereum: open the wallet page in MetaMask or Rabby, select the matching
+- Base/Ethereum: tap MetaMask or Rabby, select the matching
   mainnet, and review the host, address, chain, nonce and expiry before signing.
   Contract wallets are not verified in this pilot.
-- Solana: use a compatible injected wallet such as Phantom and sign the displayed
+- Solana: tap Phantom and sign the displayed
   message. Private keys remain in the wallet.
-- NEAR: choose NEAR Mobile or Meteor Wallet and enter the mainnet account. For
-  NEAR Mobile, prepare the request, open the wallet, approve the message, then
-  return to the original Showup tab and check approval. Meteor opens its own
-  approval prompt. Both require a current NEP-413 Ed25519 full-access key that
+- NEAR: choose an account in Meteor Wallet and approve the proof. In NEAR Mobile,
+  enter or select a saved account, prepare the request, open the wallet, approve
+  the message, then return to the original Showup tab and check approval.
+  Both require a current NEP-413 Ed25519 full-access key that
   agrees at both fixed RPC sources. A function-call key does not establish control.
 
 Success adds the wallet to **Saved wallets**. Refresh and sign-in restoration read
-the durable own-account records. After a lost acknowledgement, **Retry saving this
-proof** resubmits the original operation/signature; **Refresh saved wallets** checks
-what actually persisted. A new challenge expires after five minutes. Changing the
+the durable own-account records. After a lost acknowledgement, Showup checks the
+same operation automatically. **Retry saving this proof** checks it again with
+the same signature. A new challenge expires after five minutes. Changing the
 account/session, host, chain, address, nonce or signed message cannot reuse it.
 
 This proves wallet control only. V1 funding requires separate approval of the

@@ -52,7 +52,7 @@ test("Solana verification uses Wallet Standard and rejects an altered message", 
       window.addEventListener("wallet-standard:app-ready", (event) => {
         const { register } = (event as CustomEvent<{ register(wallet: unknown): void }>).detail;
         register({
-          name: "Fixture Solana Wallet",
+          name: "Phantom",
           version: "1.0.0",
           chains: ["solana:mainnet"],
           accounts: [],
@@ -80,8 +80,8 @@ test("Solana verification uses Wallet Standard and rejects an altered message", 
   try {
     await fixtures.enter(context, 0);
     await page.goto("/account/wallets");
-    await page.getByLabel("Wallet network").selectOption("solana");
-    const verify = page.getByRole("button", { name: "Connect and verify wallet" });
+    await page.getByRole("button", { name: "Solana", exact: true }).click();
+    const verify = page.getByRole("button", { name: "Phantom", exact: true });
     await verify.click();
     await expect(
       page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
@@ -127,7 +127,10 @@ async function disposableWallets(page: Page) {
   await page.addInitScript(
     ({ solanaAddress }) => {
       const target = window as unknown as {
-        ethereum: { request(input: { method: string; params?: string[] }): Promise<unknown> };
+        ethereum: {
+          isMetaMask: boolean;
+          request(input: { method: string; params?: string[] }): Promise<unknown>;
+        };
         phantom: {
           solana: {
             connect(): Promise<unknown>;
@@ -137,7 +140,20 @@ async function disposableWallets(page: Page) {
         showupFixtureEthereum(input: { method: string; params?: string[] }): Promise<unknown>;
         showupFixtureSolana(message: number[]): Promise<number[]>;
       };
-      target.ethereum = { request: (input) => target.showupFixtureEthereum(input) };
+      target.ethereum = {
+        isMetaMask: true,
+        request: (input) => target.showupFixtureEthereum(input),
+      };
+      window.addEventListener("eip6963:requestProvider", () => {
+        window.dispatchEvent(
+          new CustomEvent("eip6963:announceProvider", {
+            detail: {
+              info: { rdns: "io.rabby" },
+              provider: { request: target.ethereum.request },
+            },
+          }),
+        );
+      });
       target.phantom = {
         solana: {
           connect: async () => ({ publicKey: { toString: () => solanaAddress } }),
@@ -172,10 +188,14 @@ test("preauthenticated disposable wallets: control verification, refresh and mob
     await fixtures.enter(context, 0);
     await page.goto("/account");
     await page.getByRole("link", { name: "Verify and review your wallets" }).click();
-    for (const network of ["base", "ethereum", "solana"]) {
-      wallet.setChain(network === "ethereum" ? "0x1" : "0x2105");
-      await page.getByLabel("Wallet network").selectOption(network);
-      await page.getByRole("button", { name: "Connect and verify wallet" }).click();
+    for (const [network, app] of [
+      ["Base", "Rabby"],
+      ["Ethereum", "MetaMask"],
+      ["Solana", "Phantom"],
+    ]) {
+      wallet.setChain(network === "Ethereum" ? "0x1" : "0x2105");
+      await page.getByRole("button", { name: network, exact: true }).click();
+      await page.getByRole("button", { name: app, exact: true }).click();
       await expect(page.getByRole("status")).toContainText("Wallet control verified and saved");
     }
     expect(wallet.signatures()).toBe(3);
@@ -190,10 +210,11 @@ test("preauthenticated disposable wallets: control verification, refresh and mob
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
-    await page.getByLabel("Wallet network").selectOption("solana");
-    await page.getByLabel("Wallet network").focus();
+    const solanaNetwork = page.getByRole("button", { name: "Solana", exact: true });
+    await solanaNetwork.click();
+    await page.getByRole("button", { name: "Ethereum", exact: true }).focus();
     await page.keyboard.press("Tab");
-    await expect(page.getByRole("button", { name: "Connect and verify wallet" })).toBeFocused();
+    await expect(page.getByRole("button", { name: "Phantom", exact: true })).toBeFocused();
     await page.screenshot({ path: "test-results/wallet-control-mobile.png", fullPage: true });
     const otherContext = await browser.newContext({ ignoreHTTPSErrors: true });
     try {
@@ -224,6 +245,42 @@ test("preauthenticated disposable wallets: control verification, refresh and mob
   }
 });
 
+test("branded mobile app link carries the selected EVM network and event", async ({
+  page,
+  context,
+}) => {
+  const fixtures = await accountFixtures([[]]);
+  const eventId = randomUUID();
+  try {
+    await fixtures.enter(context, 0);
+    await page.route("https://go.rabby.io/mobile/**", (route) =>
+      route.fulfill({ body: "Rabby app launch intercepted" }),
+    );
+    await page.goto(`/account/wallets?event=${eventId}`);
+    await page.getByRole("button", { name: "Ethereum", exact: true }).click();
+    await page.getByRole("button", { name: "Rabby", exact: true }).click();
+    await page.waitForURL("https://go.rabby.io/mobile/**");
+    const dapp = new URL(new URL(page.url()).searchParams.get("dapp")!);
+    expect(dapp.origin).toBe("https://localhost:3444");
+    expect(Object.fromEntries(dapp.searchParams)).toEqual({
+      network: "ethereum",
+      app: "rabby",
+      event: eventId,
+    });
+    await page.goto(dapp.href);
+    await expect(page.getByRole("button", { name: "Ethereum", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: "Rabby", exact: true }).click();
+    await expect(
+      page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
+    ).toContainText("couldn’t connect to Rabby in this browser");
+  } finally {
+    await fixtures.cleanup();
+  }
+});
+
 test("lost verification acknowledgement retries the original proof without requesting another signature", async ({
   page,
   context,
@@ -231,25 +288,27 @@ test("lost verification acknowledgement retries the original proof without reque
   const fixtures = await accountFixtures([[]]);
   const wallet = await disposableWallets(page);
   let drop = true;
+  const operations: string[] = [];
   await page.route("**/api/wallets", async (route) => {
     const request = route.request();
-    if (request.method() === "POST" && request.postDataJSON()?.operation === "verify" && drop) {
-      drop = false;
-      const response = await route.fetch();
-      expect(response.status()).toBe(200);
-      await route.abort("failed");
-    } else await route.continue();
+    if (request.method() === "POST" && request.postDataJSON()?.operation === "verify") {
+      operations.push(request.postDataJSON().operationId);
+      if (drop) {
+        drop = false;
+        const response = await route.fetch();
+        expect(response.status()).toBe(200);
+        return route.abort("failed");
+      }
+    }
+    await route.continue();
   });
   try {
     await fixtures.enter(context, 0);
     await page.goto("/account/wallets");
-    await page.getByRole("button", { name: "Connect and verify wallet" }).click();
-    await expect(
-      page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
-    ).toContainText("Showup could not confirm that your proof was saved");
-    await page.getByRole("button", { name: "Retry saving this proof" }).click();
+    await page.getByRole("button", { name: "MetaMask", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Wallet control verified and saved");
     expect(wallet.signatures()).toBe(1);
+    expect(operations).toEqual([operations[0], operations[0]]);
     expect(
       (
         await fixtures.pool.query(
@@ -290,6 +349,7 @@ test("NEAR Mobile handoff sends a message only and rejects a response for anothe
       page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
     ).toContainText("complete matching proof");
     await page.getByRole("button", { name: "Start a new wallet challenge" }).click();
+    await page.getByRole("button", { name: "NEAR Mobile", exact: true }).click();
     await page.getByLabel("NEAR account").fill("fictional-wallet.near");
     const relayRequest = {
       id: relayId,
@@ -359,17 +419,21 @@ test("Meteor uses the pinned wallet executor for a message without requesting a 
       route.fulfill({
         contentType: "text/javascript",
         headers: { "access-control-allow-origin": "*" },
-        body: `window.selector.ready({ async signInAndSignMessage(input) {
-        if (input.network !== "mainnet" || input.addFunctionCallKey !== undefined ||
-            input.messageParams.nonce.length !== 32 ||
-            input.messageParams.recipient !== "localhost:3444" ||
-            !input.messageParams.message.includes("No transfer or spending approval is authorized."))
-          throw new Error("Invalid fixture request");
+        body: `window.selector.ready({ async signIn(input) {
+        if (input.network !== "mainnet" || input.addFunctionCallKey !== undefined)
+          throw new Error("Invalid fixture account request");
         window.selector.ui.showIframe();
         const opened = await window.selector.open("meteorwallet://fixture/approval").windowIdPromise;
         if (opened !== null) throw new Error("Unexpected browser window");
+        return [{ accountId: "fictional-wallet.near" }];
+      }, async signMessage(input) {
+        if (input.network !== "mainnet" || input.nonce.length !== 32 ||
+            input.recipient !== "localhost:3444" ||
+            !input.message.includes("No transfer or spending approval is authorized.") ||
+            !input.message.includes("fictional-wallet.near"))
+          throw new Error("Invalid fixture signature request");
         window.parent.postMessage({ type: "fixture-meteor-message-reviewed" }, "*");
-        return [{ accountId: "other.near" }];
+        return { accountId: "other.near" };
       } });`,
       }),
     );
@@ -380,10 +444,8 @@ test("Meteor uses the pinned wallet executor for a message without requesting a 
       }),
     );
     await page.goto("/account/wallets");
-    await page.getByLabel("Wallet network").selectOption("near");
-    await page.getByLabel("NEAR wallet app").selectOption("meteor");
-    await page.getByLabel("NEAR account").fill("fictional-wallet.near");
-    await page.getByRole("button", { name: "Verify with Meteor Wallet" }).click();
+    await page.getByRole("button", { name: "NEAR", exact: true }).click();
+    await page.getByRole("button", { name: "Meteor Wallet", exact: true }).click();
     const open = page.getByRole("link", { name: "Open Meteor Wallet" });
     await expect(open).toHaveAttribute("href", "meteorwallet://fixture/approval");
     expect(await open.getAttribute("target")).toBeNull();
@@ -395,7 +457,7 @@ test("Meteor uses the pinned wallet executor for a message without requesting a 
     await expect(page.locator("html")).toHaveAttribute("data-meteor-reviewed", "true");
     await expect(
       page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
-    ).toContainText("Meteor did not return a signature for this NEAR account");
+    ).toContainText("Meteor didn’t return a signature for the selected account");
     await expect(
       page.getByText("No wallet control has been verified for this account."),
     ).toBeVisible();

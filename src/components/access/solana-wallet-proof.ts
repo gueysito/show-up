@@ -17,6 +17,7 @@ export async function connectSolanaWallet() {
     .get()
     .filter(
       (wallet) =>
+        wallet.name === "Phantom" &&
         wallet.chains.includes("solana:mainnet") &&
         "standard:connect" in wallet.features &&
         "solana:signMessage" in wallet.features,
@@ -59,12 +60,12 @@ export async function connectSolanaWallet() {
     };
   }
 
-  // Older browsers can still expose a single injected provider.
+  // Older Phantom browsers can still expose a legacy provider.
   const injected = window as unknown as {
     phantom?: { solana?: InjectedWallet };
-    solana?: InjectedWallet;
+    solana?: InjectedWallet & { isPhantom?: boolean };
   };
-  const wallet = injected.phantom?.solana ?? injected.solana;
+  const wallet = injected.phantom?.solana ?? (injected.solana?.isPhantom ? injected.solana : null);
   if (!wallet) return null;
   return {
     address: (await wallet.connect()).publicKey.toString(),

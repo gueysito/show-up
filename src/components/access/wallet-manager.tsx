@@ -9,18 +9,35 @@ import {
   startNearMobileProof,
   type NearMobileProofRequest,
 } from "./near-mobile-wallet";
-import { verifyMeteorWallet } from "./meteor-wallet";
+import { getMeteorWallet, verifyMeteorWallet } from "./meteor-wallet";
 import { connectSolanaWallet } from "./solana-wallet-proof";
+import {
+  injectedEthereumApp,
+  mobileWalletUrl,
+  type EthereumApp,
+  type EthereumProvider,
+  type MobileWallet,
+} from "./wallet-apps";
+import { WalletPicker, appNames, networkNames, type WalletApp } from "./wallet-picker";
 
-type EthereumWallet = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
 type ProofRequest = {
   operation: "verify";
   operationId: string;
   challengeId: string;
   proof: WalletSignature;
 };
-class WalletUiError extends Error {}
-const labels = { near: "NEAR", base: "Base", ethereum: "Ethereum", solana: "Solana" };
+class WalletUiError extends Error {
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+}
+
+function retryableSave(error: unknown) {
+  return !(error instanceof WalletUiError) || (error.status !== undefined && error.status >= 500);
+}
 
 async function post(input: Record<string, unknown>) {
   const response = await fetch("/api/wallets", {
@@ -31,7 +48,10 @@ async function post(input: Record<string, unknown>) {
   });
   const result = await response.json();
   if (!response.ok)
-    throw new WalletUiError(result.error ?? "Wallet verification was not confirmed.");
+    throw new WalletUiError(
+      result.error ?? "Wallet verification was not confirmed.",
+      response.status,
+    );
   return result;
 }
 function encoded(value: Uint8Array) {
@@ -69,29 +89,68 @@ export function WalletManager({
   initialWallets,
   returnChallengeId,
   returnEventId,
+  initialNetwork,
+  openedWallet,
 }: {
   initialWallets: OwnWallet[];
   returnChallengeId?: string;
   returnEventId?: string;
+  initialNetwork?: WalletChallenge["network"];
+  openedWallet?: MobileWallet;
 }) {
   const [network, setNetwork] = useState<WalletChallenge["network"]>(
-    returnChallengeId ? "near" : "base",
+    returnChallengeId ? "near" : (initialNetwork ?? "base"),
   );
   const [nearAccount, setNearAccount] = useState("");
-  const [nearWallet, setNearWallet] = useState<"near-mobile" | "meteor">("near-mobile");
+  const [selectedApp, setSelectedApp] = useState<WalletApp | null>(openedWallet ?? null);
   const [nearApproval, setNearApproval] = useState<NearMobileProofRequest | null>(null);
   const [wallets, setWallets] = useState(initialWallets);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
+  const [launchLink, setLaunchLink] = useState<{ app: MobileWallet; href: string } | null>(null);
   const [retry, setRetry] = useState(false);
   const pending = useRef<ProofRequest | null>(null);
   const [returnReady, setReturnReady] = useState(Boolean(returnChallengeId));
   const returned = useRef<{ id: string; proof: WalletSignature | null } | null>(null);
+  const evmProviders = useRef<Partial<Record<EthereumApp, EthereumProvider>>>({});
+
+  useEffect(() => {
+    function announced(event: Event) {
+      const { info, provider } =
+        (event as CustomEvent<{ info?: { rdns?: string }; provider?: EthereumProvider }>).detail ??
+        {};
+      const app =
+        info?.rdns === "io.rabby" ? "rabby" : info?.rdns === "io.metamask" ? "metamask" : null;
+      if (app && typeof provider?.request === "function") evmProviders.current[app] ??= provider;
+    }
+    window.addEventListener("eip6963:announceProvider", announced);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    return () => window.removeEventListener("eip6963:announceProvider", announced);
+  }, []);
 
   async function save(request: ProofRequest) {
     pending.current = request;
     setRetry(true);
-    const wallet: OwnWallet = await post(request);
+    let wallet: OwnWallet;
+    try {
+      wallet = await post(request).catch((error: unknown) => {
+        if (!retryableSave(error)) throw error;
+        setNotice({ error: false, text: "Checking whether your signed proof was saved…" });
+        // Replay the exact operation so the server can return its saved receipt.
+        return post(request);
+      });
+    } catch (error) {
+      if (retryableSave(error))
+        throw new WalletUiError(
+          "We couldn’t confirm the save yet. Tap Retry saving this proof to check again without signing another message.",
+        );
+      if (error instanceof WalletUiError && error.status !== 429) {
+        pending.current = null;
+        setRetry(false);
+        setReturnReady(false);
+      }
+      throw error;
+    }
     setWallets((old) => [wallet, ...old.filter((item) => item.id !== wallet.id)]);
     pending.current = null;
     setRetry(false);
@@ -128,9 +187,20 @@ export function WalletManager({
       setBusy(false);
     }
   }
-  async function verify() {
+  function openMobileWallet(app: MobileWallet) {
+    if (openedWallet === app)
+      throw new WalletUiError(
+        `Showup couldn’t connect to ${appNames[app]} in this browser. Open Showup inside the wallet app, unlock it, then try again.`,
+      );
+    const href = mobileWalletUrl(app, window.location.origin, network, returnEventId);
+    setLaunchLink({ app, href });
+    window.location.assign(href);
+  }
+
+  async function verify(app = selectedApp) {
     setBusy(true);
     setNotice(null);
+    setLaunchLink(null);
     try {
       if (pending.current) {
         await save(pending.current);
@@ -180,15 +250,27 @@ export function WalletManager({
         setReturnReady(false);
         return;
       }
-      const injected = window as unknown as {
-        ethereum?: EthereumWallet;
-      };
       let address: string;
-      let ethereum: EthereumWallet | undefined;
+      let ethereum: EthereumProvider | undefined;
       let solana: Awaited<ReturnType<typeof connectSolanaWallet>> = null;
       if (network === "near") {
-        address = nearAccount.trim();
-        if (!address) throw new WalletUiError("Enter the NEAR account you control.");
+        if (app === "meteor") {
+          const accounts = await (
+            await getMeteorWallet()
+          )
+            .signIn({ network: "mainnet" })
+            .catch(() => {
+              throw new WalletUiError(
+                "Meteor couldn’t connect. Open it, unlock it, and choose your NEAR account.",
+              );
+            });
+          if (accounts.length !== 1 || !accounts[0].accountId)
+            throw new WalletUiError("Choose one NEAR account in Meteor to verify.");
+          address = accounts[0].accountId;
+        } else {
+          address = nearAccount.trim();
+          if (!address) throw new WalletUiError("Enter the account shown in NEAR Mobile.");
+        }
       } else if (network === "solana") {
         try {
           solana = await connectSolanaWallet();
@@ -197,17 +279,12 @@ export function WalletManager({
             "Could not connect to your Solana account. Reopen your wallet and retry.",
           );
         }
-        if (!solana)
-          throw new WalletUiError(
-            "Open this page in a compatible Solana wallet browser or enable its browser extension.",
-          );
+        if (!solana) return openMobileWallet("phantom");
         address = solana.address;
       } else {
-        ethereum = injected.ethereum;
-        if (!ethereum)
-          throw new WalletUiError(
-            "Open this page in a compatible Ethereum wallet browser or enable its browser extension.",
-          );
+        if (app !== "rabby" && app !== "metamask") return;
+        ethereum = evmProviders.current[app] ?? injectedEthereumApp(app);
+        if (!ethereum) return openMobileWallet(app);
         const accounts = await ethereum.request({ method: "eth_requestAccounts" });
         if (!Array.isArray(accounts) || typeof accounts[0] !== "string")
           throw new WalletUiError("Choose an account in your wallet.");
@@ -218,19 +295,19 @@ export function WalletManager({
         operationId: crypto.randomUUID(),
         network,
         address,
-        ...(network === "near" && { nearTransport: nearWallet }),
+        ...(network === "near" && { nearTransport: app === "meteor" ? "meteor" : "near-mobile" }),
         ...(returnEventId && { returnEventId }),
       });
       if (new URL(challenge.callbackUrl).origin !== window.location.origin)
         throw new WalletUiError("Reopen Showup at its configured address and start again.");
       if (network === "near") {
-        if (nearWallet === "meteor") {
+        if (app === "meteor") {
           let proof: WalletSignature;
           try {
             proof = await verifyMeteorWallet(challenge);
           } catch {
             throw new WalletUiError(
-              "Meteor did not return a signature for this NEAR account. Check your selected account and retry.",
+              "Meteor didn’t return a signature for the selected account. Retry and approve the message in Meteor.",
             );
           }
           await save({
@@ -266,7 +343,7 @@ export function WalletManager({
         const chain = await ethereum!.request({ method: "eth_chainId" });
         if (typeof chain !== "string" || BigInt(chain) !== BigInt(challenge.chainId))
           throw new WalletUiError(
-            `Switch your wallet to ${labels[network]} mainnet, then start verification again. No transaction is requested.`,
+            `Switch your wallet to ${networkNames[network]} mainnet, then tap the wallet again. Verification only signs a message.`,
           );
         const hex =
           "0x" +
@@ -295,7 +372,7 @@ export function WalletManager({
             ? error.message
             : pending.current
               ? "Showup could not confirm that your proof was saved. Try saving the same proof again."
-              : "Wallet verification was not completed. Check your wallet and connection, then retry. No success has been recorded here.",
+              : "Wallet verification didn’t finish. Unlock the wallet, select your account, and approve the message.",
       });
     } finally {
       setBusy(false);
@@ -304,50 +381,61 @@ export function WalletManager({
   return (
     <section className="saved-panel" aria-label="Wallet control">
       <h2>Verify a wallet</h2>
-      <div className="field">
-        <label htmlFor="wallet-network">Wallet network</label>
-        <select
-          id="wallet-network"
-          value={network}
-          disabled={busy || retry || returnReady || Boolean(nearApproval)}
-          onChange={(event) => setNetwork(event.target.value as WalletChallenge["network"])}
-        >
-          {Object.entries(labels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-      </div>
-      {network === "near" && !returnReady && (
+      <WalletPicker
+        network={network}
+        selectedApp={selectedApp}
+        disabled={busy || retry || returnReady || Boolean(nearApproval)}
+        onNetwork={(next) => {
+          if (next === network) return;
+          setNetwork(next);
+          setSelectedApp(null);
+          setNotice(null);
+          setLaunchLink(null);
+        }}
+        onApp={(app) => {
+          setSelectedApp(app);
+          setNotice(null);
+          setLaunchLink(null);
+          if (app !== "near-mobile") void verify(app);
+        }}
+      />
+      {network === "near" &&
+        selectedApp === "near-mobile" &&
+        !returnReady &&
+        !nearApproval &&
+        !retry && (
+          <div className="field">
+            <label htmlFor="near-wallet-account">NEAR account</label>
+            <input
+              id="near-wallet-account"
+              list="saved-near-accounts"
+              value={nearAccount}
+              disabled={busy}
+              onChange={(event) => setNearAccount(event.target.value)}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+            <datalist id="saved-near-accounts">
+              {wallets
+                .filter((wallet) => wallet.network === "near")
+                .map((wallet) => (
+                  <option key={wallet.id} value={wallet.address} />
+                ))}
+            </datalist>
+          </div>
+        )}
+      <p>
+        Choose an account in your wallet and sign a message to prove you control it. Verification is
+        free.
+      </p>
+      {launchLink && (
         <div className="field">
-          <label htmlFor="near-wallet-app">NEAR wallet app</label>
-          <select
-            id="near-wallet-app"
-            value={nearWallet}
-            disabled={busy || retry || Boolean(nearApproval)}
-            onChange={(event) =>
-              setNearWallet(event.target.value === "meteor" ? "meteor" : "near-mobile")
-            }
-          >
-            <option value="near-mobile">NEAR Mobile</option>
-            <option value="meteor">Meteor Wallet</option>
-          </select>
-          <label htmlFor="near-wallet-account">NEAR account</label>
-          <input
-            id="near-wallet-account"
-            value={nearAccount}
-            disabled={busy || retry || Boolean(nearApproval)}
-            onChange={(event) => setNearAccount(event.target.value)}
-            autoComplete="off"
-            spellCheck={false}
-          />
+          <p role="status">If the app didn’t open, unlock it and try the link below.</p>
+          <a href={launchLink.href}>{`Open ${appNames[launchLink.app]}`}</a>
         </div>
       )}
-      <p>
-        NEAR Mobile and Meteor verify a current full-access key. Base/Ethereum use personal message
-        signing; contract wallets are not verified in this pilot. Solana uses message signing.
-      </p>
+      {busy && !notice && <p role="status">Waiting for your wallet or checking its proof…</p>}
       {returnReady && (
         <p role="status">
           Your wallet returned to Showup. Finish verification to check and save its proof.
@@ -374,21 +462,19 @@ export function WalletManager({
         </p>
       )}
       <div className="saved-actions">
-        <button className="secondary-button" disabled={busy} onClick={verify}>
-          {busy
-            ? "Checking wallet…"
-            : retry
-              ? "Retry saving this proof"
-              : returnReady
-                ? "Finish NEAR wallet verification"
-                : nearApproval
-                  ? "Check NEAR Mobile approval"
-                  : network === "near"
-                    ? nearWallet === "meteor"
-                      ? "Verify with Meteor Wallet"
-                      : "Prepare NEAR Mobile verification"
-                    : "Connect and verify wallet"}
-        </button>
+        {(retry || returnReady || nearApproval || selectedApp === "near-mobile") && (
+          <button className="secondary-button" disabled={busy} onClick={() => void verify()}>
+            {busy
+              ? "Checking wallet…"
+              : retry
+                ? "Retry saving this proof"
+                : returnReady
+                  ? "Finish NEAR wallet verification"
+                  : nearApproval
+                    ? "Check NEAR Mobile approval"
+                    : "Prepare NEAR Mobile verification"}
+          </button>
+        )}
         {(retry || returnReady || nearApproval) && (
           <button
             className="text-button"
@@ -413,7 +499,7 @@ export function WalletManager({
         <ul>
           {wallets.map((wallet) => (
             <li key={wallet.id}>
-              <strong>{labels[wallet.network]}</strong>
+              <strong>{networkNames[wallet.network]}</strong>
               <p style={{ overflowWrap: "anywhere" }}>{wallet.address}</p>
               <p>
                 <time dateTime={wallet.verifiedAt}>{verifiedTime(wallet.verifiedAt)}</time>
