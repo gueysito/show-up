@@ -33,6 +33,9 @@ jobs:
       NEXT_TELEMETRY_DISABLED: "1"
       SHOWUP_CONTAINER_E2E: "1"
     steps:
+      - name: Require successful scope checks
+        if: ${{ needs.changes.result != 'success' }}
+        run: exit 1
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -49,7 +52,7 @@ jobs:
       - run: docker compose --profile harness up --build -d --wait harness worker
       - run: node_modules/.bin/playwright install --with-deps chromium
       - run: npm run test:e2e
-      - if: always()
+      - if: ${{ always() && needs.changes.result == 'success' }}
         run: docker compose --profile checks --profile harness down
   contracts:
     needs: changes
@@ -57,6 +60,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      - name: Require successful scope checks
+        if: ${{ needs.changes.result != 'success' }}
+        run: exit 1
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -69,5 +75,5 @@ jobs:
         env:
           SHOWUP_ENV: test
           DATABASE_URL: postgresql://showup@127.0.0.1:55433/showup_test
-      - if: always()
+      - if: ${{ always() && needs.changes.result == 'success' }}
         run: docker compose --profile checks down

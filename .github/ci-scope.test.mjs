@@ -40,11 +40,27 @@ test("payment/security code, shared fixtures, dependencies and unknown files run
     "package-lock.json",
     ".nvmrc",
     "scripts/contracts.sh",
-    ".github/workflows/checks.yml",
+    ".github/actions/build/action.yml",
     "docs/evidence/input.json",
     "unknown.config",
   ])
     assert.deepEqual(scopeForPaths([path]), full, path);
+});
+
+test("CI routing-only pushes use the always-running scope tests instead of runtime suites", () => {
+  const paths = [
+    ".github/workflows/checks.yml",
+    ".github/ci-scope.mjs",
+    ".github/ci-scope.test.mjs",
+  ];
+  assert.deepEqual(
+    ciScope(context, () => paths),
+    { verify: false, contracts: false },
+  );
+  assert.deepEqual(
+    ciScope({ ...context, event: "pull_request" }, () => paths),
+    full,
+  );
 });
 
 test("PRs, merge queues, manual runs, main and first pushes retain full validation", () => {

@@ -182,7 +182,8 @@ The app journey and NFT movement remain later V1 packages.
 
 CI maintenance, November 4: feature pushes select app/contract jobs by changed paths;
 docs-only pushes skip heavy jobs, while PRs/main/manual runs retain full validation
-and stable required-check names. Superseded runs cancel automatically. Local scope
+and stable required-check names. CI-routing-only pushes use lightweight scope tests;
+scope-test failures fail the required checks. Superseded runs cancel automatically. Local scope
 tests and workflow validation cover selection/failure cases. V1-2 remains next.
 
 ## V2 roadmap

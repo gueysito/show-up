@@ -78,7 +78,8 @@ files unchanged. Never bypass hooks.
 CI keeps `verify` and `contracts` as stable required checks. Documentation-only
 feature pushes skip heavy jobs; app/contract changes select relevant jobs, while
 shared code, dependencies and unknown paths run both. PRs, `main`, merge queues and
-manual runs always validate fully. Newer pushes cancel superseded checks. Validate
+manual runs always validate fully. CI-routing-only pushes run the lightweight scope
+tests; their failure also fails the required checks. Newer pushes cancel superseded checks. Validate
 CI filtering locally with `node --test .github/ci-scope.test.mjs`; do not trigger
 extra GitHub runs or use workflow path filters/skip markers that leave checks pending.
 

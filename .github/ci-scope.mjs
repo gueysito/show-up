@@ -8,6 +8,15 @@ export function scopeForPaths(paths) {
   for (const path of paths) {
     if (/\.md$/i.test(path) || /^(LICENSE|NOTICE)$/.test(path)) continue;
     if (/^docs\/.*\.(txt|png|jpe?g|gif|webp|svg|pdf)$/i.test(path)) continue;
+    // These only route CI; the changes job tests them on every event, including PRs.
+    if (
+      [
+        ".github/workflows/checks.yml",
+        ".github/ci-scope.mjs",
+        ".github/ci-scope.test.mjs",
+      ].includes(path)
+    )
+      continue;
     if (path.startsWith("contracts/") && !path.startsWith("contracts/sandbox-tests/fixtures/")) {
       contracts = true;
     } else if (
