@@ -26,10 +26,12 @@ USDC storage registration finalized and both RPCs verified it at block 223087141
 2.54 request. First-round funding is complete on all four networks.
 [Registration](https://nearblocks.io/txns/8FR3jtZ8QK2VBjRWbraLsRgUE3Nogy8J9bhDhHR46Wn7).
 
-**The old 3.66-NEAR deployment quote is withdrawn.** The [review corrections](plan.md#v1-evidence)
-pass locally; the new artifact locks 3.21207 NEAR for code. Recheck balances, price
-and remaining budget before issuing the replacement funding request to the same
-implicit controller below. [Calculation and $50 budget](plan.md#mainnet-budget).
+**Replacement deployment top-up: 3.72 native NEAR on NEAR mainnet** to the same
+implicit controller below. The [review corrections](plan.md#v1-evidence) and both CI
+jobs pass. Both RPCs agree on balance/key at finalized block 223103176; protocol,
+factory and name checks pass. The artifact locks 3.21207 NEAR for code. At $4.05/NEAR,
+the top-up is about $15.07 and projected known allocation is $27.16/$50 before the
+sender's fee. The old 3.66-NEAR quote is withdrawn. [Calculation](plan.md#mainnet-budget).
 Do not fund the proposed `.near` name before account creation is verified.
 
 | Order / exact mainnet | Verified project address | Exact initial amount | Approximate USD |

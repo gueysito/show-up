@@ -65,12 +65,17 @@ NFT custody; contract code enforces token receipts, fixed beneficiaries and payo
 Measured corrected V1 WASM: **321,207 bytes**, code collateral **3.21207 NEAR**;
 SHA-256 `3efb9c95ab79e6d996694a99da4a762f5896a39676063c7c49589a0ecde8b063`.
 Deploy to the still-unregistered `showup-dev-14989f.near` using the existing key;
-the prior **3.66-NEAR quote is withdrawn**. Corrections below pass locally; recheck
-current balances, price and the $50 budget before issuing a replacement funding request.
-Provisional calculation using the last finalized balance: code 3.21207 + 0.10 state
+the prior **3.66-NEAR quote is withdrawn**. Corrections pass locally and in CI.
+Replacement request: **3.72 native NEAR on NEAR mainnet** to the existing implicit
+controller in [development wallets](development-wallets.md#mainnet-preparation-and-initial-funding).
+Both RPCs agree at finalized block **223103176** on the unchanged balance and sole
+expected FullAccess key; factory code, unregistered name and protocol pricing pass.
+At [CoinGecko's $4.05/NEAR snapshot](https://www.coingecko.com/en/coins/near), the
+top-up is about **$15.07**, for a projected known allocation of **$27.16/$50** before
+the sender's new fee. Calculation: code 3.21207 + 0.10 state
 allowance + 0.40 contract gas reserve + 0.25 controller reserve − existing
 0.2485110692734984 = 3.7135589307265016 NEAR, rounded up to **3.72 NEAR**.
-This is not a transfer request. Three-attendee settled state uses 1,896 bytes above code, within the 10,000-byte
+Three-attendee settled state uses 1,896 bytes above code, within the 10,000-byte
 allowance. Recheck factory, key, protocol and balance before using the top-up.
 The existing owner key retains deployment/upgrade authority. No deployment yet.
 Reserve **$1 for NFT custody gas**; the remaining budget covers routing/other fees.
@@ -103,7 +108,7 @@ One concise row per package; distinguish local preparation from mainnet completi
 
 | ID | Date | Evidence |
 | --- | --- | --- |
-| V1-1 (in progress; not deployed) | 2026-11-04 | `37895cc` passes full `npm run contracts:check` (53 Rust tests including nine V1 cases, independent Node replays and the 380-package advisory gate), 99 app unit tests, app checks and production build. [CI](https://github.com/gueysito/show-up/actions/runs/41949813862) passes app/browser and contract checks, then reaches its 25-minute job limit during the final app bridge. Raise the contract job limit to 30 minutes, retaining every check; rerun before funding/deployment. |
+| V1-1 (in progress; not deployed) | 2026-11-04 | Source `37895cc` passes full `npm run contracts:check` (53 Rust tests including nine V1 cases, independent Node replays and the 380-package advisory gate), 99 app unit tests, app checks and build. Both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41952837163), including browser and app-to-contract tests, pass at `b6e450a` after allowing 30 minutes for the complete contract job. Real deployment and deposit/refund remain next after the refreshed 3.72-NEAR funding request. |
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra
@@ -128,11 +133,11 @@ Accepted local-pilot trust remains the operator's wallet/attendance/custody bind
 and retained full-access upgrade/spending key. This review did not remove that
 authority, independently audit providers, reproduce their deployed binaries, or
 exercise mainnet routing/signing/custody. App auth/database/browser code is unchanged;
-their existing CI passes are reused. Corrections add no dependencies. Invalid references
+current CI checks pass. Corrections add no dependencies. Invalid references
 or wrong senders remain rejected and must be prevented when binding a route. Three
 failed NFT attempts still require an original signature or explicit operator recovery;
 retained full-access authority remains deliberate. No new mainnet spend.
-**Next: complete branch checks, reprice funding, then deploy/initialize atomically
+**Next: verify the requested controller top-up, deploy/initialize atomically,
 and run the small real deposit/refund round trip.**
 
 ### Mainnet spend ledger
