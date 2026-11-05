@@ -282,6 +282,8 @@ export async function prepareV1Registration(
           seal(config.encryptionKey, `v1-registration:${actor.id}:${id}`, image),
         ],
       );
+      if (source)
+        await client.query("INSERT INTO app_v1_route_accounts(registration_id) VALUES($1)", [id]);
       return { eventId, registrationId: id, state: "requested" };
     },
   );

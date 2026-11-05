@@ -14,7 +14,7 @@ export type QuoteRequest = {
   refundTo: string;
   refundType: "ORIGIN_CHAIN";
   recipient: string;
-  recipientType: "DESTINATION_CHAIN";
+  recipientType: "DESTINATION_CHAIN" | "INTENTS";
   deadline: string;
   quoteWaitingTimeMs: number;
   customRecipientMsg?: string;

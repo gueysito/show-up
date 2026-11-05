@@ -39,6 +39,11 @@ export async function accountFixtures(roles: string[][]) {
   }
   async function cleanup() {
     const ids = accounts.map((account) => account.id);
+    for (const table of ["app_v1_route_withdrawals", "app_v1_route_accounts"])
+      await pool.query(
+        `DELETE FROM ${table} WHERE registration_id IN (SELECT id FROM app_v1_registrations WHERE account_id=ANY($1::uuid[]) OR event_id IN (SELECT id FROM app_events WHERE owner_id=ANY($1::uuid[])))`,
+        [ids],
+      );
     for (const table of ["app_v1_nft_wallet_payments", "app_v1_nft_deliveries"])
       await pool.query(
         `DELETE FROM ${table} WHERE event_id IN (SELECT id FROM app_events WHERE owner_id=ANY($1::uuid[]))`,

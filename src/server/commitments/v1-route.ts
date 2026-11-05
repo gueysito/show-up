@@ -22,6 +22,7 @@ import { prepareV1SolanaPayment } from "../protocol/v1-solana-payment";
 import { mutate } from "../auth/mutations";
 import { decodeBase58 } from "../protocol/encoding";
 import { requireV1PayoutStorage } from "../protocol/v1-payout-storage";
+import { readV1RouteAccount } from "../protocol/v1-intents";
 
 // An owned transaction hint prevents repeat prompts. It never establishes a
 // funded seat; only the contract registration observation can do that.
@@ -128,7 +129,19 @@ export async function prepareV1Route(
   eventId: string,
   transport?: typeof fetch,
 ) {
-  const { image } = await requireV1UnfundedRegistration(pool, config, session, eventId, transport);
+  const { image, snapshot } = await requireV1UnfundedRegistration(
+    pool,
+    config,
+    session,
+    eventId,
+    transport,
+  );
+  const account = await readV1RouteAccount(image.id, snapshot, transport);
+  if (!account || BigInt(account.liquid) < 12000000000000000000000n)
+    throw new AppFailure(
+      409,
+      "Your registration's receiving account is still preparing. Check status before requesting a source payment.",
+    );
   const source = await currentSource(pool, config, image);
   const previous = (
     await pool.query("SELECT * FROM app_v1_route_quotes WHERE registration_id=$1", [image.id])
@@ -216,6 +229,14 @@ export async function requireV1RoutePayment(
   await currentSource(pool, config, current.image);
   const saved = await ownedV1Route(pool, config, session, eventId);
   if (!saved) throw new AppFailure(409, "Review a signed route quote first.");
+  if (saved.route.request.recipientType === "INTENTS") {
+    const account = await readV1RouteAccount(current.image.id, current.snapshot, transport);
+    if (!account || BigInt(account.liquid) < 12000000000000000000000n)
+      throw new AppFailure(
+        409,
+        "The original receiving account's gas reserve is unavailable. No source payment was requested.",
+      );
+  }
   if (saved.sourceHash)
     throw new AppFailure(
       409,

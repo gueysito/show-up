@@ -30,6 +30,13 @@ import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { quoteMessage } from "../../src/server/protocol/quote-signature";
 import { networkManifest } from "../../src/server/protocol/manifest";
 import { v1Deployment, type V1Snapshot } from "../../src/server/protocol/v1-escrow";
+import {
+  runV1IntentsQueue,
+  enqueueV1IntentsWithdrawal,
+  type V1IntentsWithdrawal,
+} from "../../src/worker/v1-intents";
+import { v1Intents } from "../../src/server/protocol/v1-intents";
+import { v1IntentsGateway } from "../../scripts/lib/v1-intents-gateway";
 
 test("cross-chain registration freezes owned wallets and quotes; provider success or a source hash cannot create a funded seat", async () => {
   const f = await accountFixtures([["host"], [], []]),
@@ -49,6 +56,8 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
     block = encodeBase58(Buffer.alloc(32, 7)),
     time = Date.now() - 1000;
   const originalIssuer = networkManifest.providers.oneClick.quotePublicKey;
+  let intentsBalance = "0",
+    recoveryTotal = "0";
   let sourceNonce = "0x0",
     nonceReads = 0,
     storageReady = true;
@@ -112,24 +121,50 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
               ...(params.request_type === "view_access_key_list"
                 ? {
                     keys: [
-                      { public_key: signer.publicKey, access_key: { permission: "FullAccess" } },
+                      {
+                        public_key: String(params.account_id).startsWith("r")
+                          ? v1Deployment.publicKey
+                          : signer.publicKey,
+                        access_key: { permission: "FullAccess", nonce: 1 },
+                      },
                     ],
                   }
                 : params.request_type === "view_account"
-                  ? { code_hash: v1Deployment.codeHash }
+                  ? {
+                      code_hash:
+                        params.account_id === "intents.near"
+                          ? v1Intents.codeHash
+                          : String(params.account_id).startsWith("r")
+                            ? "1".repeat(32)
+                            : v1Deployment.codeHash,
+                      amount: "20000000000000000000000",
+                      storage_usage: 182,
+                    }
                   : {
                       result: [
                         ...Buffer.from(
                           JSON.stringify(
-                            params.method_name === "get_event"
-                              ? snapshot.event
-                              : params.method_name === "get_registration"
-                                ? registration
-                                : params.method_name === "storage_balance_of"
-                                  ? storageReady
-                                    ? { total: "1250000000000000000000", available: "0" }
-                                    : null
-                                  : null,
+                            params.method_name === "mt_balance_of"
+                              ? intentsBalance
+                              : params.method_name === "get_claim"
+                                ? recoveryTotal === "0"
+                                  ? null
+                                  : {
+                                      recipient: "payout.near",
+                                      remaining: recoveryTotal,
+                                      paid: "0",
+                                      pending: false,
+                                      in_flight: "0",
+                                    }
+                                : params.method_name === "get_event"
+                                  ? snapshot.event
+                                  : params.method_name === "get_registration"
+                                    ? registration
+                                    : params.method_name === "storage_balance_of"
+                                      ? storageReady
+                                        ? { total: "1250000000000000000000", available: "0" }
+                                        : null
+                                      : null,
                           ),
                         ),
                       ],
@@ -253,6 +288,38 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
       transport,
       source.id,
     );
+    let accountPrepares = 0,
+      accountSends = 0;
+    const accountGateway = {
+      async prepare(image: Parameters<Parameters<typeof runV1IntentsQueue>[3]["prepare"]>[0]) {
+        accountPrepares++;
+        return {
+          hash: block,
+          signedBase64: "isolated-route-account",
+          semantic: canonicalHash(image),
+          validUntilMs: Date.now() + 120000,
+        };
+      },
+      async submit() {
+        accountSends++;
+        throw new Error("route account response lost");
+      },
+      async final() {
+        return { success: true, minimumHeight: "100", gasYoctoNear: "0" };
+      },
+      async observe() {
+        return { confirmed: true, height: "100" };
+      },
+    };
+    await assert.rejects(
+      runV1IntentsQueue(f.pool, key, "route_account", accountGateway),
+      /response lost/,
+    );
+    assert.equal(
+      (await runV1IntentsQueue(f.pool, key, "route_account", accountGateway)).state,
+      "verified",
+    );
+    assert.deepEqual([accountPrepares, accountSends], [1, 1]);
     await runV1Registration(f.pool, key, {
       async prepare(image) {
         assert.equal(image.sender, "intents.near");
@@ -357,6 +424,83 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
       )
     ).rows[0];
     assert.equal(row.encrypted_quote.includes(source.address), false);
+    assert.equal(
+      await enqueueV1IntentsWithdrawal(f.pool, key, transport),
+      undefined,
+      "provider success with no actual token balance cannot forward or fund",
+    );
+    intentsBalance = "1000000";
+    assert.ok(await enqueueV1IntentsWithdrawal(f.pool, key, transport));
+    const native = {
+        async submit() {},
+        async final() {
+          return { success: true, minimumHeight: "100", gasYoctoNear: "0" };
+        },
+      },
+      observation = v1IntentsGateway("route_withdrawal", native, transport);
+    let withdrawalPrepares = 0,
+      withdrawalSends = 0,
+      currentWithdrawal!: V1IntentsWithdrawal;
+    const forward = {
+      async prepare(image: Parameters<Parameters<typeof runV1IntentsQueue>[3]["prepare"]>[0]) {
+        if (image.format !== "showup.v1.intents-withdrawal.v1")
+          throw new Error("Wrong test withdrawal");
+        currentWithdrawal = image;
+        withdrawalPrepares++;
+        return {
+          hash: block,
+          signedBase64: "isolated-original-withdrawal",
+          semantic: canonicalHash(image),
+          validUntilMs: Date.now() + 120000,
+        };
+      },
+      async submit() {
+        withdrawalSends++;
+        intentsBalance = "0";
+        if (withdrawalSends === 1) throw new Error("withdrawal response lost");
+        recoveryTotal = (BigInt(recoveryTotal) + BigInt(currentWithdrawal.amount)).toString();
+      },
+      final: native.final,
+      observe: observation.observe,
+    };
+    await assert.rejects(
+      runV1IntentsQueue(f.pool, key, "route_withdrawal", forward),
+      /response lost/,
+    );
+    await assert.rejects(
+      runV1IntentsQueue(f.pool, key, "route_withdrawal", forward),
+      /not yet confirmed/,
+    );
+    assert.deepEqual([withdrawalPrepares, withdrawalSends], [1, 1]);
+    registration!.funded = true;
+    snapshot.event!.funded = [prepared.registrationId];
+    assert.equal(
+      (await runV1IntentsQueue(f.pool, key, "route_withdrawal", forward)).state,
+      "verified",
+    );
+    assert.equal(
+      (await readV1RegistrationState(f.pool, config, session, eventId, transport)).funded,
+      true,
+    );
+    intentsBalance = "500000";
+    assert.equal(
+      await enqueueV1IntentsWithdrawal(f.pool, key, transport),
+      undefined,
+      "an incomplete credit waits for the original deadline",
+    );
+    assert.ok(
+      await enqueueV1IntentsWithdrawal(f.pool, key, transport, Date.parse(price.expiresAt) + 1),
+    );
+    assert.equal(
+      (await runV1IntentsQueue(f.pool, key, "route_withdrawal", forward)).state,
+      "verified",
+    );
+    assert.deepEqual([withdrawalPrepares, withdrawalSends], [2, 2]);
+    assert.equal(
+      recoveryTotal,
+      "500000",
+      "extra or partial credit goes to the fixed recovery claim, never another registration",
+    );
   } finally {
     networkManifest.providers.oneClick.quotePublicKey = originalIssuer;
     await f.cleanup();

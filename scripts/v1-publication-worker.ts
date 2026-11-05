@@ -28,6 +28,8 @@ import {
   v1NftCustody,
 } from "../src/server/protocol/v1-nft";
 import { runV1NftDelivery, v1NftDeliveryGateway } from "../src/worker/v1-nft-delivery";
+import { enqueueV1IntentsWithdrawal, runV1IntentsQueue } from "../src/worker/v1-intents";
+import { v1IntentsGateway } from "./lib/v1-intents-gateway";
 
 export async function signV1OwnerCalls(
   snapshot: Awaited<ReturnType<typeof readV1Snapshot>>,
@@ -375,12 +377,31 @@ async function main() {
   });
   let stopping = false;
   let lastNftCheck = 0;
+  let lastRouteCheck = 0;
   for (const signal of ["SIGINT", "SIGTERM"] as const)
     process.once(signal, () => {
       stopping = true;
     });
   try {
     do {
+      try {
+        const account = await runV1IntentsQueue(
+          pool,
+          env.SHOWUP_IDENTITY_KEY!,
+          "route_account",
+          v1IntentsGateway("route_account", {
+            submit: v1PublicationGateway().submit,
+            final: v1FinalTransaction,
+          }),
+        );
+        if (!["idle", "busy"].includes(account.state)) console.log(JSON.stringify(account));
+      } catch {
+        console.error(
+          "Route account retained for original-hash reconciliation; no duplicate funding or key creation.",
+        );
+        if (!args.includes("--watch")) process.exitCode = 1;
+        else await pause(30000);
+      }
       try {
         const result = await runV1Publication(
           pool,
@@ -424,6 +445,34 @@ async function main() {
         );
         if (!args.includes("--watch")) process.exitCode = 1;
         else await pause(30000);
+      }
+      try {
+        if (Date.now() - lastRouteCheck >= 15000) {
+          lastRouteCheck = Date.now();
+          await enqueueV1IntentsWithdrawal(pool, env.SHOWUP_IDENTITY_KEY!);
+        }
+      } catch {
+        console.error(
+          "Intents balance check unavailable; existing route transactions remain retained.",
+        );
+        if (!args.includes("--watch")) process.exitCode = 1;
+      }
+      try {
+        const forwarded = await runV1IntentsQueue(
+          pool,
+          env.SHOWUP_IDENTITY_KEY!,
+          "route_withdrawal",
+          v1IntentsGateway("route_withdrawal", {
+            submit: v1PublicationGateway().submit,
+            final: v1FinalTransaction,
+          }),
+        );
+        if (!["idle", "busy"].includes(forwarded.state)) console.log(JSON.stringify(forwarded));
+      } catch {
+        console.error(
+          "Intents withdrawal retained for original-hash reconciliation; no replacement nonce or automatic resend.",
+        );
+        if (!args.includes("--watch")) process.exitCode = 1;
       }
       try {
         if (Date.now() - lastNftCheck >= 15000) {

@@ -4,6 +4,7 @@ import { walletAddress } from "../../src/server/wallets/proof";
 import { mainnetAccount } from "../near-mainnet-account-plan";
 import { canonicalJson } from "../../src/server/protocol/canonical";
 import { v1Deployment } from "../../src/server/protocol/v1-escrow";
+import { v1RouteAccount, v1Intents } from "../../src/server/protocol/v1-intents";
 
 export type NativeAction =
   | { kind: "create" }
@@ -236,6 +237,78 @@ export function signV1MainnetTransaction(
     ),
   };
 }
+
+export function v1IntentsAccountTransaction(input: {
+  registrationId: string;
+  nonce: string;
+  blockHash: string;
+}) {
+  const receiver = v1RouteAccount(input.registrationId);
+  return encodeTransaction(
+    {
+      signer: v1Deployment.account,
+      receiver,
+      publicKey: v1Deployment.publicKey,
+      nonce: input.nonce,
+      blockHash: input.blockHash,
+      actions: [
+        { kind: "create" },
+        { kind: "transfer", deposit: v1Intents.accountFunding },
+        { kind: "add_key", publicKey: v1Deployment.publicKey },
+      ],
+    },
+    new Set([v1Deployment.account, receiver]),
+  );
+}
+export function v1IntentsWithdrawalTransaction(input: {
+  registrationId: string;
+  nonce: string;
+  blockHash: string;
+  amount: string;
+}) {
+  if (!/^[1-9][0-9]*$/.test(input.amount) || BigInt(input.amount) > 100000000n)
+    throw new Error("Intents withdrawal amount outside V1 bounds");
+  const signer = v1RouteAccount(input.registrationId);
+  return encodeTransaction(
+    {
+      signer,
+      receiver: v1Intents.account,
+      publicKey: v1Deployment.publicKey,
+      nonce: input.nonce,
+      blockHash: input.blockHash,
+      actions: [
+        {
+          kind: "call",
+          method: "ft_withdraw",
+          args: Buffer.from(
+            canonicalJson({
+              token: v1Deployment.token,
+              receiver_id: v1Deployment.account,
+              amount: input.amount,
+              memo: null,
+              msg: `deposit:${input.registrationId}`,
+            }),
+          ),
+          gas: "100000000000000",
+          deposit: "1",
+        },
+      ],
+    },
+    new Set([signer, v1Intents.account]),
+  );
+}
+export function signV1IntentsTransaction(
+  image: ReturnType<typeof v1IntentsAccountTransaction>,
+  key: NativeKey,
+) {
+  if (key.publicKey !== v1Deployment.publicKey) throw new Error("Intents signer mismatch");
+  return {
+    hash: image.hash,
+    signedBase64: Buffer.concat([image.bytes, Buffer.from([0]), key.sign(image.digest)]).toString(
+      "base64",
+    ),
+  };
+}
 export function signNativeTransaction(
   input: Omit<Parameters<typeof nativeTransaction>[0], "publicKey">,
   key: NativeKey,
@@ -254,6 +327,25 @@ export const v1DemoAccounts = [
   "attendee-a.showup-dev-14989f.near",
   "attendee-b.showup-dev-14989f.near",
 ] as const;
+export function v1DemoReserveTransaction(input: {
+  account: string;
+  nonce: string;
+  blockHash: string;
+}) {
+  if (!(v1DemoAccounts as readonly string[]).includes(input.account))
+    throw new Error("Outside the fixed demo gas accounts");
+  return encodeTransaction(
+    {
+      signer: input.account,
+      receiver: v1Deployment.account,
+      publicKey: v1Deployment.publicKey,
+      nonce: input.nonce,
+      blockHash: input.blockHash,
+      actions: [{ kind: "transfer", deposit: "100000000000000000000000" }],
+    },
+    new Set([input.account, v1Deployment.account]),
+  );
+}
 export function v1DemoSetupTransaction(input: {
   account: string;
   nonce: string;

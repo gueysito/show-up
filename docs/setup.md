@@ -1139,6 +1139,20 @@ operator reconciliation; no automatic nonce replacement. Unused gas allowance re
 at the event's custody address. Cancelling an unpublished event keeps its venue private.
 These app paths are locally verified; the selected NFT's real round trip remains open.
 
+For cross-chain deposits, `039-mainnet-intents-accounts.sql` gives each registration
+a separate receiving account under the existing escrow account. All three source
+networks can quote native USDC to `recipientType: INTENTS`; direct delivery to the
+escrow is currently unavailable. Each account reuses the retained project key,
+receives 0.02 NEAR from existing funds and has no deployed code. The private worker
+checks the pinned Intents deployment and two-source balance, then calls
+`ft_withdraw` only for the native USDC token, fixed escrow and `deposit:<registration>`.
+Provider success and an internal balance alone do not confirm a seat. The actual
+escrow receipt or fixed recovery claim must confirm the forwarded amount. Original
+account/withdrawal transactions are persisted before one submission; unresolved
+images block fresh native signing. Partial credits wait for the original quote
+deadline; up to three forwards recover later credits without changing beneficiaries.
+Remaining internal credits after that bound require explicit operator reconciliation.
+
 Migration `033-publication-prize-funding.sql` preserves the original creation image,
 hash and gas separately from publication. Awaiting payment does not block other events.
 The signing URL follows the official [MyNearWallet connector](https://github.com/near/wallet-selector/blob/main/packages/my-near-wallet/src/lib/mnw-connect.ts).

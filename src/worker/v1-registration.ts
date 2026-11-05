@@ -35,7 +35,7 @@ export async function runV1Registration(
     if (!(await v1QueueAdmitted(pool, "registration"))) return { state: "busy" };
     const row = (
       await pool.query(
-        "SELECT * FROM app_v1_registrations WHERE state IN ('requested','prepared','submitted') ORDER BY (state IN ('prepared','submitted')) DESC,created_at,id LIMIT 1",
+        "SELECT r.* FROM app_v1_registrations r WHERE r.state IN ('requested','prepared','submitted') AND NOT EXISTS(SELECT 1 FROM app_v1_route_accounts a WHERE a.registration_id=r.id AND a.state<>'verified') ORDER BY (r.state IN ('prepared','submitted')) DESC,r.created_at,r.id LIMIT 1",
       )
     ).rows[0] as V1RegistrationRow | undefined;
     if (!row) return { state: "idle" };

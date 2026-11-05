@@ -4,6 +4,7 @@ import { networkManifest, networkIdentity } from "./manifest";
 import { verifyQuoteSignature, record } from "./quote-signature";
 import { walletAddress } from "../wallets/proof";
 import { v1Deployment } from "./v1-escrow";
+import { v1RouteAccount } from "./v1-intents";
 
 export type V1RouteRequest = QuoteRequest & { customRecipientMsg: string };
 export type V1Route = {
@@ -27,6 +28,8 @@ export function v1RouteRequest(
   return {
     ...dryQuoteRequest({ network, amount, refundTo: source, recipient: v1Deployment.account, now }),
     dry: false,
+    recipientType: "INTENTS",
+    recipient: v1RouteAccount(registration),
     customRecipientMsg: `deposit:${registration}`,
   };
 }
@@ -43,11 +46,14 @@ export function validateV1Route(
     request.dry !== false ||
     request.originAsset !== asset.routeAsset ||
     request.destinationAsset !== `nep141:${v1Deployment.token}` ||
-    request.recipient !== v1Deployment.account ||
+    request.recipient !==
+      (request.recipientType === "INTENTS"
+        ? v1RouteAccount(request.customRecipientMsg.slice(8))
+        : v1Deployment.account) ||
     request.swapType !== "EXACT_OUTPUT" ||
     request.depositType !== "ORIGIN_CHAIN" ||
     request.refundType !== "ORIGIN_CHAIN" ||
-    request.recipientType !== "DESTINATION_CHAIN" ||
+    !["DESTINATION_CHAIN", "INTENTS"].includes(request.recipientType) ||
     request.slippageTolerance !== 100 ||
     !/^deposit:[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(request.customRecipientMsg)
   )

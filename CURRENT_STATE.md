@@ -20,18 +20,20 @@ Working rules are in [AGENTS.md](AGENTS.md).
 
 Checks use preauthenticated engineering accounts and isolated project-wallet
 approval. External wallet UI, a fresh provider login and a real phone remain to verify.
-123 unit, 195 database and 48 ordinary browser cases plus build/code checks pass.
+125 unit, 195 database and 48 ordinary browser cases plus build/code checks pass.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
 
 ## Remaining
 
-- V1-4: all three source adapters are prepared locally with stored original payments
-  and NEAR USDC receiving setup. Solana's unsigned transfer simulates on both mainnet
-  RPCs. All three pricing pairs still return HTTP 400; no routed funds sent.
+- V1-4: direct escrow pricing remains unavailable, but all three chains now return
+  signed valid quotes into Intents. Per-registration receiving accounts and fixed
+  forwarding are implemented locally, with lost-response/recovery checks passing.
+  Next: real small routed deposits/refunds through the app; no source funds sent yet.
 - V1-7: NFT custody/publication, attendee Ethereum binding, cancellation and signed
   delivery are implemented locally. Both mainnet RPCs verify the MPC key format;
   synthetic browser/DB cases pass. BasedHeads #2829 still needs its owner's wallet
   transfer and a real mainnet custody/release round trip.
 - V1-9: front door and V1 preview run locally; desktop/390/320 layouts and real
-  host navigation pass. Fresh-clone setup and the real-phone journey remain.
+  host navigation pass. A clean clone installs/builds on pinned Node 24 and serves
+  home/preview/database health with HTTP 200. The real-phone journey remains.
   Hosting and merging require owner approval. V1-8 source-chain returns remain stretch.

@@ -7,6 +7,7 @@ import { quoteMessage } from "../../src/server/protocol/quote-signature";
 import { v1RouteRequest, validateV1Route } from "../../src/server/protocol/v1-routing";
 import { prepareV1EvmPayment } from "../../src/server/protocol/v1-evm-payment";
 import { v1Deployment } from "../../src/server/protocol/v1-escrow";
+import { v1RouteAccount } from "../../src/server/protocol/v1-intents";
 
 test("signed cross-chain quotes bind the native token, exact output, fixed message, source refund and expiry", () => {
   const keys = generateKeyPairSync("ed25519"),
@@ -56,7 +57,9 @@ test("signed cross-chain quotes bind the native token, exact output, fixed messa
       ),
     /policy/,
   );
-  assert.equal(request.recipient, v1Deployment.account);
+  assert.equal(request.recipient, v1RouteAccount("5b6160bc-b2bd-4c14-8c3e-7175fcfe38a2"));
+  assert.equal(request.recipientType, "INTENTS");
+  assert.notEqual(request.recipient, v1Deployment.account);
   assert.equal(request.customRecipientMsg, "deposit:5b6160bc-b2bd-4c14-8c3e-7175fcfe38a2");
   for (const change of [
     { recipient: "attacker.near" },

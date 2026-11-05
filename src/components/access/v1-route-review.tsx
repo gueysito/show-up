@@ -241,6 +241,10 @@ export function V1RouteReview({
             <dt>Routing status</dt>
             <dd>{initial?.hint ?? "WAITING_FOR_PAYMENT"}</dd>
           </dl>
+          <p>
+            The project forwards your converted USDC into escrow and pays the NEAR forwarding gas.
+            Your seat is confirmed only after the escrow receives your deposit.
+          </p>
           {!paid && (
             <>
               {network === "solana" && (
