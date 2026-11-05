@@ -12,9 +12,9 @@ export async function migrate(
     await client.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
       name text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now()
     )`);
-    const files = (await readdir(directory))
-      .filter((name) => /^\d{3}-[a-z-]+\.sql$/.test(name))
-      .sort();
+    const files = (await readdir(directory)).filter((name) => name.endsWith(".sql")).sort();
+    if (files.some((name) => !/^\d{3}-[a-z-]+\.sql$/.test(name)))
+      throw new Error("Invalid migration filename: use numeric prefix and lowercase words only");
     for (const name of files) {
       const sql = await readFile(new URL(name, directory), "utf8");
       const checksum = createHash("sha256").update(sql).digest("hex");

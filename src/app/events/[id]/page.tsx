@@ -46,6 +46,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       </Link>
       <h1>{event.data.title}</h1>
       <p>{event.hostAlias}</p>
+      {event.escrow && event.canManage && (
+        <p>
+          <Link href={`/events/${id}/manage`} prefetch={false}>
+            Manage check-in and results
+          </Link>
+        </p>
+      )}
       {bot && (
         <p>
           <a
@@ -128,6 +135,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         </section>
       )}
       <section aria-label="Event participation" className="saved-panel">
+        {event.escrow && ["attendee", "recovery"].includes(event.viewer) && (
+          <p>
+            <Link href={`/events/${id}/commit`} prefetch={false}>
+              Your check-in and receipt
+            </Link>
+          </p>
+        )}
         <h2>{event.registration === "closed" ? "Registration closed" : "Review participation"}</h2>
         <p role="status">
           {event.escrow && event.registration !== "closed"

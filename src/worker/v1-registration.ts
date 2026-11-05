@@ -1,4 +1,5 @@
 import type pg from "pg";
+import { v1QueueAdmitted } from "./v1-queue";
 import { seal, unseal } from "../server/auth/crypto";
 import { canonicalHash } from "../server/protocol/canonical";
 import {
@@ -31,9 +32,10 @@ export async function runV1Registration(
   try {
     locked = (await lock.query("SELECT pg_try_advisory_lock(739204081) AS locked")).rows[0].locked;
     if (!locked) return { state: "busy" };
+    if (!(await v1QueueAdmitted(pool, "registration"))) return { state: "busy" };
     const row = (
       await pool.query(
-        "SELECT * FROM app_v1_registrations WHERE state IN ('requested','prepared','submitted') ORDER BY created_at,id LIMIT 1",
+        "SELECT * FROM app_v1_registrations WHERE state IN ('requested','prepared','submitted') ORDER BY (state IN ('prepared','submitted')) DESC,created_at,id LIMIT 1",
       )
     ).rows[0] as V1RegistrationRow | undefined;
     if (!row) return { state: "idle" };

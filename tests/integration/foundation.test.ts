@@ -94,6 +94,9 @@ test("migrations serialize, reject changed history, and roll back failed DDL", a
     await writeFile(new URL("001-foundation.sql", url), `${sql}\n-- changed`);
     await assert.rejects(migrate(isolated, url), /Applied migration changed/);
     await writeFile(new URL("001-foundation.sql", url), sql);
+    await writeFile(new URL("002-v1-silently-skipped.sql", url), "SELECT 1");
+    await assert.rejects(migrate(isolated, url), /Invalid migration filename/);
+    await rm(new URL("002-v1-silently-skipped.sql", url));
     await writeFile(
       new URL("002-failure.sql", url),
       "CREATE TABLE rollback_probe(id int); SELECT 1/0;",

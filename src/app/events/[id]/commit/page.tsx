@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { CommitmentWalletReview } from "../../../../components/access/commitment-review";
 import { V1Deposit } from "../../../../components/access/v1-deposit";
+import { V1EventConsole } from "../../../../components/access/v1-event-console";
 import { authConfig } from "../../../../server/auth/config";
 import { findSession, sessionCookie } from "../../../../server/auth/sessions";
 import { hash, identityIndex } from "../../../../server/auth/crypto";
@@ -57,6 +58,18 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
         </p>
       ) : event.viewer === "staff" ? (
         <p>Hosts and assigned validators cannot commit as attendees.</p>
+      ) : event.escrow ? (
+        <>
+          {event.registration !== "closed" && event.viewer !== "recovery" && (
+            <V1Deposit
+              eventId={id}
+              rulesHash={event.rulesHash}
+              amount={event.data.commitment}
+              wallets={wallets}
+            />
+          )}
+          <V1EventConsole eventId={id} active={event.viewer !== "recovery"} />
+        </>
       ) : event.viewer === "recovery" || event.registration === "closed" ? (
         <>
           <p>New commitments are closed. Original authorizations and recovery remain available.</p>
@@ -64,13 +77,6 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
             Review existing authorizations and recovery
           </Link>
         </>
-      ) : event.escrow ? (
-        <V1Deposit
-          eventId={id}
-          rulesHash={event.rulesHash}
-          amount={event.data.commitment}
-          wallets={wallets}
-        />
       ) : (
         <>
           <p>{`${event.data.commitment} USDC principal · ${event.data.mode === "digital" ? "Online" : "In person"} · registration closes at the event start.`}</p>

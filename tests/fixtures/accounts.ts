@@ -40,6 +40,14 @@ export async function accountFixtures(roles: string[][]) {
   async function cleanup() {
     const ids = accounts.map((account) => account.id);
     await pool.query(
+      "DELETE FROM app_v1_event_actions WHERE account_id=ANY($1::uuid[]) OR event_id IN (SELECT id FROM app_events WHERE owner_id=ANY($1::uuid[]))",
+      [ids],
+    );
+    await pool.query(
+      "DELETE FROM app_v1_code_windows WHERE event_id IN (SELECT id FROM app_events WHERE owner_id=ANY($1::uuid[]))",
+      [ids],
+    );
+    await pool.query(
       "DELETE FROM app_v1_registrations WHERE account_id=ANY($1::uuid[]) OR event_id IN (SELECT id FROM app_events WHERE owner_id=ANY($1::uuid[]))",
       [ids],
     );

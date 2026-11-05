@@ -1157,6 +1157,17 @@ their original signed image once. Injected test transports stay unpaced. Numbere
 deposit-check attempts retain separate journals and require every prior attempt to
 be cancelled/refunded before another starts; never delete a journal to bypass this.
 
+Migration `036-mainnet-event-actions.sql` adds live-code windows and the durable
+check-in/close/withdrawal queue. The same V1 worker handles these actions; an unknown
+write blocks new owner signing across all three queues until its original hash is
+reconciled. Hosts open `/events/<id>/manage` to rotate a three-minute code, see the
+confirmed roster and close or cancel. Attendees open their event commitment page
+for check-in and receipts. Closing waits for accepted check-ins. The worker queues
+deadline settlement, or cancellation if a check-in failed. Token transfers count as
+paid only when the fixed recipient's claim confirms payment. Restricted recovery
+accounts can still withdraw existing claims. These paths await a mainnet browser
+round trip; no contract upgrade is needed.
+
 ```sh
 export SHOWUP_CONTAINER_E2E=1
 export SHOWUP_BROWSER_CHROME=1

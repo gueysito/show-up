@@ -19,6 +19,9 @@ import { loadV1MainnetKey } from "./lib/v1-mainnet-key";
 import { runV1Registration } from "../src/worker/v1-registration";
 import type { V1RegistrationGateway } from "../src/worker/v1-registration";
 import { AppFailure } from "../src/server/http/security";
+import { runV1Action, type V1ActionGateway } from "../src/worker/v1-actions";
+import { readV1ActionSnapshot, enqueueV1Deadline } from "../src/server/events/v1-actions";
+import { validateV1Action, observeV1Action } from "../src/worker/v1-action-observation";
 
 export async function signV1OwnerCalls(
   snapshot: Awaited<ReturnType<typeof readV1Snapshot>>,
@@ -233,6 +236,36 @@ export function v1RegistrationGateway(): V1RegistrationGateway {
   };
 }
 
+export function v1ActionGateway(pool: pg.Pool, key: string): V1ActionGateway {
+  const native = v1PublicationGateway();
+  return {
+    submit: native.submit,
+    final: native.final,
+    async prepare(image) {
+      const { snapshot } = await readV1ActionSnapshot(pool, key, image.eventId);
+      await validateV1Action(image, snapshot);
+      const parameter =
+        image.kind === "check_in" ? "registration" : image.kind === "withdraw" ? "claim" : "event";
+      return {
+        ...(await signV1OwnerCalls(snapshot, [
+          {
+            kind: "call",
+            method: image.kind,
+            args: Buffer.from(canonicalJson({ [parameter]: image.target })),
+            gas: image.kind === "withdraw" ? "100000000000000" : "30000000000000",
+            deposit: "0",
+          },
+        ])),
+        semantic: canonicalHash(image),
+      };
+    },
+    async observe(image, minimumHeight) {
+      const { snapshot } = await readV1ActionSnapshot(pool, key, image.eventId);
+      return observeV1Action(image, snapshot, minimumHeight);
+    },
+  };
+}
+
 async function main() {
   const args = process.argv.slice(2);
   if (
@@ -287,6 +320,21 @@ async function main() {
         );
         if (!args.includes("--watch")) process.exitCode = 1;
         else await pause(30_000);
+      }
+      try {
+        await enqueueV1Deadline(pool, env.SHOWUP_IDENTITY_KEY!);
+        const action = await runV1Action(
+          pool,
+          env.SHOWUP_IDENTITY_KEY!,
+          v1ActionGateway(pool, env.SHOWUP_IDENTITY_KEY!),
+        );
+        if (!["idle", "busy"].includes(action.state)) console.log(JSON.stringify(action));
+      } catch {
+        console.error(
+          "Event action retained for original-hash reconciliation. No replacement nonce or automatic resend.",
+        );
+        if (!args.includes("--watch")) process.exitCode = 1;
+        else await pause(30000);
       }
       if (!args.includes("--watch")) break;
       await pause(3000);

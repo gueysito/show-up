@@ -8,6 +8,7 @@ import { isUuid } from "./drafts";
 import { readV1PublishedTerms, type V1PublicEscrow } from "./v1-publication";
 
 export type EventEntry = {
+  canManage?: boolean;
   escrow?: V1PublicEscrow;
   id: string;
   state: string;
@@ -82,6 +83,7 @@ export async function readEventEntry(
       state: row.state,
       rulesHash: row.rules_hash,
       hostAlias: eventHostAlias(config, row.id, row.owner_id),
+      canManage: Boolean(actor && row.owner_id === actor.id),
       viewer: !actor
         ? "anonymous"
         : actor.state === "deletion_requested"

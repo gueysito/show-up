@@ -6,7 +6,7 @@ Free RSVPs are cheap, so people don't show up. Showup asks attendees to put down
 deposit. Show up and you get it back. Don't, and your deposit is split among the people
 who did. Hosts can add a prize — a USDC pot, an NFT, or both — that one attendee wins.
 
-Attendees can pay from **NEAR, Solana, Base or Ethereum**. NEAR Intents converts the
+Showup is being built for deposits from **NEAR, Solana, Base or Ethereum**. NEAR Intents converts the
 deposit, and the money sits in a Showup escrow contract on NEAR that enforces the rules:
 the host never holds attendee funds and never receives a share of forfeited deposits.
 NFT prizes stay on their own chain and are released by the NEAR contract through
@@ -28,7 +28,10 @@ prize. Browser checks with a preauthenticated test host verified a real 1-USDC p
 publication and full cancellation refund. Public terms are checked against two
 mainnet RPCs. Attendees can now register and deposit native USDC from a verified NEAR
 wallet, with funded-seat confirmation and a verified full cancellation refund.
-Cross-chain deposits, check-in/settlement and NFT release remain in progress.
+Base/Ethereum route adapters are prepared locally; live Base/Solana pricing is
+currently unavailable from the route provider. Live-code check-in, host/deadline
+closing and fixed-wallet payout receipts pass local database checks; their mainnet
+browser round trip remains to verify. NFT release remains in progress.
 [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works

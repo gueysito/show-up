@@ -1,4 +1,5 @@
 import type pg from "pg";
+import { v1QueueAdmitted } from "./v1-queue";
 import { seal, unseal } from "../server/auth/crypto";
 import { canonicalHash } from "../server/protocol/canonical";
 import {
@@ -34,10 +35,11 @@ export async function runV1Publication(pool: pg.Pool, key: string, gateway: V1Pu
   try {
     locked = (await lock.query("SELECT pg_try_advisory_lock(739204081) AS locked")).rows[0].locked;
     if (!locked) return { state: "busy" };
+    if (!(await v1QueueAdmitted(pool, "publication"))) return { state: "busy" };
     const row = (
       await pool.query(`SELECT p.*,e.owner_id,e.data,e.revision FROM app_publication_images p
       JOIN app_events e ON e.id=p.event_id WHERE p.environment='near-mainnet-v1'
-      AND p.transaction_state IN ('requested','prepared','submitted') ORDER BY p.created_at,p.event_id LIMIT 1`)
+      AND p.transaction_state IN ('requested','prepared','submitted') ORDER BY (p.transaction_state IN ('prepared','submitted')) DESC,p.created_at,p.event_id LIMIT 1`)
     ).rows[0] as V1PublicationRow | undefined;
     if (!row) return { state: "idle" };
     const image = storedV1Publication(key, row),
