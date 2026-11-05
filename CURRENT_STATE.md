@@ -61,5 +61,7 @@ The live MyNearWallet `/sign-message` and `/sign` screens now reject app request
 following its [retirement](https://www.mynearwallet.com/sunset). The earlier
 engineering runs bypassed those screens. A real phone approved a NEAR Mobile
 message, Showup stored the verified proof and the wallet survived refresh. The
-Meteor option passes isolated browser checks. Native deposit, storage and prize
-approvals remain. The wallet page has opening links for Phantom, MetaMask and Rabby.
+Meteor option passes isolated browser checks. The app prepares native deposit,
+storage and prize approvals for both wallets and checks the original request
+before creating another. The live phone payment/refund remains. The wallet page
+has opening links for Phantom, MetaMask and Rabby.

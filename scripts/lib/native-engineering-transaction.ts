@@ -145,22 +145,12 @@ export function v1StorageRegistrationTransaction(
   input: Parameters<typeof v1PrizeFundingTransaction>[0],
 ) {
   if (input.amount !== "0") throw new Error("USDC receiving registration does not transfer USDC");
-  return encodeTransaction(
-    {
-      ...input,
-      receiver: v1Deployment.token,
-      actions: [
-        {
-          kind: "call",
-          method: "storage_deposit",
-          args: Buffer.from(canonicalJson({ account_id: input.signer, registration_only: true })),
-          gas: "30000000000000",
-          deposit: "1250000000000000000000",
-        },
-      ],
-    },
-    new Set([input.signer, v1Deployment.token]),
-  );
+  return v1WalletCall(input, {
+    methodName: "storage_deposit",
+    args: { account_id: input.signer, registration_only: true },
+    gas: "30000000000000",
+    deposit: "1250000000000000000000",
+  });
 }
 
 function v1TokenFundingTransaction(
@@ -173,28 +163,51 @@ function v1TokenFundingTransaction(
     BigInt(input.amount) > 100_000_000n
   )
     throw new Error("Invalid fixed prize funding request");
-  return encodeTransaction(
+  return v1WalletCall(input, {
+    methodName: "ft_transfer_call",
+    args: {
+      receiver_id: v1Deployment.account,
+      amount: input.amount,
+      msg: `${purpose}:${input.eventId}`,
+    },
+    gas: "100000000000000",
+    deposit: "1",
+  });
+}
+
+function v1WalletCall(
+  input: Parameters<typeof v1PrizeFundingTransaction>[0],
+  params: {
+    methodName: "storage_deposit" | "ft_transfer_call";
+    args: Record<string, string | boolean>;
+    gas: string;
+    deposit: string;
+  },
+) {
+  const tx = encodeTransaction(
     {
       ...input,
       receiver: v1Deployment.token,
       actions: [
         {
           kind: "call",
-          method: "ft_transfer_call",
-          gas: "100000000000000",
-          deposit: "1",
-          args: Buffer.from(
-            canonicalJson({
-              receiver_id: v1Deployment.account,
-              amount: input.amount,
-              msg: `${purpose}:${input.eventId}`,
-            }),
-          ),
+          method: params.methodName,
+          gas: params.gas,
+          deposit: params.deposit,
+          args: Buffer.from(canonicalJson(params.args)),
         },
       ],
     },
     new Set([input.signer, v1Deployment.token]),
   );
+  return {
+    ...tx,
+    walletTransaction: {
+      signerId: input.signer,
+      receiverId: v1Deployment.token,
+      actions: [{ type: "FunctionCall" as const, params }],
+    },
+  };
 }
 
 // Explicit V1 mainnet policy. Legacy engineering callers retain their testnet guard.

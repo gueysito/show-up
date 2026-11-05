@@ -184,10 +184,22 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
     assert.equal(payment.signer, address);
     assert.equal(payment.amountAtomic, "1250000");
     assert.equal(payment.token, v1Deployment.token);
-    const walletUrl = new URL(payment.walletUrl);
-    assert.equal(walletUrl.origin, "https://app.mynearwallet.com");
-    assert.equal(walletUrl.searchParams.get("transactions"), payment.unsignedBase64);
-    assert.equal(walletUrl.searchParams.get("callbackUrl"), `${config.origin}/host?event=${id}`);
+    assert.equal(payment.origin, config.origin);
+    assert.deepEqual(payment.walletTransaction, {
+      signerId: address,
+      receiverId: v1Deployment.token,
+      actions: [
+        {
+          type: "FunctionCall",
+          params: {
+            methodName: "ft_transfer_call",
+            gas: "100000000000000",
+            deposit: "1",
+            args: { receiver_id: v1Deployment.account, amount: "1250000", msg: `prize:${id}` },
+          },
+        },
+      ],
+    });
     balance = "1249999";
     await assert.rejects(
       prepareV1PrizeFunding(f.pool, config, session, id, 1, fundingSource),

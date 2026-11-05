@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import type { OwnWallet } from "../../server/wallets/service";
 import { usdcAtomic } from "../../domain/event-draft";
 import { V1NftPrize } from "./v1-nft-prize";
+import { NearWalletPaymentButton } from "./near-wallet-payment";
+import type { NearWalletPayment } from "./near-mobile-wallet";
 
 export function EventActions({
   id,
@@ -128,37 +130,23 @@ export function EventActions({
       setBusy(false);
     }
   }
-  async function fundPrize() {
-    setBusy(true);
-    try {
-      const response = await fetch("/api/events", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          operation: "fund-prize",
-          operationId: crypto.randomUUID(),
-          id,
-          revision,
-        }),
-      });
-      const result = await response.json();
-      if (!response.ok)
-        throw new Error(
-          result.error ?? "Prize funding is unavailable. Check status before retrying.",
-        );
-      const url = new URL(result.walletUrl);
-      if (
-        url.origin !== "https://app.mynearwallet.com" ||
-        url.pathname !== "/sign" ||
-        new URL(url.searchParams.get("callbackUrl")!).origin !== window.location.origin
-      )
-        throw new Error("Reopen Showup at its configured address before funding.");
-      window.location.assign(url.href);
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Check status before funding again.");
-    } finally {
-      setBusy(false);
-    }
+  async function fundPrize(): Promise<NearWalletPayment> {
+    const response = await fetch("/api/events", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        operation: "fund-prize",
+        operationId: crypto.randomUUID(),
+        id,
+        revision,
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok)
+      throw new Error(
+        result.error ?? "Prize funding is unavailable. Check status before retrying.",
+      );
+    return result;
   }
   async function confirmPrize() {
     setBusy(true);
@@ -289,14 +277,14 @@ export function EventActions({
                         The wallet may reserve up to 0.16 NEAR for gas; unused gas is returned. This
                         is separate from the USDC prize.
                       </p>
-                      <button
-                        type="button"
-                        className="primary-button"
+                      <NearWalletPaymentButton
+                        key={`prize:${id}`}
+                        scope={`prize:${id}`}
+                        label="Approve prize funding in your NEAR wallet"
                         disabled={busy}
-                        onClick={fundPrize}
-                      >
-                        Approve prize funding in MyNearWallet
-                      </button>
+                        prepare={fundPrize}
+                        confirm={confirmPrize}
+                      />
                     </>
                   )}
                   <button

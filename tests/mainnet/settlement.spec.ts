@@ -2,7 +2,12 @@ import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { setTimeout as pause } from "node:timers/promises";
-import { mainnetJournal, mainnetUsdc, approveMainnetDeposit } from "../fixtures/v1-mainnet";
+import {
+  mainnetJournal,
+  mainnetUsdc,
+  approveMainnetDeposit,
+  prepareBrowserNearPayment,
+} from "../fixtures/v1-mainnet";
 import { prepareDemoAccounts, fundDemoPrize, restoreDemoUsdc } from "../fixtures/v1-demo";
 import { accountFixtures } from "../fixtures/accounts";
 import { verifyNearWallet } from "../fixtures/near-wallet";
@@ -146,19 +151,11 @@ test("mainnet browser checks in one of two funded attendees, settles the prize a
         ).state,
       ).toBe("registered");
       await page.goto(`${config.origin}/events/${eventId}/commit`);
-      await expect(
-        panel.getByRole("button", { name: "Approve USDC deposit in MyNearWallet" }),
-      ).toBeVisible();
-      let unsigned = "",
-        callback = "";
-      await page.route("https://app.mynearwallet.com/sign?**", async (route) => {
-        const url = new URL(route.request().url());
-        unsigned = url.searchParams.get("transactions")!;
-        callback = url.searchParams.get("callbackUrl")!;
-        await route.fulfill({ contentType: "text/html", body: "Isolated project-wallet approval" });
+      const button = panel.getByRole("button", {
+        name: "Approve USDC deposit in your NEAR wallet",
       });
-      await panel.getByRole("button", { name: "Approve USDC deposit in MyNearWallet" }).click();
-      await expect(page).toHaveURL(/app\.mynearwallet\.com\/sign/);
+      const unsigned = await prepareBrowserNearPayment(page, button, "pay");
+      const callback = `${config.origin}/events/${eventId}/commit`;
       await journal.submit(
         `deposit_${index}`,
         await approveMainnetDeposit(unsigned, eventId, id, "1000000", v1DemoAccounts[index]),
@@ -169,7 +166,6 @@ test("mainnet browser checks in one of two funded attendees, settles the prize a
         page.getByRole("heading", { name: "Deposit confirmed", exact: true }),
       ).toBeVisible();
       await page.goto("about:blank");
-      await page.unroute("https://app.mynearwallet.com/sign?**");
     }
     expect(
       await mainnetUsdc((await readV1Snapshot(eventId)).block.hash, [

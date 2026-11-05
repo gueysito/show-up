@@ -15,6 +15,55 @@ import { record } from "../../src/server/protocol/quote-signature";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { canonicalJson } from "../../src/server/protocol/canonical";
 import type { SignedV1Publication } from "../../src/worker/v1-publication";
+import { expect, type Locator, type Page } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+
+// Inspect the browser's structured wallet handoff without asking an external
+// wallet to approve a second transaction. Mainnet fixtures sign the same intent.
+export async function prepareBrowserNearPayment(
+  page: Page,
+  button: Locator,
+  operation: "pay" | "fund-prize",
+) {
+  const endpoint = "https://near-mobile-production.aws.peersyst.tech/connector/request";
+  const response = page.waitForResponse((result) => {
+    const path = new URL(result.url()).pathname;
+    return (
+      (path === "/api/commitments/mainnet" || path === "/api/events") &&
+      result.request().method() === "POST" &&
+      result.request().postDataJSON().operation === operation
+    );
+  });
+  let relayBody: unknown;
+  await page.route(endpoint, async (route) => {
+    const body = route.request().postDataJSON();
+    relayBody = body;
+    await route.fulfill({
+      headers: { "access-control-allow-origin": "*" },
+      json: {
+        ...body,
+        id: randomUUID(),
+        status: "pending",
+        expiresAt: new Date(Date.now() + 180_000).toISOString(),
+      },
+    });
+  });
+  try {
+    await button.click();
+    const payment = await (await response).json();
+    await expect(page.getByRole("link", { name: "Open NEAR Mobile to approve" })).toBeVisible();
+    assert.deepEqual(relayBody, {
+      method: "signAndSendTransaction",
+      network: "mainnet",
+      origin: payment.origin,
+      payload: payment.walletTransaction,
+    });
+    assert.equal(typeof payment.unsignedBase64, "string");
+    return payment.unsignedBase64 as string;
+  } finally {
+    await page.unroute(endpoint);
+  }
+}
 
 // These owner-operated helpers are used only by explicitly selected mainnet
 // browser tests. No fixture key, provider token or wallet secret is persisted.

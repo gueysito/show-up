@@ -304,15 +304,16 @@ server. Existing application encryption/index keys must remain unchanged.
 
 After social sign-in, choose **Verify and review your wallets**:
 
-- Base/Ethereum: use a compatible EIP-1193 wallet with personal message signing,
-  select the matching mainnet and review the host, address, chain, nonce and expiry.
+- Base/Ethereum: open the wallet page in MetaMask or Rabby, select the matching
+  mainnet, and review the host, address, chain, nonce and expiry before signing.
   Contract wallets are not verified in this pilot.
 - Solana: use a compatible injected wallet such as Phantom and sign the displayed
   message. Private keys remain in the wallet.
-- NEAR: enter the mainnet account, continue to MyNearWallet, then choose **Finish
-  NEAR wallet verification** on return. The pilot supports NEP-413 Ed25519 full-access
-  keys; current finalized membership must agree at both fixed RPC sources. A
-  function-call key does not establish control.
+- NEAR: choose NEAR Mobile or Meteor Wallet and enter the mainnet account. For
+  NEAR Mobile, prepare the request, open the wallet, approve the message, then
+  return to the original Showup tab and check approval. Meteor opens its own
+  approval prompt. Both require a current NEP-413 Ed25519 full-access key that
+  agrees at both fixed RPC sources. A function-call key does not establish control.
 
 Success adds the wallet to **Saved wallets**. Refresh and sign-in restoration read
 the durable own-account records. After a lost acknowledgement, **Retry saving this
@@ -320,11 +321,9 @@ proof** resubmits the original operation/signature; **Refresh saved wallets** ch
 what actually persisted. A new challenge expires after five minutes. Changing the
 account/session, host, chain, address, nonce or signed message cannot reuse it.
 
-This proves wallet control only. Funding still requires separate event/rules,
-destination/fee authorization and actual attributable escrow; these routes remain
-disabled. Agent browser evidence uses disposable in-memory wallets and test accounts.
-The NEAR redirect was inspected without contacting MyNearWallet; actual wallet
-approval/return, live NEAR membership and phone behavior remain owner/provider gates.
+This proves wallet control only. V1 funding requires separate approval of the
+event rules, destinations and fees, then confirmation of the actual escrow receipt.
+Android Phantom and NEAR Mobile ownership were verified on a real phone.
 
 ## Publication requirements
 
@@ -1112,7 +1111,7 @@ opens the event page after both RPCs confirm the pinned code and saved terms.
 For a USDC prize (up to 100 USDC), verify a NEAR funding wallet first and choose it
 in the saved draft. **Create prize event escrow** freezes that wallet and amount;
 the worker creates the draft on chain. Check status, then **Approve prize funding
-in MyNearWallet**. The unsigned request calls only the fixed native USDC token's
+in your NEAR wallet**. The request calls only the fixed native USDC token's
 `ft_transfer_call`, with the exact prize and `prize:<event ID>` message. The host
 wallet pays this transfer and needs a separate 0.16-NEAR gas reserve. After returning,
 **Confirm prize and publish** checks both RPCs before queuing publication. Callback
@@ -1160,7 +1159,8 @@ Remaining internal credits after that bound require explicit operator reconcilia
 
 Migration `033-publication-prize-funding.sql` preserves the original creation image,
 hash and gas separately from publication. Awaiting payment does not block other events.
-The signing URL follows the official [MyNearWallet connector](https://github.com/near/wallet-selector/blob/main/packages/my-near-wallet/src/lib/mnw-connect.ts).
+NEAR Mobile and Meteor both receive a single frozen wallet action. An unresolved
+browser request must be checked before starting another payment.
 
 Apply local migrations with the existing owner-only auth configuration, then run
 the worker separately from the web process:
@@ -1185,7 +1185,7 @@ For V1 native USDC deposits, apply migration `034-mainnet-registrations.sql`. Th
 private V1 worker processes publication and attendee registration queues with one
 shared signer lock. An attendee chooses one verified NEAR wallet for both deposit
 and payout, reviews the fixed principal and separate 0.16-NEAR gas reserve, prepares
-registration, then approves the exact USDC transfer in MyNearWallet. Seat confirmation
+registration, then approves the exact USDC transfer in NEAR Mobile or Meteor. Seat confirmation
 uses the two-source contract registration flag; return parameters cannot fund a seat.
 Keep financial browser checks separate from synthetic database tests. The explicit
 `SHOWUP_MAINNET_DEPOSIT=1` check creates a new event, funds one USDC and refunds it

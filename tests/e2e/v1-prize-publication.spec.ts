@@ -11,7 +11,7 @@ import { prepareV1Publication } from "../../src/server/events/v1-publication";
 import { runV1Publication, type V1PublicationGateway } from "../../src/worker/v1-publication";
 import { canonicalHash } from "../../src/server/protocol/canonical";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
-import type { V1Snapshot } from "../../src/server/protocol/v1-escrow";
+import { v1Deployment, type V1Snapshot } from "../../src/server/protocol/v1-escrow";
 
 test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
 test("local prize UI returns to its owned frozen event, ignores callback hashes and scopes confirmation status", async ({
@@ -114,7 +114,68 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
       ).rows[0].transaction_state,
     ).toBe("awaiting_prize");
     let confirmed = false;
+    let prepared = 0;
+    let relayCreates = 0;
+    let relayStatus = "pending";
+    const relay = "https://near-mobile-production.aws.peersyst.tech/connector/request";
+    const relayId = randomUUID();
+    const walletTransaction = {
+      signerId: "fictional-host.near",
+      receiverId: v1Deployment.token,
+      actions: [
+        {
+          type: "FunctionCall",
+          params: {
+            methodName: "ft_transfer_call",
+            gas: "100000000000000",
+            deposit: "1",
+            args: { receiver_id: v1Deployment.account, amount: "1000000", msg: `prize:${id}` },
+          },
+        },
+      ],
+    };
+    const relayRequest = {
+      id: relayId,
+      network: "mainnet",
+      method: "signAndSendTransaction",
+      origin: config.origin,
+      payload: walletTransaction,
+      expiresAt: new Date(Date.now() + 180_000).toISOString(),
+    };
+    await page.route(relay, async (route) => {
+      relayCreates++;
+      expect(route.request().postDataJSON()).toEqual({
+        method: "signAndSendTransaction",
+        network: "mainnet",
+        origin: config.origin,
+        payload: walletTransaction,
+      });
+      await route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: { ...relayRequest, status: relayStatus },
+      });
+    });
+    await page.route(`${relay}/${relayId}`, (route) =>
+      route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: { ...relayRequest, status: relayStatus },
+      }),
+    );
     await page.route("**/api/events", async (route) => {
+      if (
+        route.request().method() === "POST" &&
+        route.request().postDataJSON().operation === "fund-prize"
+      ) {
+        prepared++;
+        return route.fulfill({
+          json: {
+            origin: config.origin,
+            signer: walletTransaction.signerId,
+            token: walletTransaction.receiverId,
+            walletTransaction,
+          },
+        });
+      }
       if (
         route.request().method() !== "POST" ||
         route.request().postDataJSON().operation !== "confirm-prize"
@@ -126,11 +187,24 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
       // exercised separately through the actual service/database tests.
       await route.fulfill({ json: { eventId: id, state: "requested" } });
     });
-    await actions.getByRole("button", { name: "Confirm prize and publish" }).click();
+    const pay = actions.getByRole("button", { name: "Approve prize funding in your NEAR wallet" });
+    await pay.click();
+    await expect(actions.getByRole("link", { name: "Open NEAR Mobile to approve" })).toBeVisible();
+    expect(confirmed).toBe(false);
+    await page.goto(`/host?event=${id}`);
+    await page.getByRole("button", { name: "Check publication status" }).click();
+    await pay.click();
+    await expect(
+      actions.getByText("The original wallet request is still waiting for approval."),
+    ).toBeVisible();
+    expect([prepared, relayCreates]).toEqual([1, 1]);
+    expect(confirmed).toBe(false);
+    relayStatus = "approved";
+    await actions.getByRole("button", { name: "Check original wallet approval" }).click();
     await expect(actions.getByRole("status")).toContainText("Prize receipt confirmed");
     expect(confirmed).toBe(true);
     await expect(
-      actions.getByRole("button", { name: "Approve prize funding in MyNearWallet" }),
+      actions.getByRole("button", { name: "Approve prize funding in your NEAR wallet" }),
     ).toHaveCount(0);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(

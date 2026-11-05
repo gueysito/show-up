@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
 import { accountFixtures } from "../fixtures/accounts";
 import { verifyNearWallet } from "../fixtures/near-wallet";
 import { validDraft } from "../fixtures/draft";
+import { prepareBrowserNearPayment } from "../fixtures/v1-mainnet";
 import { hash, seal } from "../../src/server/auth/crypto";
 import { saveAccountDraft } from "../../src/server/events/accounts";
 import { prepareV1Publication } from "../../src/server/events/v1-publication";
@@ -299,24 +300,10 @@ test("host funds one USDC prize, publishes actual terms and recovers the prize o
     expect(created.state).toBe("awaiting_prize");
     finals.create = created;
     await page.getByRole("button", { name: "Check publication status" }).click();
-    await expect(
-      page.getByRole("button", { name: "Approve prize funding in MyNearWallet" }),
-    ).toBeVisible();
-    let unsignedBase64 = "",
-      callback = "";
-    await page.route("https://app.mynearwallet.com/sign?**", async (route) => {
-      const url = new URL(route.request().url());
-      unsignedBase64 = url.searchParams.get("transactions")!;
-      callback = url.searchParams.get("callbackUrl")!;
-      await route.fulfill({
-        contentType: "text/html",
-        body: "Owner-controlled wallet approval is performed in the isolated Node process.",
-      });
-    });
-    await page.getByRole("button", { name: "Approve prize funding in MyNearWallet" }).click();
-    await expect(page).toHaveURL(/app\.mynearwallet\.com\/sign/);
+    const button = page.getByRole("button", { name: "Approve prize funding in your NEAR wallet" });
+    const unsignedBase64 = await prepareBrowserNearPayment(page, button, "fund-prize");
+    const callback = `${config.origin}/host?event=${eventId}`;
     expect(unsignedBase64.length).toBeGreaterThan(0);
-    expect(callback).toBe(`${config.origin}/host?event=${eventId}`);
     const fresh = await readV1Snapshot(eventId!);
     const image = v1PrizeFundingTransaction({
       signer: v1Deployment.owner,

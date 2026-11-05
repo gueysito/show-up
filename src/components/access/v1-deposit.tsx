@@ -4,6 +4,8 @@ import Link from "next/link";
 import type { OwnWallet } from "../../server/wallets/service";
 import { formatUsdc } from "../../domain/event-draft";
 import { V1RouteReview, type V1RouteSummary } from "./v1-route-review";
+import { NearWalletPaymentButton } from "./near-wallet-payment";
+import type { NearWalletPayment } from "./near-mobile-wallet";
 
 type Status = {
   sourceNetwork?: string;
@@ -102,7 +104,31 @@ export function V1Deposit({
       .catch(() => {});
     return () => controller.abort();
   }, [eventId]);
-  async function action(kind: "register" | "pay" | "confirm" | "storage") {
+  async function prepareWalletPayment(
+    kind: "pay" | "storage",
+  ): Promise<NearWalletPayment | { ready: true }> {
+    const response = await fetch("/api/commitments/mainnet", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        operation: kind,
+        eventId,
+        operationId: crypto.randomUUID(),
+        ...(kind === "storage" ? { walletId: status?.walletId ?? walletId } : {}),
+      }),
+    });
+    const result = await response.json();
+    if (!response.ok)
+      throw new Error(result.error ?? "Check the original deposit status before retrying.");
+    return result;
+  }
+  async function confirmStorage() {
+    const result = await prepareWalletPayment("storage");
+    if (!("ready" in result))
+      throw new Error("USDC receiving is not confirmed yet. Check again shortly.");
+    setMessage("Your NEAR payout wallet is ready to receive USDC.");
+  }
+  async function action(kind: "register" | "confirm") {
     setBusy(true);
     setMessage("");
     if (
@@ -127,7 +153,6 @@ export function V1Deposit({
           operationId: kind === "register" ? operation.current.operationId : crypto.randomUUID(),
           ...(kind === "register" ? { rulesHash, walletId, sourceWalletId } : {}),
           ...(kind === "register" && nft ? { ethereumWalletId } : {}),
-          ...(kind === "storage" ? { walletId: status?.walletId ?? walletId } : {}),
         }),
       });
       const result = await response.json();
@@ -135,28 +160,12 @@ export function V1Deposit({
         throw new Error(
           result.error ?? "Deposit not confirmed. Check the original status before retrying.",
         );
-      if (kind === "storage" && result.ready) {
-        setMessage("Your NEAR payout wallet is ready to receive USDC.");
-        return;
-      }
-      if (kind === "pay" || kind === "storage") {
-        const url = new URL(result.walletUrl);
-        if (
-          url.origin !== "https://app.mynearwallet.com" ||
-          url.pathname !== "/sign" ||
-          url.searchParams.get("callbackUrl") !==
-            `${window.location.origin}/events/${eventId}/commit`
-        )
-          throw new Error("Open Showup at its configured address before paying.");
-        window.location.assign(url.href);
-      } else {
-        setStatus(result);
-        setMessage(
-          kind === "register"
-            ? "Registration queued. Check status before approving the deposit."
-            : "Escrow confirms your deposit. Your seat is funded.",
-        );
-      }
+      setStatus(result);
+      setMessage(
+        kind === "register"
+          ? "Registration queued. Check status before approving the deposit."
+          : "Escrow confirms your deposit. Your seat is funded.",
+      );
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -328,14 +337,14 @@ export function V1Deposit({
             Your NEAR payout wallet needs USDC token registration once. Wallet setup attaches at
             most 0.00125 NEAR; keep a separate 0.16-NEAR gas reserve.
           </p>
-          <button
-            type="button"
-            className="secondary-button"
+          <NearWalletPaymentButton
+            key={`storage:${status?.walletId ?? walletId}`}
+            scope={`storage:${status?.walletId ?? walletId}`}
+            label="Enable USDC receiving on NEAR"
             disabled={busy || !(status?.walletId ?? walletId)}
-            onClick={() => void action("storage")}
-          >
-            Enable USDC receiving on NEAR
-          </button>
+            prepare={() => prepareWalletPayment("storage")}
+            confirm={confirmStorage}
+          />
         </>
       )}
       {status?.state === "registered" && !status.funded && sourceNetwork === "near" && (
@@ -344,14 +353,14 @@ export function V1Deposit({
             Your registration is ready. Approve the exact USDC payment in your wallet. This
             registration does not reserve a funded seat.
           </p>
-          <button
-            type="button"
-            className="primary-button"
+          <NearWalletPaymentButton
+            key={`deposit:${status.registrationId}`}
+            scope={`deposit:${status.registrationId}`}
+            label="Approve USDC deposit in your NEAR wallet"
             disabled={busy}
-            onClick={() => action("pay")}
-          >
-            Approve USDC deposit in MyNearWallet
-          </button>
+            prepare={() => prepareWalletPayment("pay")}
+            confirm={() => action("confirm")}
+          />
           <button
             type="button"
             className="secondary-button"

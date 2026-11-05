@@ -9,6 +9,7 @@ import {
   mainnetUsdc,
   approveMainnetDeposit,
   ownerMainnetCalls,
+  prepareBrowserNearPayment,
 } from "../fixtures/v1-mainnet";
 import { hash } from "../../src/server/auth/crypto";
 import { authConfig } from "../../src/server/auth/config";
@@ -165,23 +166,9 @@ test("attendee reviews and funds a real native-USDC seat through the browser, th
       ).state,
     ).toBe("registered");
     await panel.getByRole("button", { name: "Check deposit status" }).click();
-    await expect(
-      panel.getByRole("button", { name: "Approve USDC deposit in MyNearWallet" }),
-    ).toBeVisible();
-    let unsigned = "",
-      callback = "";
-    await page.route("https://app.mynearwallet.com/sign?**", async (route) => {
-      const url = new URL(route.request().url());
-      unsigned = url.searchParams.get("transactions")!;
-      callback = url.searchParams.get("callbackUrl")!;
-      await route.fulfill({
-        contentType: "text/html",
-        body: "Owner-controlled approval remains in isolated Node.",
-      });
-    });
-    await panel.getByRole("button", { name: "Approve USDC deposit in MyNearWallet" }).click();
-    await expect(page).toHaveURL(/app\.mynearwallet\.com\/sign/);
-    expect(callback).toBe(`${config.origin}/events/${eventId}/commit`);
+    const button = panel.getByRole("button", { name: "Approve USDC deposit in your NEAR wallet" });
+    const unsigned = await prepareBrowserNearPayment(page, button, "pay");
+    const callback = `${config.origin}/events/${eventId}/commit`;
     await journal.submit(
       "deposit",
       await approveMainnetDeposit(unsigned, eventId, registrationId!, "1000000"),

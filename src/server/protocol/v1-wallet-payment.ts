@@ -120,22 +120,15 @@ export async function prepareV1WalletPayment(
     eventId: reference,
     amount,
   });
-  const callback = new URL(
-    purpose === "prize" ? "/host" : `/events/${eventId}/commit`,
-    config.origin,
-  );
-  if (purpose === "prize") callback.searchParams.set("event", eventId);
-  const url = new URL("https://app.mynearwallet.com/sign");
-  url.searchParams.set("transactions", tx.bytes.toString("base64"));
-  url.searchParams.set("callbackUrl", callback.href);
   return {
     eventId,
+    origin: config.origin,
     signer: wallet.address,
     amountAtomic: amount,
     token: v1Deployment.token,
     unsignedBase64: tx.bytes.toString("base64"),
     hash: tx.hash,
-    walletUrl: url.href,
+    walletTransaction: tx.walletTransaction,
     maximumGasYoctoNear: "160000000000000000000000",
     attachedYoctoNear: purpose === "storage" ? "1250000000000000000000" : "1",
   };

@@ -135,9 +135,11 @@ Continue local checks; do not rerun jobs or weaken required checks.
 
 V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens
 reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
-Replace the wallet handoff for account verification and USDC approval, then
-verify the real phone return and a small deposit/refund. Earlier mainnet receipts
-prove the contract flow with isolated project-wallet approvals.
+NEAR Mobile and Meteor replace the wallet handoff for account verification and
+USDC approval. The wallet receives one frozen native USDC or storage action, and
+the app waits for its existing two-source confirmation. An isolated browser test
+reopens the original payment after refresh. A real phone deposit/refund remains;
+earlier mainnet receipts used isolated project-wallet approvals.
 NEAR Mobile opened from Showup, signed a real phone message and saved the verified
 wallet through refresh. The Meteor choice passes an isolated test for message-only
 approval with the pinned connector. The wallet page has Phantom, MetaMask and

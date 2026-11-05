@@ -262,10 +262,13 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
     const payment = await prepareV1Deposit(f.pool, config, session, eventId, transport);
     assert.equal(payment.amountAtomic, "1000000");
     assert.equal(payment.signer, "attendee.near");
-    assert.equal(
-      new URL(payment.walletUrl).searchParams.get("callbackUrl"),
-      `${config.origin}/events/${eventId}/commit`,
-    );
+    assert.equal(payment.origin, config.origin);
+    assert.equal(payment.walletTransaction.signerId, "attendee.near");
+    assert.deepEqual(payment.walletTransaction.actions[0].params.args, {
+      receiver_id: v1Deployment.account,
+      amount: "1000000",
+      msg: `deposit:${first.registrationId}`,
+    });
     await assert.rejects(
       confirmV1Deposit(f.pool, config, session, eventId, transport),
       /not confirmed/,

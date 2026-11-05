@@ -100,10 +100,18 @@ test("NEAR receiving readiness requires agreeing finalized token storage; setup 
   );
   offset += 16;
   assert.equal(offset, wire.length);
-  assert.equal(
-    new URL(request.walletUrl).searchParams.get("callbackUrl"),
-    `https://localhost:3444/events/${event}/commit`,
-  );
+  assert.equal(request.origin, "https://localhost:3444");
+  assert.deepEqual(request.walletTransaction.actions, [
+    {
+      type: "FunctionCall",
+      params: {
+        methodName: "storage_deposit",
+        gas: "30000000000000",
+        deposit: "1250000000000000000000",
+        args: { account_id: wallet.address, registration_only: true },
+      },
+    },
+  ]);
   min = "2500000000000000000000";
   await assert.rejects(
     prepareV1WalletPayment(
