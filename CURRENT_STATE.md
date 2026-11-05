@@ -39,3 +39,6 @@ there are no pending native transaction queues.
   host navigation pass. A clean clone installs/builds on pinned Node 24 and serves
   home/preview/database health with HTTP 200. The real-phone journey remains.
   Hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
+
+The owner-local app is verified at `https://localhost:3443`; this address works on
+the development computer. It is not a hosted phone-accessible deployment.

@@ -101,8 +101,8 @@ export default function Home() {
         <div className="scope-banner home-availability">
           <span className="status-dot" aria-hidden="true" />
           <p>
-            USDC deposits on NEAR are live in this private pilot. Base, Solana and Ethereum
-            deposits, and Ethereum NFT prizes, are still being verified.
+            USDC deposits on NEAR are live in this private pilot. Base, Solana and Ethereum deposits
+            now work end to end. Ethereum NFT prizes are still being verified.
           </p>
         </div>
         <footer className="home-footer">
