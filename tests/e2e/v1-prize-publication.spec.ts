@@ -30,6 +30,7 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
   })!;
   const signer = nativeKey(randomBytes(32)),
     block = encodeBase58(Buffer.alloc(32, 7));
+  const blockTime = Date.now() - 1000;
   const transport: typeof fetch = async (_url, options) => {
     const input = JSON.parse(String(options?.body));
     const result =
@@ -40,7 +41,7 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
               header: {
                 height: 100,
                 hash: block,
-                timestamp_nanosec: (BigInt(Date.now()) * 1000000n).toString(),
+                timestamp_nanosec: (BigInt(blockTime) * 1000000n).toString(),
               },
             }
           : {

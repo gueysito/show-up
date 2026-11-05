@@ -3,35 +3,45 @@ use near_primitives::transaction::{Action, Transaction};
 use serde_json::Value;
 
 #[test]
-fn v1_host_prize_payment_matches_pinned_near_wire_format() {
-    let vector: Value =
-        serde_json::from_str(include_str!("../fixtures/v1-prize-transaction.json")).unwrap();
-    let bytes = STANDARD
-        .decode(vector["unsignedBase64"].as_str().unwrap())
-        .unwrap();
-    let tx: Transaction = borsh::from_slice(&bytes).unwrap();
-    assert_eq!(tx.get_hash_and_size().0.to_string(), vector["hash"]);
-    assert_eq!(tx.signer_id().as_str(), "host.near");
-    assert_eq!(
-        tx.receiver_id().as_str(),
-        "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
-    );
-    assert_eq!(tx.nonce().nonce(), 9_007_199_254_740_993);
-    assert_eq!(tx.public_key().to_string(), vector["publicKey"]);
-    assert_eq!(tx.block_hash().to_string(), vector["blockHash"]);
-    assert_eq!(tx.actions().len(), 1);
-    let Action::FunctionCall(call) = &tx.actions()[0] else {
-        panic!("Fixed prize funding expected")
-    };
-    assert_eq!(call.method_name, "ft_transfer_call");
-    assert_eq!(call.gas.as_gas(), 100_000_000_000_000);
-    assert_eq!(call.deposit.as_yoctonear(), 1);
-    let args: Value = serde_json::from_slice(&call.args).unwrap();
-    assert_eq!(
-        args,
-        serde_json::json!({"receiver_id":"showup-dev-14989f.near","amount":"1250000","msg":"prize:1ff96e01-b3dd-439c-9762-a99ce5af7213"})
-    );
-    assert_eq!(borsh::to_vec(&tx).unwrap(), bytes);
+fn v1_native_usdc_payment_matches_pinned_near_wire_format() {
+    for (raw, prefix) in [
+        (
+            include_str!("../fixtures/v1-prize-transaction.json"),
+            "prize",
+        ),
+        (
+            include_str!("../fixtures/v1-deposit-transaction.json"),
+            "deposit",
+        ),
+    ] {
+        let vector: Value = serde_json::from_str(raw).unwrap();
+        let bytes = STANDARD
+            .decode(vector["unsignedBase64"].as_str().unwrap())
+            .unwrap();
+        let tx: Transaction = borsh::from_slice(&bytes).unwrap();
+        assert_eq!(tx.get_hash_and_size().0.to_string(), vector["hash"]);
+        assert_eq!(tx.signer_id().as_str(), "host.near");
+        assert_eq!(
+            tx.receiver_id().as_str(),
+            "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
+        );
+        assert_eq!(tx.nonce().nonce(), 9_007_199_254_740_993);
+        assert_eq!(tx.public_key().to_string(), vector["publicKey"]);
+        assert_eq!(tx.block_hash().to_string(), vector["blockHash"]);
+        assert_eq!(tx.actions().len(), 1);
+        let Action::FunctionCall(call) = &tx.actions()[0] else {
+            panic!("Fixed prize funding expected")
+        };
+        assert_eq!(call.method_name, "ft_transfer_call");
+        assert_eq!(call.gas.as_gas(), 100_000_000_000_000);
+        assert_eq!(call.deposit.as_yoctonear(), 1);
+        let args: Value = serde_json::from_slice(&call.args).unwrap();
+        assert_eq!(
+            args,
+            serde_json::json!({"receiver_id":"showup-dev-14989f.near","amount":"1250000","msg":format!("{prefix}:1ff96e01-b3dd-439c-9762-a99ce5af7213")})
+        );
+        assert_eq!(borsh::to_vec(&tx).unwrap(), bytes);
+    }
 }
 
 // The application encoder is independently decoded by the pinned native NEAR

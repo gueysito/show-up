@@ -6,10 +6,75 @@ import { databaseConfig } from "../src/server/config";
 import { canonicalHash, canonicalJson } from "../src/server/protocol/canonical";
 import { record } from "../src/server/protocol/quote-signature";
 import { ReadOnlyRpc, unsigned } from "../src/server/protocol/rpc";
-import { matchesV1Terms, readV1Snapshot, v1Deployment } from "../src/server/protocol/v1-escrow";
+import {
+  matchesV1Terms,
+  readV1Record,
+  readV1Snapshot,
+  v1Deployment,
+} from "../src/server/protocol/v1-escrow";
 import { runV1Publication, type V1PublicationGateway } from "../src/worker/v1-publication";
 import { signV1MainnetTransaction, type NativeAction } from "./lib/native-engineering-transaction";
 import { loadV1MainnetKey } from "./lib/v1-mainnet-key";
+import { runV1Registration } from "../src/worker/v1-registration";
+import type { V1RegistrationGateway } from "../src/worker/v1-registration";
+import { AppFailure } from "../src/server/http/security";
+
+export async function signV1OwnerCalls(
+  snapshot: Awaited<ReturnType<typeof readV1Snapshot>>,
+  actions: NativeAction[],
+) {
+  const client = new ReadOnlyRpc("near-fastnear");
+  const protocol = record(
+    await client.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }),
+  );
+  if (
+    protocol.chain_id !== "mainnet" ||
+    protocol.protocol_version !== 87 ||
+    unsigned(record(protocol.runtime_config).min_gas_purchase_price) > 1_000_000_000n
+  )
+    throw new Error("V1 gas purchase policy changed");
+  const keys = await Promise.all(
+    ["near-fastnear", "near-drpc"].map(async (id) => {
+      const rpc = new ReadOnlyRpc(id),
+        params = { account_id: v1Deployment.owner, block_id: snapshot.block.hash };
+      const [account, list] = await Promise.all([
+        rpc.read("query", { ...params, request_type: "view_account" }),
+        rpc.read("query", { ...params, request_type: "view_access_key_list" }),
+      ]);
+      for (const value of [account, list])
+        if (
+          record(value).block_hash !== snapshot.block.hash ||
+          String(record(value).block_height) !== snapshot.block.height
+        )
+          throw new Error("V1 signer query block mismatch");
+      const entries = record(list).keys;
+      if (
+        !Array.isArray(entries) ||
+        entries.length !== 1 ||
+        record(entries[0]).public_key !== v1Deployment.publicKey ||
+        record(record(entries[0]).access_key).permission !== "FullAccess" ||
+        record(account).code_hash !== "1".repeat(32) ||
+        unsigned(record(account).amount, 128) < 200_000_000_000_000_000_000_000n
+      )
+        throw new Error("V1 signer authority or gas reserve changed");
+      return unsigned(record(record(entries[0]).access_key).nonce, 64).toString();
+    }),
+  );
+  if (keys[0] !== keys[1]) throw new Error("V1 nonce sources disagree");
+  return {
+    ...signV1MainnetTransaction(
+      {
+        signer: v1Deployment.owner,
+        receiver: v1Deployment.account,
+        blockHash: snapshot.block.hash,
+        nonce: (BigInt(keys[0]) + 1n).toString(),
+        actions,
+      },
+      await loadV1MainnetKey(),
+    ),
+    validUntilMs: Date.now() + 120000,
+  };
+}
 
 export function v1PublicationGateway(): V1PublicationGateway {
   const client = new ReadOnlyRpc("near-fastnear");
@@ -27,43 +92,6 @@ export function v1PublicationGateway(): V1PublicationGateway {
           !matchesV1Terms(snapshot.event, image.terms))
       )
         throw new Error("V1 exact prize funding is not confirmed");
-      const protocol = record(
-        await client.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }),
-      );
-      if (
-        protocol.chain_id !== "mainnet" ||
-        protocol.protocol_version !== 87 ||
-        unsigned(record(protocol.runtime_config).min_gas_purchase_price) > 1_000_000_000n
-      )
-        throw new Error("V1 gas purchase policy changed");
-      const keys = await Promise.all(
-        ["near-fastnear", "near-drpc"].map(async (id) => {
-          const rpc = new ReadOnlyRpc(id),
-            params = { account_id: v1Deployment.owner, block_id: snapshot.block.hash };
-          const [account, list] = await Promise.all([
-            rpc.read("query", { ...params, request_type: "view_account" }),
-            rpc.read("query", { ...params, request_type: "view_access_key_list" }),
-          ]);
-          for (const value of [account, list])
-            if (
-              record(value).block_hash !== snapshot.block.hash ||
-              String(record(value).block_height) !== snapshot.block.height
-            )
-              throw new Error("V1 signer query block mismatch");
-          const entries = record(list).keys;
-          if (
-            !Array.isArray(entries) ||
-            entries.length !== 1 ||
-            record(entries[0]).public_key !== v1Deployment.publicKey ||
-            record(record(entries[0]).access_key).permission !== "FullAccess" ||
-            record(account).code_hash !== "1".repeat(32) ||
-            unsigned(record(account).amount, 128) < 200_000_000_000_000_000_000_000n
-          )
-            throw new Error("V1 signer authority or gas reserve changed");
-          return unsigned(record(record(entries[0]).access_key).nonce, 64).toString();
-        }),
-      );
-      if (keys[0] !== keys[1]) throw new Error("V1 nonce sources disagree");
       const actions: NativeAction[] = [
         {
           kind: "call",
@@ -82,16 +110,7 @@ export function v1PublicationGateway(): V1PublicationGateway {
       ];
       const selected =
         phase === "atomic" ? actions : phase === "create" ? [actions[0]] : [actions[1]];
-      const signed = signV1MainnetTransaction(
-        {
-          signer: v1Deployment.owner,
-          receiver: v1Deployment.account,
-          blockHash: snapshot.block.hash,
-          nonce: (BigInt(keys[0]) + 1n).toString(),
-          actions: selected,
-        },
-        await loadV1MainnetKey(),
-      );
+      const signed = await signV1OwnerCalls(snapshot, selected);
       return {
         ...signed,
         semantic: canonicalHash(image.terms),
@@ -161,6 +180,56 @@ export function v1PublicationGateway(): V1PublicationGateway {
   };
 }
 
+export function v1RegistrationGateway(): V1RegistrationGateway {
+  const native = v1PublicationGateway();
+  return {
+    submit: native.submit,
+    final: native.final,
+    async prepare(image) {
+      const snapshot = await readV1Snapshot(image.eventId);
+      if (
+        !snapshot.event ||
+        snapshot.event.status !== "published" ||
+        snapshot.event.deposit !== image.amount ||
+        snapshot.event.start_ms !== image.startMs ||
+        snapshot.block.timestampMs >= image.startMs ||
+        snapshot.event.sponsor === image.payout ||
+        snapshot.event.sponsor === image.sender
+      )
+        throw new AppFailure(409, "Registration live event terms changed");
+      if (await readV1Record("get_registration", image.id, snapshot.block))
+        throw new Error("Registration already exists; reconcile original image");
+      return {
+        ...(await signV1OwnerCalls(snapshot, [
+          {
+            kind: "call",
+            method: "register",
+            args: Buffer.from(
+              canonicalJson({
+                id: image.id,
+                event: image.eventId,
+                sender: image.sender,
+                payout: image.payout,
+                ethereum: null,
+              }),
+            ),
+            gas: "30000000000000",
+            deposit: "0",
+          },
+        ])),
+        semantic: canonicalHash(image),
+      };
+    },
+    async observe(image) {
+      const snapshot = await readV1Snapshot(image.eventId);
+      return {
+        snapshot,
+        registration: await readV1Record("get_registration", image.id, snapshot.block),
+      };
+    },
+  };
+}
+
 async function main() {
   const args = process.argv.slice(2);
   if (
@@ -198,6 +267,20 @@ async function main() {
       } catch {
         console.error(
           "Publication retained for original-hash reconciliation. No replacement nonce or automatic resend.",
+        );
+        if (!args.includes("--watch")) process.exitCode = 1;
+      }
+      try {
+        const registration = await runV1Registration(
+          pool,
+          env.SHOWUP_IDENTITY_KEY!,
+          v1RegistrationGateway(),
+        );
+        if (!["idle", "busy"].includes(registration.state))
+          console.log(JSON.stringify(registration));
+      } catch {
+        console.error(
+          "Registration retained for original-hash reconciliation. No replacement nonce or automatic resend.",
         );
         if (!args.includes("--watch")) process.exitCode = 1;
         else await pause(30_000);

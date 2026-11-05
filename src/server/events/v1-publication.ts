@@ -316,6 +316,7 @@ export async function readV1PublicationState(
 }
 
 export type V1PublicEscrow = {
+  sponsor: string;
   account: string;
   transactionUrl: string;
   height: string;
@@ -351,6 +352,7 @@ export async function readV1PublishedTerms(
     throw new AppFailure(503, "Live event temporarily unavailable. Retry shortly.");
   const terms = image.terms;
   return {
+    sponsor: terms.sponsor,
     account: v1Deployment.account,
     transactionUrl: v1TransactionUrl(row.transaction_hash!),
     height: snapshot.block.height,

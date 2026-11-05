@@ -8,6 +8,7 @@ import {
   nativeKey,
   nativeTransaction,
   v1PrizeFundingTransaction,
+  v1DepositFundingTransaction,
   signNativeTransaction,
   type NativeAction,
 } from "../../scripts/lib/native-engineering-transaction";
@@ -19,6 +20,23 @@ import {
 } from "../../scripts/native-engineering-run";
 import { canonicalHash } from "../../src/server/protocol/canonical";
 import { RpcCooldown } from "../../src/server/protocol/rpc";
+
+test("attendee deposit wire vector fixes the native token, escrow and registration prefix", async () => {
+  const vector = JSON.parse(
+    await readFile(
+      new URL(
+        "../../contracts/sandbox-tests/fixtures/v1-deposit-transaction.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  const tx = v1DepositFundingTransaction(vector);
+  assert.equal(tx.bytes.toString("base64"), vector.unsignedBase64);
+  assert.equal(tx.hash, vector.hash);
+  assert.notEqual(tx.hash, v1PrizeFundingTransaction(vector).hash);
+  assert.throws(() => v1DepositFundingTransaction({ ...vector, eventId: "deposit:forged" }));
+});
 
 test("host prize payment matches the independently decoded fixed USDC transfer vector", async () => {
   const vector = JSON.parse(

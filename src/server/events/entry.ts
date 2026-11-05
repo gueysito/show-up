@@ -119,7 +119,10 @@ export async function readEventEntry(
     ...entry,
     escrow,
     state: escrow.status,
-    registration: "closed",
+    registration:
+      escrow.status === "published" && Date.parse(escrow.startsAt) > Date.now()
+        ? "verification_required"
+        : "closed",
     data: {
       ...entry.data,
       title: escrow.title,

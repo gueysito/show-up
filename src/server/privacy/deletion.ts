@@ -88,7 +88,7 @@ export async function requestAccountDeletion(
     // paid flag. Keep the original proof/credential until qualified reconciliation.
     const financial = (
       await client.query(
-        "SELECT 1 FROM app_commitment_consents WHERE account_id=$1 AND authorized_at IS NOT NULL LIMIT 1",
+        "SELECT 1 FROM app_commitment_consents WHERE account_id=$1 AND authorized_at IS NOT NULL UNION ALL SELECT 1 FROM app_v1_registrations WHERE account_id=$1 LIMIT 1",
         [actor.id],
       )
     ).rowCount;

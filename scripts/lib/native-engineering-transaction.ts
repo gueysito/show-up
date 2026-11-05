@@ -132,6 +132,19 @@ export function v1PrizeFundingTransaction(input: {
   eventId: string;
   amount: string;
 }) {
+  return v1TokenFundingTransaction(input, "prize");
+}
+
+export function v1DepositFundingTransaction(
+  input: Parameters<typeof v1PrizeFundingTransaction>[0],
+) {
+  return v1TokenFundingTransaction(input, "deposit");
+}
+
+function v1TokenFundingTransaction(
+  input: Parameters<typeof v1PrizeFundingTransaction>[0],
+  purpose: "prize" | "deposit",
+) {
   if (
     !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(input.eventId) ||
     !/^[1-9][0-9]*$/.test(input.amount) ||
@@ -152,7 +165,7 @@ export function v1PrizeFundingTransaction(input: {
             canonicalJson({
               receiver_id: v1Deployment.account,
               amount: input.amount,
-              msg: `prize:${input.eventId}`,
+              msg: `${purpose}:${input.eventId}`,
             }),
           ),
         },

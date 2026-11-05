@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { CommitmentWalletReview } from "../../../../components/access/commitment-review";
+import { V1Deposit } from "../../../../components/access/v1-deposit";
 import { authConfig } from "../../../../server/auth/config";
 import { findSession, sessionCookie } from "../../../../server/auth/sessions";
 import { hash, identityIndex } from "../../../../server/auth/crypto";
@@ -63,6 +64,13 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
             Review existing authorizations and recovery
           </Link>
         </>
+      ) : event.escrow ? (
+        <V1Deposit
+          eventId={id}
+          rulesHash={event.rulesHash}
+          amount={event.data.commitment}
+          wallets={wallets}
+        />
       ) : (
         <>
           <p>{`${event.data.commitment} USDC principal · ${event.data.mode === "digital" ? "Online" : "In person"} · registration closes at the event start.`}</p>

@@ -2,16 +2,8 @@ import type pg from "pg";
 import type { AuthConfig } from "../auth/config";
 import { hasRole, mutate } from "../auth/mutations";
 import { AppFailure } from "../http/security";
-import { canonicalJson } from "../protocol/canonical";
-import { record } from "../protocol/quote-signature";
-import { ReadOnlyRpc, unsigned } from "../protocol/rpc";
-import {
-  matchesV1Terms,
-  readV1Snapshot,
-  v1Deployment,
-  type V1Snapshot,
-} from "../protocol/v1-escrow";
-import { v1PrizeFundingTransaction } from "../../../scripts/lib/native-engineering-transaction";
+import { matchesV1Terms, readV1Snapshot, type V1Snapshot } from "../protocol/v1-escrow";
+import { prepareV1WalletPayment } from "../protocol/v1-wallet-payment";
 import {
   ownedV1Sponsor,
   readV1PublicationState,
@@ -61,88 +53,16 @@ export async function prepareV1PrizeFunding(
       409,
       "The prize has arrived. Confirm prize funding to publish; do not pay again.",
     );
-  const facts = await Promise.all(
-    ["near-fastnear", "near-drpc"].map(async (id) => {
-      const client = new ReadOnlyRpc(id, transport),
-        signal = AbortSignal.timeout(20_000);
-      async function query(account_id: string, request_type: string, extra: object = {}) {
-        const value = record(
-          await client.read(
-            "query",
-            { account_id, request_type, block_id: snapshot.block.hash, ...extra },
-            signal,
-          ),
-        );
-        if (
-          value.block_hash !== snapshot.block.hash ||
-          String(value.block_height) !== snapshot.block.height
-        )
-          throw new Error("Prize wallet query block mismatch");
-        return value;
-      }
-      const [account, access, balance, protocol] = await Promise.all([
-        query(wallet.address, "view_account"),
-        query(wallet.address, "view_access_key", { public_key: wallet.publicKey }),
-        query(v1Deployment.token, "call_function", {
-          method_name: "ft_balance_of",
-          args_base64: Buffer.from(canonicalJson({ account_id: wallet.address })).toString(
-            "base64",
-          ),
-        }),
-        client.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }, signal),
-      ]);
-      const bytes = balance.result;
-      if (
-        !Array.isArray(bytes) ||
-        bytes.length > 128 ||
-        bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
-      )
-        throw new Error("Prize balance encoding");
-      const usdc: unknown = JSON.parse(Buffer.from(bytes).toString("utf8"));
-      if (access.permission !== "FullAccess")
-        throw new AppFailure(403, "Reverify a current full-access key for your funding wallet.");
-      if (
-        unsigned(account.amount, 128) < 160_000_000_000_000_000_000_000n ||
-        unsigned(usdc, 128) < BigInt(image.terms.prize)
-      )
-        throw new AppFailure(
-          422,
-          "Your funding wallet needs the exact USDC prize and a separate NEAR gas reserve.",
-        );
-      if (
-        record(protocol).chain_id !== "mainnet" ||
-        record(protocol).protocol_version !== 87 ||
-        unsigned(record(record(protocol).runtime_config).min_gas_purchase_price) > 1_000_000_000n
-      )
-        throw new Error("Prize gas purchase policy changed");
-      return unsigned(access.nonce, 64).toString();
-    }),
+  return prepareV1WalletPayment(
+    config,
+    snapshot,
+    wallet,
+    eventId,
+    eventId,
+    image.terms.prize,
+    "prize",
+    transport,
   );
-  if (facts[0] !== facts[1]) throw new Error("Prize wallet sources disagree");
-  const tx = v1PrizeFundingTransaction({
-    signer: wallet.address,
-    publicKey: wallet.publicKey,
-    nonce: (BigInt(facts[0]) + 1n).toString(),
-    blockHash: snapshot.block.hash,
-    eventId,
-    amount: image.terms.prize,
-  });
-  const callback = new URL("/host", config.origin);
-  callback.searchParams.set("event", eventId);
-  const url = new URL("https://app.mynearwallet.com/sign");
-  url.searchParams.set("transactions", tx.bytes.toString("base64"));
-  url.searchParams.set("callbackUrl", callback.href);
-  return {
-    eventId,
-    signer: wallet.address,
-    amountAtomic: image.terms.prize,
-    token: v1Deployment.token,
-    unsignedBase64: tx.bytes.toString("base64"),
-    hash: tx.hash,
-    walletUrl: url.href,
-    maximumGasYoctoNear: "160000000000000000000000",
-    attachedYoctoNear: "1",
-  };
 }
 
 function requirePrizeEvent(

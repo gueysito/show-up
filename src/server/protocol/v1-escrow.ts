@@ -88,3 +88,48 @@ export async function readV1Snapshot(
   if (events[0] && events[0].id !== eventId) throw new Error("V1 event mismatch");
   return { block: finality.block, event: events[0] };
 }
+
+export async function readV1Record(
+  method: "get_registration" | "get_claim",
+  id: string,
+  block: FinalizedHeader,
+  transport: typeof fetch = fetch,
+) {
+  if (!/^[a-z0-9:-]{1,132}$/.test(id)) throw new Error("Invalid V1 record reference");
+  const values = await Promise.all(
+    ["near-fastnear", "near-drpc"].map(async (endpoint) => {
+      const result = record(
+        await new ReadOnlyRpc(endpoint, transport).read(
+          "query",
+          {
+            request_type: "call_function",
+            account_id: v1Deployment.account,
+            block_id: block.hash,
+            method_name: method,
+            args_base64: Buffer.from(
+              canonicalJson({ [method === "get_registration" ? "registration" : "claim"]: id }),
+            ).toString("base64"),
+          },
+          AbortSignal.timeout(20000),
+        ),
+      );
+      if (
+        result.block_hash !== block.hash ||
+        unsigned(result.block_height, 64).toString() !== block.height
+      )
+        throw new Error("V1 record block mismatch");
+      const bytes = result.result;
+      if (
+        !Array.isArray(bytes) ||
+        bytes.length > 8192 ||
+        bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
+      )
+        throw new Error("V1 record encoding");
+      const parsed: unknown = JSON.parse(Buffer.from(bytes).toString("utf8"));
+      return parsed === null ? null : record(parsed);
+    }),
+  );
+  if (canonicalJson(values[0]) !== canonicalJson(values[1]))
+    throw new Error("V1 record sources disagree");
+  return values[0];
+}

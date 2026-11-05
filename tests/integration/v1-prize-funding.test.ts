@@ -36,6 +36,7 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
   const signer = nativeKey(randomBytes(32)),
     address = "host.near",
     blockHash = encodeBase58(Buffer.alloc(32, 7));
+  const blockTime = Date.now() - 1000;
   const source: typeof fetch = async (_url, options) => {
     const input = JSON.parse(String(options?.body));
     const result =
@@ -46,7 +47,7 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
               header: {
                 height: 100,
                 hash: blockHash,
-                timestamp_nanosec: (BigInt(Date.now() - 1000) * 1000000n).toString(),
+                timestamp_nanosec: (BigInt(blockTime) * 1000000n).toString(),
               },
             }
           : {

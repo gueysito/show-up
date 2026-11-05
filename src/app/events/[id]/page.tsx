@@ -130,15 +130,21 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <section aria-label="Event participation" className="saved-panel">
         <h2>{event.registration === "closed" ? "Registration closed" : "Review participation"}</h2>
         <p role="status">
-          {event.escrow && event.escrow.status === "published"
-            ? "This event is published. Attendee deposits are not open yet; no seat is reserved."
+          {event.escrow && event.registration !== "closed"
+            ? "USDC deposits on NEAR are open. Review your wallet, deposit and gas before approving payment."
             : event.registration === "closed"
               ? "Deposits are closed. Existing authorizations and recovery remain available."
               : "Deposits are closed while attributable escrow, authorized returns and route qualification remain unverified. No seat is reserved by this page."}
         </p>
-        <button type="button" className="primary-button" disabled>
-          Deposits closed
-        </button>
+        {event.escrow && event.viewer === "attendee" && event.registration !== "closed" ? (
+          <Link className="primary-button" href={`/events/${id}/commit`} prefetch={false}>
+            Deposit USDC on NEAR
+          </Link>
+        ) : (
+          <button type="button" className="primary-button" disabled>
+            Deposits closed
+          </button>
+        )}
         {event.viewer === "anonymous" ? (
           <>
             <p>

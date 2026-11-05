@@ -43,6 +43,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       telegramAttendancePrompts,
       publicationImages,
       releaseRequests,
+      v1Registrations,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -168,9 +169,14 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
         "SELECT operation_id,consent_id,image_hash,expires_at,created_at FROM app_commitment_releases WHERE account_id=$1 ORDER BY created_at,operation_id",
         [actor.id],
       ),
+      await client.query(
+        "SELECT id,event_id,state,transaction_hash,source_height::text,funding_height::text,created_at FROM app_v1_registrations WHERE account_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
     ];
     return {
       format: "showup.own-data.v1",
+      mainnetRegistrations: v1Registrations.rows,
       exportedAt: new Date().toISOString(),
       account: { id: actor.id, state: actor.state, createdAt: actor.createdAt.toISOString() },
       linkedIdentities: identities.rows.map((row) => {
