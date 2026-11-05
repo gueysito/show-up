@@ -307,8 +307,9 @@ network and a wallet app:
 
 - Base/Ethereum: select the network and tap your wallet. When a WalletConnect
   project is configured, Rabby can approve the connection and sign the message
-  while Showup stays signed in in the original browser. Use **Open Rabby to
-  connect**, then **Open Rabby to sign** if prompted. Review the host, address,
+  while Showup stays signed in in the original browser. Showup tries to open the
+  wallet while the tap is active. Use **Open Rabby to connect**, then **Open Rabby
+  to sign** if prompted. Switch back to Showup after signing. Review the host, address,
   chain, nonce and expiry before signing. If a wallet opens Showup in its own
   browser, sign in to the same account there if prompted.
   Contract wallets are not verified in this pilot.

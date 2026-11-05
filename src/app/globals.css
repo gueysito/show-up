@@ -355,6 +355,22 @@ main {
   border-color: var(--ink);
   background: var(--accent);
 }
+.wallet-approval {
+  border: 1px solid var(--ink);
+  border-radius: 5px;
+  padding: 14px;
+}
+.wallet-approval p {
+  margin: 6px 0 0;
+}
+.wallet-approval .saved-actions {
+  align-items: center;
+  margin-top: 4px;
+}
+.wallet-approval .primary-button {
+  width: auto;
+  text-decoration: none;
+}
 @media (max-width: 540px) {
   .wallet-picker fieldset:first-child {
     display: grid;

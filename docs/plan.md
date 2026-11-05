@@ -164,11 +164,11 @@ approval, and the pilot database confirmed both saved NEAR wallets. The wallet
 page shows branded network and wallet choices, resumes the selected network in
 supported mobile apps, and retries an uncertain save with the original proof.
 Isolated browser checks cover the picker, app handoff and recovery. Android
-Base and Ethereum message verification comes next. The Android Rabby link opened
-its in-app browser with a separate sign-in session. The configured WalletConnect
-relay now saves Base and Ethereum proofs in the original Chrome session with a
-disposable wallet. It requests only a verification message on the chosen
-network. Real Rabby approval on Android remains. Safari can follow separately.
+Base approval with Rabby succeeded on Android and stayed saved after Chrome
+refreshed. Both EVM networks passed through the WalletConnect relay with a
+disposable wallet. Showup tries opening Rabby while Chrome still recognizes the
+tap and highlights each approval step when a tap is needed. Rabby requires a
+manual return after signing a message. Ethereum on Android and Safari remain.
 
 V1-9 phone check: Google and Telegram sign-in passed on the phone. On Android,
 the app-opening link opened Showup in Phantom, Solana approval saved one verified

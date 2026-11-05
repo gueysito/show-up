@@ -22,6 +22,6 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 
 ## Remaining
 
-- V1-9: verify Base and Ethereum on Android, then check Safari app links. The configured WalletConnect relay verified both networks in the original Chrome session with a disposable wallet. Real Rabby approval on the phone remains.
+- V1-9: real Android Rabby verification saved Base in the original Chrome session and survived refresh. Ethereum passed through the relay with a disposable wallet. Verify Ethereum on Android, then check Safari app links.
 - Permanent hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 - GitHub CI requires account billing attention. Continue using local checks.

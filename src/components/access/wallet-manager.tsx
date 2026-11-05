@@ -114,6 +114,7 @@ export function WalletManager({
   const [launchLink, setLaunchLink] = useState<{ app: MobileWallet; href: string } | null>(null);
   const [rabbyPrompt, setRabbyPrompt] = useState<RabbyPrompt | null>(null);
   const rabbyAttempt = useRef<AbortController | null>(null);
+  const rabbyLink = useRef<HTMLAnchorElement>(null);
   const [retry, setRetry] = useState(false);
   const pending = useRef<ProofRequest | null>(null);
   const [returnReady, setReturnReady] = useState(Boolean(returnChallengeId));
@@ -134,6 +135,9 @@ export function WalletManager({
     return () => window.removeEventListener("eip6963:announceProvider", announced);
   }, []);
   useEffect(() => () => rabbyAttempt.current?.abort(), []);
+  useEffect(() => {
+    if (rabbyPrompt && document.visibilityState === "visible") rabbyLink.current?.focus();
+  }, [rabbyPrompt]);
 
   async function save(request: ProofRequest) {
     pending.current = request;
@@ -300,12 +304,24 @@ export function WalletManager({
         } else if (app === "rabby" && walletConnectProjectId && openedWallet !== app) {
           const controller = new AbortController();
           rabbyAttempt.current = controller;
+          const tappedOnAndroid =
+            /Android/i.test(navigator.userAgent) && navigator.userActivation?.isActive;
           setNotice({ error: false, text: "Preparing a connection to Rabby…" });
           rabby = await connectRabby(
             walletConnectProjectId,
             network,
             AbortSignal.any([controller.signal, AbortSignal.timeout(300_000)]),
-            setRabbyPrompt,
+            (prompt) => {
+              setNotice(null);
+              setRabbyPrompt(prompt);
+              if (
+                tappedOnAndroid &&
+                navigator.userActivation?.isActive &&
+                document.visibilityState === "visible"
+              ) {
+                window.location.assign(prompt.href);
+              }
+            },
           );
           setRabbyPrompt(null);
           setNotice({ error: false, text: "Preparing your verification message…" });
@@ -473,14 +489,21 @@ export function WalletManager({
         </div>
       )}
       {rabbyPrompt && (
-        <div className="field">
-          <p>
-            {rabbyPrompt.step === "connect"
-              ? "Choose your account in Rabby, approve the connection, then return here."
-              : "Approve the verification message in Rabby, then return here."}
-          </p>
+        <div className="field wallet-approval">
+          <div role="status">
+            <strong>
+              {rabbyPrompt.step === "connect"
+                ? "Step 1 of 2 · Connect Rabby"
+                : "Step 2 of 2 · Sign the message"}
+            </strong>
+            <p>
+              {rabbyPrompt.step === "connect"
+                ? "Open Rabby, choose your account, and approve the connection. Then switch back here."
+                : "Open Rabby and sign the Showup message. Then switch back here to see your saved wallet."}
+            </p>
+          </div>
           <div className="saved-actions">
-            <a className="secondary-button" href={rabbyPrompt.href}>
+            <a className="primary-button" href={rabbyPrompt.href} ref={rabbyLink}>
               {rabbyPrompt.step === "connect" ? "Open Rabby to connect" : "Open Rabby to sign"}
             </a>
             <button
@@ -493,7 +516,9 @@ export function WalletManager({
           </div>
         </div>
       )}
-      {busy && !notice && <p role="status">Waiting for your wallet or checking its proof…</p>}
+      {busy && !notice && !rabbyPrompt && (
+        <p role="status">Waiting for your wallet or checking its proof…</p>
+      )}
       {returnReady && (
         <p role="status">
           Your wallet returned to Showup. Finish verification to check and save its proof.
