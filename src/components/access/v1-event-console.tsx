@@ -280,7 +280,9 @@ export function V1EventConsole({
                 )}
               {terminal && (
                 <>
-                  <h3>{view.winner ? "You won the draw" : "Your result"}</h3>
+                  <h3 className={view.winner ? "draw-reveal" : undefined}>
+                    {view.winner ? "You won the draw" : "Your result"}
+                  </h3>
                   <dl>
                     <dt>Deposit returned</dt>
                     <dd>{formatUsdc(BigInt(view.principal ?? "0")) + " USDC"}</dd>

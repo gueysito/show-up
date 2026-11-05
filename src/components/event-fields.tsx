@@ -9,7 +9,7 @@ type Props = {
   change: <K extends keyof EventDraft>(key: K, value: EventDraft[K]) => void;
 };
 
-export function DetailsFields({ draft, errors, change }: Props) {
+export function DetailsFields({ draft, errors, change, v1 = false }: Props) {
   return (
     <section className="form-section" id="details">
       <div className="section-title">
@@ -51,7 +51,9 @@ export function DetailsFields({ draft, errors, change }: Props) {
               onChange={(e) => change("mode", e.target.value as EventDraft["mode"])}
             >
               <option value="digital">Online · live code</option>
-              <option value="physical">In person · staff QR</option>
+              <option value="physical">
+                {v1 ? "In person · live code" : "In person · staff QR"}
+              </option>
             </select>
           )}
         </Field>
@@ -88,7 +90,11 @@ export function DetailsFields({ draft, errors, change }: Props) {
         <Field
           name="venue"
           label="Venue and proof instructions"
-          hint="Plan a personal QR check-in. Invite validators from the saved event before publication."
+          hint={
+            v1
+              ? "Share the host's live check-in code with people who are there."
+              : "Plan a personal QR check-in. Invite validators from the saved event before publication."
+          }
           errors={errors}
         >
           {(attrs) => (

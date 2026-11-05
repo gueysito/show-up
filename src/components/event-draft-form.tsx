@@ -22,14 +22,16 @@ const workspaceHeaders = { "x-showup-harness": "1", "content-type": "application
 export function EventDraftForm({
   persistence = false,
   account = false,
+  v1 = account,
 }: {
   persistence?: boolean;
   account?: boolean;
+  v1?: boolean;
 }) {
   const api = account ? "/api/events" : "/api/dev/drafts";
   const headers = account ? accountHeaders : workspaceHeaders;
   const newDraft = () =>
-    account
+    v1
       ? {
           ...structuredClone(emptyDraft),
           capacity: 64,
@@ -109,7 +111,7 @@ export function EventDraftForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     setConfirmation(null);
-    const result = validateDraft(draft, Date.now(), account ? "v1" : "v2");
+    const result = validateDraft(draft, Date.now(), v1 ? "v1" : "v2");
     if (!result.ok) {
       showErrors(result.errors);
       setStatus("Review the highlighted fields. Your entries are preserved.");
@@ -285,7 +287,11 @@ export function EventDraftForm({
                   ? "Isolated development harness. Drafts save to this browser workspace for 24 hours of access. Use fictional event details only."
                   : "Plan and validate an event. This preview stays on this page and is lost on refresh."}
             </span>
-            <span> Publication and funding are unavailable.</span>
+            <span>
+              {account
+                ? " Saved events can be published to mainnet after prize funding."
+                : " Publication and funding are unavailable in this preview."}
+            </span>
           </p>
         </div>
         <p>
@@ -343,9 +349,9 @@ export function EventDraftForm({
                 </div>
               )}
               <fieldset className="material-fields" disabled={busy || locked}>
-                <DetailsFields draft={draft} errors={errors} change={change} />
-                <CommitmentFields draft={draft} errors={errors} change={change} v1={account} />
-                <ParticipationFields draft={draft} errors={errors} change={change} v1={account} />
+                <DetailsFields draft={draft} errors={errors} change={change} v1={v1} />
+                <CommitmentFields draft={draft} errors={errors} change={change} v1={v1} />
+                <ParticipationFields draft={draft} errors={errors} change={change} v1={v1} />
               </fieldset>
               <div className="form-footer">
                 <p role="status" aria-live="polite">
@@ -472,7 +478,7 @@ export function EventDraftForm({
               />
             )}
           </div>
-          <RulePreview draft={draft} state={identity?.state} v1={account} />
+          <RulePreview draft={draft} state={identity?.state} v1={v1} />
         </div>
         <footer className="page-footer">
           <span className="brand">showup.</span>

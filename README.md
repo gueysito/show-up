@@ -59,7 +59,10 @@ remains unverified.
 
 ## Run it locally
 
-See [setup](docs/setup.md). The full product vision is in the [PRD](docs/prd.md).
+See [setup](docs/setup.md). The home page explains the loop; `/preview` lets anyone
+try the V1 rules without saving or funding an event. `/host` uses authenticated host
+access, and attendees follow their event's invitation link.
+The full product vision is in the [PRD](docs/prd.md).
 Project wallet addresses (no keys) are in [development wallets](docs/development-wallets.md).
 
 ## Repository checks

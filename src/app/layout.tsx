@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Showup | Event workspace",
-  description: "Prepare the rules for a commitment worth keeping.",
+  title: "Showup | Make showing up mean something",
+  description:
+    "Turn an RSVP into a refundable commitment. Show up, check in, and get your deposit back.",
   robots: { index: false, follow: false },
 };
 

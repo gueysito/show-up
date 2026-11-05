@@ -181,8 +181,8 @@ function V1RulePreview({ draft, state }: { draft: EventDraft; state: string }) {
         </p>
       </div>
       <div className="preview-section">
-        <h3>{draft.mode === "digital" ? "Live-code check-in" : "Staff-validated QR"}</h3>
-        <p className="preview-note">{`${draft.capacity} seats. ${draft.mode === "digital" ? "Use the host's live code during the event." : "An assigned validator scans your personal QR during the event."}`}</p>
+        <h3>Live-code check-in</h3>
+        <p className="preview-note">{`${draft.capacity} seats. Use the host's live code during the event, online or in person.`}</p>
       </div>
       <div className="preview-section">
         <h3>Optional prize</h3>
@@ -192,7 +192,7 @@ function V1RulePreview({ draft, state }: { draft: EventDraft; state: string }) {
         <summary>Refunds, fees and access</summary>
         <p className="preview-note">
           Refunds are USDC on NEAR. Cancellation before settlement returns attendee deposits;
-          network costs remain costs. Deposits are not open yet.
+          network costs remain costs. Deposits open only after confirmed publication.
         </p>
         <p className="preview-note">
           {`${draft.access === "open" ? "Anyone can view the public event page." : "The event page requires an invitation or existing event access."} Published material terms are locked.`}

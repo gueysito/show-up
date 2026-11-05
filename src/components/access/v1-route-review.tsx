@@ -285,7 +285,7 @@ export function V1RouteReview({
             </>
           )}
           {paid && (
-            <p role="status">
+            <p role="status" className="routing-status">
               Source payment was requested. Check routing and escrow; do not send another payment.
             </p>
           )}

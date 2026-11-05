@@ -20,7 +20,7 @@ Working rules are in [AGENTS.md](AGENTS.md).
 
 Checks use preauthenticated engineering accounts and isolated project-wallet
 approval. External wallet UI, a fresh provider login and a real phone remain to verify.
-123 unit, 195 database and 47 ordinary browser cases plus build/code checks pass.
+123 unit, 195 database and 48 ordinary browser cases plus build/code checks pass.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
 
 ## Remaining
@@ -32,5 +32,6 @@ GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
   delivery are implemented locally. Both mainnet RPCs verify the MPC key format;
   synthetic browser/DB cases pass. BasedHeads #2829 still needs its owner's wallet
   transfer and a real mainnet custody/release round trip.
-- V1-9: finish the front door/mobile polish and real-phone journey. Hosting and
-  merging require owner approval. V1-8 source-chain returns remain stretch.
+- V1-9: front door and V1 preview run locally; desktop/390/320 layouts and real
+  host navigation pass. Fresh-clone setup and the real-phone journey remain.
+  Hosting and merging require owner approval. V1-8 source-chain returns remain stretch.

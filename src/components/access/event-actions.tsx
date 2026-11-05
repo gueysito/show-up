@@ -224,7 +224,7 @@ export function EventActions({
       </h2>
       <p>
         Publishing locks the saved event terms in the NEAR escrow. The project pays network gas.
-        Attendee deposits are not open yet.
+        Attendee deposits open after the contract confirms publication.
       </p>
       {state !== "published" && (
         <div>
