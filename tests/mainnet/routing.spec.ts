@@ -227,7 +227,7 @@ test("a source wallet routes one real USDC through its isolated Intents account,
     await f.enter(context, 1);
     await page.goto(`/events/${eventId}/commit`);
     const panel = page.getByRole("region", { name: "NEAR USDC deposit" });
-    await panel.getByLabel("Pay from wallet").selectOption(source.id);
+    await panel.getByLabel("Deposit Wallet").selectOption(source.id);
     await panel.getByRole("checkbox").check();
     await panel.getByRole("button", { name: "Prepare my deposit" }).click();
     await expect(panel.getByRole("status")).toContainText("Registration queued");

@@ -153,6 +153,8 @@ the app-opening link opened Showup in Phantom, Solana approval saved one verifie
 wallet, and it stayed saved after refresh. The [standard Solana chain label](https://github.com/phantom/sign-in-with-solana#specification)
 fix preserves the pinned genesis ID and exact signature verification. iPhone
 Safari app-link testing and a real phone payment remain.
+The deposit form labels the paying account **Deposit Wallet** and the account
+receiving NEAR USDC **Payout Withdrawal Wallet**.
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra

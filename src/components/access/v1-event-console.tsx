@@ -294,7 +294,7 @@ export function V1EventConsole({
                   {view.funded && view.principal === "0" && (
                     <p>You did not check in. Your deposit was shared among checked-in attendees.</p>
                   )}
-                  <p>{`Payout wallet: ${view.payout}`}</p>
+                  <p>{`Payout Withdrawal Wallet: ${view.payout}`}</p>
                 </>
               )}
             </>

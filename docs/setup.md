@@ -1183,8 +1183,9 @@ provider credentials or putting wallet keys in the browser:
 
 For V1 native USDC deposits, apply migration `034-mainnet-registrations.sql`. The same
 private V1 worker processes publication and attendee registration queues with one
-shared signer lock. An attendee chooses one verified NEAR wallet for both deposit
-and payout, reviews the fixed principal and separate 0.16-NEAR gas reserve, prepares
+shared signer lock. An attendee chooses one verified NEAR wallet as both the
+**Deposit Wallet** and **Payout Withdrawal Wallet**, reviews the fixed principal and
+separate 0.16-NEAR gas reserve, prepares
 registration, then approves the exact USDC transfer in NEAR Mobile or Meteor. Seat confirmation
 uses the two-source contract registration flag; return parameters cannot fund a seat.
 Keep financial browser checks separate from synthetic database tests. The explicit

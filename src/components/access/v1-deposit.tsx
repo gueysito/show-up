@@ -255,7 +255,7 @@ export function V1Deposit({
               </p>
             </div>
           )}
-          <label htmlFor="v1-source-wallet">Pay from wallet</label>
+          <label htmlFor="v1-source-wallet">Deposit Wallet</label>
           <select
             id="v1-source-wallet"
             style={{ width: "100%", minWidth: 0 }}
@@ -268,16 +268,17 @@ export function V1Deposit({
               if (wallets.find((wallet) => wallet.id === id)?.network === "near") setWalletId(id);
             }}
           >
-            <option value="">Choose a verified source wallet</option>
+            <option value="">Choose the wallet you’ll pay from</option>
             {sources.map((wallet) => (
               <option key={wallet.id} value={wallet.id}>
                 {`${wallet.network.toUpperCase()} · ${wallet.address}`}
               </option>
             ))}
           </select>
-          <label htmlFor="v1-deposit-wallet">NEAR deposit and payout wallet</label>
+          <label htmlFor="v1-deposit-wallet">Payout Withdrawal Wallet</label>
           <select
             id="v1-deposit-wallet"
+            aria-describedby="v1-payout-wallet-note"
             style={{ width: "100%", minWidth: 0, maxWidth: "100%" }}
             value={walletId}
             disabled={busy}
@@ -294,6 +295,7 @@ export function V1Deposit({
               </option>
             ))}
           </select>
+          <p id="v1-payout-wallet-note">This NEAR wallet receives your USDC refunds and payouts.</p>
           <p>
             <Link href={`/account/wallets?event=${eventId}`} prefetch={false}>
               Verify a NEAR wallet
@@ -319,7 +321,7 @@ export function V1Deposit({
         </>
       )}
       {status?.wallet && (
-        <p>{`Pay from: ${status.sourceAddress ?? status.wallet}. NEAR payout wallet: ${status.payout ?? status.wallet}`}</p>
+        <p>{`Deposit Wallet: ${status.sourceAddress ?? status.wallet}. Payout Withdrawal Wallet: ${status.payout ?? status.wallet}`}</p>
       )}
       {status?.state === "registered" && !status.funded && sourceNetwork !== "near" && (
         <V1RouteReview
