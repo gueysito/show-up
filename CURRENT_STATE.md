@@ -18,7 +18,7 @@ The owner-local app runs at `https://localhost:3443`. The existing [development 
 
 Owner phone checks passed for Google and Telegram sign-in, Android Phantom verification, and NEAR Mobile message approval. Verified wallets persisted after refresh. The wallet page includes Phantom, MetaMask and Rabby opening links. NEAR Mobile and Meteor replace the retired MyNearWallet approval screens.
 
-The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) has one registered, unpaid 1-USDC seat and no prize. Both wallet choices opened tabs on the first phone attempt. The updated flow exposes direct app links in Showup and restores the original NEAR Mobile request after refresh. A funded native seat shows a green confirmation and a blue explorer link once its exact deposit transaction is verified. Phone retest, cancellation and refund are next.
+The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) has one registered, unpaid 1-USDC seat and no prize. The Android Chrome test hit the balance gate because the selected wallet held no native USDC. The pilot displays the exact balance requirement and preserves the original NEAR Mobile request after refresh. A funded seat shows a green confirmation and a blue explorer link once the exact deposit transaction is verified. Fund the selected wallet, retest on the phone, then cancel and refund.
 
 ## Remaining
 

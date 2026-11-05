@@ -5,6 +5,7 @@ import { record } from "./quote-signature";
 import { unsigned } from "./rpc";
 import { v1Deployment, type V1Snapshot } from "./v1-escrow";
 import { AppFailure } from "../http/security";
+import { formatUsdc } from "../../domain/event-draft";
 import {
   v1PrizeFundingTransaction,
   v1DepositFundingTransaction,
@@ -62,7 +63,7 @@ export async function prepareV1WalletPayment(
         }),
         rpc.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }, signal),
       ]);
-      const usdc = decoded(balance.result),
+      const usdc = unsigned(decoded(balance.result), 128),
         storagePrice = unsigned(
           record(record(protocol).runtime_config).storage_amount_per_byte,
           128,
@@ -70,15 +71,8 @@ export async function prepareV1WalletPayment(
       if (storagePrice !== 10000000000000000000n) throw new Error("Payment storage price changed");
       if (access.permission !== "FullAccess")
         throw new AppFailure(403, "Reverify a current full-access key for your funding wallet.");
-      if (
-        unsigned(account.amount, 128) - unsigned(account.storage_usage, 64) * storagePrice <
-          (purpose === "storage" ? 161250000000000000000000n : 160000000000000000000000n) ||
-        unsigned(usdc, 128) < BigInt(amount)
-      )
-        throw new AppFailure(
-          422,
-          "Your wallet needs the exact USDC amount and a separate NEAR gas reserve.",
-        );
+      const spendable =
+        unsigned(account.amount, 128) - unsigned(account.storage_usage, 64) * storagePrice;
       if (
         record(protocol).chain_id !== "mainnet" ||
         record(protocol).protocol_version !== 87 ||
@@ -102,10 +96,31 @@ export async function prepareV1WalletPayment(
             "USDC receiving registration costs changed. Do not approve an outdated amount.",
           );
       }
-      return unsigned(access.nonce, 64).toString();
+      return { nonce: unsigned(access.nonce, 64), usdc, spendable };
     }),
   );
-  if (facts[0] !== facts[1]) throw new Error("Payment wallet sources disagree");
+  const [walletFacts, crossCheck] = facts;
+  if (
+    walletFacts.nonce !== crossCheck.nonce ||
+    walletFacts.usdc !== crossCheck.usdc ||
+    walletFacts.spendable !== crossCheck.spendable
+  )
+    throw new Error("Payment wallet sources disagree");
+  if (walletFacts.usdc < BigInt(amount))
+    throw new AppFailure(
+      422,
+      `This wallet has ${formatUsdc(walletFacts.usdc)} USDC on NEAR. It needs ${formatUsdc(BigInt(amount))} USDC before approval.`,
+    );
+  if (
+    walletFacts.spendable <
+    (purpose === "storage" ? 161250000000000000000000n : 160000000000000000000000n)
+  )
+    throw new AppFailure(
+      422,
+      purpose === "storage"
+        ? "This wallet needs 0.16125 NEAR available for USDC registration and gas."
+        : "This wallet needs a separate 0.16 NEAR gas reserve available before approval.",
+    );
   const build =
     purpose === "storage"
       ? v1StorageRegistrationTransaction
@@ -115,7 +130,7 @@ export async function prepareV1WalletPayment(
   const tx = build({
     signer: wallet.address,
     publicKey: wallet.publicKey,
-    nonce: (BigInt(facts[0]) + 1n).toString(),
+    nonce: (walletFacts.nonce + 1n).toString(),
     blockHash: snapshot.block.hash,
     eventId: reference,
     amount,

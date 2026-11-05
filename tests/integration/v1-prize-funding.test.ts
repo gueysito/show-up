@@ -141,6 +141,7 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
     assert.equal(storedV1Publication(key, created).terms.sponsor, address);
     assert.equal((await runV1Publication(f.pool, key, gateway)).state, "idle");
     let balance = "1250000",
+      nearBalance = "200000000000000000000000",
       permission = "FullAccess",
       disagreeNonce = false;
     const fundingSource: typeof fetch = async (url, options) => {
@@ -165,7 +166,7 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
                 : params.request_type === "view_account"
                   ? {
                       code_hash: v1Deployment.codeHash,
-                      amount: "200000000000000000000000",
+                      amount: nearBalance,
                       storage_usage: 182,
                     }
                   : {
@@ -203,9 +204,15 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
     balance = "1249999";
     await assert.rejects(
       prepareV1PrizeFunding(f.pool, config, session, id, 1, fundingSource),
-      /gas reserve/,
+      /1\.249999 USDC on NEAR.*1\.25 USDC before approval/,
     );
     balance = "1250000";
+    nearBalance = "160000000000000000000000";
+    await assert.rejects(
+      prepareV1PrizeFunding(f.pool, config, session, id, 1, fundingSource),
+      /0\.16 NEAR gas reserve available/,
+    );
+    nearBalance = "200000000000000000000000";
     permission = "FunctionCall";
     await assert.rejects(
       prepareV1PrizeFunding(f.pool, config, session, id, 1, fundingSource),

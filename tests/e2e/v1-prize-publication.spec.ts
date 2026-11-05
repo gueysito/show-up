@@ -116,6 +116,7 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     let confirmed = false;
     let prepared = 0;
     let relayCreates = 0;
+    let insufficient = true;
     let relayStatus = "pending";
     const relay = "https://near-mobile-production.aws.peersyst.tech/connector/request";
     const relayId = randomUUID();
@@ -167,6 +168,13 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
         route.request().postDataJSON().operation === "fund-prize"
       ) {
         prepared++;
+        if (insufficient)
+          return route.fulfill({
+            status: 422,
+            json: {
+              error: "This wallet has 0.00 USDC on NEAR. It needs 1.00 USDC before approval.",
+            },
+          });
         return route.fulfill({
           json: {
             origin: config.origin,
@@ -191,6 +199,10 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     const pay = choices.getByRole("button", { name: "NEAR Mobile", exact: true });
     await expect(choices.getByRole("button", { name: "Meteor Wallet" })).toBeVisible();
     await pay.click();
+    await expect(actions.getByRole("alert")).toContainText("This wallet has 0.00 USDC on NEAR");
+    expect(relayCreates).toBe(0);
+    insufficient = false;
+    await pay.click();
     const launch = actions.getByRole("link", { name: "Open NEAR Mobile" });
     const appLink = `near-mobile-wallet://connector-request?id=${relayId}`;
     await expect(launch).toHaveAttribute("href", appLink);
@@ -203,11 +215,13 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     await expect(
       actions.getByText("The original wallet request is still waiting for approval."),
     ).toBeVisible();
-    expect([prepared, relayCreates]).toEqual([1, 1]);
+    expect([prepared, relayCreates]).toEqual([2, 1]);
     expect(confirmed).toBe(false);
     relayStatus = "approved";
     await actions.getByRole("button", { name: "Check original wallet approval" }).click();
-    await expect(actions.getByRole("status")).toContainText("Prize receipt confirmed");
+    await expect(
+      actions.getByRole("status").filter({ hasText: "Prize receipt confirmed" }),
+    ).toBeVisible();
     expect(confirmed).toBe(true);
     await expect(choices).toHaveCount(0);
     await page.setViewportSize({ width: 390, height: 844 });

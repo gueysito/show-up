@@ -139,7 +139,7 @@ test("NEAR receiving readiness requires agreeing finalized token storage; setup 
       "storage",
       transport,
     ),
-    /gas reserve/,
+    /0\.16125 NEAR available for USDC registration and gas/,
   );
   assert.throws(
     () =>

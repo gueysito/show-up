@@ -49,6 +49,7 @@ export function NearWalletPaymentButton({
   const [showLink, setShowLink] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [failure, setFailure] = useState("");
   const storageKey = `showup.v1.near-wallet:${scope}`;
   const checking = useRef(false);
 
@@ -142,6 +143,7 @@ export function NearWalletPaymentButton({
     checking.current = true;
     setBusy(true);
     setMessage("");
+    setFailure("");
     try {
       const previous = localStorage.getItem(storageKey);
       if (previous) {
@@ -201,7 +203,7 @@ export function NearWalletPaymentButton({
         });
       await confirm();
     } catch (error) {
-      setMessage(
+      setFailure(
         error instanceof Error ? error.message : "Check the original payment before trying again.",
       );
     } finally {
@@ -253,7 +255,18 @@ export function NearWalletPaymentButton({
           Check original wallet approval
         </button>
       )}
-      {message && <p role="status">{message}</p>}
+      {failure ? (
+        <p className="field-error" role="alert">
+          {failure}
+        </p>
+      ) : message || busy ? (
+        <p role="status">
+          {message ||
+            (attempt
+              ? "Checking your original approval…"
+              : "Checking the wallet balance and preparing your approval…")}
+        </p>
+      ) : null}
     </div>
   );
 }

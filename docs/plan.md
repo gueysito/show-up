@@ -146,6 +146,9 @@ earlier mainnet receipts used isolated project-wallet approvals.
 The [phone deposit test](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6)
 is published with one seat, 1 USDC and no prize. The public pilot page shows the
 verified mainnet terms.
+The Android Chrome retest stopped before opening a wallet. Both NEAR RPCs showed
+enough gas and no native USDC in the selected deposit wallet. Showup now shows
+which balance is missing before contacting the wallet provider.
 NEAR Mobile opened from Showup, signed a real phone message and saved the verified
 wallet through refresh. The Meteor choice passes an isolated test for message-only
 approval with the pinned connector. The wallet page has Phantom, MetaMask and
