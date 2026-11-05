@@ -457,7 +457,7 @@ export function EventDraftForm({
               />
             )}
           </div>
-          <RulePreview draft={draft} state={identity?.state} />
+          <RulePreview draft={draft} state={identity?.state} v1={account} />
         </div>
         <footer className="page-footer">
           <span className="brand">showup.</span>

@@ -1,8 +1,8 @@
 # Current state
 
-Showup is building **V1**: one complete loop on mainnet — publish an event, deposit from
-NEAR, Solana, Base or Ethereum via NEAR Intents, check in, settle, and award a prize
-(USDC pot and/or Ethereum NFT). The scope, order and acceptance are in
+Hosts can publish zero-prize events from the app to NEAR mainnet and view verified
+on-chain terms. Showup is building **V1**: publish, deposit across four chains,
+check in, settle and award an optional USDC/Ethereum NFT prize. Scope and acceptance are in
 [the plan](docs/plan.md#v1-work-packages); working rules are in [AGENTS.md](AGENTS.md).
 
 ## Already built (starting points for V1)
@@ -23,19 +23,19 @@ NEAR, Solana, Base or Ethereum via NEAR Intents, check in, settle, and award a p
 
 ## Not yet working
 
-The V1 escrow is live on mainnet with a verified manual 1-USDC deposit/cancel/refund.
-The app-to-mainnet event journey, cross-chain deposits, live Chain Signatures NFT
-transfer and real-phone check-in are not working yet.
+Prize funding/publication, attendee deposits in the app, live cross-chain routing,
+funded check-in/settlement, NFT delivery and real-phone check-in remain incomplete.
 
 ## Next action
 
 V1-1 is complete: the reviewed 321,207-byte artifact is atomically deployed and
 initialized at `showup-dev-14989f.near`. A real 1-USDC deposit/cancel/refund restores
 the controller to 2.549953 USDC and leaves escrow at zero; [transaction evidence](docs/plan.md#v1-evidence).
-The artifact retains its passing 53-test Rust/independent-replay CI evidence;
-109 current app/operator unit tests, format/lint/types and production build pass.
+The artifact retains its passing 53-test Rust/independent-replay CI evidence.
+Current checks: 111 unit, 188 database and 45 browser cases; build and code checks pass.
 The 3.73-wNEAR top-up was converted to native NEAR. Known allocation remains about
 $27.20/$50; no further funding is requested. BasedHeads #2829 is selected, not moved.
-V1-2 publication wiring and local browser checks pass: host requests lock terms;
-a separate signer submits one retained transaction; the event page checks mainnet.
-Next: verify that browser journey with one real zero-prize mainnet publication.
+V1-2's zero-prize browser path is verified on mainnet: [publication](https://nearblocks.io/txns/3Fn5FDSUu9vDXqor28yHGjKAH489D96h3wznJhUsxaca).
+Desktop/mobile rechecks reuse the original receipt without signing again. Auth in
+this check used a preauthenticated engineering fixture, not a new provider login.
+Next: finish V1-2 prize funding/publication, then connect NEAR attendee deposits (V1-3).

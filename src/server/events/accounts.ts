@@ -180,6 +180,7 @@ export async function correctPublishedDescription(
   );
 }
 
+// Retained V2 prototype guard. The V1 HTTP route uses prepareV1Publication.
 export async function requestPublication(
   pool: pg.Pool,
   key: string,

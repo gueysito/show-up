@@ -93,7 +93,7 @@ test("preauthenticated staff: explicit event assignment, revision conflicts, rem
     await invites.getByRole("button", { name: "Invite event validator" }).click();
     await expect(invites.getByLabel("Private invitation link")).not.toHaveValue(fresh);
     const unused = await invites.getByLabel("Private invitation link").inputValue();
-    // Explicit publication fixture solely to exercise the freeze; normal publication remains disabled.
+    // Explicit legacy fixture solely to exercise validator freezing without a mainnet submission.
     await f.pool.query(
       "UPDATE app_events SET state='published',rules_hash='engineering-staff-freeze',published_at=clock_timestamp() WHERE id=$1",
       [event.id],

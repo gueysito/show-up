@@ -13,6 +13,10 @@ test("the owning host queues publication once and saved terms stay locked across
     await f.enter(context, 0);
     const draft = validDraft();
     await page.goto("/host");
+    const preview = page.getByRole("complementary", { name: "Event rules preview" });
+    await expect(preview).toContainText("No-show deposits are split equally");
+    await expect(preview).not.toContainText("Publication is unavailable");
+    await expect(preview).not.toContainText("Attendee release before");
     await page.getByLabel("Event name", { exact: true }).fill("Queued V1 publication");
     await page.getByLabel("Session URL", { exact: true }).fill(draft.sessionReference);
     await page.getByLabel("Planned start (UTC)", { exact: true }).fill(draft.startsAt.slice(0, 16));

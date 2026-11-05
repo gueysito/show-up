@@ -15,7 +15,6 @@ test("preauthenticated test host publishes real mainnet terms through the app", 
 }) => {
   if (process.env.SHOWUP_MAINNET_BROWSER !== "1")
     throw new Error("Explicit mainnet execution required");
-  const f = await accountFixtures([["host"]]);
   const directory = "contracts/.cache/v1-browser";
   await mkdir(directory, { recursive: true, mode: 0o700 });
   await chmod(directory, 0o700);
@@ -28,6 +27,7 @@ test("preauthenticated test host publishes real mainnet terms through the app", 
     mode: 0o600,
     flag: "wx",
   });
+  const f = await accountFixtures([["host"]]);
   async function saveJournal(update: Record<string, unknown>) {
     journal = { ...journal, ...update };
     await writeFile(`${directory}/publication.json.next`, JSON.stringify(journal) + "\n", {

@@ -16,7 +16,16 @@ function time(value: number, zone: string) {
   }
 }
 
-export function RulePreview({ draft, state = "draft" }: { draft: EventDraft; state?: string }) {
+export function RulePreview({
+  draft,
+  state = "draft",
+  v1 = false,
+}: {
+  draft: EventDraft;
+  state?: string;
+  v1?: boolean;
+}) {
+  if (v1) return <V1RulePreview draft={draft} state={state} />;
   const rules = rulePreview(draft);
   const labels: Record<string, string> = {
     published: "Published terms",
@@ -122,6 +131,79 @@ export function RulePreview({ draft, state = "draft" }: { draft: EventDraft; sta
           {state === "draft"
             ? "Host authentication and invitations, sponsor funding, fee policy, contract rules and any NFT custody must be verified. Publication is unavailable."
             : "Material terms are locked. No new funding route is enabled in this build. Duplicate into an independent draft to change material terms."}
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function V1RulePreview({ draft, state }: { draft: EventDraft; state: string }) {
+  const start = Date.parse(draft.startsAt),
+    end = Date.parse(draft.endsAt);
+  return (
+    <aside className="preview" aria-label="Event rules preview">
+      <div className="preview-heading">
+        <span className="eyebrow">The attendee promise</span>
+        <span className="outline-tag">
+          {state === "published"
+            ? "Published terms"
+            : state === "publication_pending"
+              ? "Publication requested"
+              : "Unfunded draft"}
+        </span>
+      </div>
+      <h2>{draft.title || "Your next gathering"}</h2>
+      <p className="preview-commitment">
+        {draft.commitment || "0"}
+        <span> USDC commitment</span>
+      </p>
+      <p>Show up and get your deposit back, less disclosed transaction fees.</p>
+      <p className="preview-note">
+        No-show deposits are split equally among attendees who check in. Hosts receive no cut. If
+        nobody checks in, all deposits are returned.
+      </p>
+      <div className="preview-section">
+        <h3>Event timing</h3>
+        <dl className="timeline">
+          {[
+            ["Registration closes / check-in opens", start],
+            ["Check-in closes", end],
+          ].map(([label, value]) => (
+            <div key={String(label)}>
+              <dt>{label}</dt>
+              <dd>{time(Number(value), draft.timeZone)}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="preview-note">
+          The host can close the event after it starts. Check in before the event closes or ends to
+          qualify for the attendance refund.
+        </p>
+      </div>
+      <div className="preview-section">
+        <h3>{draft.mode === "digital" ? "Live-code check-in" : "Staff-validated QR"}</h3>
+        <p className="preview-note">{`${draft.capacity} seats. ${draft.mode === "digital" ? "Use the host's live code during the event." : "An assigned validator scans your personal QR during the event."}`}</p>
+      </div>
+      <div className="preview-section">
+        <h3>Optional prize</h3>
+        <p className="preview-note">{`${draft.sponsorBudget || "0"} USDC planned prize${draft.nft ? " plus one planned Ethereum NFT" : ""}. Prizes must be funded or held in custody before publication.`}</p>
+      </div>
+      <details className="preview-section" open>
+        <summary>Refunds, fees and access</summary>
+        <p className="preview-note">
+          Refunds are USDC on NEAR. Cancellation before settlement returns attendee deposits;
+          network costs remain costs. Deposits are not open yet.
+        </p>
+        <p className="preview-note">
+          {`${draft.access === "open" ? "Anyone can view the public event page." : "The event page requires an invitation or existing event access."} Published material terms are locked.`}
+        </p>
+      </details>
+      <div className="publication-limit">
+        <h3>{state === "draft" ? "Ready when you are" : "Event terms"}</h3>
+        <p>
+          {state === "draft"
+            ? "Save your draft, then publish it to the mainnet escrow. Start with a zero-prize event while prize funding is being connected."
+            : "Review the original publication transaction from the event page. Duplicate the event to change published material terms."}
         </p>
       </div>
     </aside>

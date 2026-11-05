@@ -1142,6 +1142,14 @@ This requires the disposable test database and production build described below.
 Mainnet receipts/screenshots stay in ignored `contracts/.cache/v1-browser`.
 Inspect existing receipts before repeating this financial check. It creates a real,
 unfunded public event and consumes project gas; it is not part of normal CI.
+For subsequent desktop/mobile checks, reuse the recorded publication without
+signing or sending another transaction:
+
+```sh
+unset SHOWUP_MAINNET_BROWSER
+export SHOWUP_MAINNET_REPLAY=1
+node_modules/.bin/playwright test -c playwright.mainnet.config.ts
+```
 
 ## Local contract sandbox
 

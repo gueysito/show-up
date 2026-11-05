@@ -96,11 +96,13 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <dd>{`${event.data.sponsorBudget} USDC`}</dd>
         <dt>Reward rules</dt>
         <dd>
-          {event.data.rewardPreset === "equal"
-            ? "Equal split"
-            : event.data.rewardPreset === "draw"
-              ? "Draw"
-              : "Equal split and draw"}
+          {event.escrow
+            ? "No-show deposits split equally among checked-in attendees."
+            : event.data.rewardPreset === "equal"
+              ? "Equal split"
+              : event.data.rewardPreset === "draw"
+                ? "Draw"
+                : "Equal split and draw"}
         </dd>
         <dt>Optional quizzes</dt>
         <dd>{`${event.quizCount}. Missing a quiz never prevents principal return.`}</dd>

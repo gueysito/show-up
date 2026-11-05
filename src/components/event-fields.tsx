@@ -218,23 +218,32 @@ export function CommitmentFields({ draft, errors, change, v1 = false }: Props) {
             />
           )}
         </Field>
-        <Field name="rewardPreset" label="Reward recipe" errors={errors}>
-          {(attrs) => (
-            <select
-              {...attrs}
-              value={draft.rewardPreset}
-              onChange={(e) => change("rewardPreset", e.target.value as EventDraft["rewardPreset"])}
-            >
-              {!v1 && <option value="hybrid">Hybrid · 40% equal / 60% draw</option>}
-              {!v1 && <option value="equal">Equal-only</option>}
-              <option value="draw">
-                {v1
-                  ? "No-show deposits split equally; optional prize drawn to one attendee"
-                  : "Draw-only"}
-              </option>
-            </select>
-          )}
-        </Field>
+        {v1 ? (
+          <p className="hint">
+            No-show deposits are split equally among checked-in attendees. An optional funded prize
+            goes to one drawn attendee.
+          </p>
+        ) : (
+          <Field name="rewardPreset" label="Reward recipe" errors={errors}>
+            {(attrs) => (
+              <select
+                {...attrs}
+                value={draft.rewardPreset}
+                onChange={(e) =>
+                  change("rewardPreset", e.target.value as EventDraft["rewardPreset"])
+                }
+              >
+                {!v1 && <option value="hybrid">Hybrid · 40% equal / 60% draw</option>}
+                {!v1 && <option value="equal">Equal-only</option>}
+                <option value="draw">
+                  {v1
+                    ? "No-show deposits split equally; optional prize drawn to one attendee"
+                    : "Draw-only"}
+                </option>
+              </select>
+            )}
+          </Field>
+        )}
       </div>
       <Field
         name="access"
@@ -319,6 +328,11 @@ export function ParticipationFields({ draft, errors, change, v1 = false }: Props
             {`+ Add optional question (${draft.quizzes.length}/2)`}
           </button>
         </>
+      )}
+      {v1 && draft.quizzes.length > 0 && (
+        <button type="button" className="secondary-button" onClick={() => change("quizzes", [])}>
+          Remove planned questions for this event
+        </button>
       )}
       <div className="nft-toggle">
         <label>
