@@ -40,5 +40,9 @@ there are no pending native transaction queues.
   home/preview/database health with HTTP 200. The real-phone journey remains.
   Hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 
-The owner-local app is verified at `https://localhost:3443`; this address works on
-the development computer. It is not a hosted phone-accessible deployment.
+The owner-local app runs at `https://localhost:3443`. The existing approved
+[development pilot](https://liable-pleat-maritime.ngrok-free.dev/account) now serves
+the rebuilt production app from `5e6386b`: home/account/health return HTTP 200;
+anonymous NFT requests return 401 and foreign-origin mutations return 403.
+Phone access depends on the development computer and its existing tunnel staying
+running. Fresh phone sign-in, external-wallet approval and NFT transfer remain to verify.
