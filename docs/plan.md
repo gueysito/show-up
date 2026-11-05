@@ -57,8 +57,8 @@ as recorded below. NEAR activation, USDC storage registration and **2.549953 nat
 NEAR USDC** are finalized. First-round funding is complete on all four networks.
 Selected NFT: [BasedHeads #2829](https://etherscan.io/nft/0x42dc0cecefbaf8e81d631a75fa212510c347f66b/2829),
 Ethereum ERC-721 `0x42dc0cecefbaf8e81d631a75fa212510c347f66b`. Two finalized RPC
-reads agree on ERC-721 support. Its owner deposit is now finalized in the derived
-Ethereum custody address; signed release remains unverified. V1-1 builds a separate `showup-v1` contract from the existing
+reads agree on ERC-721 support. The owner deposit into derived Ethereum custody
+and the signed release to the winner both finalized. V1-1 builds a separate `showup-v1` contract from the existing
 workspace, keeping all V2 modules intact and outside the V1 artifact. V1 trusts
 the local app operator for host/attendee wallet binding, attendance and observed
 NFT custody; contract code enforces token receipts, fixed beneficiaries and payouts.
@@ -79,13 +79,17 @@ Three-attendee settled state uses 1,896 bytes above code, within the 10,000-byte
 allowance. Factory, key, protocol and balances were rechecked before deployment.
 The existing owner key retains deployment/upgrade authority. Account funding is
 3.71207 NEAR, including code collateral, state allowance and gas reserve.
-Reserve **$1 for NFT custody gas**; the remaining budget covers routing/other fees.
+The original **$1 NFT gas reserve** was an estimate. Existing project funds supplied
+0.000890618628231784 ETH to custody; the total budget remains $50.
 The provisional 0.0001-ETH NFT ceiling and first 0.0004-ETH correction are superseded
 by a bounded **0.002 ETH maximum** (about $4.80 at the funding snapshot), with an
 actual transfer estimate plus 25% gas margin. Observed base fees rose from 1.5 to
 8.8 gwei during testing. The app uses up to twice the suggested fee, clipped to
 this fixed cap, and rejects prices that cannot fit. The same-account correction
-preserves frozen event profiles and custody keys; no NFT purchase is planned. These allocations do not establish
+preserves frozen event profiles and custody keys. The deployed fee revision is
+321,208 bytes (3.21208 NEAR code collateral), SHA-256
+`7eb7d72d0120b60e18b5feb6466b303ff74a325dc74819847103eebebe302792`.
+No NFT purchase is planned. These allocations do not establish
 every later V1 operation's final cost. The retained V2 WASM is 1,208,397 bytes and
 is outside the V1 deployment.
 
@@ -119,8 +123,8 @@ One concise row per package; distinguish local preparation from mainnet completi
 | V1-4 complete | 2026-11-05 | Each real browser journey delivered 1 USDC through its isolated Intents balance, confirmed the mobile funded seat and returned the full principal to its locked NEAR wallet: Base [source](https://basescan.org/tx/0xde5e882a32da531f0ae8fd5da2956dfe08e14f6de7e23c875241668671502b40)/[escrow](https://nearblocks.io/txns/6xZQD93qgHN3WQHoahSX8Khw8jCXPMzNEbANe3wyvYri)/[refund](https://nearblocks.io/txns/EpVtN2LSx4EReRUAvM9SJhNxT2v9Xjjkn2cPxCoZHT21), Solana [source](https://explorer.solana.com/tx/P8pGuUpSVUTr5TanD2dqkkEAB1yKoD1zTaase7Mv3mcqXa42D2BGVkhJKPFqjKxvPSwroeXKVZfSzcibipBu5cp)/[escrow](https://nearblocks.io/txns/7K95DgJZfz3NcL7YD5evxwwfrzh75ZjkC1LRznT5BGLB)/[refund](https://nearblocks.io/txns/3NLv6Bx71vxKKuF2tv2kPR6CGQy6ecLcKYqfaqhSfANc), Ethereum [source](https://etherscan.io/tx/0x7e0181c67e11eea861d85667d7dc7b98633ddb5b19bae5b35695583b44470d80)/[escrow](https://nearblocks.io/txns/GoF7E7VUJvjpjpPtVctwjgUbYvtkmrT3TQ9H5Qgk21SM)/[refund](https://nearblocks.io/txns/78ohqb7ty22ek97RZz2rNGbFGTAMHMB3TKrwCFa51HkA). Controller-sponsored NEP-366 forwarding deploys no additional code. Approval stays at five minutes; the provider's later signed deadline is separately bounded/disclosed. 128 unit/195 database cases pass, including status normalization and lost-write recovery. Same engineering auth/wallet qualification as V1-2. |
 | V1-5 complete | 2026-11-05 | Two real 1-USDC registrations funded through the app; the host opened a live code, one attendee [checked in](https://nearblocks.io/txns/HJcPUxbvvigcCnQpNWtZ7X3SdApbVaDTEJvuFhYtm1wM), and both browser attendee status and host roster confirmed attendance. Same engineering auth/wallet qualification as V1-2; no contract upgrade. |
 | V1-6 complete | 2026-11-05 | Host [settled](https://nearblocks.io/txns/Hs7qvG1cBaS6bz3DRF3F5ahY9FeayFXipLRNB19YJwsZ); the checked-in attendee [received 2.25 USDC](https://nearblocks.io/txns/3DnWt7mZ31a3j2Q3RdVZ9JmZzADSsBLLUFGMiUmAY2pY): 1 principal + 1 no-show share + 0.25 prize. Mobile receipt and both RPCs confirm payment; all test USDC [returned to the controller](https://nearblocks.io/txns/6k9qP6kY2tfr6D6MciATBRMiTmTHqpLHACBac2hHdVpS), escrow holds zero. Final browser assertion expected `0` instead of displayed `0.00`; corrected against the retained actual receipt without repeating payment. 116 unit/193 database/46 ordinary browser checks, build/code checks and focused retry/order cases pass. |
-| V1-7 published and attendee funded; signed release remains | 2026-11-05 | BasedHeads #2829's [owner deposit](https://etherscan.io/tx/0xeba87b3b1e9402a8ccf6bc297b67366096f333a1aab3e0f860593b6acb28b261), [NFT event publication](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb) and [1-USDC attendee deposit](https://nearblocks.io/txns/GieCsPRzt9igQip2AnD8GjTdRFYL9LsUzvnHUouHS29j) pass in the actual mobile browser with its owned Ethereum recipient locked. The final [same-account upgrade](https://nearblocks.io/txns/3YFQdrpz9f5yr89Fq4yhHEVpmwYZoiegSWwZ4astjFt8) preserves NFT state and passes its own [full refund](https://nearblocks.io/txns/DWbiuuU8p5FCHkDPc1BcXTYk6qmJqLDCJHbkPJfGX9Ax). All 11 V1 money-path, 131 unit, six isolated database, NFT browser and build/code checks pass; the delivery normalizer now uses the original signed fee envelope, with a reproduced legacy-limit regression. Check-in/settlement open at 16:33 UTC; real winner release remains. |
-| V1-9 pilot reachable; owner phone/hosting remain | 2026-11-05 | Home/preview and the README describe the working four-chain loop; 48 ordinary browser cases and desktop/390/320 layouts pass. A clean clone at `5f51888` installs/builds with pinned Node 24.22.2/npm 11.19.1 and serves home/preview/health with HTTP 200. The local database is backed up and current through 39 migrations; the private worker starts idle. The existing approved [phone pilot](https://liable-pleat-maritime.ngrok-free.dev/account) now serves rebuilt `5e6386b`: home/account/health return 200, anonymous NFT access 401, foreign-origin mutations 403 and development routes 404. The development computer/tunnel must stay running. Fresh phone login/external-wallet/NFT checks and permanent hosting remain. |
+| V1-7 mainnet winner journey verified | 2026-11-05 | BasedHeads #2829's [custody deposit](https://etherscan.io/tx/0xeba87b3b1e9402a8ccf6bc297b67366096f333a1aab3e0f860593b6acb28b261), [publication](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [settlement](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [1-USDC refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL) and [winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f) pass through the real mobile browser; the Etherscan link persists through submitted and delivered states. Same-account fee upgrades retain the custody key and pass real $1 refunds; the final artifact passes 11 V1 money-path cases, with 131 unit, six isolated database and focused browser checks. NFT cancellation is covered in sandbox. The subsequent [test-asset return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) finalized back to the original sending wallet. |
+| V1-9 pilot reachable; owner phone/hosting remain | 2026-11-05 | Home/preview and README describe the working loop; 48 ordinary browser cases and desktop/390/320 layouts pass. A clean clone at `5f51888` installs/builds with pinned Node 24.22.2/npm 11.19.1 and serves home/preview/health with HTTP 200. The approved [phone pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves the rebuilt app, and fresh iPhone emulation passes the one-time Visit Site screen and reaches both Google and Telegram sign-in pages without entering credentials. The development computer/tunnel must stay running. Actual owner phone sign-in, external-wallet approval and permanent hosting remain. |
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
@@ -206,23 +210,27 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-05 | NEAR | Final network-fee ceiling upgrade and real 1-USDC refund check | 0.0046215548617843 NEAR total gas; full principal restored and existing NFT state preserved | [Upgrade](https://nearblocks.io/txns/3YFQdrpz9f5yr89Fq4yhHEVpmwYZoiegSWwZ4astjFt8), [deposit](https://nearblocks.io/txns/61G14BvWNdgLoM9sCRamSQgcHWYiZYJX2X7ukFkX3dSK), [refund](https://nearblocks.io/txns/DWbiuuU8p5FCHkDPc1BcXTYk6qmJqLDCJHbkPJfGX9Ax) |
 | 2026-11-05 | Ethereum | Fund the NFT event's custody gas allowance | 0.000890618628231784 ETH internal allocation; 0.000121420983453 ETH consumed fee; unused custody ETH remains at the event address | [Allowance](https://etherscan.io/tx/0x8b0b8a714548a757f48e30e4ecc4495bb20f10590bd5d072ab314be8422b7476) |
 | 2026-11-05 | NEAR | Publish the funded NFT event and bind/fund its attendee | 1 existing USDC held for the test attendee; 0.0013417147346258 NEAR total gas | [Publish](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [register](https://nearblocks.io/txns/5bKjAcEWQSZ3AXDLcSrcci7UsBAg8K15BPd8wNMrYRaD), [deposit](https://nearblocks.io/txns/GieCsPRzt9igQip2AnD8GjTdRFYL9LsUzvnHUouHS29j) |
+| 2026-11-05 | NEAR | Check in, settle, return the attendee's full deposit and sign the fixed NFT release | 1 USDC fully restored; 0.0024419976883588 NEAR total gas from existing funds | [Check-in](https://nearblocks.io/txns/GngvHdQST4Hq3G7SDQN8pLT1yJz6rMb8PvUg9FiXBwd7), [settle](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL), [MPC signature](https://nearblocks.io/txns/5bs7vGKFEwTqgfPFnt1uASNiGLWoAWzx9FCsqcw5RBjL) |
+| 2026-11-05 | Ethereum | Deliver NFT #2829 to its test winner and return it to the original contributor | 0.000162539215967425 ETH winner release fee; 0.000057241602966725 ETH test-return fee; 0.000728079412264359 ETH remains at the event custody address | [Finalized winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f), [finalized test return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) |
 
-November 4: about **$27.20 funded/allocated including known sender fees and Solana rent**,
+About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
-Total agent-consumed gas: **0.0957579457778227 NEAR** (about $0.3878 at $4.05/NEAR).
+Total agent-consumed gas: **0.0981999434661815 NEAR** (about $0.3977 at $4.05/NEAR).
 Before NFT custody preparation, controller native balance was **0.226839523809198299999988 NEAR**;
 escrow native balance is **3.456873783036298799999990 NEAR** after reserve replenishment, including code/state
 collateral. Both accounts have USDC storage registration. Both RPCs confirm
 **5.549953 USDC in the controller, zero in escrow or the three receiving Intents balances**, with cumulative accounting
-11.25 USDC received, 11.25 paid and zero held at finalized block 223172942. Internal transfers
-and returned principal are counted once.
+11.25 USDC received, 11.25 paid and zero held at finalized block 223172942 before the NFT gas
+purchases. After the NFT settlement, both RPCs confirm **1.366697 native USDC** in the controller,
+**0.038156 USDC in its Intents balance**, and escrow accounting **14.25 USDC received, 14.25 paid,
+zero held** at finalized block 223193266. Internal transfers and returned principal are counted once.
 The initial USDC sender attribution and latest incoming wNEAR sender fee remain
 unindexed/unrecorded. The public NEAR RPC throttled publication; manual recovery
 rebroadcast only the identical signed image after both replacement providers
 reported it unknown and the signer nonce unchanged. No new nonce or duplicate
 execution; subsequent calls use FastNEAR with independent dRPC state comparison.
-All four deposit networks now work in the app; the NFT custody/release round trip remains open.
+All four deposit networks and the NFT custody-to-winner flow now work in the app.
 
 CI maintenance, November 4: feature pushes select app/contract jobs by changed paths;
 docs-only pushes skip heavy jobs, while PRs/main/manual runs retain full validation

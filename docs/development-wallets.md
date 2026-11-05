@@ -28,9 +28,9 @@ USDC storage registration finalized and both RPCs verified it at block 223087141
 
 **Deployment funding arrived as 3.73 wNEAR and was converted to native NEAR.**
 Both RPCs verify 3.9774802711174997 native NEAR and zero wNEAR at block 223111055.
-[Conversion and budget](plan.md#mainnet-budget). Known allocation is about $27.20/$50
-before the latest sender's fee. No further transfer is requested; prior quotes are
-superseded. The reviewed artifact locks 3.21207 NEAR for code.
+[Conversion and budget](plan.md#mainnet-budget). Known allocation is about $27.35/$50
+including known sender fees and Solana rent. The final reviewed fee revision locks
+3.21208 NEAR for code.
 `showup-dev-14989f.near` is now created, funded and deployed; it retains the same
 sole FullAccess key. The implicit address above remains the controller wallet.
 After settlement at finalized block 223148487, the controller holds

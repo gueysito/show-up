@@ -34,10 +34,11 @@ in the locked NEAR payout wallet. [Transaction links](docs/plan.md#v1-evidence).
 Live-code check-in, host/deadline
 closing and fixed-wallet payout receipts now work in the real app on mainnet: two
 1-USDC deposits and a 0.25-USDC prize settled into a verified 2.25-USDC payout to
-the checked-in attendee. Test USDC was restored in full. Ethereum NFT custody,
-recipient binding and release controls are implemented locally and pass synthetic
-browser/database checks. The selected NFT is finalized in its derived Ethereum
-custody address; its signed mainnet release remains unverified.
+the checked-in attendee. Test USDC was restored in full. The Ethereum NFT prize
+flow also runs on mainnet: BasedHeads #2829 entered contract-derived custody and
+was [released to the winner's verified wallet](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f).
+The mobile receipt links to the finalized Ethereum transfer. NFT cancellation is
+covered by sandbox tests.
 [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works
@@ -67,10 +68,8 @@ flowchart LR
   Intents --> Receiving[Registration Intents balance] -->|worker forwards USDC| Escrow
   Near[NEAR USDC wallet] --> Escrow
   Escrow --> Payout[NEAR payout wallet]
-  Escrow -.-> Signer[Chain Signatures] -.-> NFT[Ethereum NFT custody]
+  Escrow --> Signer[Chain Signatures] --> NFT[Ethereum NFT custody]
 ```
-
-The dotted NFT path is implemented locally; its mainnet custody/release proof remains open.
 
 ## Run it locally
 
