@@ -65,9 +65,10 @@ NFT custody; contract code enforces token receipts, fixed beneficiaries and payo
 Measured V1 WASM: **315,613 bytes**, code collateral **3.15613 NEAR**;
 SHA-256 `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`.
 Deploy to the still-unregistered `showup-dev-14989f.near` using the existing key;
-fund the verified implicit controller first. Required top-up: **3.66 NEAR**
-(about **$14.68** at $4.01/NEAR), bringing known funded/allocated total to about
-**$26.77/$50** before this sender's fee. Calculation: code 3.15613 + 0.10 state
+fund the verified implicit controller only after the review fixes below. The prior
+quote was **3.66 NEAR** (about **$14.68** at $4.01/NEAR), for a projected allocation
+of **$26.77/$50** before this sender's fee. **This quote is on hold** and must be
+recomputed after the fixes. Calculation: code 3.15613 + 0.10 state
 allowance + 0.40 contract gas reserve + 0.25 controller reserve − existing
 0.2485110692734984 = 3.6576189307265016 NEAR, rounded up to 0.01 NEAR.
 Three-attendee settled state uses 1,866 bytes above code, within the 10,000-byte
@@ -103,7 +104,33 @@ One concise row per package; distinguish local preparation from mainnet completi
 
 | ID | Date | Evidence |
 | --- | --- | --- |
-| V1-1 (in progress) | 2026-11-04 | Separate 315,613-byte build; five actual sandbox money-path tests pass (deposit/refund, equal split/draw, no-attendee recovery, failed transfer retry, fixed NFT winner/cancel images and original-signature recovery). Host exclusion regression fails before the guard and passes afterward. Rust format/Clippy, app static checks, 99 JS unit tests and unchanged 380-version advisory gate pass; V2 code is unchanged. Contract permissions, receipt origin/amount, payout binding/replay, callbacks and NFT signatures checked; app/database/browser unchanged, no broad audit or mainnet completion claim. Awaiting 3.66-NEAR deployment top-up. |
+| V1-1 (in progress; deployment blocked) | 2026-11-04 | Separate 315,613-byte build; five V1 sandbox money-path tests and full `npm run contracts:check` pass (49 Rust tests plus Node replays; 380-version advisory gate). Both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41944183794) pass for `3c2d32f`. The focused review below finds two blockers and one required deployment control; do not fund/deploy this build yet. |
+
+**Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
+and the exact WASM hash above; tracked source unchanged during review. Five extra
+cases ran in an isolated snapshot under `contracts/.cache/security-review/`.
+
+| Priority | Finding / condition | Evidence and required follow-through |
+| --- | --- | --- |
+| P1, open | Late, duplicate or rejected routed receipts can strand principal at the Intents sender. | `lib.rs:235–245` rejects the receipt and creates no recovery credit. The cancellation case reproduces this behavior; official [Intents withdrawal rules](https://docs.near-intents.org/integration/verifier-contract/deposits-and-withdrawals/withdrawals) provide no automatic refund when `msg` is specified. Retain attributable routed principal as a fixed-beneficiary recovery credit when no seat can be confirmed. No live loss experiment was run. |
+| P2, open | A signing failure without a produced signature cannot be retried through the contract. | `nft.rs:124–127` requires no prior request, but a failed provider leaves a request in `unresolved`. The isolated failure case rejects an identical retry; reconciliation needs a signature which may never exist. Full-access administrative signing remains possible, but bypasses the normal contract flow. Add bounded retry of the original authorized NFT image before custody. |
+| Required deployment control | Deploy and initialize atomically; do not leave an uninitialized contract exposed. | An external account successfully initialized an uninitialized sandbox deployment and prevented the intended initializer. Batch deployment plus `new` in one transaction; self-only initialization is an additional simple guard. The actual mainnet executor must enforce this before use. |
+
+Controls that held: forged callbacks were rejected; concurrent withdrawals paid
+exactly once to the fixed recipient. A 64-seat / 32-attendee settlement conserved
+64 USDC, burned 12.9 Tgas, and used 19,814 state bytes above code (within the quoted
+account's free balance; the earlier 10,000-byte allowance was for the small demo).
+Real 1Click dry pricing accepted and signed the exact `deposit:` message; this is
+not a funded route proof. Live `v1.signer` config requires 15 Tgas and its advertised
+3.17.0 source requires 1 yoctoNEAR; our call uses 60 Tgas/1 yocto and matches its
+wire format. The selected ERC-721 owner-to-EOA dry transfer succeeds (68,296 gas).
+
+Accepted local-pilot trust remains the operator's wallet/attendance/custody binding
+and retained full-access upgrade/spending key. This review did not remove that
+authority, independently audit providers, reproduce their deployed binaries, or
+exercise mainnet routing/signing/custody. App auth/database/browser code is unchanged;
+their existing CI passes are reused. No new mainnet spend. **Next: fix the two V1
+paths, enforce atomic initialization, rerun affected checks, then reprice funding.**
 
 ### Mainnet spend ledger
 

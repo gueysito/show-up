@@ -19,8 +19,9 @@ NEAR Chain Signatures.
 V1 is in active development: one complete loop on mainnet — publish, deposit from any
 of the four chains, check in, settle, prize. See [current state](CURRENT_STATE.md) for
 exactly what works today and [the plan](docs/plan.md) for V1 progress and the V2 roadmap.
-The separate V1 contract passes sandbox money-path tests; mainnet deployment and
-app integration are next. [Build and test it](docs/setup.md#v1-escrow-build).
+The separate V1 contract passes sandbox money-path tests. Predeployment review found
+blockers that must be fixed before funding/deployment; see the plan.
+[Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works
 
