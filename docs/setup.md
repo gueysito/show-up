@@ -307,6 +307,8 @@ network and a wallet app:
 
 - Base/Ethereum: tap MetaMask or Rabby, select the matching
   mainnet, and review the host, address, chain, nonce and expiry before signing.
+  If the wallet opens Showup in its own browser, sign in to the same account
+  there if prompted.
   Contract wallets are not verified in this pilot.
 - Solana: tap Phantom and sign the displayed
   message. Private keys remain in the wallet.

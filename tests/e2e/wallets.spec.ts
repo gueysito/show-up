@@ -259,6 +259,9 @@ test("branded mobile app link carries the selected EVM network and event", async
     await page.goto(`/account/wallets?event=${eventId}`);
     await page.getByRole("button", { name: "Ethereum", exact: true }).click();
     await page.getByRole("button", { name: "Rabby", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("may ask you to sign in to Showup again");
+    await expect(page).toHaveURL(`https://localhost:3444/account/wallets?event=${eventId}`);
+    await page.getByRole("link", { name: "Open Rabby browser" }).click();
     await page.waitForURL("https://go.rabby.io/mobile/**");
     const dapp = new URL(new URL(page.url()).searchParams.get("dapp")!);
     expect(dapp.origin).toBe("https://localhost:3444");

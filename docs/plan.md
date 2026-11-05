@@ -164,7 +164,10 @@ approval, and the pilot database confirmed both saved NEAR wallets. The wallet
 page shows branded network and wallet choices, resumes the selected network in
 supported mobile apps, and retries an uncertain save with the original proof.
 Isolated browser checks cover the picker, app handoff and recovery. Android
-Base and Ethereum message verification comes next. Safari can follow separately.
+Base and Ethereum message verification comes next. The Android Rabby link opened
+its in-app browser with a separate sign-in session. The picker now explains that
+handoff before opening it. Native approval from Chrome would require a configured
+WalletConnect project and a handset check. Safari can follow separately.
 
 V1-9 phone check: Google and Telegram sign-in passed on the phone. On Android,
 the app-opening link opened Showup in Phantom, Solana approval saved one verified

@@ -22,6 +22,6 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 
 ## Remaining
 
-- V1-9: verify Base and Ethereum on Android, then check Safari app links. The home, preview and host navigation pass local phone/desktop layout checks, and the clean-clone build is verified.
+- V1-9: verify Base and Ethereum on Android, then check Safari app links. Rabby opened its own browser on Android, which has a separate sign-in session. The picker explains that before opening it. Native approval from Chrome needs a WalletConnect project and device verification.
 - Permanent hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 - GitHub CI requires account billing attention. Continue using local checks.

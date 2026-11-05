@@ -194,7 +194,7 @@ export function WalletManager({
       );
     const href = mobileWalletUrl(app, window.location.origin, network, returnEventId);
     setLaunchLink({ app, href });
-    window.location.assign(href);
+    if (app === "phantom") window.location.assign(href);
   }
 
   async function verify(app = selectedApp) {
@@ -431,8 +431,16 @@ export function WalletManager({
       </p>
       {launchLink && (
         <div className="field">
-          <p role="status">If the app didn’t open, unlock it and try the link below.</p>
-          <a href={launchLink.href}>{`Open ${appNames[launchLink.app]}`}</a>
+          <p role="status">
+            {launchLink.app === "phantom"
+              ? "If the app didn’t open, unlock it and try the link below."
+              : `This opens Showup in ${appNames[launchLink.app]}’s browser. That browser may ask you to sign in to Showup again.`}
+          </p>
+          <a href={launchLink.href}>
+            {launchLink.app === "phantom"
+              ? "Open Phantom"
+              : `Open ${appNames[launchLink.app]} browser`}
+          </a>
         </div>
       )}
       {busy && !notice && <p role="status">Waiting for your wallet or checking its proof…</p>}
