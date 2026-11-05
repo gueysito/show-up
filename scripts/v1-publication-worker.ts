@@ -81,7 +81,6 @@ export async function signV1OwnerCalls(
 }
 
 export function v1PublicationGateway(): V1PublicationGateway {
-  const client = new V1ReadOnlyRpc("near-fastnear");
   return {
     snapshot: readV1Snapshot,
     async prepare(image, phase = "atomic") {
@@ -144,45 +143,50 @@ export function v1PublicationGateway(): V1PublicationGateway {
       if (result.id !== "v1-publication" || result.error)
         throw new Error("Reconcile the original publication transaction");
     },
-    async final(image) {
-      const result = record(
-        await client.read("tx", {
-          tx_hash: image.hash,
-          sender_account_id: v1Deployment.owner,
-          wait_until: "FINAL",
-        }),
-      );
-      if (
-        record(result.transaction).hash !== image.hash ||
-        result.final_execution_status !== "FINAL" ||
-        !Array.isArray(result.receipts_outcome)
-      )
-        throw new Error("Original publication is not final yet");
-      const outcomes = [result.transaction_outcome, ...result.receipts_outcome].map(record);
-      if (outcomes.length > 32) throw new Error("Publication receipt count");
-      const blocks = [...new Set(outcomes.map((value) => String(value.block_hash)))];
-      const heights = await Promise.all(
-        blocks.map(async (hash) => {
-          const block = record(record(await client.read("block", { block_id: hash })).header);
-          if (block.hash !== hash) throw new Error("Publication receipt block mismatch");
-          return unsigned(block.height, 64);
-        }),
-      );
-      return {
-        success:
-          Object.hasOwn(record(result.status), "SuccessValue") &&
-          outcomes.every((value) => {
-            const status = record(record(value.outcome).status);
-            return (
-              Object.hasOwn(status, "SuccessValue") || Object.hasOwn(status, "SuccessReceiptId")
-            );
-          }),
-        minimumHeight: heights.reduce((a, b) => (a > b ? a : b), 0n).toString(),
-        gasYoctoNear: outcomes
-          .reduce((sum, value) => sum + unsigned(record(value.outcome).tokens_burnt, 128), 0n)
-          .toString(),
-      };
-    },
+    final: v1FinalTransaction,
+  };
+}
+
+export async function v1FinalTransaction(
+  image: { hash: string },
+  sender: string = v1Deployment.owner,
+) {
+  const client = new V1ReadOnlyRpc("near-fastnear");
+  const result = record(
+    await client.read("tx", {
+      tx_hash: image.hash,
+      sender_account_id: sender,
+      wait_until: "FINAL",
+    }),
+  );
+  if (
+    record(result.transaction).hash !== image.hash ||
+    record(result.transaction).signer_id !== sender ||
+    result.final_execution_status !== "FINAL" ||
+    !Array.isArray(result.receipts_outcome)
+  )
+    throw new Error("Original publication is not final yet");
+  const outcomes = [result.transaction_outcome, ...result.receipts_outcome].map(record);
+  if (outcomes.length > 32) throw new Error("Publication receipt count");
+  const blocks = [...new Set(outcomes.map((value) => String(value.block_hash)))];
+  const heights = await Promise.all(
+    blocks.map(async (hash) => {
+      const block = record(record(await client.read("block", { block_id: hash })).header);
+      if (block.hash !== hash) throw new Error("Publication receipt block mismatch");
+      return unsigned(block.height, 64);
+    }),
+  );
+  return {
+    success:
+      Object.hasOwn(record(result.status), "SuccessValue") &&
+      outcomes.every((value) => {
+        const status = record(record(value.outcome).status);
+        return Object.hasOwn(status, "SuccessValue") || Object.hasOwn(status, "SuccessReceiptId");
+      }),
+    minimumHeight: heights.reduce((a, b) => (a > b ? a : b), 0n).toString(),
+    gasYoctoNear: outcomes
+      .reduce((sum, value) => sum + unsigned(record(value.outcome).tokens_burnt, 128), 0n)
+      .toString(),
   };
 }
 

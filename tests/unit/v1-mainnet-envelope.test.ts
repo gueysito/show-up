@@ -15,9 +15,40 @@ import { mainnetAccount } from "../../scripts/near-mainnet-account-plan";
 import {
   nativeTransaction,
   v1MainnetTransaction,
+  v1DemoSetupTransaction,
+  v1DemoReturnTransaction,
+  v1DemoAccounts,
   type NativeAction,
   type NativeTransactionInput,
 } from "../../scripts/lib/native-engineering-transaction";
+
+test("demo setup and token returns refuse other accounts, oversized amounts and invalid nonces", () => {
+  const input = { nonce: "1", blockHash: "11111111111111111111111111111111" };
+  const setup = v1DemoSetupTransaction({ ...input, account: v1DemoAccounts[0] });
+  assert.notEqual(
+    setup.hash,
+    v1DemoSetupTransaction({ ...input, account: v1DemoAccounts[1] }).hash,
+  );
+  assert.throws(() => v1DemoSetupTransaction({ ...input, account: "attacker.near" }));
+  assert.throws(() =>
+    v1DemoSetupTransaction({ ...input, account: v1DemoAccounts[0], nonce: "18446744073709551616" }),
+  );
+  const returned = v1DemoReturnTransaction({
+    ...input,
+    account: v1DemoAccounts[0],
+    amount: "2250000",
+  });
+  assert(
+    returned.bytes.includes(
+      Buffer.from(canonicalJson({ amount: "2250000", receiver_id: mainnetAccount.implicit })),
+    ),
+  );
+  for (const amount of ["0", "-1", "3000001"])
+    assert.throws(() => v1DemoReturnTransaction({ ...input, account: v1DemoAccounts[0], amount }));
+  assert.throws(() =>
+    v1DemoReturnTransaction({ ...input, account: mainnetAccount.implicit, amount: "1" }),
+  );
+});
 
 test("V1 mainnet images match independently decoded NEAR unwrap and atomic deployment vectors", async () => {
   const vectors = JSON.parse(

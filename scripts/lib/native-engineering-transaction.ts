@@ -226,3 +226,67 @@ export function signNativeTransaction(
     signedBase64: Buffer.concat([image.bytes, Buffer.from([0]), signature]).toString("base64"),
   };
 }
+
+// Fixed project demo accounts reuse the already backed-up owner key. This does
+// not relax the ordinary V1 envelope's ban on account/key creation.
+export const v1DemoAccounts = [
+  "attendee-a.showup-dev-14989f.near",
+  "attendee-b.showup-dev-14989f.near",
+] as const;
+export function v1DemoSetupTransaction(input: {
+  account: string;
+  nonce: string;
+  blockHash: string;
+}) {
+  if (!(v1DemoAccounts as readonly string[]).includes(input.account))
+    throw new Error("Outside the fixed V1 demo accounts");
+  return encodeTransaction(
+    {
+      signer: v1Deployment.account,
+      receiver: input.account,
+      publicKey: v1Deployment.publicKey,
+      nonce: input.nonce,
+      blockHash: input.blockHash,
+      actions: [
+        { kind: "create" },
+        { kind: "transfer", deposit: "165000000000000000000000" },
+        { kind: "add_key", publicKey: v1Deployment.publicKey },
+      ],
+    },
+    new Set([v1Deployment.account, ...v1DemoAccounts]),
+  );
+}
+export function v1DemoReturnTransaction(input: {
+  account: string;
+  nonce: string;
+  blockHash: string;
+  amount: string;
+}) {
+  if (
+    !(v1DemoAccounts as readonly string[]).includes(input.account) ||
+    !/^[1-9][0-9]*$/.test(input.amount) ||
+    BigInt(input.amount) > 3_000_000n
+  )
+    throw new Error("Outside the fixed V1 demo return envelope");
+  return encodeTransaction(
+    {
+      signer: input.account,
+      receiver: v1Deployment.token,
+      publicKey: v1Deployment.publicKey,
+      nonce: input.nonce,
+      blockHash: input.blockHash,
+      actions: [
+        {
+          kind: "call",
+          method: "ft_transfer",
+          args: Buffer.from(
+            canonicalJson({ receiver_id: v1Deployment.owner, amount: input.amount }),
+          ),
+          gas: "30000000000000",
+          deposit: "1",
+        },
+      ],
+    },
+    new Set([...v1DemoAccounts, v1Deployment.token]),
+  );
+}

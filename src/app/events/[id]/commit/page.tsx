@@ -68,7 +68,9 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
               wallets={wallets}
             />
           )}
-          <V1EventConsole eventId={id} active={event.viewer !== "recovery"} />
+          {(event.registration === "closed" || event.viewer === "recovery") && (
+            <V1EventConsole eventId={id} active={event.viewer !== "recovery"} />
+          )}
         </>
       ) : event.viewer === "recovery" || event.registration === "closed" ? (
         <>

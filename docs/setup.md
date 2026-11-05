@@ -1165,8 +1165,13 @@ confirmed roster and close or cancel. Attendees open their event commitment page
 for check-in and receipts. Closing waits for accepted check-ins. The worker queues
 deadline settlement, or cancellation if a check-in failed. Token transfers count as
 paid only when the fixed recipient's claim confirms payment. Restricted recovery
-accounts can still withdraw existing claims. These paths await a mainnet browser
-round trip; no contract upgrade is needed.
+accounts can still withdraw existing claims. A real two-attendee browser round trip
+verifies check-in, the no-show split, prize draw and payout; no contract upgrade is needed.
+The explicit `SHOWUP_MAINNET_SETTLEMENT=1` case retains every signed image and refuses
+to reuse a financial journal. Two fixed demo subaccounts reuse the backed-up project
+key; no new wallet secret is created. All test USDC was restored. Its final text
+assertion was corrected against the actual paid receipt (`0.00`, not `0`), without
+repeating a financial operation.
 
 ```sh
 export SHOWUP_CONTAINER_E2E=1

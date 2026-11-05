@@ -1,10 +1,11 @@
 import { V1ReadOnlyRpc } from "../../src/server/protocol/v1-rpc";
 import assert from "node:assert/strict";
-import { mkdir, writeFile, rename } from "node:fs/promises";
-import { v1PublicationGateway } from "../../scripts/v1-publication-worker";
+import { mkdir, writeFile, rename, readFile } from "node:fs/promises";
+import { v1PublicationGateway, v1FinalTransaction } from "../../scripts/v1-publication-worker";
 import { loadV1MainnetKey } from "../../scripts/lib/v1-mainnet-key";
 import {
   v1DepositFundingTransaction,
+  v1DemoAccounts,
   signV1MainnetTransaction,
   type NativeAction,
 } from "../../scripts/lib/native-engineering-transaction";
@@ -17,7 +18,7 @@ import type { SignedV1Publication } from "../../src/worker/v1-publication";
 
 // These owner-operated helpers are used only by explicitly selected mainnet
 // browser tests. No fixture key, provider token or wallet secret is persisted.
-export async function mainnetJournal(name: string) {
+export async function mainnetJournal(name: string, resumeSettlementReturn = false) {
   if (!/^[a-z-]+$/.test(name)) throw new Error("Invalid financial journal");
   const directory = "contracts/.cache/v1-browser",
     path = `${directory}/${name}.json`;
@@ -26,19 +27,34 @@ export async function mainnetJournal(name: string) {
     phase: "started",
     authentication: "preauthenticated engineering account; isolated owner-wallet signing",
   };
-  await writeFile(path, JSON.stringify(value) + "\n", { mode: 0o600, flag: "wx" });
-  const images: Record<string, SignedV1Publication> = {},
-    finals: Record<string, unknown> = {};
+  if (resumeSettlementReturn) {
+    if (name !== "attendee-settlement-verified")
+      throw new Error("Only the confirmed settlement's USDC return can resume");
+    const previous = JSON.parse(await readFile(path, "utf8"));
+    if (
+      ![
+        "needs_original_hash_reconciliation",
+        "restore_0_submitted",
+        "restore_0_final",
+        "restored",
+      ].includes(previous.phase) ||
+      previous.finals?.withdraw?.success !== true
+    )
+      throw new Error("Reconcile the original settlement withdrawal first");
+    value = previous;
+  } else await writeFile(path, JSON.stringify(value) + "\n", { mode: 0o600, flag: "wx" });
+  const images = (value.images ?? {}) as Record<string, SignedV1Publication>,
+    finals = (value.finals ?? {}) as Record<string, unknown>;
   async function save(update: Record<string, unknown>) {
     value = { ...value, ...update, images, finals };
     await writeFile(`${path}.next`, JSON.stringify(value) + "\n", { mode: 0o600 });
     await rename(`${path}.next`, path);
   }
   const native = v1PublicationGateway();
-  async function final(name: string, image: SignedV1Publication) {
+  async function final(name: string, image: SignedV1Publication, sender?: string) {
     for (let attempt = 0; attempt < 3; attempt++)
       try {
-        const result = await native.final(image);
+        const result = sender ? await v1FinalTransaction(image, sender) : await native.final(image);
         assert.equal(result.success, true);
         finals[name] = result;
         await save({ phase: `${name}_final` });
@@ -51,6 +67,8 @@ export async function mainnetJournal(name: string) {
     throw new Error("Original financial image needs reconciliation");
   }
   async function send(name: string, image: SignedV1Publication) {
+    if (resumeSettlementReturn && !/^restore_[01]$/.test(name))
+      throw new Error("Resume cannot repeat account setup, funding, settlement or withdrawal");
     if (images[name])
       throw new Error("Original image already retained; reconcile without another send");
     images[name] = image;
@@ -61,19 +79,25 @@ export async function mainnetJournal(name: string) {
       /* The write may have succeeded; only query the retained hash. */
     }
   }
-  async function submit(name: string, image: SignedV1Publication) {
+  async function submit(name: string, image: SignedV1Publication, sender?: string) {
     await send(name, image);
-    return final(name, image);
+    return final(name, image, sender);
   }
   return { directory, path, images, finals, save, send, submit, final };
 }
-export async function mainnetOwnerNonce(block: string) {
+export async function mainnetOwnerNonce(block: string, account: string = v1Deployment.owner) {
+  if (
+    !([v1Deployment.owner, v1Deployment.account, ...v1DemoAccounts] as readonly string[]).includes(
+      account,
+    )
+  )
+    throw new Error("Outside project mainnet signers");
   const nonces = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (id) => {
       const result = record(
         await new V1ReadOnlyRpc(id).read("query", {
           request_type: "view_access_key",
-          account_id: v1Deployment.owner,
+          account_id: account,
           public_key: v1Deployment.publicKey,
           block_id: block,
         }),
@@ -86,12 +110,15 @@ export async function mainnetOwnerNonce(block: string) {
   assert.equal(nonces[0], nonces[1]);
   return (BigInt(nonces[0]) + 1n).toString();
 }
-export async function mainnetUsdc(block: string) {
+export async function mainnetUsdc(
+  block: string,
+  accounts: readonly string[] = [v1Deployment.owner, v1Deployment.account],
+) {
   const values = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (endpoint) => {
       const rpc = new V1ReadOnlyRpc(endpoint);
       return Promise.all(
-        [v1Deployment.owner, v1Deployment.account].map(async (account_id) => {
+        accounts.map(async (account_id) => {
           const result = record(
             await rpc.read("query", {
               request_type: "call_function",
@@ -123,19 +150,22 @@ export async function approveMainnetDeposit(
   eventId: string,
   registration: string,
   amount: string,
+  account: string = v1Deployment.owner,
 ) {
   assert.equal(Buffer.from(unsignedBase64, "base64").toString("base64"), unsignedBase64);
   const requested = Buffer.from(unsignedBase64, "base64");
   assert(requested.length < 1024);
-  const offset = 4 + Buffer.byteLength(v1Deployment.owner) + 33,
+  if (!([v1Deployment.owner, ...v1DemoAccounts] as readonly string[]).includes(account))
+    throw new Error("Outside project attendee wallets");
+  const offset = 4 + Buffer.byteLength(account) + 33,
     blockOffset = offset + 8 + 4 + Buffer.byteLength(v1Deployment.token);
   const nonce = requested.readBigUInt64LE(offset).toString(),
     blockHash = encodeBase58(requested.subarray(blockOffset, blockOffset + 32));
   const current = await readV1Snapshot(eventId);
-  assert.equal(await mainnetOwnerNonce(current.block.hash), nonce);
+  assert.equal(await mainnetOwnerNonce(current.block.hash, account), nonce);
   const signer = await loadV1MainnetKey();
   const tx = v1DepositFundingTransaction({
-    signer: v1Deployment.owner,
+    signer: account,
     publicKey: signer.publicKey,
     nonce,
     blockHash,
