@@ -23,11 +23,15 @@ NEAR, Solana, Base or Ethereum via NEAR Intents, check in, settle, and award a p
 
 ## Not yet working
 
-Nothing has run on mainnet yet: no mainnet contract, no real cross-chain deposit, no
+No Showup event journey has run on mainnet yet: no mainnet contract, no real cross-chain deposit, no
 live Chain Signatures transfer, no real-phone check-in.
 
 ## Next action
 
-Start [V1-1](docs/plan.md#v1-work-packages): build the V1 contract with money-path
+[First-round funding](docs/development-wallets.md#mainnet-preparation-and-initial-funding)
+is finalized on all four networks, including 2.549953 native NEAR USDC and verified
+USDC storage registration. Confirm the owner's Ethereum NFT contract/token ID and
+on-chain ownership; no custody transfer yet.
+Then start [V1-1](docs/plan.md#v1-work-packages): build the V1 contract with money-path
 tests, deploy it to a NEAR mainnet account within the
 [V1 budget](docs/plan.md#mainnet-budget), and run one small real deposit and refund.

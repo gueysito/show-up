@@ -1,28 +1,46 @@
 # Development wallets and faucet setup
 
-Updated November 3, 2026. These public project addresses were initially used on
-engineering networks. The owner now approves planning mainnet reuse of the existing
-project EVM/Solana keys and preparation of a separate NEAR mainnet account, reusing
-the existing NEAR key where suitable. Do not regenerate existing keys. No mainnet
-funding instruction or signing/deployment approval is implied by this preparation.
-Follow the [bounded funding handoff](plan.md#active-halfway-implementation-goal)
-before sending real funds; the initial mainnet reads below show no funds.
+Updated November 4, 2026. Reuse the existing project keys for V1; do not regenerate
+them. Mainnet authority and the $50 total budget are in the
+[V1 plan](plan.md#mainnet-budget). Fund one wallet at a time and verify arrival.
 
 ## Mainnet preparation and initial funding
 
-Public reads on November 4 at 04:28–04:30 UTC (November 3 in Denver) confirm the
-addresses below. This is an initial wallet-funding proposal, approximately **$9.11**,
-not the full milestone budget or authority to sign/spend. Send directly on the
+Public reads on November 4 at 18:31 UTC confirm zero mainnet balances and the
+addresses below. The first round is **$11.77 including NEAR USDC**, or $9.23 without
+it; it excludes deployment collateral and NFT custody gas. Send directly on the
 specified network, native gas first, then Circle USDC. No bridges or exchange
 withdrawals are needed for these owner-wallet transfers. Sender transaction fees
 are additional; their exact values require the sender's actual wallet quote.
 
+November 4: Solana has finalized **0.003 SOL + 2.54 native USDC**;
+Base has finalized **0.00002 ETH + 2.54 native USDC** and Ethereum **0.0001 ETH + 2.54 native
+USDC**. Finalized EVM balances were rechecked after NEAR registration.
+Official token contracts/mint and all six successful receipts were checked.
+[Incoming funds and sender costs](plan.md#mainnet-spend-ledger) are recorded.
+NEAR received **0.25 NEAR**, finalized, with the expected sole FullAccess key.
+USDC storage registration finalized and both RPCs verified it at block 223087141:
+0.00125 NEAR storage deposit, 0.0002389307265016 NEAR transaction fee, and
+**0.2485110692734984 NEAR** remaining. Both RPCs subsequently confirmed
+**2.549953 native NEAR USDC** at finalized block 223088071, slightly above the
+2.54 request. First-round funding is complete on all four networks.
+[Registration](https://nearblocks.io/txns/8FR3jtZ8QK2VBjRWbraLsRgUE3Nogy8J9bhDhHR46Wn7).
+
 | Order / exact mainnet | Verified project address | Exact initial amount | Approximate USD |
 | --- | --- | --- | --- |
-| 1. NEAR mainnet | `14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc` | **0.25 NEAR**, native; no USDC yet | $0.95 |
-| 2. Solana mainnet-beta | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | **0.003 SOL + 2.54 USDC** | $2.81 |
-| 3. Base mainnet, chain 8453 | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | **0.00002 ETH + 2.54 USDC** | $2.58 |
-| 4. Ethereum mainnet, chain 1 | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | **0.0001 ETH + 2.54 USDC** | $2.76 |
+| 1. NEAR mainnet | `14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc` | **0.25 NEAR**, gas and USDC registration only | $1.03 |
+| 2. NEAR mainnet, after storage registration | `14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc` | **2.54 USDC**, first deposit/refund test | $2.54 |
+| 3. Solana mainnet-beta | `BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd` | **0.003 SOL + 2.54 USDC** | $2.83 |
+| 4. Base mainnet, chain 8453 | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | **0.00002 ETH + 2.54 USDC** | $2.59 |
+| 5. Ethereum mainnet, chain 1 | `0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a` | **0.0001 ETH + 2.54 USDC** | $2.78 |
+
+CoinGecko snapshot: NEAR $4.12, SOL $95.77, ETH $2,431.92, USDC $0.999597.
+Read-only preparation matched all three addresses to local public key fields/bytes;
+that preparation accessed no private values and created no signatures. Signature-verified
+1Click dry quotes require 2.530950/2.530966/2.530957 USDC from Base/Solana/Ethereum
+for 2.50 USDC on NEAR, within each 2.54 allocation. Sample gas prices: Base
+0.006 gwei; Ethereum 0.202753314 gwei. Solana sampled priority fees are zero;
+its base fee is 5,000 lamports/signature. Quotes are indicative, not payment instructions.
 
 USDC amounts are 2,540,000 atomic units, six decimals. Use only these
 [Circle token identities](https://developers.circle.com/stablecoins/usdc-contract-addresses):
@@ -30,6 +48,7 @@ USDC amounts are 2,540,000 atomic units, six decimals. Use only these
 - Solana mint: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`.
 - Base: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`.
 - Ethereum: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`.
+- NEAR: `17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1`.
 
 For Solana, use the wallet's **Send USDC** flow to the project wallet address;
 the mint identifies the asset and is not the receiving address. Its associated
@@ -44,8 +63,8 @@ allocations are fee reserves, not predicted consumption or permission for retrie
 The NEAR address is the exact 32-byte hex encoding of the recorded public key
 `ed25519:2PQ8rQ56kQV6dFeiMNwEmbbQvxiTXGFPLt2uk4UyU8cB`. It comes from the prior
 public ownership/transfer receipts; no private key was read. Both mainnet RPCs
-report `UNKNOWN_ACCOUNT`, so it is **derived and uninitialized**, not an active
-account with freshly verified mainnet key membership. A native NEAR transfer
+initially reported `UNKNOWN_ACCOUNT`; the native funding above has now activated
+it with freshly verified mainnet key membership. A native NEAR transfer
 [activates the implicit account and installs its public key](https://docs.near.org/protocol/tutorials/creating-implicit-and-named-accounts).
 Use a plain NEAR send, no memo or function call. Do not send to the testnet name.
 Do not send NEAR USDC until token storage is registered and verified. The pinned
@@ -60,7 +79,12 @@ now fixes the candidate name, factory code, original public key and limits below
 No `.near` name is registered or usable as a funding destination yet, and no
 testnet tool or credential file has been repointed.
 
-### Unsigned named-account registration
+### Pre-V1 account proposal and cost reference
+
+Historical gates and estimates below are superseded by the V1 authority and budget
+in the plan. They remain implementation reference, not current instructions.
+
+#### Unsigned named-account registration
 
 The read-only preparer runs without credentials:
 

@@ -50,6 +50,23 @@ no testnet, so cross-chain routes are exercised on mainnet with small amounts. I
 contract storage collateral pushes the total past the budget, shrink the contract
 (for example by moving V2-only code out of the deployed build) before asking for more.
 
+First-round preparation (November 4): [wallet amounts](development-wallets.md#mainnet-preparation-and-initial-funding)
+sum to **$11.77 including 2.54 NEAR USDC** at the preparation prices.
+Public key metadata matches all three addresses. External-chain funds have arrived
+as recorded below. NEAR activation, USDC storage registration and **2.549953 native
+NEAR USDC** are finalized. First-round funding is complete on all four networks.
+Awaiting the owner's Ethereum NFT contract/token ID and ownership check; no custody
+transfer yet. Then proceed to V1-1.
+Reserve **$30 for the trimmed NEAR deployment including state/gas**, **$1 for NFT
+custody gas**, and **$7.23 for sender/provider/signing/other fees**.
+At $4.12/NEAR, a 700,000-byte V1 artifact needs 7 NEAR ($28.84) code collateral;
+this is a size target, not a measured build. Exact top-up follows the V1 build.
+NFT custody gas is provisionally 0.0001 ETH ($0.24), to be simulated for the chosen
+NFT before transfer; no NFT purchase is planned. These allocations do not establish
+the unbuilt V1's final cost. Existing WASM is 1,208,397 bytes; excluding custom
+sections leaves 894,429 bytes ($36.85 code collateral), so trim V2 before deployment.
+Funding proceeds one wallet at a time, native NEAR first; register USDC before its transfer.
+
 ## V1 work packages
 
 Work in this order. A package is done when its acceptance line is true in the real app
@@ -80,7 +97,25 @@ One row per finished package: what was verified, with tx/explorer links. Keep it
 
 | Date | Chain | Purpose | Amount (USD) | Tx |
 | --- | --- | --- | --- | --- |
-| — | — | — | — | — |
+| 2026-11-04 | Solana | Incoming owner funding, finalized | 0.003 SOL + 2.54 USDC (about $2.83) | [SOL](https://solscan.io/tx/4cGYQ8bNTQMoXSP8brNqWMRVDvAeHjWeadX8D1PQtqyn8HQ2cL52gQvPqxdDTmwFfycDtiwbEjrXRwsUCvJCgihL), [USDC](https://solscan.io/tx/45HDmpqsdM26fof7N49heELoeyfT1WphcxYg9AzBMfuNQM7zd6CfRbErJu1C8VMigDsHAdGj9HXgbvgRDZAQ8z4g) |
+| 2026-11-04 | Base | Incoming owner funding, finalized | 0.00002 ETH + 2.54 USDC (about $2.59) | [ETH](https://basescan.org/tx/0x5d074bac6720dfc6cc8c1c0a876e26569aa047ce967f450e1b4ced6b6c7805aa), [USDC](https://basescan.org/tx/0x1a3b4abd66fcd3f3d1948e0e77fca6a9e2585851a914d53bacae93cadfb15368) |
+| 2026-11-04 | Ethereum | Incoming owner funding, finalized | 0.0001 ETH + 2.54 USDC (about $2.78) | [ETH](https://etherscan.io/tx/0x79e2421b91abf5a75c2acf18f38c98699663e4d0331dc9fa8f31d854f5ddc57c), [USDC](https://etherscan.io/tx/0x27fb816b8c199685e356617ccd3a524fa5e703d49e41e61e09870c0ff6cf29ce) |
+| 2026-11-04 | Solana | Owner-paid funding fees; separate recoverable USDC account rent | 0.000159934 SOL fees (about $0.0153); 0.00148844 SOL rent (about $0.1425) | Same two Solana transactions above |
+| 2026-11-04 | Base | Owner-paid funding fees, execution plus L1 | 0.000000514133340788 ETH (about $0.0013) | Same two Base transactions above |
+| 2026-11-04 | Ethereum | Owner-paid funding fees | 0.000052962733677352 ETH (about $0.1288) | Same two Ethereum transactions above |
+| 2026-11-04 | NEAR | Incoming owner funding and implicit activation, finalized | 0.25 NEAR (about $1.03) | [Funding](https://nearblocks.io/txns/BKik9NVc6nVhfRhZE9eh7Z5hTgDEBVSTZ7HqVQjEA4C8) |
+| 2026-11-04 | NEAR | Owner-paid funding/activation fee | 0.0071149895375 NEAR (about $0.0293) | Same NEAR funding transaction above |
+| 2026-11-04 | NEAR | USDC storage registration, finalized and verified by both RPCs | 0.00125 NEAR collateral (about $0.0052); 0.0002389307265016 NEAR consumed fee (about $0.0010) | [Registration](https://nearblocks.io/txns/8FR3jtZ8QK2VBjRWbraLsRgUE3Nogy8J9bhDhHR46Wn7) |
+| 2026-11-04 | NEAR | Net incoming USDC, both RPCs agree at finalized block 223088071 | 2.549953 USDC (about $2.55) | [Account](https://nearblocks.io/address/14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc); token-transfer hash not yet indexed |
+
+November 4: about **$12.09 funded/allocated including known sender fees and Solana rent**,
+using the preparation price snapshot. Registration collateral/fee are paid from
+the received 0.25 NEAR and are not counted again as new funding. Agent-consumed gas:
+0.0002389307265016 NEAR. Remaining NEAR: **0.2485110692734984**, with USDC storage
+registered. External balances are finalized. Both NEAR RPCs agree on 2,549,953
+atomic native USDC at finalized block 223088071 (November 4, 17:00 Denver).
+Final USDC sender costs/transaction attribution await indexing. First-round funding
+is complete; next is NFT selection/ownership, then V1-1. No app/escrow deposit yet.
 
 ## V2 roadmap
 
