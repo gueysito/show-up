@@ -1,9 +1,30 @@
 name: Local foundation checks
-on: [push, pull_request, workflow_dispatch]
+on: [push, pull_request, merge_group, workflow_dispatch]
 permissions:
   contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      verify: ${{ steps.scope.outputs.verify }}
+      contracts: ${{ steps.scope.outputs.contracts }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - run: node --test .github/ci-scope.test.mjs
+      - id: scope
+        run: node .github/ci-scope.mjs
+        env:
+          CI_BEFORE_SHA: ${{ github.event.before }}
+          CI_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
   verify:
+    needs: changes
+    if: ${{ always() && (needs.changes.result != 'success' || needs.changes.outputs.verify != 'false') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -31,6 +52,8 @@ jobs:
       - if: always()
         run: docker compose --profile checks --profile harness down
   contracts:
+    needs: changes
+    if: ${{ always() && (needs.changes.result != 'success' || needs.changes.outputs.contracts != 'false') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

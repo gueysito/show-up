@@ -180,6 +180,11 @@ reported it unknown and the signer nonce unchanged. No new nonce or duplicate
 execution; subsequent calls use FastNEAR with independent dRPC state comparison.
 The app journey and NFT movement remain later V1 packages.
 
+CI maintenance, November 4: feature pushes select app/contract jobs by changed paths;
+docs-only pushes skip heavy jobs, while PRs/main/manual runs retain full validation
+and stable required-check names. Superseded runs cancel automatically. Local scope
+tests and workflow validation cover selection/failure cases. V1-2 remains next.
+
 ## V2 roadmap
 
 The rest of the [PRD](prd.md), in rough priority order. Existing code and ADRs for these

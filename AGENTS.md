@@ -75,6 +75,13 @@ Use `npm run format:check`, `npm run lint`, `npm run typecheck`,
 Database/browser checks and setup are in [setup](docs/setup.md). Keep imported kit
 files unchanged. Never bypass hooks.
 
+CI keeps `verify` and `contracts` as stable required checks. Documentation-only
+feature pushes skip heavy jobs; app/contract changes select relevant jobs, while
+shared code, dependencies and unknown paths run both. PRs, `main`, merge queues and
+manual runs always validate fully. Newer pushes cancel superseded checks. Validate
+CI filtering locally with `node --test .github/ci-scope.test.mjs`; do not trigger
+extra GitHub runs or use workflow path filters/skip markers that leave checks pending.
+
 ## How to work
 
 - **Speed over ceremony.** Docs are short and factual. One line of evidence per
