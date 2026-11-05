@@ -43,6 +43,7 @@ export async function saveAccountDraft(
   key: string,
   session: string,
   input: DraftSave,
+  version: "v1" | "v2" = "v2",
 ) {
   if (!isUuid(input.id) || !Number.isInteger(input.revision) || input.revision < 0)
     throw new AppFailure(400, "Invalid draft operation.");
@@ -51,11 +52,11 @@ export async function saveAccountDraft(
     key,
     session,
     input.operationId,
-    input,
+    { ...input, validationVersion: version },
     "event.saved",
     async (client, actor) => {
       hasRole(actor, "host");
-      const validated = validateDraft(input.data);
+      const validated = validateDraft(input.data, Date.now(), version);
       if (!validated.ok) throw new AppFailure(422, "Review the event rules.", validated.errors);
       const existing = await client.query(
         "SELECT owner_id,revision,state FROM app_events WHERE id=$1 FOR UPDATE",
@@ -98,7 +99,9 @@ export async function saveAccountDraft(
 export async function listAccountEvents(pool: pg.Pool, accountId: string): Promise<AccountEvent[]> {
   return (
     await pool.query(
-      `SELECT id,revision,data,state,updated_at AS "updatedAt"
+      `SELECT id,revision,data,CASE WHEN state='draft' AND EXISTS
+       (SELECT 1 FROM app_publication_images p WHERE p.event_id=app_events.id AND p.environment='near-mainnet-v1')
+       THEN 'publication_pending' ELSE state END AS state,updated_at AS "updatedAt"
     FROM app_events WHERE owner_id=$1 ORDER BY updated_at DESC LIMIT 50`,
       [accountId],
     )

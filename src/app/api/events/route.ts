@@ -6,10 +6,12 @@ import {
   correctPublishedDescription,
   duplicateAccountEvent,
   listAccountEvents,
-  requestPublication,
   saveAccountDraft,
 } from "../../../server/events/accounts";
-import { readPublicationReadiness } from "../../../server/events/publication";
+import {
+  prepareV1Publication,
+  readV1PublicationState,
+} from "../../../server/events/v1-publication";
 import {
   AppFailure,
   failureResponse,
@@ -42,7 +44,7 @@ async function handle(request: Request) {
         )
           throw new AppFailure(400, "Choose a saved event revision.");
         return Response.json(
-          await readPublicationReadiness(
+          await readV1PublicationState(
             database.pool,
             session.tokenHash,
             query.get("publication")!,
@@ -75,15 +77,35 @@ async function handle(request: Request) {
         body.revision as number,
         body.description as string,
       );
-    else if (body.operation === "publish")
-      result = await requestPublication(pool, key, tokenHash, body.operationId, body.id);
-    else if (body.operation === undefined)
-      result = await saveAccountDraft(pool, key, tokenHash, {
-        id: body.id,
-        operationId: body.operationId,
-        revision: body.revision as number,
-        data: body.data,
-      });
+    else if (body.operation === "publish") {
+      if (
+        Object.keys(body).some(
+          (field) => !["operation", "operationId", "id", "revision"].includes(field),
+        )
+      )
+        throw new AppFailure(400, "Unexpected publication fields.");
+      await limit(pool, `publish:${session.accountId}`, 5);
+      result = await prepareV1Publication(
+        pool,
+        key,
+        tokenHash,
+        body.operationId,
+        body.id,
+        body.revision as number,
+      );
+    } else if (body.operation === undefined)
+      result = await saveAccountDraft(
+        pool,
+        key,
+        tokenHash,
+        {
+          id: body.id,
+          operationId: body.operationId,
+          revision: body.revision as number,
+          data: body.data,
+        },
+        "v1",
+      );
     else throw new AppFailure(400, "Invalid event action.");
     return Response.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {

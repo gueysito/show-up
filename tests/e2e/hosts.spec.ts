@@ -38,31 +38,25 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await host.getByLabel("Planned start (UTC)", { exact: true }).fill(draft.startsAt.slice(0, 16));
     await host.getByLabel("Planned end (UTC)", { exact: true }).fill(draft.endsAt.slice(0, 16));
     await host.getByLabel("Planned sponsor budget (USDC)", { exact: true }).fill("100");
-    await host.getByRole("button", { name: /Add optional question/ }).click();
-    await host.getByLabel("Question", { exact: true }).fill("Private host question");
-    await host.getByLabel("Answer format", { exact: true }).selectOption("short");
-    await host.getByLabel("Accepted answers", { exact: true }).fill("Fictional private answer");
+    await expect(host.getByRole("button", { name: /Add optional question/ })).toHaveCount(0);
     await save.click();
     await expect(host.getByRole("status")).toContainText("Saved private draft · revision 1");
     await host.getByRole("button", { name: "Close saved details" }).click();
     await host.reload();
     await host.getByRole("button", { name: /Invited host draft Revision 1/ }).click();
-    await expect(host.getByLabel("Accepted answers", { exact: true })).toHaveValue(
-      "Fictional private answer",
+    await expect(host.getByLabel("Planned sponsor budget (USDC)", { exact: true })).toHaveValue(
+      "100",
     );
     await host.getByRole("button", { name: "Duplicate Invited host draft", exact: true }).click();
     await expect(host.getByLabel("Event name", { exact: true })).toHaveValue(
       "Invited host draft (copy)",
     );
     await expect(host.getByRole("status")).toContainText("Independent unfunded draft");
-    await expect(host.getByRole("button", { name: /Publish event/ })).toBeDisabled();
-    const review = host.getByRole("button", { name: "Check saved publication requirements" });
+    const review = host.getByRole("button", { name: "Check publication status" });
     await review.click();
     const requirements = host.getByRole("region", { name: "Saved publication requirements" });
-    await expect(requirements).toContainText("Checked saved revision 1");
-    await expect(requirements).toContainText("NEAR, Base, Solana and Ethereum");
-    await expect(requirements).toContainText("Project execution funding");
-    await expect(requirements).not.toContainText("Fictional private answer");
+    await expect(requirements).toContainText("Prize funding and NFT custody are not connected yet");
+    await expect(host.getByRole("button", { name: /Publish event on mainnet/ })).toBeDisabled();
     const ownEvents = await (await host.request.get("/api/events")).json();
     const copy = ownEvents.drafts.find(
       (event: { data: { title: string } }) => event.data.title === "Invited host draft (copy)",
@@ -87,7 +81,7 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
           },
         })
       ).status(),
-    ).toBe(409);
+    ).toBe(400);
     await host.getByLabel("Event name", { exact: true }).fill("Unsaved private edit");
     await expect(review).toBeDisabled();
     await expect(requirements).toHaveCount(0);
@@ -98,13 +92,13 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
       true,
     );
     await host.screenshot({
-      path: ".agents/runs/showup-halfway/evidence/invited-host-draft.png",
+      path: "contracts/.cache/v1-browser/invited-host-draft.png",
       fullPage: true,
     });
     await host
       .getByRole("region", { name: "Event publication and access" })
       .scrollIntoViewIfNeeded();
-    await host.screenshot({ path: ".agents/runs/showup-halfway/evidence/host-actions-mobile.png" });
+    await host.screenshot({ path: "contracts/.cache/v1-browser/host-actions-mobile.png" });
 
     const otherContext = await browser.newContext({ ignoreHTTPSErrors: true });
     extra.push(otherContext);

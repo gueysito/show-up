@@ -59,6 +59,18 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         </p>
       )}
       <p>{event.data.description}</p>
+      {event.escrow && (
+        <section className="saved-panel" aria-label="Verified mainnet event">
+          <h2>Verified on NEAR mainnet</h2>
+          <p>{`The escrow confirms these terms at finalized block ${event.escrow.height}.`}</p>
+          <p>
+            <a href={event.escrow.transactionUrl} target="_blank" rel="noopener noreferrer">
+              View publication transaction
+            </a>
+          </p>
+          <p>{`Escrow: ${event.escrow.account}`}</p>
+        </section>
+      )}
       <dl>
         <dt>Mode</dt>
         <dd>{event.data.mode === "digital" ? "Online" : "In person"}</dd>
@@ -73,7 +85,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
         <dt>Event timezone</dt>
         <dd>{event.data.timeZone}</dd>
         <dt>Maximum attendance</dt>
-        <dd>{`${event.data.capacity}. Funded capacity has not been verified here.`}</dd>
+        <dd>
+          {event.escrow
+            ? event.data.capacity
+            : `${event.data.capacity}. Funded capacity has not been verified here.`}
+        </dd>
         <dt>Commitment</dt>
         <dd>{`${event.data.commitment} USDC`}</dd>
         <dt>Sponsor budget</dt>
@@ -112,9 +128,11 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
       <section aria-label="Event participation" className="saved-panel">
         <h2>{event.registration === "closed" ? "Registration closed" : "Review participation"}</h2>
         <p role="status">
-          {event.registration === "closed"
-            ? "Deposits are closed. Existing authorizations and recovery remain available."
-            : "Deposits are closed while attributable escrow, authorized returns and route qualification remain unverified. No seat is reserved by this page."}
+          {event.escrow && event.escrow.status === "published"
+            ? "This event is published. Attendee deposits are not open yet; no seat is reserved."
+            : event.registration === "closed"
+              ? "Deposits are closed. Existing authorizations and recovery remain available."
+              : "Deposits are closed while attributable escrow, authorized returns and route qualification remain unverified. No seat is reserved by this page."}
         </p>
         <button type="button" className="primary-button" disabled>
           Deposits closed

@@ -1103,6 +1103,46 @@ The ordered steps are `create`, `fund`, `deploy`, `storage`, `event`, `publish`,
 `register`, `deposit`, `cancel`, `withdraw`. Mainnet authority and actual fees are
 recorded in the plan; this operator has no HTTP endpoint.
 
+### V1 app publication
+
+The authenticated host workspace saves V1 limits (1–64 attendees, 1–100 USDC),
+then **Publish event on mainnet** freezes the saved revision. A separate local
+worker signs one `create_event` + `publish` batch. **Check publication status**
+opens the event page after both RPCs confirm the pinned code and saved terms.
+Only zero-prize events are connected here; prize funding/NFT custody follow separately.
+
+Apply local migrations with the existing owner-only auth configuration, then run
+the worker separately from the web process:
+
+```sh
+npm run db:migrate:private
+node --import tsx scripts/v1-publication-worker.ts --execute --watch
+```
+
+Without `--execute`, the worker cannot sign or submit. A submitted transaction is
+only reconciled by its original hash, including after restart. The database stores
+encrypted images before submission and serializes the controller's nonce use.
+Do not run another controller signer or a second database's mainnet worker at the
+same time. A 0.20-NEAR controller floor bounds further publication; the retained
+FullAccess key remains the local operator's authority and stays outside the web app.
+
+The ordinary browser tests never submit to mainnet. The explicit owner-operated
+check uses a preauthenticated test host and real on-chain state, without loading
+provider credentials or putting wallet keys in the browser:
+
+```sh
+export SHOWUP_CONTAINER_E2E=1
+export SHOWUP_BROWSER_CHROME=1
+export SHOWUP_MAINNET_BROWSER=1
+node_modules/.bin/playwright test -c playwright.mainnet.config.ts
+```
+
+This requires the disposable test database and production build described below.
+`SHOWUP_BROWSER_CHROME=1` uses an installed Chrome; CI retains pinned Chromium.
+Mainnet receipts/screenshots stay in ignored `contracts/.cache/v1-browser`.
+Inspect existing receipts before repeating this financial check. It creates a real,
+unfunded public event and consumes project gas; it is not part of normal CI.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet

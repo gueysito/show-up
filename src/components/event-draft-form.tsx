@@ -28,7 +28,17 @@ export function EventDraftForm({
 }) {
   const api = account ? "/api/events" : "/api/dev/drafts";
   const headers = account ? accountHeaders : workspaceHeaders;
-  const [draft, setDraft] = useState<EventDraft>(() => structuredClone(emptyDraft));
+  const newDraft = () =>
+    account
+      ? {
+          ...structuredClone(emptyDraft),
+          capacity: 64,
+          commitment: "1",
+          sponsorBudget: "0",
+          rewardPreset: "draw" as const,
+        }
+      : structuredClone(emptyDraft);
+  const [draft, setDraft] = useState<EventDraft>(newDraft);
   const [errors, setErrors] = useState<DraftErrors>({});
   const [saved, setSaved] = useState<SavedDraft[]>([]);
   const [identity, setIdentity] = useState<{ id: string; revision: number; state?: string } | null>(
@@ -86,7 +96,7 @@ export function EventDraftForm({
   async function submit(event: FormEvent) {
     event.preventDefault();
     setConfirmation(null);
-    const result = validateDraft(draft);
+    const result = validateDraft(draft, Date.now(), account ? "v1" : "v2");
     if (!result.ok) {
       showErrors(result.errors);
       setStatus("Review the highlighted fields. Your entries are preserved.");
@@ -151,7 +161,7 @@ export function EventDraftForm({
       !window.confirm("Discard unsaved form changes?")
     )
       return;
-    setDraft(item ? structuredClone(item.data) : structuredClone(emptyDraft));
+    setDraft(item ? structuredClone(item.data) : newDraft());
     setIdentity(item ? { id: item.id, revision: item.revision, state: item.state } : null);
     setSnapshot(item ? JSON.stringify(item.data) : "");
     pending.current = null;
@@ -321,8 +331,8 @@ export function EventDraftForm({
               )}
               <fieldset className="material-fields" disabled={busy || locked}>
                 <DetailsFields draft={draft} errors={errors} change={change} />
-                <CommitmentFields draft={draft} errors={errors} change={change} />
-                <ParticipationFields draft={draft} errors={errors} change={change} />
+                <CommitmentFields draft={draft} errors={errors} change={change} v1={account} />
+                <ParticipationFields draft={draft} errors={errors} change={change} v1={account} />
               </fieldset>
               <div className="form-footer">
                 <p role="status" aria-live="polite">
@@ -337,7 +347,9 @@ export function EventDraftForm({
                   disabled={busy || locked || conflict || (persistence && !ready)}
                 >
                   {locked
-                    ? "Published material terms locked"
+                    ? identity?.state === "publication_pending"
+                      ? "Publication requested; terms locked"
+                      : "Published material terms locked"
                     : busy
                       ? "Saving…"
                       : persistence
@@ -400,6 +412,11 @@ export function EventDraftForm({
             )}
             {account && identity && (
               <EventActions
+                onPublicationRequested={() =>
+                  setIdentity((current) =>
+                    current ? { ...current, state: "publication_pending" } : current,
+                  )
+                }
                 key={identity.id}
                 id={identity.id}
                 revision={identity.revision}

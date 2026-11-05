@@ -84,7 +84,11 @@ export function normalizeAnswer(value: string) {
   return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
 }
 
-export function validateDraft(input: unknown, now = Date.now()): DraftValidation {
+export function validateDraft(
+  input: unknown,
+  now = Date.now(),
+  version: "v1" | "v2" = "v2",
+): DraftValidation {
   const errors: DraftErrors = {};
   if (!record(input)) return { ok: false, errors: { form: "Enter an event draft." } };
   for (const key of Object.keys(input)) {
@@ -126,13 +130,20 @@ export function validateDraft(input: unknown, now = Date.now()): DraftValidation
   if (
     !Number.isInteger(input.capacity) ||
     Number(input.capacity) < 1 ||
-    Number(input.capacity) > 100
+    Number(input.capacity) > (version === "v1" ? 64 : 100)
   ) {
-    errors.capacity = "Choose a whole number from 1 to 100.";
+    errors.capacity = `Choose a whole number from 1 to ${version === "v1" ? 64 : 100}.`;
   }
   const commitment = usdcAtomic(input.commitment);
-  if (commitment === null || commitment < 2500000n) {
-    errors.commitment = "Use at least 2.50 USDC, with at most six decimal places.";
+  if (
+    commitment === null ||
+    commitment < (version === "v1" ? 1000000n : 2500000n) ||
+    (version === "v1" && commitment > 100000000n)
+  ) {
+    errors.commitment =
+      version === "v1"
+        ? "Use 1–100 USDC, with at most six decimal places."
+        : "Use at least 2.50 USDC, with at most six decimal places.";
   }
   const budget = usdcAtomic(input.sponsorBudget);
   if (budget === null)

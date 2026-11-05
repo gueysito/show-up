@@ -110,6 +110,11 @@ One concise row per package; distinguish local preparation from mainnet completi
 | ID | Date | Evidence |
 | --- | --- | --- |
 | V1-1 complete | 2026-11-04 | Reviewed 321,207-byte artifact [deployed/initialized atomically](https://nearblocks.io/txns/9HeV9x7NKZ6PZixzLWbDebcJu4ophRoym5EmEg52nsCR) at `showup-dev-14989f.near`; code collateral 3.21207 NEAR. Manual [1-USDC deposit](https://nearblocks.io/txns/DZF1Tuvq7kTU18t8y8jyEcBjh7Z8YL4eNyoFnWnn6nNX), [cancel](https://nearblocks.io/txns/J9RnpzsatiSJmriG1BJRfsD6fBivTtK9FdMUw8ToNVye) and [refund](https://nearblocks.io/txns/BsxTU3pK65apU6mz7cajh6tkoEU1x3XY2iTAfzWwAsnS) restore 2.549953 USDC to the controller, zero in escrow, claim paid in full. Both RPCs agree at finalized block 223121252. The identical artifact retains its 53-test/Node replay [CI evidence](https://github.com/gueysito/show-up/actions/runs/41952837163); 109 current app/operator unit tests, format/lint/types and build pass. Next: V1-2 app publication. |
+| V1-2 in progress | 2026-11-04 | Host publication now queues locked V1 terms for a separate local signer; two RPCs verify code and actual event state before confirmation/public display. 111 unit tests, 187 database tests plus the added worker-concurrency case, production build and three host/publication browser checks pass locally. Next: one real browser-to-mainnet publication. This first path accepts zero-prize events; prize funding/custody connect with V1-6/7. |
+
+Tooling watch: npm audit reports eight moderate findings through the ESLint
+`minimatch` dependency, with no published fix; no high advisories. This dependency
+is development tooling, not a runtime publication/payment dependency.
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra

@@ -3,6 +3,7 @@ import { Field, fromDateInput, toDateInput } from "./field";
 import { QuestionEditor } from "./question-editor";
 
 type Props = {
+  v1?: boolean;
   draft: EventDraft;
   errors: DraftErrors;
   change: <K extends keyof EventDraft>(key: K, value: EventDraft[K]) => void;
@@ -151,7 +152,7 @@ export function DetailsFields({ draft, errors, change }: Props) {
   );
 }
 
-export function CommitmentFields({ draft, errors, change }: Props) {
+export function CommitmentFields({ draft, errors, change, v1 = false }: Props) {
   return (
     <section className="form-section" id="commitment-section">
       <div className="section-title">
@@ -162,13 +163,18 @@ export function CommitmentFields({ draft, errors, change }: Props) {
         </div>
       </div>
       <div className="field-grid">
-        <Field name="capacity" label="Capacity" hint="1–100 funded attendees." errors={errors}>
+        <Field
+          name="capacity"
+          label="Capacity"
+          hint={v1 ? "1–64 funded attendees." : "1–100 funded attendees."}
+          errors={errors}
+        >
           {(attrs) => (
             <input
               {...attrs}
               type="number"
               min="1"
-              max="100"
+              max={v1 ? "64" : "100"}
               step="1"
               value={draft.capacity}
               onChange={(e) => change("capacity", Number(e.target.value))}
@@ -178,7 +184,11 @@ export function CommitmentFields({ draft, errors, change }: Props) {
         <Field
           name="commitment"
           label="Refundable commitment (USDC)"
-          hint="Default 5. Minimum 2.50; no reduced-funds exception is enabled."
+          hint={
+            v1
+              ? "1–100 USDC. Returned to attendees who check in, less disclosed transaction fees."
+              : "Default 5. Minimum 2.50; no reduced-funds exception is enabled."
+          }
           errors={errors}
         >
           {(attrs) => (
@@ -215,9 +225,13 @@ export function CommitmentFields({ draft, errors, change }: Props) {
               value={draft.rewardPreset}
               onChange={(e) => change("rewardPreset", e.target.value as EventDraft["rewardPreset"])}
             >
-              <option value="hybrid">Hybrid · 40% equal / 60% draw</option>
-              <option value="equal">Equal-only</option>
-              <option value="draw">Draw-only</option>
+              {!v1 && <option value="hybrid">Hybrid · 40% equal / 60% draw</option>}
+              {!v1 && <option value="equal">Equal-only</option>}
+              <option value="draw">
+                {v1
+                  ? "No-show deposits split equally; optional prize drawn to one attendee"
+                  : "Draw-only"}
+              </option>
             </select>
           )}
         </Field>
@@ -225,7 +239,11 @@ export function CommitmentFields({ draft, errors, change }: Props) {
       <Field
         name="access"
         label="Registration access"
-        hint="The restricted rollout will enforce invitations regardless of this draft choice."
+        hint={
+          v1
+            ? "Open events have a public event page. Invitation-only events require access."
+            : "The restricted rollout will enforce invitations regardless of this draft choice."
+        }
         errors={errors}
       >
         {(attrs) => (
@@ -235,7 +253,7 @@ export function CommitmentFields({ draft, errors, change }: Props) {
             onChange={(e) => change("access", e.target.value as EventDraft["access"])}
           >
             <option value="invitation">Invitation-only</option>
-            <option value="open">Open · future release approval required</option>
+            <option value="open">{v1 ? "Open" : "Open · future release approval required"}</option>
           </select>
         )}
       </Field>
@@ -243,57 +261,65 @@ export function CommitmentFields({ draft, errors, change }: Props) {
   );
 }
 
-export function ParticipationFields({ draft, errors, change }: Props) {
+export function ParticipationFields({ draft, errors, change, v1 = false }: Props) {
   return (
     <section className="form-section" id="participation">
       <div className="section-title">
         <span>03</span>
         <div>
-          <h2>A little more participation</h2>
-          <p>Optional questions. Extra upside, never a condition for principal.</p>
+          <h2>{v1 ? "Optional prize" : "A little more participation"}</h2>
+          <p>
+            {v1
+              ? "Prize funding and Ethereum NFT custody are being connected separately. Keep the prize at zero to publish now."
+              : "Optional questions. Extra upside, never a condition for principal."}
+          </p>
         </div>
       </div>
-      {draft.quizzes.map((quiz, index) => (
-        <QuestionEditor
-          key={index}
-          quiz={quiz}
-          index={index}
-          errors={errors}
-          onChange={(next) =>
-            change(
-              "quizzes",
-              draft.quizzes.map((q, i) => (i === index ? next : q)),
-            )
-          }
-          onRemove={() =>
-            change(
-              "quizzes",
-              draft.quizzes.filter((_, i) => i !== index),
-            )
-          }
-        />
-      ))}
-      <button
-        type="button"
-        className="secondary-button"
-        disabled={draft.quizzes.length >= 2}
-        onClick={() =>
-          change("quizzes", [
-            ...draft.quizzes,
-            {
-              question: "",
-              type: "choice",
-              options: ["", ""],
-              correctOption: 0,
-              aliases: [],
-              plannedAt: draft.startsAt,
-              durationSeconds: 90,
-            },
-          ])
-        }
-      >
-        {`+ Add optional question (${draft.quizzes.length}/2)`}
-      </button>
+      {!v1 && (
+        <>
+          {draft.quizzes.map((quiz, index) => (
+            <QuestionEditor
+              key={index}
+              quiz={quiz}
+              index={index}
+              errors={errors}
+              onChange={(next) =>
+                change(
+                  "quizzes",
+                  draft.quizzes.map((q, i) => (i === index ? next : q)),
+                )
+              }
+              onRemove={() =>
+                change(
+                  "quizzes",
+                  draft.quizzes.filter((_, i) => i !== index),
+                )
+              }
+            />
+          ))}
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={draft.quizzes.length >= 2}
+            onClick={() =>
+              change("quizzes", [
+                ...draft.quizzes,
+                {
+                  question: "",
+                  type: "choice",
+                  options: ["", ""],
+                  correctOption: 0,
+                  aliases: [],
+                  plannedAt: draft.startsAt,
+                  durationSeconds: 90,
+                },
+              ])
+            }
+          >
+            {`+ Add optional question (${draft.quizzes.length}/2)`}
+          </button>
+        </>
+      )}
       <div className="nft-toggle">
         <label>
           <input
@@ -304,7 +330,7 @@ export function ParticipationFields({ draft, errors, change }: Props) {
                 "nft",
                 e.target.checked
                   ? {
-                      network: "near",
+                      network: v1 ? "ethereum" : "near",
                       collection: "",
                       assetId: "",
                       contributorReturnAddress: "",
@@ -335,9 +361,9 @@ export function ParticipationFields({ draft, errors, change }: Props) {
                   })
                 }
               >
-                <option value="near">NEAR · NEP-171</option>
-                <option value="base">Base · ERC-721</option>
-                <option value="solana">Solana · Core</option>
+                {!v1 && <option value="near">NEAR · NEP-171</option>}
+                {!v1 && <option value="base">Base · ERC-721</option>}
+                {!v1 && <option value="solana">Solana · Core</option>}
                 <option value="ethereum">Ethereum · ERC-721</option>
               </select>
             )}
@@ -348,7 +374,9 @@ export function ParticipationFields({ draft, errors, change }: Props) {
               ["assetId", "Token / asset identifier"],
               [
                 "contributorReturnAddress",
-                "Contributor return destination (fictional for this harness)",
+                v1
+                  ? "Contributor return destination"
+                  : "Contributor return destination (fictional for this harness)",
               ],
             ] as const
           ).map(([key, label]) => (

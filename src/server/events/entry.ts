@@ -5,8 +5,10 @@ import { identityIndex } from "../auth/crypto";
 import { transaction } from "../db/client";
 import { AppFailure } from "../http/security";
 import { isUuid } from "./drafts";
+import { readV1PublishedTerms, type V1PublicEscrow } from "./v1-publication";
 
 export type EventEntry = {
+  escrow?: V1PublicEscrow;
   id: string;
   state: string;
   rulesHash: string;
@@ -46,7 +48,7 @@ export async function readEventEntry(
   sessionHash?: string,
 ): Promise<EventEntry> {
   if (!isUuid(eventId)) throw new AppFailure(404, "Event unavailable.");
-  return transaction(pool, async (client) => {
+  const entry = await transaction<EventEntry>(pool, async (client) => {
     const actor = sessionHash
       ? (
           await client.query(
@@ -110,4 +112,22 @@ export async function readEventEntry(
         : null,
     };
   });
+  // Access is checked before any mainnet read or public projection.
+  const escrow = await readV1PublishedTerms(pool, config.encryptionKey, eventId);
+  if (!escrow) return entry;
+  return {
+    ...entry,
+    escrow,
+    state: escrow.status,
+    registration: "closed",
+    data: {
+      ...entry.data,
+      title: escrow.title,
+      startsAt: escrow.startsAt,
+      endsAt: escrow.endsAt,
+      capacity: escrow.capacity,
+      commitment: escrow.commitment,
+      sponsorBudget: escrow.sponsorBudget,
+    },
+  };
 }

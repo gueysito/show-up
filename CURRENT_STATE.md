@@ -36,5 +36,6 @@ The artifact retains its passing 53-test Rust/independent-replay CI evidence;
 109 current app/operator unit tests, format/lint/types and production build pass.
 The 3.73-wNEAR top-up was converted to native NEAR. Known allocation remains about
 $27.20/$50; no further funding is requested. BasedHeads #2829 is selected, not moved.
-Next is V1-2: connect host creation/publication and the public event page to this
-mainnet contract, then verify that journey in the browser.
+V1-2 publication wiring and local browser checks pass: host requests lock terms;
+a separate signer submits one retained transaction; the event page checks mainnet.
+Next: verify that browser journey with one real zero-prize mainnet publication.
