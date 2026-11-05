@@ -1,6 +1,7 @@
 import { createHash, createPrivateKey, createPublicKey, sign } from "node:crypto";
 import { decodeBase58, encodeBase58 } from "../../src/server/protocol/encoding";
 import { walletAddress } from "../../src/server/wallets/proof";
+import { mainnetAccount } from "../near-mainnet-account-plan";
 
 export type NativeAction =
   | { kind: "create" }
@@ -42,15 +43,19 @@ export function nativeBytes(value: Uint8Array) {
 }
 export const nativeString = (value: string) => nativeBytes(Buffer.from(value));
 function publicKey(value: string) {
-  if (!value.startsWith("ed25519:")) throw new Error("Only Ed25519 testnet keys are supported");
+  if (!value.startsWith("ed25519:")) throw new Error("Only Ed25519 keys are supported");
   return Buffer.concat([Buffer.from([0]), decodeBase58(value.slice(8), 32)]);
 }
-function account(value: string) {
+function account(value: string, allowed?: ReadonlySet<string>) {
   if (
     walletAddress("near", value) !== value ||
-    (!value.endsWith(".testnet") && !/^[0-9a-f]{64}$/.test(value))
+    (allowed ? !allowed.has(value) : !value.endsWith(".testnet") && !/^[0-9a-f]{64}$/.test(value))
   )
-    throw new Error("Only testnet names and implicit account identifiers are supported");
+    throw new Error(
+      allowed
+        ? "Outside the approved V1 mainnet accounts"
+        : "Only testnet names and implicit account identifiers are supported",
+    );
   return nativeString(value);
 }
 function deposit(value: string) {
@@ -87,27 +92,73 @@ function action(value: NativeAction): Buffer {
 
 // Native V0 Borsh bytes have no version prefix. Persist the signed result before
 // the only broadcast attempt; a fresh nonce must never replace an unknown image.
-export function nativeTransaction(input: {
+export type NativeTransactionInput = {
   signer: string;
   receiver: string;
   publicKey: string;
   nonce: string;
   blockHash: string;
   actions: NativeAction[];
-}) {
+};
+function encodeTransaction(input: NativeTransactionInput, allowed?: ReadonlySet<string>) {
   if (!input.actions.length || input.actions.length > 4)
     throw new Error("Unexpected native action count");
   const bytes = Buffer.concat([
-    account(input.signer),
+    account(input.signer, allowed),
     publicKey(input.publicKey),
     nativeInteger(input.nonce, 8),
-    account(input.receiver),
+    account(input.receiver, allowed),
     decodeBase58(input.blockHash, 32),
     nativeInteger(String(input.actions.length), 4),
     ...input.actions.map(action),
   ]);
   const digest = createHash("sha256").update(bytes).digest();
   return { bytes, digest, hash: encodeBase58(digest) };
+}
+
+export function nativeTransaction(input: NativeTransactionInput) {
+  return encodeTransaction(input);
+}
+
+// Explicit V1 mainnet policy. Legacy engineering callers retain their testnet guard.
+export function v1MainnetTransaction(input: NativeTransactionInput) {
+  if (
+    !([mainnetAccount.implicit, mainnetAccount.proposedName] as string[]).includes(input.signer) ||
+    input.publicKey !== mainnetAccount.publicKey ||
+    input.actions.some((value) => value.kind === "create" || value.kind === "add_key") ||
+    input.actions.reduce(
+      (gas, value) => gas + (value.kind === "call" ? BigInt(value.gas) : 0n),
+      0n,
+    ) > 150_000_000_000_000n ||
+    input.actions.reduce(
+      (sum, value) => sum + ("deposit" in value ? BigInt(value.deposit) : 0n),
+      0n,
+    ) > 3_730_000_000_000_000_000_000_000n
+  )
+    throw new Error("Outside the approved V1 mainnet envelope");
+  return encodeTransaction(
+    input,
+    new Set([
+      mainnetAccount.implicit,
+      mainnetAccount.proposedName,
+      mainnetAccount.factory,
+      "wrap.near",
+      "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    ]),
+  );
+}
+
+export function signV1MainnetTransaction(
+  input: Omit<NativeTransactionInput, "publicKey">,
+  key: NativeKey,
+) {
+  const image = v1MainnetTransaction({ ...input, publicKey: key.publicKey });
+  return {
+    hash: image.hash,
+    signedBase64: Buffer.concat([image.bytes, Buffer.from([0]), key.sign(image.digest)]).toString(
+      "base64",
+    ),
+  };
 }
 export function signNativeTransaction(
   input: Omit<Parameters<typeof nativeTransaction>[0], "publicKey">,

@@ -66,13 +66,13 @@ Measured corrected V1 WASM: **321,207 bytes**, code collateral **3.21207 NEAR**;
 SHA-256 `3efb9c95ab79e6d996694a99da4a762f5896a39676063c7c49589a0ecde8b063`.
 Deploy to the still-unregistered `showup-dev-14989f.near` using the existing key;
 the prior **3.66-NEAR quote is withdrawn**. Corrections pass locally and in CI.
-Replacement request: **3.72 native NEAR on NEAR mainnet** to the existing implicit
-controller in [development wallets](development-wallets.md#mainnet-preparation-and-initial-funding).
-Both RPCs agree at finalized block **223103176** on the unchanged balance and sole
-expected FullAccess key; factory code, unregistered name and protocol pricing pass.
-At [CoinGecko's $4.05/NEAR snapshot](https://www.coingecko.com/en/coins/near), the
-top-up is about **$15.07**, for a projected known allocation of **$27.16/$50** before
-the sender's new fee. Calculation: code 3.21207 + 0.10 state
+The controller received **3.73 wNEAR**, verified at `wrap.near` by both RPCs, and
+[converted it to native NEAR](https://nearblocks.io/txns/FfCBFBUXrGQQQiyvWgjV65HuE2SdsddYjgYfet3zvxV2).
+Both RPCs verify **3.9774802711174997 native NEAR and zero wNEAR** at block 223111055.
+No replacement transfer is needed. At the
+[funding snapshot of $4.05/NEAR](https://www.coingecko.com/en/coins/near), the new
+allocation is about **$15.11**, or **$27.20/$50** including prior funding and known
+fees, before the sender's new fee. Original calculation: code 3.21207 + 0.10 state
 allowance + 0.40 contract gas reserve + 0.25 controller reserve − existing
 0.2485110692734984 = 3.7135589307265016 NEAR, rounded up to **3.72 NEAR**.
 Three-attendee settled state uses 1,896 bytes above code, within the 10,000-byte
@@ -108,7 +108,7 @@ One concise row per package; distinguish local preparation from mainnet completi
 
 | ID | Date | Evidence |
 | --- | --- | --- |
-| V1-1 (in progress; not deployed) | 2026-11-04 | Source `37895cc` passes full `npm run contracts:check` (53 Rust tests including nine V1 cases, independent Node replays and the 380-package advisory gate), 99 app unit tests, app checks and build. Both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41952837163), including browser and app-to-contract tests, pass at `b6e450a` after allowing 30 minutes for the complete contract job. Real deployment and deposit/refund remain next after the refreshed 3.72-NEAR funding request. |
+| V1-1 (in progress; controller funded) | 2026-11-04 | The reviewed 321,207-byte contract retains the passing 53-test/Node replay and [CI evidence](https://github.com/gueysito/show-up/actions/runs/41952837163). The fixed mainnet operator passes 102 app unit tests, app checks/build, Clippy and an independent NEAR native decoder case for unwrap/atomic deployment. The 3.73-wNEAR top-up is converted to native; create/fund the named account, deploy/initialize together, then run the 1-USDC refund round trip. |
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra
@@ -137,7 +137,7 @@ current CI checks pass. Corrections add no dependencies. Invalid references
 or wrong senders remain rejected and must be prevented when binding a route. Three
 failed NFT attempts still require an original signature or explicit operator recovery;
 retained full-access authority remains deliberate. No new mainnet spend.
-**Next: verify the requested controller top-up, deploy/initialize atomically,
+**Next: create/fund the named account, deploy/initialize atomically,
 and run the small real deposit/refund round trip.**
 
 ### Mainnet spend ledger
@@ -154,15 +154,17 @@ and run the small real deposit/refund round trip.**
 | 2026-11-04 | NEAR | Owner-paid funding/activation fee | 0.0071149895375 NEAR (about $0.0293) | Same NEAR funding transaction above |
 | 2026-11-04 | NEAR | USDC storage registration, finalized and verified by both RPCs | 0.00125 NEAR collateral (about $0.0052); 0.0002389307265016 NEAR consumed fee (about $0.0010) | [Registration](https://nearblocks.io/txns/8FR3jtZ8QK2VBjRWbraLsRgUE3Nogy8J9bhDhHR46Wn7) |
 | 2026-11-04 | NEAR | Net incoming USDC, both RPCs agree at finalized block 223088071 | 2.549953 USDC (about $2.55) | [Account](https://nearblocks.io/address/14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc); token-transfer hash not yet indexed |
+| 2026-11-04 | NEAR | Incoming deployment funding in canonical wNEAR, converted 1:1 into native NEAR | 3.73 wNEAR / NEAR (about $15.11 at the funding snapshot); count once | [Conversion](https://nearblocks.io/txns/FfCBFBUXrGQQQiyvWgjV65HuE2SdsddYjgYfet3zvxV2); incoming transfer hash not yet recorded |
+| 2026-11-04 | NEAR | wNEAR conversion fee, paid from existing funding | 0.0010307981559987 NEAR (about $0.0042); no additional allocation | Same conversion transaction above |
 
-November 4: about **$12.09 funded/allocated including known sender fees and Solana rent**,
-using the preparation price snapshot. Registration collateral/fee are paid from
-the received 0.25 NEAR and are not counted again as new funding. Agent-consumed gas:
-0.0002389307265016 NEAR. Remaining NEAR: **0.2485110692734984**, with USDC storage
+November 4: about **$27.20 funded/allocated including known sender fees and Solana rent**,
+using the recorded funding price snapshots. Registration and conversion fees are paid
+from received funding and are not counted again. Agent-consumed gas:
+0.0012697288825003 NEAR. Remaining native NEAR: **3.9774802711174997**, with USDC storage
 registered. External balances are finalized. Both NEAR RPCs agree on 2,549,953
 atomic native USDC at finalized block 223088071 (November 4, 17:00 Denver).
 Final USDC sender costs/transaction attribution await indexing. First-round funding
-is complete; next is NFT selection/ownership, then V1-1. No app/escrow deposit yet.
+is complete; selected NFT ownership is verified and V1-1 deployment is next. No app/escrow deposit yet.
 
 ## V2 roadmap
 

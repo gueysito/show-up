@@ -36,6 +36,7 @@ The corrected V1 build is 321,207 bytes. Full checks pass: 53 Rust tests includi
 nine V1 cases, independent replays, 99 app unit tests and production build. Both CI
 jobs pass, including browser and app-to-contract checks. The [review corrections](docs/plan.md#v1-evidence)
 cover deposit recovery, original-transaction NFT retries and self-only/atomic initialization.
-Next: verify the **3.72 NEAR top-up to the controller**, deploy/initialize atomically,
-then run a small deposit/refund. The former 3.66-NEAR quote is withdrawn.
-No contract deployment or NFT transfer yet; known allocation remains about $12.09.
+The controller's 3.73-wNEAR top-up is converted to native NEAR, with both RPCs
+confirming 3.9774802711174997 native NEAR and zero wNEAR. No further transfer needed.
+Next: create/fund the named account, deploy/initialize atomically, then run a 1-USDC
+deposit/refund. No contract deployment or NFT transfer yet; known allocation is about $27.20.

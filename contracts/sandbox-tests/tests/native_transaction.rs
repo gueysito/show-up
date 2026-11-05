@@ -49,3 +49,56 @@ fn native_engineering_transaction_matches_pinned_near_wire_format() {
     assert_eq!(call.deposit.as_yoctonear(), 1);
     assert_eq!(borsh::to_vec(&tx).unwrap(), bytes);
 }
+
+#[test]
+fn v1_mainnet_images_match_pinned_near_wire_format() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../fixtures/v1-mainnet-transactions.json")).unwrap();
+    for vector in vectors.as_array().unwrap() {
+        let bytes = STANDARD
+            .decode(vector["unsignedBase64"].as_str().unwrap())
+            .unwrap();
+        let tx: Transaction = borsh::from_slice(&bytes).unwrap();
+        assert_eq!(tx.get_hash_and_size().0.to_string(), vector["hash"]);
+        assert_eq!(tx.public_key().to_string(), vector["publicKey"]);
+        assert_eq!(tx.nonce().nonce(), 9_007_199_254_740_993);
+        assert_eq!(tx.signer_id().as_str(), vector["signer"]);
+        assert_eq!(tx.receiver_id().as_str(), vector["receiver"]);
+        let actions = tx.actions();
+        if vector["name"] == "unwrap" {
+            assert_eq!(tx.receiver_id().as_str(), "wrap.near");
+            assert_eq!(actions.len(), 1);
+            let Action::FunctionCall(call) = &actions[0] else {
+                panic!("Unwrap expected")
+            };
+            assert_eq!(call.method_name, "near_withdraw");
+            let args: Value = serde_json::from_slice(&call.args).unwrap();
+            assert_eq!(args["amount"], "3730000000000000000000000");
+            assert_eq!(call.deposit.as_yoctonear(), 1);
+            assert_eq!(call.gas.as_gas(), 40_000_000_000_000);
+        } else {
+            assert_eq!(tx.signer_id(), tx.receiver_id());
+            assert_eq!(actions.len(), 2);
+            let Action::DeployContract(deploy) = &actions[0] else {
+                panic!("Deploy expected")
+            };
+            assert_eq!(deploy.code, vec![0, 97, 115, 109, 1, 0, 0, 0]);
+            let Action::FunctionCall(call) = &actions[1] else {
+                panic!("Initialization expected")
+            };
+            assert_eq!(call.method_name, "new");
+            let args: Value = serde_json::from_slice(&call.args).unwrap();
+            assert_eq!(
+                args["owner"],
+                "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc"
+            );
+            assert_eq!(
+                args["token"],
+                "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
+            );
+            assert_eq!(args["signer"], "v1.signer");
+            assert_eq!(call.deposit.as_yoctonear(), 0);
+        }
+        assert_eq!(borsh::to_vec(&tx).unwrap(), bytes);
+    }
+}

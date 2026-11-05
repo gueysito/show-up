@@ -1079,6 +1079,24 @@ if all attempts fail without a signature, explicit operator recovery is still ne
 These state-layout changes precede the first V1 deployment; an upgrade from an older
 deployed layout would require migration.
 
+`scripts/v1-mainnet.ts` is the local owner operator for this fixed deployment and
+one 1-USDC cancel/refund test. It pins the artifact, accounts, token, amounts and
+step order, checks both public RPCs, and retains each signed image before its only
+submission. Default calls are read-only; `--execute` submits the selected new step.
+Existing submitted images only reconcile their original hash. Operator receipts
+stay in ignored `contracts/.cache/v1-mainnet`; the existing owner key stays outside
+the repository. The manual smoke event uses the contract's controlled host account
+and the controller as attendee/payout; no no-show or prize outcome is exercised.
+
+```sh
+node --import tsx scripts/v1-mainnet.ts status
+node --import tsx scripts/v1-mainnet.ts create
+```
+
+The ordered steps are `create`, `fund`, `deploy`, `storage`, `event`, `publish`,
+`register`, `deposit`, `cancel`, `withdraw`. Mainnet authority and actual fees are
+recorded in the plan; this operator has no HTTP endpoint.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet
