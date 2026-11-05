@@ -803,3 +803,44 @@ async fn v1_nft_retry_is_bounded_authorized_and_keeps_original_transaction() {
         assert_eq!(final_state["nft"]["request"]["payload"], vector["payload"]);
     }
 }
+
+#[tokio::test]
+async fn v1_nft_fee_ceiling_is_bounded_and_preserves_the_fixed_recipient() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../fixtures/v1-nft-transactions.json")).unwrap();
+    let vector = &vectors[1];
+    let f = V1::new().await;
+    f.event("fee-bound",1_000_000,0,Some(json!({"collection":format!("0x{}","11".repeat(20)),"token_id":"2829","contributor":format!("0x{}","33".repeat(20))}))).await;
+    let key = bs58::encode(decode_hex(vector["publicKey"].as_str().unwrap())).into_string();
+    f.mock(json!({"caller":f.escrow.id(),"path":"showup:v1:fee-bound","domain_id":0,"public_key":format!("secp256k1:{key}")})).await;
+    f.call("derive_nft_custody", json!({"event":"fee-bound"}))
+        .await;
+    f.call("cancel", json!({"event":"fee-bound"})).await;
+    f.call("confirm_nft_custody", json!({"event":"fee-bound"}))
+        .await;
+    for (gas, fee) in [(100000, 4000000001u64), (250001, 1)] {
+        let rejected=f.host.call(f.escrow.id(),"release_nft").args_json(json!({"event":"fee-bound","nonce":0,"gas_limit":gas,"priority_fee":"1","max_fee":fee.to_string()})).deposit(NearToken::from_yoctonear(1)).max_gas().transact().await.unwrap();
+        assert!(rejected.is_failure());
+        assert!(
+            f.view("get_event", json!({"event":"fee-bound"})).await["nft"]["request"].is_null()
+        );
+    }
+    // The signer can fail without changing the accepted, fixed transaction.
+    f.mock(json!({"caller":f.escrow.id(),"request":{},"failure":true}))
+        .await;
+    let accepted=f.host.call(f.escrow.id(),"release_nft").args_json(json!({"event":"fee-bound","nonce":0,"gas_limit":100000,"priority_fee":"100000000","max_fee":"4000000000"})).deposit(NearToken::from_yoctonear(1)).max_gas().transact().await.unwrap();
+    assert!(
+        accepted.is_success(),
+        "Reviewed NFT fee ceiling must support real-network fees"
+    );
+    let event = f.view("get_event", json!({"event":"fee-bound"})).await;
+    assert_eq!(
+        event["nft"]["request"]["recipient"],
+        format!("0x{}", "33".repeat(20))
+    );
+    assert_eq!(event["nft"]["request"]["attempt"], 1);
+    assert_eq!(
+        event["nft"]["custody"],
+        "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+    );
+}

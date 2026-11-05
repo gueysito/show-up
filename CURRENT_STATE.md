@@ -24,7 +24,8 @@ Working rules are in [AGENTS.md](AGENTS.md).
 
 Checks use preauthenticated engineering accounts and isolated project-wallet
 approval. External wallet UI, a fresh provider login and a real phone remain to verify.
-128 unit, 195 database and 48 ordinary browser cases plus build/code checks pass.
+The existing app baseline passes 195 database and 48 ordinary browser cases;
+the NFT fee correction passes 130 unit and six focused database cases.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
 The local owner database is backed up and updated through all 39 migrations;
 there are no pending native transaction queues.
@@ -34,7 +35,9 @@ there are no pending native transaction queues.
 - V1-7: NFT custody/publication, attendee Ethereum binding, cancellation and signed
   delivery are implemented locally. The test event's Ethereum custody address is
   now derived and verified: `0x098a2830a7C2Bb6eC97d003361F3090CE3ba2CE0`.
-  BasedHeads #2829 still needs its owner's transfer and a real custody/release round trip.
+  BasedHeads #2829's owner transfer is finalized in custody. A bounded Ethereum
+  fee correction and compatible same-account upgrade are being verified before
+  the real signed release; no onward NFT transfer has occurred.
 - V1-9: front door and V1 preview run locally; desktop/390/320 layouts and real
   host navigation pass. A clean clone installs/builds on pinned Node 24 and serves
   home/preview/database health with HTTP 200. The real-phone journey remains.
@@ -45,4 +48,4 @@ The owner-local app runs at `https://localhost:3443`. The existing approved
 the rebuilt production app from `5e6386b`: home/account/health return HTTP 200;
 anonymous NFT requests return 401 and foreign-origin mutations return 403.
 Phone access depends on the development computer and its existing tunnel staying
-running. Fresh phone sign-in, external-wallet approval and NFT transfer remain to verify.
+running. Fresh phone sign-in, external-wallet approval and NFT release remain to verify.

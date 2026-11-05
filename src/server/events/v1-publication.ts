@@ -9,6 +9,7 @@ import {
   matchesV1Terms,
   readV1Snapshot,
   v1Deployment,
+  v1PreviousCodeHashes,
   v1TransactionUrl,
   type V1Terms,
 } from "../protocol/v1-escrow";
@@ -20,7 +21,7 @@ import { v1NftTerms, readV1NftHolding } from "../protocol/v1-nft";
 export type V1PublicationPhase = "atomic" | "create" | "publish";
 
 export type V1PublicationImage = {
-  deployment: typeof publicationProfile;
+  deployment: { account: string; owner: string; token: string; codeHash: string };
   format: "showup.v1.mainnet-publication.v1";
   eventId: string;
   ownerId: string;
@@ -140,7 +141,10 @@ export function storedV1Publication(key: string, row: V1PublicationRow): V1Publi
   ) as V1PublicationImage;
   if (
     image.format !== "showup.v1.mainnet-publication.v1" ||
-    canonicalHash(image.deployment) !== canonicalHash(publicationProfile) ||
+    ![v1Deployment.codeHash, ...v1PreviousCodeHashes].some(
+      (codeHash) =>
+        canonicalHash(image.deployment) === canonicalHash({ ...publicationProfile, codeHash }),
+    ) ||
     canonicalHash(image) !== row.image_hash ||
     image.ownerId !== row.owner_id ||
     image.eventId !== row.event_id ||

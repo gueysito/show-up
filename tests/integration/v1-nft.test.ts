@@ -221,6 +221,30 @@ test("NFT publication waits for actual custody; source hints cannot publish, and
       );
     await assert.rejects(confirm(), /not reached/);
     f.setOwner(f.custody);
+    f.setPrice("0x59682f00"); // Observed 1.5-gwei Ethereum price after mainnet deposit.
+    const gasTransport: typeof fetch = async (url, init) => {
+      const request = JSON.parse(String(init?.body));
+      if (request.method === "eth_getBalance" && request.params[0] === f.custody)
+        return Response.json({ jsonrpc: "2.0", id: request.id, result: "0x0" });
+      return f.transport(url, init);
+    };
+    const gasPayment = (await prepareV1NftWalletPayment(
+      f.pool,
+      f.config,
+      f.sessions[0],
+      f.id,
+      "gas",
+      gasTransport,
+    )) as { transaction: { to: string; value: string; data: string } };
+    assert.equal(gasPayment.transaction.to, f.custody);
+    assert.equal(gasPayment.transaction.data, "0x");
+    assert(BigInt(gasPayment.transaction.value) > 100000000000000n);
+    assert(BigInt(gasPayment.transaction.value) <= 400000000000000n);
+    assert.deepEqual(
+      await prepareV1NftWalletPayment(f.pool, f.config, f.sessions[0], f.id, "gas", gasTransport),
+      gasPayment,
+      "a second click retains the original allowance and nonce",
+    );
     await confirm();
     await runV1Publication(f.pool, f.key, f.publication);
     const payout = await verifyNearWallet(

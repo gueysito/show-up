@@ -97,7 +97,12 @@ test("two Ethereum sources preflight NFT ownership, nonce, gas and actual transf
   assert.equal(payment.transaction.from, f.contributor);
   assert.equal(payment.transaction.value, "0x0");
   assert.equal(payment.transaction.chainId, "0x1");
-  assert.ok(BigInt(payment.maximumGasWei) <= 100000000000000n);
+  assert.ok(BigInt(payment.maximumGasWei) <= 400000000000000n);
+  f.setPrice("0x59682f00"); // 1.5 gwei, observed on mainnet after custody deposit.
+  const realistic = await prepareV1NftTransfer(f.nft, f.contributor, f.custody, f.transport);
+  assert(BigInt(realistic.maximumGasWei) > 100000000000000n);
+  assert(BigInt(realistic.maximumGasWei) <= 400000000000000n);
+  f.setPrice("0x989680");
   f.setPending("0x1");
   await assert.rejects(
     prepareV1NftTransfer(f.nft, f.contributor, f.custody, f.transport),
@@ -114,6 +119,32 @@ test("two Ethereum sources preflight NFT ownership, nonce, gas and actual transf
   await assert.rejects(
     prepareV1NftTransfer(f.nft, f.contributor, f.custody, f.transport),
     /needs more ETH/,
+  );
+});
+
+test("NFT fee ceilings allow the reviewed bound and reject an extra wei or oversized gas", () => {
+  const f = v1NftFixture(),
+    envelope = {
+      nonce: "0",
+      gas_limit: "100000",
+      priority_fee: "100000000",
+      max_fee: "4000000000",
+    };
+  assert.equal(
+    v1NftReleaseTransaction(f.nft, f.custody, f.recipient.address, envelope).gasLimit,
+    100000n,
+  );
+  assert.throws(() =>
+    v1NftReleaseTransaction(f.nft, f.custody, f.recipient.address, {
+      ...envelope,
+      max_fee: "4000000001",
+    }),
+  );
+  assert.throws(() =>
+    v1NftReleaseTransaction(f.nft, f.custody, f.recipient.address, {
+      ...envelope,
+      gas_limit: "250001",
+    }),
   );
 });
 

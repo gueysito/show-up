@@ -15,6 +15,13 @@ import { compareFinalizedHeads } from "./finalized-heads";
 import { canonicalJson } from "./canonical";
 import { decodeBase58 } from "./encoding";
 import { AppFailure } from "../http/security";
+import { v1NftMaximumGasWei } from "../../domain/v1-nft-budget";
+
+export function v1NftGasLimit(estimate: bigint) {
+  const buffered = (estimate * 125n + 99n) / 100n;
+  if (estimate <= 0n || buffered > 250000n) throw new Error("NFT transfer gas outside V1 bounds");
+  return buffered < 50000n ? 50000n : buffered;
+}
 
 const erc721 = new Interface([
   "function ownerOf(uint256) view returns(address)",
@@ -168,7 +175,7 @@ export async function prepareV1NftTransfer(
     );
   if (facts[0].nonce !== facts[1].nonce) throw new Error("NFT nonce sources disagree");
   const max = (field: "price" | "gas") => facts.reduce((n, f) => (f[field] > n ? f[field] : n), 0n),
-    gas = (max("gas") * 125n + 99n) / 100n < 50000n ? 50000n : (max("gas") * 125n + 99n) / 100n,
+    gas = v1NftGasLimit(max("gas")),
     fee = max("price") * 2n,
     priority = max("price") / 10n || 1n;
   const envelope = {
@@ -214,7 +221,7 @@ export function v1NftReleaseTransaction(
     gas > 250000n ||
     priority > fee ||
     fee === 0n ||
-    gas * fee > 100000000000000n
+    gas * fee > v1NftMaximumGasWei
   )
     throw new Error("NFT release exceeds the contract's gas policy");
   return Transaction.from({

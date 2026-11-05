@@ -9,7 +9,14 @@ import { canonicalHash } from "../protocol/canonical";
 import { record } from "../protocol/quote-signature";
 import { ReadOnlyRpc, unsigned } from "../protocol/rpc";
 import { readV1Record } from "../protocol/v1-escrow";
-import { readV1NftHolding, prepareV1NftTransfer, v1NftCustody } from "../protocol/v1-nft";
+import {
+  readV1NftHolding,
+  prepareV1NftTransfer,
+  v1NftCustody,
+  v1NftTransferData,
+  v1NftGasLimit,
+} from "../protocol/v1-nft";
+import { v1NftMaximumGasWei } from "../../domain/v1-nft-budget";
 import { enqueueV1Action, readV1ActionSnapshot } from "./v1-actions";
 import { isUuid } from "./drafts";
 
@@ -134,16 +141,33 @@ export async function prepareV1NftWalletPayment(
     else {
       if (!["draft", "published", "settled", "cancelled"].includes(String(snapshot.event!.status)))
         throw new AppFailure(409, "Event custody unavailable.");
+      const holding = await readV1NftHolding(nft, transport);
+      if (holding.owner !== nft.contributor && holding.owner !== custody)
+        throw new AppFailure(
+          409,
+          "The NFT moved outside its fixed custody flow. Check its original transfer.",
+        );
+      const estimatedTransfer = {
+        from: holding.owner,
+        to: nft.collection,
+        value: "0x0",
+        data: v1NftTransferData(
+          nft,
+          holding.owner,
+          holding.owner === custody ? nft.contributor : custody,
+        ),
+      };
       const facts = await Promise.all(
         ["ethereum-drpc", "ethereum-publicnode"].map(async (endpoint) => {
           const rpc = new ReadOnlyRpc(endpoint, transport),
-            [chain, nonce, pending, price, balance, sourceBalance] = await Promise.all([
+            [chain, nonce, pending, price, balance, sourceBalance, gas] = await Promise.all([
               rpc.read("eth_chainId", []),
               rpc.read("eth_getTransactionCount", [nft.contributor, "latest"]),
               rpc.read("eth_getTransactionCount", [nft.contributor, "pending"]),
               rpc.read("eth_gasPrice", []),
               rpc.read("eth_getBalance", [custody, "latest"]),
               rpc.read("eth_getBalance", [nft.contributor, "latest"]),
+              rpc.read("eth_estimateGas", [estimatedTransfer]),
             ]);
           if (unsigned(chain) !== 1n || unsigned(nonce, 64) !== unsigned(pending, 64))
             throw new AppFailure(409, "Wait for the original Ethereum transaction first.");
@@ -152,15 +176,17 @@ export async function prepareV1NftWalletPayment(
             price: unsigned(price, 128),
             balance: unsigned(balance),
             sourceBalance: unsigned(sourceBalance),
+            gas: unsigned(gas, 64),
           };
         }),
       );
       if (facts[0].nonce !== facts[1].nonce || facts[0].balance !== facts[1].balance)
         throw new Error("NFT gas funding sources disagree");
       const price = facts.reduce((n, f) => (f.price > n ? f.price : n), 0n) * 2n,
-        reserve = 200000n * price,
+        gas = v1NftGasLimit(facts.reduce((n, f) => (f.gas > n ? f.gas : n), 0n)),
+        reserve = gas * price,
         value = reserve > facts[0].balance ? reserve - facts[0].balance : 0n;
-      if (price === 0n || reserve > 100000000000000n)
+      if (price === 0n || reserve > v1NftMaximumGasWei)
         throw new AppFailure(
           422,
           "Ethereum gas exceeds the NFT's small-transfer budget. Check later.",

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { v1NftMaximumGasWei } from "../../domain/v1-nft-budget";
 import type { readV1NftState } from "../../server/events/v1-nft";
 type View = Awaited<ReturnType<typeof readV1NftState>>;
 type Wallet = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
@@ -61,8 +62,8 @@ export function V1NftPrize({ eventId, active = true }: { eventId: string; active
         tx.from !== view.contributor ||
         tx.to !== (purpose === "nft" ? view.collection : view.custody) ||
         tx.data.toLowerCase() !== expected.toLowerCase() ||
-        (purpose === "nft" ? BigInt(tx.value) !== 0n : BigInt(tx.value) > 100000000000000n) ||
-        BigInt(tx.gas) * BigInt(tx.maxFeePerGas ?? tx.gasPrice) > 100000000000000n
+        (purpose === "nft" ? BigInt(tx.value) !== 0n : BigInt(tx.value) > v1NftMaximumGasWei) ||
+        BigInt(tx.gas) * BigInt(tx.maxFeePerGas ?? tx.gasPrice) > v1NftMaximumGasWei
       )
         throw new Error("NFT payment differs from the reviewed asset, destination or gas limit.");
       const wallet = (window as Window & { ethereum?: Wallet }).ethereum;
@@ -173,8 +174,7 @@ export function V1NftPrize({ eventId, active = true }: { eventId: string; active
                 </button>
               )}
               <p>
-                The wallet shows the exact ETH allowance before approval, capped at 0.0001 ETH plus
-                its funding fee. Unused ETH remains at this event&apos;s custody address.
+                {`The wallet shows the exact ETH allowance before approval, capped at ${Number(v1NftMaximumGasWei) / 1e18} ETH plus its funding fee. Unused ETH remains at this event's custody address.`}
               </p>
             </>
           )}
