@@ -24,12 +24,18 @@ export function V1Deposit({
   rulesHash,
   amount,
   wallets,
+  nft = false,
 }: {
   eventId: string;
   rulesHash: string;
   amount: string;
   wallets: OwnWallet[];
+  nft?: boolean;
 }) {
+  const ethereum = wallets.filter((wallet) => wallet.network === "ethereum");
+  const [ethereumWalletId, setEthereumWalletId] = useState(
+    ethereum.length === 1 ? ethereum[0].id : "",
+  );
   const near = wallets.filter((wallet) => wallet.network === "near");
   const [walletId, setWalletId] = useState(near.length === 1 ? near[0].id : "");
   const sources = wallets.filter((wallet) =>
@@ -46,6 +52,7 @@ export function V1Deposit({
   const operation = useRef<{
     walletId: string;
     sourceWalletId: string;
+    ethereumWalletId: string;
     operationId: string;
   } | null>(null);
   useEffect(() => {
@@ -101,9 +108,15 @@ export function V1Deposit({
     if (
       !operation.current ||
       operation.current.walletId !== walletId ||
-      operation.current.sourceWalletId !== sourceWalletId
+      operation.current.sourceWalletId !== sourceWalletId ||
+      operation.current.ethereumWalletId !== ethereumWalletId
     )
-      operation.current = { walletId, sourceWalletId, operationId: crypto.randomUUID() };
+      operation.current = {
+        walletId,
+        sourceWalletId,
+        ethereumWalletId,
+        operationId: crypto.randomUUID(),
+      };
     try {
       const response = await fetch("/api/commitments/mainnet", {
         method: "POST",
@@ -113,6 +126,7 @@ export function V1Deposit({
           eventId,
           operationId: kind === "register" ? operation.current.operationId : crypto.randomUUID(),
           ...(kind === "register" ? { rulesHash, walletId, sourceWalletId } : {}),
+          ...(kind === "register" && nft ? { ethereumWalletId } : {}),
           ...(kind === "storage" ? { walletId: status?.walletId ?? walletId } : {}),
         }),
       });
@@ -208,6 +222,30 @@ export function V1Deposit({
       </dl>
       {(!status || status.state === "none") && (
         <>
+          {nft && (
+            <div>
+              <label htmlFor="v1-nft-recipient">Ethereum wallet for the NFT prize</label>
+              <select
+                id="v1-nft-recipient"
+                value={ethereumWalletId}
+                onChange={(event) => setEthereumWalletId(event.target.value)}
+                disabled={busy}
+              >
+                <option value="">Choose your verified Ethereum wallet</option>
+                {ethereum.map((wallet) => (
+                  <option key={wallet.id} value={wallet.id}>
+                    {wallet.address}
+                  </option>
+                ))}
+              </select>
+              <p>If you win, the NFT goes to this address. It locks with your registration.</p>
+              <p>
+                <Link href="/account/wallets" prefetch={false}>
+                  Verify a wallet
+                </Link>
+              </p>
+            </div>
+          )}
           <label htmlFor="v1-source-wallet">Pay from wallet</label>
           <select
             id="v1-source-wallet"

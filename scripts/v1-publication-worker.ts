@@ -22,6 +22,12 @@ import { AppFailure } from "../src/server/http/security";
 import { runV1Action, type V1ActionGateway } from "../src/worker/v1-actions";
 import { readV1ActionSnapshot, enqueueV1Deadline } from "../src/server/events/v1-actions";
 import { validateV1Action, observeV1Action } from "../src/worker/v1-action-observation";
+import {
+  readV1NftHolding,
+  prepareV1NftTransfer,
+  v1NftCustody,
+} from "../src/server/protocol/v1-nft";
+import { runV1NftDelivery, v1NftDeliveryGateway } from "../src/worker/v1-nft-delivery";
 
 export async function signV1OwnerCalls(
   snapshot: Awaited<ReturnType<typeof readV1Snapshot>>,
@@ -111,8 +117,37 @@ export function v1PublicationGateway(): V1PublicationGateway {
           deposit: "0",
         },
       ];
-      const selected =
+      let selected =
         phase === "atomic" ? actions : phase === "create" ? [actions[0]] : [actions[1]];
+      if (image.terms.nft) {
+        if (phase === "atomic") throw new Error("NFT custody must precede publication");
+        const holding = await readV1NftHolding(image.terms.nft);
+        if (phase === "create") {
+          if (holding.owner !== image.terms.nft.contributor)
+            throw new Error("NFT contributor no longer holds the asset");
+          selected.push({
+            kind: "call",
+            method: "derive_nft_custody",
+            args: Buffer.from(canonicalJson({ event: image.eventId })),
+            gas: "50000000000000",
+            deposit: "0",
+          });
+        } else {
+          if (holding.owner !== v1NftCustody(record(snapshot.event!.nft)))
+            throw new Error("NFT custody not confirmed on Ethereum");
+          await prepareV1NftTransfer(image.terms.nft, holding.owner, image.terms.nft.contributor);
+          selected = [
+            {
+              kind: "call",
+              method: "confirm_nft_custody",
+              args: Buffer.from(canonicalJson({ event: image.eventId })),
+              gas: "10000000000000",
+              deposit: "0",
+            },
+            ...selected,
+          ];
+        }
+      }
       const signed = await signV1OwnerCalls(snapshot, selected);
       return {
         ...signed,
@@ -220,7 +255,7 @@ export function v1RegistrationGateway(): V1RegistrationGateway {
                 event: image.eventId,
                 sender: image.sender,
                 payout: image.payout,
-                ethereum: null,
+                ethereum: image.ethereum?.address ?? null,
               }),
             ),
             gas: "30000000000000",
@@ -250,14 +285,62 @@ export function v1ActionGateway(pool: pg.Pool, key: string): V1ActionGateway {
       await validateV1Action(image, snapshot);
       const parameter =
         image.kind === "check_in" ? "registration" : image.kind === "withdraw" ? "claim" : "event";
+      const nftMethod =
+        image.kind === "nft_release"
+          ? "release_nft"
+          : image.kind === "nft_retry"
+            ? "retry_nft_signature"
+            : image.kind === "nft_derive"
+              ? "derive_nft_custody"
+              : null;
+      const custodyConfirmation: NativeAction[] = [];
+      if (image.kind === "nft_release") {
+        const nft = record(snapshot.event!.nft);
+        if (
+          (await readV1NftHolding(nft as Parameters<typeof readV1NftHolding>[0])).owner !==
+          v1NftCustody(nft)
+        )
+          throw new Error("NFT is no longer held in custody");
+        if (nft.held !== true)
+          custodyConfirmation.push({
+            kind: "call",
+            method: "confirm_nft_custody",
+            args: Buffer.from(canonicalJson({ event: image.eventId })),
+            gas: "10000000000000",
+            deposit: "0",
+          });
+      }
       return {
         ...(await signV1OwnerCalls(snapshot, [
+          ...custodyConfirmation,
           {
             kind: "call",
-            method: image.kind,
-            args: Buffer.from(canonicalJson({ [parameter]: image.target })),
-            gas: image.kind === "withdraw" ? "100000000000000" : "30000000000000",
-            deposit: "0",
+            method: nftMethod ?? image.kind,
+            args: Buffer.from(
+              canonicalJson(
+                nftMethod
+                  ? {
+                      event: image.eventId,
+                      ...(image.kind === "nft_release"
+                        ? {
+                            ...image.nft!.envelope,
+                            nonce: Number(image.nft!.envelope.nonce),
+                            gas_limit: Number(image.nft!.envelope.gas_limit),
+                          }
+                        : {}),
+                    }
+                  : { [parameter]: image.target },
+              ),
+            ),
+            gas:
+              image.kind === "withdraw" ||
+              image.kind === "nft_release" ||
+              image.kind === "nft_retry"
+                ? "100000000000000"
+                : image.kind === "nft_derive"
+                  ? "50000000000000"
+                  : "30000000000000",
+            deposit: image.kind === "nft_release" || image.kind === "nft_retry" ? "1" : "0",
           },
         ])),
         semantic: canonicalHash(image),
@@ -291,6 +374,7 @@ async function main() {
     statement_timeout: 10000,
   });
   let stopping = false;
+  let lastNftCheck = 0;
   for (const signal of ["SIGINT", "SIGTERM"] as const)
     process.once(signal, () => {
       stopping = true;
@@ -309,6 +393,7 @@ async function main() {
           "Publication retained for original-hash reconciliation. No replacement nonce or automatic resend.",
         );
         if (!args.includes("--watch")) process.exitCode = 1;
+        else await pause(30000);
       }
       try {
         const registration = await runV1Registration(
@@ -339,6 +424,23 @@ async function main() {
         );
         if (!args.includes("--watch")) process.exitCode = 1;
         else await pause(30000);
+      }
+      try {
+        if (Date.now() - lastNftCheck >= 15000) {
+          lastNftCheck = Date.now();
+          const delivery = await runV1NftDelivery(
+            pool,
+            env.SHOWUP_IDENTITY_KEY!,
+            v1NftDeliveryGateway(pool, env.SHOWUP_IDENTITY_KEY!),
+          );
+          if (!["idle", "busy", "waiting"].includes(delivery.state))
+            console.log(JSON.stringify(delivery));
+        }
+      } catch {
+        console.error(
+          "NFT delivery retained for original-hash reconciliation. No automatic resend or replacement transaction.",
+        );
+        if (!args.includes("--watch")) process.exitCode = 1;
       }
       if (!args.includes("--watch")) break;
       await pause(3000);

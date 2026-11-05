@@ -67,7 +67,7 @@ test("cross-chain registration freezes owned wallets and quotes; provider succes
             : input.method === "eth_call"
               ? input.params[0].data.startsWith("0xa9059cbb")
                 ? "0x" + "0".repeat(63) + "1"
-                : "0x16e360"
+                : "0x" + "16e360".padStart(64, "0")
               : input.method === "eth_gasPrice"
                 ? "0xf4240"
                 : sourceNonce;

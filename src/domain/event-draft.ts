@@ -225,7 +225,7 @@ export function validateDraft(
       for (const key of ["collection", "assetId", "contributorReturnAddress"]) {
         text(input.nft[key], `nft.${key}`, 200);
       }
-      if (input.rewardPreset === "equal" || budget === 0n) {
+      if (version === "v2" && (input.rewardPreset === "equal" || budget === 0n)) {
         errors.nft = "An NFT supplements a monetary draw; choose a funded draw-bearing plan.";
       }
     }

@@ -25,6 +25,7 @@ const allowed = {
   evm: new Set([
     "eth_chainId",
     "eth_gasPrice",
+    "eth_estimateGas",
     "eth_getBalance",
     "eth_getBlockByNumber",
     "eth_getBlockByHash",

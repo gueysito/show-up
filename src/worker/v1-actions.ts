@@ -97,10 +97,15 @@ export async function runV1Action(pool: pg.Pool, key: string, gateway: V1ActionG
       [row.id, state, observed.height],
     );
     if (state === "verified" && ["settle", "cancel"].includes(image.kind))
-      await pool.query("UPDATE app_events SET state=$2,updated_at=clock_timestamp() WHERE id=$1", [
-        image.eventId,
-        image.kind === "settle" ? "closed" : "cancelled",
-      ]);
+      await pool.query(
+        "UPDATE app_events SET state=$2,updated_at=clock_timestamp() WHERE id=$1 AND state<>'draft'",
+        [image.eventId, image.kind === "settle" ? "closed" : "cancelled"],
+      );
+    if (state === "verified" && image.kind === "cancel")
+      await pool.query(
+        "UPDATE app_publication_images SET transaction_state='cancelled' WHERE event_id=$1 AND transaction_state IN ('awaiting_prize','failed')",
+        [image.eventId],
+      );
     return { state, actionId: row.id, hash: signed.hash, gasYoctoNear: final.gasYoctoNear };
   } finally {
     try {

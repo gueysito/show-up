@@ -126,7 +126,7 @@ test("EVM payment requests transfer only the quoted USDC and enforce independent
           : input.method === "eth_call"
             ? input.params[0].data.startsWith("0xa9059cbb")
               ? "0x" + "0".repeat(63) + (transferOk ? "1" : "0")
-              : balance
+              : "0x" + balance.slice(2).padStart(64, "0")
             : input.method === "eth_getTransactionCount"
               ? input.params[1] === "pending"
                 ? pending

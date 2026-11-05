@@ -38,7 +38,10 @@ export async function prepareV1EvmPayment(
         rpc.read("eth_getTransactionCount", [source, "pending"]),
       ]);
       if (unsigned(chain).toString() !== network.chainId) throw new Error("Source chain changed");
-      if (unsigned(balance, 256) < BigInt(route.input))
+      if (
+        unsigned(token.decodeFunctionResult("balanceOf", String(balance))[0], 256) <
+        BigInt(route.input)
+      )
         throw new AppFailure(422, "Your source wallet needs the quoted USDC amount.");
       if (unsigned(nonce, 64) !== unsigned(pending, 64))
         throw new AppFailure(

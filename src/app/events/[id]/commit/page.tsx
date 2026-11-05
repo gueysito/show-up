@@ -66,6 +66,7 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
               rulesHash={event.rulesHash}
               amount={event.data.commitment}
               wallets={wallets}
+              nft={Boolean(event.escrow.nft)}
             />
           )}
           {(event.registration === "closed" || event.viewer === "recovery") && (

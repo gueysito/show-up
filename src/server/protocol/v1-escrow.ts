@@ -13,6 +13,16 @@ export const v1Deployment = {
   writeOrigin: "https://rpc.mainnet.fastnear.com",
 } as const;
 
+export type V1NftTerms = {
+  collection: string;
+  token_id: string;
+  contributor: string;
+  custody: null;
+  public_key: null;
+  deriving: false;
+  held: false;
+  request: null;
+};
 export type V1Terms = {
   id: string;
   title: string;
@@ -22,17 +32,32 @@ export type V1Terms = {
   deposit: string;
   prize: string;
   sponsor: string;
-  nft: null;
+  nft: V1NftTerms | null;
 };
 export type V1Snapshot = { block: FinalizedHeader; event: Record<string, unknown> | null };
 export const v1TransactionUrl = (hash: string) => `https://nearblocks.io/txns/${hash}`;
 
 export function v1EventTerms(event: Record<string, unknown>): V1Terms {
-  return Object.fromEntries(
+  const terms = Object.fromEntries(
     ["id", "title", "start_ms", "end_ms", "capacity", "deposit", "prize", "sponsor", "nft"].map(
       (key) => [key, event[key]],
     ),
   ) as V1Terms;
+  // Custody and signing state evolve; the collection, asset and contributor never do.
+  if (terms.nft) {
+    const nft = record(terms.nft);
+    terms.nft = {
+      collection: nft.collection as string,
+      token_id: nft.token_id as string,
+      contributor: nft.contributor as string,
+      custody: null,
+      public_key: null,
+      deriving: false,
+      held: false,
+      request: null,
+    };
+  }
+  return terms;
 }
 export function matchesV1Terms(event: Record<string, unknown>, terms: V1Terms) {
   return canonicalJson(v1EventTerms(event)) === canonicalJson(terms);

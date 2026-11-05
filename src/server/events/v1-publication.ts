@@ -15,6 +15,7 @@ import {
 import { isUuid } from "./drafts";
 import type { OwnWallet } from "../wallets/service";
 import { walletAddress } from "../wallets/proof";
+import { v1NftTerms, readV1NftHolding } from "../protocol/v1-nft";
 
 export type V1PublicationPhase = "atomic" | "create" | "publish";
 
@@ -39,7 +40,14 @@ export type V1PublicationState = {
   eventId: string;
   revision: number;
   state:
-    "draft" | "requested" | "prepared" | "submitted" | "awaiting_prize" | "verified" | "failed";
+    | "draft"
+    | "requested"
+    | "prepared"
+    | "submitted"
+    | "awaiting_prize"
+    | "verified"
+    | "failed"
+    | "cancelled";
   canPublish: boolean;
   message: string;
   transactionUrl: string | null;
@@ -47,6 +55,7 @@ export type V1PublicationState = {
   canFund?: boolean;
   prizeUsdc?: string;
   fundingAddress?: string;
+  nft?: { collection: string; tokenId: string; contributor: string } | null;
 };
 export type V1PublicationRow = {
   event_id: string;
@@ -80,11 +89,6 @@ export function v1DraftTerms(
     throw new AppFailure(422, "Shorten the event name to fit the on-chain title limit.");
   if (data.quizzes.length) throw new AppFailure(422, "Remove optional questions for this event.");
   const prize = usdcAtomic(data.sponsorBudget)!;
-  if (data.nft)
-    throw new AppFailure(
-      422,
-      "NFT custody is not connected yet. Keep the NFT in your draft until custody is ready.",
-    );
   if (prize > 100_000_000n) throw new AppFailure(422, "Use a prize of at most 100 USDC.");
   if (prize > 0n && !sponsor)
     throw new AppFailure(422, "Choose your verified NEAR wallet to fund the prize.");
@@ -98,7 +102,7 @@ export function v1DraftTerms(
     deposit: usdcAtomic(data.commitment)!.toString(),
     prize: prize.toString(),
     sponsor: prize > 0n ? sponsor! : v1Deployment.account,
-    nft: null,
+    nft: data.nft ? v1NftTerms(data.nft) : null,
   };
 }
 
@@ -154,6 +158,7 @@ export async function prepareV1Publication(
   eventId: string,
   revision: number,
   sponsorWalletId?: string,
+  transport?: typeof fetch,
 ) {
   if (!isUuid(eventId) || !Number.isSafeInteger(revision) || revision < 1)
     throw new AppFailure(400, "Choose a saved event revision.");
@@ -204,6 +209,11 @@ export async function prepareV1Publication(
         terms: v1DraftTerms(eventId, event.data, Date.now(), sponsor?.address),
         ...(sponsor && { sponsorWalletId: sponsor.id }),
       };
+      if (image.terms.nft) {
+        const holding = await readV1NftHolding(image.terms.nft, transport);
+        if (holding.owner !== image.terms.nft.contributor)
+          throw new AppFailure(422, "The NFT return address must be its current Ethereum owner.");
+      }
       await client.query(
         `INSERT INTO app_publication_images(event_id,draft_revision,image_hash,encrypted_image,environment,execution_phase)
       VALUES($1,$2,$3,$4,'near-mainnet-v1',$5)`,
@@ -212,7 +222,7 @@ export async function prepareV1Publication(
           revision,
           canonicalHash(image),
           seal(key, `publication-image:${actor.id}:${eventId}`, image),
-          prize > 0n ? "create" : "atomic",
+          prize > 0n || image.terms.nft ? "create" : "atomic",
         ],
       );
       return { eventId, revision, state: "requested" };
@@ -293,10 +303,12 @@ export async function readV1PublicationState(
         state === "verified"
           ? "Published and verified on NEAR mainnet."
           : state === "awaiting_prize"
-            ? "Event escrow created. Approve the exact USDC prize in your funding wallet, then confirm funding to publish."
-            : state === "failed"
-              ? "Publication failed. The frozen request is retained; duplicate this event to start again."
-              : "Publication is queued or awaiting its original transaction. Check status without creating another request.";
+            ? "Event escrow created. Fund the saved prizes, then confirm custody to publish."
+            : state === "cancelled"
+              ? "Unpublished event cancelled. Recover its funded prizes from the event controls."
+              : state === "failed"
+                ? "Publication failed. The frozen request is retained; duplicate this event to start again."
+                : "Publication is queued or awaiting its original transaction. Check status without creating another request.";
     return {
       eventId,
       revision,
@@ -305,7 +317,16 @@ export async function readV1PublicationState(
       message,
       transactionUrl: row?.transaction_hash ? v1TransactionUrl(row.transaction_hash) : null,
       fundingWallets,
-      canFund: state === "awaiting_prize",
+      canFund:
+        state === "awaiting_prize" &&
+        (usdcAtomic((event.data as EventDraft).sponsorBudget) ?? 0n) > 0n,
+      nft: (event.data as EventDraft).nft
+        ? {
+            collection: (event.data as EventDraft).nft!.collection,
+            tokenId: (event.data as EventDraft).nft!.assetId,
+            contributor: (event.data as EventDraft).nft!.contributorReturnAddress,
+          }
+        : null,
       prizeUsdc: formatUsdc(usdcAtomic((event.data as EventDraft).sponsorBudget)!),
       ...(key &&
         row?.environment === "near-mainnet-v1" && {
@@ -328,6 +349,7 @@ export type V1PublicEscrow = {
   capacity: number;
   commitment: string;
   sponsorBudget: string;
+  nft?: { collection: string; tokenId: string } | null;
 };
 export async function readV1PublishedTerms(
   pool: pg.Pool,
@@ -366,6 +388,7 @@ export async function readV1PublishedTerms(
     capacity: terms.capacity,
     commitment: formatUsdc(BigInt(terms.deposit)),
     sponsorBudget: formatUsdc(BigInt(terms.prize)),
+    nft: terms.nft ? { collection: terms.nft.collection, tokenId: terms.nft.token_id } : null,
   };
 }
 

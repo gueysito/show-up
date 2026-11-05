@@ -426,6 +426,7 @@ export function EventDraftForm({
             {account && identity && (
               <EventActions
                 prize={draft.sponsorBudget}
+                nft={Boolean(draft.nft)}
                 onPublicationRequested={() =>
                   setIdentity((current) =>
                     current ? { ...current, state: "publication_pending" } : current,

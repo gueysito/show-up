@@ -78,7 +78,15 @@ async function handle(request: Request) {
         throw new AppFailure(400, "Invalid deposit operation.");
       const fields =
         body.operation === "register"
-          ? ["operation", "operationId", "eventId", "rulesHash", "walletId", "sourceWalletId"]
+          ? [
+              "operation",
+              "operationId",
+              "eventId",
+              "rulesHash",
+              "walletId",
+              "sourceWalletId",
+              "ethereumWalletId",
+            ]
           : body.operation === "storage"
             ? ["operation", "operationId", "eventId", "walletId"]
             : body.operation === "source"
@@ -87,6 +95,11 @@ async function handle(request: Request) {
       if (Object.keys(body).some((key) => !fields.includes(key)))
         throw new AppFailure(400, "Unexpected deposit fields.");
       if (body.operation === "register") {
+        if (
+          body.ethereumWalletId !== undefined &&
+          (typeof body.ethereumWalletId !== "string" || !isUuid(body.ethereumWalletId))
+        )
+          throw new AppFailure(400, "Choose your verified Ethereum recipient wallet.");
         if (
           body.sourceWalletId !== undefined &&
           (typeof body.sourceWalletId !== "string" || !isUuid(body.sourceWalletId))
@@ -104,6 +117,7 @@ async function handle(request: Request) {
           body.walletId,
           undefined,
           body.sourceWalletId as string | undefined,
+          body.ethereumWalletId as string | undefined,
         );
       } else if (body.operation === "storage") {
         if (typeof body.walletId !== "string" || !isUuid(body.walletId))

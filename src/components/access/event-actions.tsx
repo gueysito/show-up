@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { OwnWallet } from "../../server/wallets/service";
 import { usdcAtomic } from "../../domain/event-draft";
+import { V1NftPrize } from "./v1-nft-prize";
 
 export function EventActions({
   id,
@@ -24,6 +25,7 @@ export function EventActions({
   timeZone,
   onPublicationRequested,
   prize = "0",
+  nft = false,
 }: {
   id: string;
   revision: number;
@@ -38,6 +40,7 @@ export function EventActions({
   timeZone: string;
   onPublicationRequested: () => void;
   prize?: string;
+  nft?: boolean;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState("");
@@ -263,7 +266,7 @@ export function EventActions({
             }
             onClick={publish}
           >
-            {hasPrize ? "Create prize event escrow" : "Publish event on mainnet"}
+            {hasPrize || nft ? "Create prize event escrow" : "Publish event on mainnet"}
           </button>
           <button
             type="button"
@@ -277,21 +280,25 @@ export function EventActions({
           {!dirty && readiness?.revision === revision && (
             <section aria-label="Saved publication requirements">
               <p>{readiness.message}</p>
-              {readiness.canFund && (
+              {(readiness.canFund || (nft && readiness.state === "awaiting_prize")) && (
                 <div>
-                  <p>{`Prize: ${readiness.prizeUsdc} USDC on NEAR. Funding wallet: ${readiness.fundingAddress}.`}</p>
-                  <p>
-                    The wallet may reserve up to 0.16 NEAR for gas; unused gas is returned. This is
-                    separate from the USDC prize.
-                  </p>
-                  <button
-                    type="button"
-                    className="primary-button"
-                    disabled={busy}
-                    onClick={fundPrize}
-                  >
-                    Approve prize funding in MyNearWallet
-                  </button>
+                  {readiness.canFund && (
+                    <>
+                      <p>{`Prize: ${readiness.prizeUsdc} USDC on NEAR. Funding wallet: ${readiness.fundingAddress}.`}</p>
+                      <p>
+                        The wallet may reserve up to 0.16 NEAR for gas; unused gas is returned. This
+                        is separate from the USDC prize.
+                      </p>
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={busy}
+                        onClick={fundPrize}
+                      >
+                        Approve prize funding in MyNearWallet
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     className="secondary-button"
@@ -312,6 +319,7 @@ export function EventActions({
             </section>
           )}
           {status && <p role="status">{status}</p>}
+          {nft && <V1NftPrize eventId={id} />}
         </div>
       )}
       {state === "published" && (

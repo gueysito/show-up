@@ -23,8 +23,10 @@ import {
 } from "../commitments/v1-registration";
 import { isUuid } from "./drafts";
 import { unsigned } from "../protocol/rpc";
+import type { V1NftEnvelope } from "../protocol/v1-nft";
 
-export type V1ActionKind = "check_in" | "settle" | "cancel" | "withdraw";
+export type V1ActionKind =
+  "check_in" | "settle" | "cancel" | "withdraw" | "nft_release" | "nft_retry" | "nft_derive";
 export type V1ActionImage = {
   format: "showup.v1.event-action.v1";
   id: string;
@@ -38,6 +40,7 @@ export type V1ActionImage = {
   recipient?: string;
   previousPaid?: string;
   amount?: string;
+  nft?: { envelope: V1NftEnvelope; recipient: string };
 };
 export type V1ActionRow = {
   id: string;
@@ -77,7 +80,7 @@ export async function readV1ActionSnapshot(
   if (!isUuid(eventId)) throw new AppFailure(404, "Event unavailable.");
   const row = (
     await pool.query(
-      `SELECT p.*,e.owner_id,e.data,e.revision FROM app_publication_images p JOIN app_events e ON e.id=p.event_id WHERE p.event_id=$1 AND p.environment='near-mainnet-v1' AND p.transaction_state='verified'`,
+      `SELECT p.*,e.owner_id,e.data,e.revision FROM app_publication_images p JOIN app_events e ON e.id=p.event_id WHERE p.event_id=$1 AND p.environment='near-mainnet-v1' AND p.transaction_state IN ('verified','awaiting_prize','cancelled','failed')`,
       [eventId],
     )
   ).rows[0] as (V1PublicationRow & { source_height: string }) | undefined;
@@ -93,7 +96,8 @@ export async function readV1ActionSnapshot(
   if (
     !snapshot.event ||
     !matchesV1Terms(snapshot.event, image.terms) ||
-    BigInt(snapshot.block.height) < BigInt(row.source_height) ||
+    BigInt(snapshot.block.height) <
+      BigInt(row.source_height ?? row.creation_source_height ?? "0") ||
     (floor && BigInt(snapshot.block.height) < BigInt(floor))
   )
     throw new Error("V1 event observation regressed");
@@ -179,7 +183,7 @@ export async function rotateV1Code(
     },
   );
 }
-async function enqueue(
+export async function enqueueV1Action(
   client: pg.PoolClient,
   key: string,
   input: Omit<V1ActionImage, "format" | "id" | "attempt">,
@@ -272,7 +276,7 @@ export async function requestV1CheckIn(
           409,
           "The code is incorrect or expired. Ask the host for the current code.",
         );
-      return enqueue(client, config.encryptionKey, {
+      return enqueueV1Action(client, config.encryptionKey, {
         eventId,
         accountId: actor.id,
         kind: "check_in",
@@ -301,7 +305,8 @@ export async function requestV1Close(
   if (!actor) throw new AppFailure(404, "Private event unavailable.");
   const { snapshot } = await readV1ActionSnapshot(pool, config.encryptionKey, eventId, transport);
   if (
-    snapshot.event!.status !== "published" ||
+    (snapshot.event!.status !== "published" &&
+      !(kind === "cancel" && snapshot.event!.status === "draft")) ||
     (kind === "settle" && snapshot.block.timestampMs < Number(snapshot.event!.start_ms))
   )
     throw new AppFailure(409, "This event cannot close in its current state.");
@@ -335,7 +340,7 @@ export async function requestV1Close(
         ).rowCount
       )
         throw new AppFailure(409, "A check-in failed. Cancel the event to return every deposit.");
-      return enqueue(client, config.encryptionKey, {
+      return enqueueV1Action(client, config.encryptionKey, {
         eventId,
         accountId: owner.id,
         kind,
@@ -373,7 +378,7 @@ export async function enqueueV1Deadline(pool: pg.Pool, key: string, transport?: 
         [candidate.id],
       )
     ).rowCount;
-    return enqueue(client, key, {
+    return enqueueV1Action(client, key, {
       eventId: candidate.id,
       accountId: image.ownerId,
       kind: failed ? "cancel" : "settle",
@@ -441,7 +446,7 @@ export async function requestV1Withdrawal(
     const actor = await requirePrivacyActor(client, session);
     if (actor.id !== identity.id) throw new AppFailure(401, "Sign in again.");
     await client.query("SELECT id FROM app_events WHERE id=$1 FOR UPDATE", [eventId]);
-    const result = await enqueue(client, config.encryptionKey, {
+    const result = await enqueueV1Action(client, config.encryptionKey, {
       eventId,
       accountId: actor.id,
       kind: "withdraw",
@@ -500,6 +505,14 @@ export async function readV1OwnReceipt(
       [eventId, own.row.account_id],
     )
   ).rows;
+  const nftDelivery = event.nft
+    ? (
+        await pool.query(
+          "SELECT state,transaction_hash FROM app_v1_nft_deliveries WHERE event_id=$1",
+          [eventId],
+        )
+      ).rows[0]
+    : null;
   return {
     eventId,
     status: String(event.status),
@@ -512,6 +525,16 @@ export async function readV1OwnReceipt(
     prize: prize.toString(),
     claim,
     recovery,
+    nft: event.nft
+      ? {
+          winner,
+          recipient: own.image.ethereum?.address ?? null,
+          state: nftDelivery?.state ?? "awaiting_release",
+          transactionUrl: nftDelivery
+            ? `https://etherscan.io/tx/${nftDelivery.transaction_hash}`
+            : null,
+        }
+      : null,
     actions: actions.map((a) => ({
       id: a.id,
       kind: a.kind,

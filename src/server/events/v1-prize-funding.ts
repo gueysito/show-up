@@ -4,6 +4,8 @@ import { hasRole, mutate } from "../auth/mutations";
 import { AppFailure } from "../http/security";
 import { matchesV1Terms, readV1Snapshot, type V1Snapshot } from "../protocol/v1-escrow";
 import { prepareV1WalletPayment } from "../protocol/v1-wallet-payment";
+import { readV1NftHolding, v1NftCustody } from "../protocol/v1-nft";
+import { record } from "../protocol/quote-signature";
 import {
   ownedV1Sponsor,
   readV1PublicationState,
@@ -74,7 +76,6 @@ function requirePrizeEvent(
     !snapshot.event ||
     snapshot.event.status !== "draft" ||
     !matchesV1Terms(snapshot.event, terms) ||
-    BigInt(terms.prize) <= 0n ||
     snapshot.block.timestampMs >= terms.start_ms ||
     Date.now() >= terms.start_ms ||
     !row.creation_source_height ||
@@ -94,6 +95,7 @@ export async function confirmV1PrizeFunding(
   eventId: string,
   revision: number,
   read: typeof readV1Snapshot = readV1Snapshot,
+  holding: typeof readV1NftHolding = readV1NftHolding,
 ) {
   const state = await readV1PublicationState(pool, session, eventId, revision, key);
   if (state.state !== "awaiting_prize") return { eventId, state: state.state };
@@ -130,6 +132,14 @@ export async function confirmV1PrizeFunding(
           409,
           "The exact USDC prize has not been confirmed yet. Wait and check again; do not pay twice.",
         );
+      if (image.terms.nft) {
+        const custody = v1NftCustody(record(source.event!.nft));
+        if ((await holding(image.terms.nft)).owner !== custody)
+          throw new AppFailure(
+            409,
+            "The NFT has not reached its contract-derived Ethereum custody address.",
+          );
+      }
       await client.query(
         `UPDATE app_publication_images SET execution_phase='publish',transaction_state='requested',
       transaction_hash=NULL,encrypted_transaction=NULL,gas_yocto_near=NULL WHERE event_id=$1`,

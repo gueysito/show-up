@@ -20,7 +20,7 @@ Working rules are in [AGENTS.md](AGENTS.md).
 
 Checks use preauthenticated engineering accounts and isolated project-wallet
 approval. External wallet UI, a fresh provider login and a real phone remain to verify.
-119 unit, 193 database and 46 ordinary browser cases plus build/code checks pass.
+123 unit, 195 database and 47 ordinary browser cases plus build/code checks pass.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
 
 ## Remaining
@@ -28,7 +28,9 @@ GitHub CI cannot start jobs until the owner resolves its billing/spending limit.
 - V1-4: all three source adapters are prepared locally with stored original payments
   and NEAR USDC receiving setup. Solana's unsigned transfer simulates on both mainnet
   RPCs. All three pricing pairs still return HTTP 400; no routed funds sent.
-- V1-7: BasedHeads #2829 is selected, not moved. Ethereum NFT custody/release and
-  attendee Ethereum recipient binding still need app integration.
+- V1-7: NFT custody/publication, attendee Ethereum binding, cancellation and signed
+  delivery are implemented locally. Both mainnet RPCs verify the MPC key format;
+  synthetic browser/DB cases pass. BasedHeads #2829 still needs its owner's wallet
+  transfer and a real mainnet custody/release round trip.
 - V1-9: finish the front door/mobile polish and real-phone journey. Hosting and
   merging require owner approval. V1-8 source-chain returns remain stretch.

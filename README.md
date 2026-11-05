@@ -32,7 +32,10 @@ Base/Solana/Ethereum route adapters are prepared locally; live cross-chain prici
 currently unavailable from the route provider. Live-code check-in, host/deadline
 closing and fixed-wallet payout receipts now work in the real app on mainnet: two
 1-USDC deposits and a 0.25-USDC prize settled into a verified 2.25-USDC payout to
-the checked-in attendee. Test USDC was restored in full. NFT release remains in progress.
+the checked-in attendee. Test USDC was restored in full. Ethereum NFT custody,
+recipient binding and release controls are implemented locally and pass synthetic
+browser/database checks; the selected NFT has not moved and its mainnet round trip
+remains unverified.
 [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works

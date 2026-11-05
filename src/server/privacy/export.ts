@@ -45,6 +45,7 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
       releaseRequests,
       v1Registrations,
       v1Actions,
+      v1NftDeliveries,
     ] = [
       await client.query(
         "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
@@ -178,11 +179,16 @@ export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHa
         "SELECT id,event_id,kind,state,transaction_hash,source_height::text,created_at FROM app_v1_event_actions WHERE account_id=$1 ORDER BY created_at,id",
         [actor.id],
       ),
+      await client.query(
+        "SELECT d.event_id,d.state,d.transaction_hash,d.source_height::text,d.execution_fee_wei::text FROM app_v1_nft_deliveries d JOIN app_events e ON e.id=d.event_id WHERE e.owner_id=$1 ORDER BY d.created_at,d.event_id",
+        [actor.id],
+      ),
     ];
     return {
       format: "showup.own-data.v1",
       mainnetRegistrations: v1Registrations.rows,
       mainnetActions: v1Actions.rows,
+      mainnetNftDeliveries: v1NftDeliveries.rows,
       exportedAt: new Date().toISOString(),
       account: { id: actor.id, state: actor.state, createdAt: actor.createdAt.toISOString() },
       linkedIdentities: identities.rows.map((row) => {

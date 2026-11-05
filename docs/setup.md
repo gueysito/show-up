@@ -1117,7 +1117,27 @@ in MyNearWallet**. The unsigned request calls only the fixed native USDC token's
 wallet pays this transfer and needs a separate 0.16-NEAR gas reserve. After returning,
 **Confirm prize and publish** checks both RPCs before queuing publication. Callback
 hashes never establish funding. Already-received prizes cannot request another payment.
-NFT custody remains separate. Zero-prize events retain the single atomic batch.
+Events without a USDC or NFT prize retain the single atomic batch.
+
+For an Ethereum NFT, apply `038-mainnet-nft-custody.sql`. Save its ERC-721 collection,
+decimal token ID and current owner's return address. Creating the escrow checks
+ownership on two Ethereum RPCs and derives event-specific custody through the existing
+NEAR contract. **Check NFT custody and delivery** displays that address; the contributor
+approves the exact NFT transfer and a bounded ETH gas allowance in its Ethereum wallet.
+Original unsigned payments retain their nonces, and an unknown approval is not repeated
+after reload. Confirm publication only after Ethereum finality; the worker checks the
+actual NFT owner and simulates the return with sufficient gas before publishing.
+
+NFT attendees select an owned verified Ethereum recipient before registration; it
+cannot change after deposit preparation. After close/cancel, the host requests the fixed
+winner/contributor release. The same private worker submits the NEAR signing call,
+verifies its exact EIP-1559 image/signature, persists it before one Ethereum broadcast,
+then requires the original finalized ERC-721 transfer receipt from both RPCs before
+showing delivery. Signing alone is not delivery. Failed MPC responses may retry only the
+original payload, up to three attempts. A mined failed Ethereum transfer needs explicit
+operator reconciliation; no automatic nonce replacement. Unused gas allowance remains
+at the event's custody address. Cancelling an unpublished event keeps its venue private.
+These app paths are locally verified; the selected NFT's real round trip remains open.
 
 Migration `033-publication-prize-funding.sql` preserves the original creation image,
 hash and gas separately from publication. Awaiting payment does not block other events.

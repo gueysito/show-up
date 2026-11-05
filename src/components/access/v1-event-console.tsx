@@ -5,6 +5,12 @@ import { formatUsdc } from "../../domain/event-draft";
 type Claim = { remaining: string; paid: string; pending: boolean; inFlight: string; total: string };
 type Action = { id: string; kind: string; state: string; transactionUrl: string | null };
 type View = {
+  nft?: {
+    winner: boolean;
+    recipient: string | null;
+    state: string;
+    transactionUrl: string | null;
+  } | null;
   status: string;
   code?: string | null;
   codeExpiresAt?: string | null;
@@ -202,6 +208,25 @@ export function V1EventConsole({
                   )}
                 </>
               )}
+              {view.status === "draft" && active && (
+                <>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={closeConsent}
+                      onChange={(event) => setCloseConsent(event.target.checked)}
+                    />
+                    Cancel this unpublished event so funded prizes can be returned.
+                  </label>
+                  <button
+                    type="button"
+                    disabled={busy || closing || !closeConsent}
+                    onClick={() => void act("cancel")}
+                  >
+                    Cancel unpublished event
+                  </button>
+                </>
+              )}
               <h3>Attendance</h3>
               <ul>
                 {view.roster?.map((r) => (
@@ -271,6 +296,17 @@ export function V1EventConsole({
                 </>
               )}
             </>
+          )}
+          {view.nft?.winner && (
+            <section aria-label="Your NFT prize">
+              <h3>You won the NFT prize</h3>
+              <p>{`Ethereum recipient: ${view.nft.recipient}. Delivery: ${view.nft.state}.`}</p>
+              {view.nft.transactionUrl && (
+                <a href={view.nft.transactionUrl} target="_blank" rel="noopener noreferrer">
+                  View the NFT transaction on Ethereum
+                </a>
+              )}
+            </section>
           )}
           {(host ? terminal : true) && (
             <>

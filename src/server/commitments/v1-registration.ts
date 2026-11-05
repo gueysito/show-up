@@ -21,6 +21,7 @@ import { prepareV1WalletPayment } from "../protocol/v1-wallet-payment";
 import { requireV1PayoutStorage, v1PayoutStorageReady } from "../protocol/v1-payout-storage";
 
 export type V1RegistrationImage = {
+  ethereum?: { walletId: string; address: string };
   source?: { network: "base" | "ethereum" | "solana"; walletId: string; address: string };
   format: "showup.v1.registration.v1";
   id: string;
@@ -94,7 +95,7 @@ export function matchesV1Registration(
     value.event === image.eventId &&
     value.sender === image.sender &&
     value.payout === image.payout &&
-    value.ethereum === null
+    value.ethereum === (image.ethereum?.address ?? null)
   );
 }
 export async function prepareV1Registration(
@@ -107,6 +108,7 @@ export async function prepareV1Registration(
   walletId: string,
   transport?: typeof fetch,
   sourceWalletId?: string,
+  ethereumWalletId?: string,
 ) {
   const entry = await readEventEntry(pool, config, eventId, session, transport);
   if (entry.viewer !== "attendee")
@@ -126,7 +128,13 @@ export async function prepareV1Registration(
     config.encryptionKey,
     session,
     operationId,
-    { eventId, rulesHash, walletId, ...(sourceWalletId && { sourceWalletId }) },
+    {
+      eventId,
+      rulesHash,
+      walletId,
+      ...(sourceWalletId && { sourceWalletId }),
+      ...(ethereumWalletId && { ethereumWalletId }),
+    },
     "event.v1-registration-requested",
     async (client, actor) => {
       const event = (
@@ -155,12 +163,44 @@ export async function prepareV1Registration(
         const image = storedV1Registration(config.encryptionKey, previous);
         if (
           image.walletId !== walletId ||
-          (image.source?.walletId ?? image.walletId) !== (sourceWalletId ?? walletId)
+          (image.source?.walletId ?? image.walletId) !== (sourceWalletId ?? walletId) ||
+          image.ethereum?.walletId !== ethereumWalletId
         )
           throw new AppFailure(409, "The original deposit wallet is locked. Check its status.");
         return { eventId, registrationId: previous.id, state: previous.state as string };
       }
       const wallet = await ownedV1Sponsor(client, config.encryptionKey, actor.id, walletId);
+      let ethereum: V1RegistrationImage["ethereum"];
+      if (entry.escrow!.nft) {
+        if (!ethereumWalletId || !isUuid(ethereumWalletId))
+          throw new AppFailure(
+            422,
+            "Choose your verified Ethereum wallet to receive the NFT if you win.",
+          );
+        const ethRow = (
+          await client.query(
+            "SELECT encrypted_wallet FROM app_wallets WHERE id=$1 AND account_id=$2 AND network='ethereum' AND revoked_at IS NULL",
+            [ethereumWalletId, actor.id],
+          )
+        ).rows[0];
+        if (!ethRow)
+          throw new AppFailure(404, "Your verified Ethereum recipient wallet is unavailable.");
+        const own = unseal(
+          config.encryptionKey,
+          `wallet:${actor.id}:${ethereumWalletId}`,
+          ethRow.encrypted_wallet,
+        ) as OwnWallet;
+        if (own.id !== ethereumWalletId || own.network !== "ethereum")
+          throw new Error("NFT recipient wallet integrity");
+        const address = walletAddress("ethereum", own.address);
+        const contributor = (
+          event.data as { nft?: { contributorReturnAddress: string } }
+        ).nft?.contributorReturnAddress.toLowerCase();
+        if (address === contributor)
+          throw new AppFailure(403, "The NFT contributor cannot receive attendee prizes.");
+        ethereum = { walletId: ethereumWalletId, address };
+      } else if (ethereumWalletId)
+        throw new AppFailure(422, "This event has no NFT recipient selection.");
       let source: V1RegistrationImage["source"];
       if (sourceWalletId && sourceWalletId !== walletId) {
         if (!isUuid(sourceWalletId))
@@ -229,6 +269,7 @@ export async function prepareV1Registration(
         amount: usdcAtomic(amount)!.toString(),
         startMs: Date.parse(entry.escrow!.startsAt),
         ...(source && { source }),
+        ...(ethereum && { ethereum }),
       };
       await client.query(
         "INSERT INTO app_v1_registrations(id,event_id,account_id,payout_index,image_hash,encrypted_image) VALUES($1,$2,$3,$4,$5,$6)",
