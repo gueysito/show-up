@@ -1150,6 +1150,8 @@ node_modules/.bin/playwright test -c playwright.mainnet.config.ts
 ```
 
 This requires the disposable test database and production build described below.
+Run financial browser checks alone: the synthetic integration suite uses the same
+database and worker lock. Do not run it concurrently with a mainnet worker.
 `SHOWUP_BROWSER_CHROME=1` uses an installed Chrome; CI retains pinned Chromium.
 Mainnet receipts/screenshots stay in ignored `contracts/.cache/v1-browser`.
 The separate `SHOWUP_MAINNET_PRIZE=1` mode funds a 1-USDC prize, publishes it through
@@ -1157,6 +1159,9 @@ the app and cancels/refunds it. It uses the retained project wallet in an isolat
 Node approval process; the external wallet's interactive UI is not qualified by
 this test. It refuses to start if its earlier financial journal exists. Review and
 reconcile original hashes before any further run; never delete a receipt to retry.
+`SHOWUP_MAINNET_PRIZE_RESUME=1` can only reconcile an already-created, still-unfunded
+event from its original image. An explicit `SHOWUP_MAINNET_PRIZE_ATTEMPT=2` retains a
+separate journal and first verifies that the prior event was cancelled and refunded.
 Inspect existing receipts before repeating this financial check. It creates a real,
 unfunded public event and consumes project gas; it is not part of normal CI.
 For subsequent desktop/mobile checks, reuse the recorded publication without

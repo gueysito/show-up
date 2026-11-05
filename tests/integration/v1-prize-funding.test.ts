@@ -198,6 +198,15 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
       /sources disagree/,
     );
     disagreeNonce = false;
+    const timestamp = snapshot.block.timestampMs;
+    snapshot.block.timestampMs = snapshot.event!.start_ms as number;
+    // Both sources can agree on an expired draft; it still must not solicit funds.
+    // Confirmation uses that same finalized source-time boundary.
+    await assert.rejects(
+      confirmV1PrizeFunding(f.pool, key, session, randomUUID(), id, 1, async () => snapshot),
+      /does not yet match/,
+    );
+    snapshot.block.timestampMs = timestamp;
     const operation = randomUUID();
     await assert.rejects(
       confirmV1PrizeFunding(

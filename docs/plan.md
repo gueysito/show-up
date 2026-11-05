@@ -110,7 +110,7 @@ One concise row per package; distinguish local preparation from mainnet completi
 | ID | Date | Evidence |
 | --- | --- | --- |
 | V1-1 complete | 2026-11-04 | Reviewed 321,207-byte artifact [deployed/initialized atomically](https://nearblocks.io/txns/9HeV9x7NKZ6PZixzLWbDebcJu4ophRoym5EmEg52nsCR) at `showup-dev-14989f.near`; code collateral 3.21207 NEAR. Manual [1-USDC deposit](https://nearblocks.io/txns/DZF1Tuvq7kTU18t8y8jyEcBjh7Z8YL4eNyoFnWnn6nNX), [cancel](https://nearblocks.io/txns/J9RnpzsatiSJmriG1BJRfsD6fBivTtK9FdMUw8ToNVye) and [refund](https://nearblocks.io/txns/BsxTU3pK65apU6mz7cajh6tkoEU1x3XY2iTAfzWwAsnS) restore 2.549953 USDC to the controller, zero in escrow, claim paid in full. Both RPCs agree at finalized block 223121252. The identical artifact retains its 53-test/Node replay [CI evidence](https://github.com/gueysito/show-up/actions/runs/41952837163); 109 current app/operator unit tests, format/lint/types and build pass. Next: V1-2 app publication. |
-| V1-2 zero-prize path verified; prize implementation under validation | 2026-11-05 | A preauthenticated test host [published a real 2-seat, 1-USDC event](https://nearblocks.io/txns/3Fn5FDSUu9vDXqor28yHGjKAH489D96h3wznJhUsxaca). Host-funded USDC prize creation/payment/publication now binds an owned verified NEAR wallet and frozen amount, retains each original signed image, and confirms funding from two RPCs. 112 unit and 189 database cases plus the native-token rejection/refund sandbox and independent transaction decoder pass; build/code checks pass. Next: browser/mainnet 1-USDC prize/refund verification, then V1-3. |
+| V1-2 complete | 2026-11-05 | The app supports [zero-prize publication](https://nearblocks.io/txns/3Fn5FDSUu9vDXqor28yHGjKAH489D96h3wznJhUsxaca) and a real [1-USDC host-funded prize](https://nearblocks.io/txns/97ykKBBkmiJ9UJnumoNss5oXkdhgSh7sQdnY7e3iM4mq), [publication](https://nearblocks.io/txns/3HRPSdJqxRUEDjwWtGW53oXc6mam7jWyRvE7acVGg6s9) and [full cancel/refund](https://nearblocks.io/txns/Aa2521htpgPDxQuwnXD5Zz9LyKLzNgRpLxcSvMbCkK68). Mobile browser verifies live terms; 112 unit, 189 database, 46 ordinary browser cases and focused token-refund/independent-decoder sandbox checks pass, plus build/code checks. Auth used a preauthenticated host and isolated owner-wallet approval, not live provider/external wallet UI. Next: V1-3 deposits; NFT remains V1-7. |
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
@@ -169,16 +169,19 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-04 | NEAR | Deposit exactly 1 USDC into escrow | 1 USDC moved, subsequently refunded; 0.0007233935720751 NEAR fee + 1 yoctoNEAR | [Deposit](https://nearblocks.io/txns/DZF1Tuvq7kTU18t8y8jyEcBjh7Z8YL4eNyoFnWnn6nNX) |
 | 2026-11-04 | NEAR | Cancel event and pay its fixed attendee refund | 1 USDC returned; 0.0009131164755953 NEAR fees + 1 yoctoNEAR | [Cancel](https://nearblocks.io/txns/J9RnpzsatiSJmriG1BJRfsD6fBivTtK9FdMUw8ToNVye), [withdraw](https://nearblocks.io/txns/BsxTU3pK65apU6mz7cajh6tkoEU1x3XY2iTAfzWwAsnS) |
 | 2026-11-04 | NEAR | Browser-requested atomic create/publish, zero-prize event | 0.0003733713005891 NEAR consumed gas (about $0.0015 at the recorded $4.05 snapshot); no USDC moved | [App publication](https://nearblocks.io/txns/3Fn5FDSUu9vDXqor28yHGjKAH489D96h3wznJhUsxaca) |
+| 2026-11-05 | NEAR | Prize funding/recovery check; browser assertion interrupted publication, fixed locally | 1 USDC funded and fully returned; 0.0017832973709019 NEAR gas + 1 yoctoNEAR | [Create](https://nearblocks.io/txns/AKSX1VEkF2P5ym4PDjYvheGbb5mjfbojsaAgdf6wqiji), [fund](https://nearblocks.io/txns/5LuRxoELX4yA4TJRvmwv8kuUY3Dx1gB11BYdQkrRxWSa), [cancel/refund](https://nearblocks.io/txns/7eUy7mdHvFv4j41xPvDWafZML5ixXwnpTK3HLmfybAv4) |
+| 2026-11-05 | NEAR | Complete app prize publication and cancellation round trip | 1 USDC funded and fully returned; 0.0019873223215888 NEAR gas + 1 yoctoNEAR | [Create](https://nearblocks.io/txns/8gWAdcuPBG3ok8yUUav8KxevKioPgtoAy4Lh7rWtEpb6), [fund](https://nearblocks.io/txns/97ykKBBkmiJ9UJnumoNss5oXkdhgSh7sQdnY7e3iM4mq), [publish](https://nearblocks.io/txns/3HRPSdJqxRUEDjwWtGW53oXc6mam7jWyRvE7acVGg6s9), [cancel/refund](https://nearblocks.io/txns/Aa2521htpgPDxQuwnXD5Zz9LyKLzNgRpLxcSvMbCkK68) |
 
 November 4: about **$27.20 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
-Total agent-consumed gas: **0.0141365029148471 NEAR** (about $0.0573 at $4.05/NEAR).
-After the round trip and app publication, controller native balance is **0.253799776823854099999999 NEAR**;
-escrow native balance is **3.709563720261298799999999 NEAR**, including code/state
+Total agent-consumed gas: **0.0179071226073378 NEAR** (about $0.0725 at $4.05/NEAR).
+After the prize round trips, controller native balance is **0.250029157131363399999997 NEAR**;
+escrow native balance is **3.709563720261298799999997 NEAR**, including code/state
 collateral. Both accounts have USDC storage registration. Both RPCs confirm
-**2.549953 USDC in the controller, zero in escrow**, and a fully paid 1-USDC claim at
-finalized block 223126705. Internal transfers and returned principal are counted once.
+**2.549953 USDC in the controller, zero in escrow**, with cumulative accounting
+3 USDC received, 3 paid and zero held at finalized block 223132721. Internal transfers
+and returned principal are counted once.
 The initial USDC sender attribution and latest incoming wNEAR sender fee remain
 unindexed/unrecorded. The public NEAR RPC throttled publication; manual recovery
 rebroadcast only the identical signed image after both replacement providers

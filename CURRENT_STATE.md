@@ -1,7 +1,7 @@
 # Current state
 
-Hosts can publish zero-prize events from the app to NEAR mainnet and view verified
-on-chain terms. Showup is building **V1**: publish, deposit across four chains,
+Hosts can publish events with an optional funded USDC prize to NEAR mainnet and view
+verified on-chain terms. Showup is building **V1**: publish, deposit across four chains,
 check in, settle and award an optional USDC/Ethereum NFT prize. Scope and acceptance are in
 [the plan](docs/plan.md#v1-work-packages); working rules are in [AGENTS.md](AGENTS.md).
 
@@ -23,7 +23,7 @@ check in, settle and award an optional USDC/Ethereum NFT prize. Scope and accept
 
 ## Not yet working
 
-Prize funding/publication, attendee deposits in the app, live cross-chain routing,
+Attendee deposits in the app, live cross-chain routing,
 funded check-in/settlement, NFT delivery and real-phone check-in remain incomplete.
 
 ## Next action
@@ -32,10 +32,11 @@ V1-1 is complete: the reviewed 321,207-byte artifact is atomically deployed and
 initialized at `showup-dev-14989f.near`. A real 1-USDC deposit/cancel/refund restores
 the controller to 2.549953 USDC and leaves escrow at zero; [transaction evidence](docs/plan.md#v1-evidence).
 The artifact retains its passing 53-test Rust/independent-replay CI evidence.
-Current checks: 111 unit, 188 database and 45 browser cases; build and code checks pass.
+Current checks: 112 unit, 189 database and 46 browser cases; build and code checks pass.
 The 3.73-wNEAR top-up was converted to native NEAR. Known allocation remains about
 $27.20/$50; no further funding is requested. BasedHeads #2829 is selected, not moved.
-V1-2's zero-prize browser path is verified on mainnet: [publication](https://nearblocks.io/txns/3Fn5FDSUu9vDXqor28yHGjKAH489D96h3wznJhUsxaca).
-Desktop/mobile rechecks reuse the original receipt without signing again. Auth in
-this check used a preauthenticated engineering fixture, not a new provider login.
-Next: finish V1-2 prize funding/publication, then connect NEAR attendee deposits (V1-3).
+V1-2 is complete: zero-prize publication and [funded USDC prize publication](https://nearblocks.io/txns/3HRPSdJqxRUEDjwWtGW53oXc6mam7jWyRvE7acVGg6s9)
+work through the app. The 1-USDC prize was cancelled/refunded in full; accounting holds zero.
+Checks used a preauthenticated engineering host and isolated project-wallet approval;
+external wallet UI and a new provider login were not qualified by these checks.
+Next: connect NEAR attendee deposits (V1-3). No hosting setup is needed for that work.

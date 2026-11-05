@@ -23,9 +23,10 @@ The separate V1 contract is deployed at
 [`showup-dev-14989f.near`](https://nearblocks.io/address/showup-dev-14989f.near).
 Its reviewed money paths pass sandbox tests, and a manual mainnet 1-USDC deposit,
 cancellation and full refund succeeded; [transactions](docs/plan.md#v1-evidence).
-Host publication now runs from the app into mainnet for zero-prize events, verified
-in a browser with a preauthenticated test host. Public event terms are checked
-against both mainnet RPCs. Prize funding, attendee deposits and NFT release are next.
+Host publication runs from the app into mainnet with or without a host-funded USDC
+prize. Browser checks with a preauthenticated test host verified a real 1-USDC prize,
+publication and full cancellation refund. Public terms are checked against two
+mainnet RPCs. Attendee deposits and NFT release are next.
 [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works

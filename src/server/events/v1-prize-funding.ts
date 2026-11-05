@@ -155,6 +155,8 @@ function requirePrizeEvent(
     snapshot.event.status !== "draft" ||
     !matchesV1Terms(snapshot.event, terms) ||
     BigInt(terms.prize) <= 0n ||
+    snapshot.block.timestampMs >= terms.start_ms ||
+    Date.now() >= terms.start_ms ||
     !row.creation_source_height ||
     BigInt(snapshot.block.height) < BigInt(row.creation_source_height)
   )

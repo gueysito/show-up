@@ -33,9 +33,9 @@ before the latest sender's fee. No further transfer is requested; prior quotes a
 superseded. The reviewed artifact locks 3.21207 NEAR for code.
 `showup-dev-14989f.near` is now created, funded and deployed; it retains the same
 sole FullAccess key. The implicit address above remains the controller wallet.
-After the 1-USDC cancel/refund and browser publication at finalized block 223126705,
-the controller holds **0.253799776823854099999999 NEAR + 2.549953 USDC**; escrow holds
-**3.709563720261298799999999 NEAR + zero USDC**, including deployment collateral.
+After deposit/prize round trips and app publication at finalized block 223132721,
+the controller holds **0.250029157131363399999997 NEAR + 2.549953 USDC**; escrow holds
+**3.709563720261298799999997 NEAR + zero USDC**, including deployment collateral.
 
 | Order / exact mainnet | Verified project address | Exact initial amount | Approximate USD |
 | --- | --- | --- | --- |
