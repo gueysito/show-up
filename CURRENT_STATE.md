@@ -18,7 +18,7 @@ The owner-local app runs at `https://localhost:3443`. The existing [development 
 
 Owner phone checks passed for Google and Telegram sign-in, Android Phantom verification, and NEAR Mobile message approval. Verified wallets persisted after refresh. The wallet page includes Phantom, MetaMask and Rabby opening links. NEAR Mobile and Meteor replace the retired MyNearWallet approval screens.
 
-The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) has one registered 1-USDC seat and no prize. The attendee moved USDC from NEAR Intents to NEAR, and the live payment preflight passed. Showup explains the Intents distinction when native USDC is short. A funded seat shows a green confirmation and a blue explorer link once the exact deposit transaction is verified. Finish phone approval, then cancel and refund.
+The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) verified a real [1-USDC deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) from Android Chrome and NEAR Mobile. The attendee switched back to Chrome and saw confirmation. The event is cancelled and its full refund is ready for withdrawal. The updated build explains the Intents distinction when native USDC is short.
 
 ## Remaining
 

@@ -151,7 +151,11 @@ enough gas and no native USDC in the selected deposit wallet. Showup now shows
 which balance is missing before contacting the wallet provider. If native USDC
 is short, Showup checks the selected account's Intents balance on both sources
 and explains how to withdraw to NEAR. The attendee moved the test funds to
-native NEAR and passed the live payment preflight.
+native NEAR, approved the [1-USDC deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT)
+in NEAR Mobile from Android Chrome, then returned to Showup and saw confirmation.
+The wallet's transaction connector has no documented return URL. Both RPCs
+verified the [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE)
+and full withdrawal claim.
 NEAR Mobile opened from Showup, signed a real phone message and saved the verified
 wallet through refresh. The Meteor choice passes an isolated test for message-only
 approval with the pinned connector. The wallet page has Phantom, MetaMask and
@@ -244,7 +248,7 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-05 | NEAR | Publish the funded NFT event and bind/fund its attendee | 1 existing USDC held for the test attendee; 0.0013417147346258 NEAR total gas | [Publish](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [register](https://nearblocks.io/txns/5bKjAcEWQSZ3AXDLcSrcci7UsBAg8K15BPd8wNMrYRaD), [deposit](https://nearblocks.io/txns/GieCsPRzt9igQip2AnD8GjTdRFYL9LsUzvnHUouHS29j) |
 | 2026-11-05 | NEAR | Check in, settle, return the attendee's full deposit and sign the fixed NFT release | 1 USDC fully restored; 0.0024419976883588 NEAR total gas from existing funds | [Check-in](https://nearblocks.io/txns/GngvHdQST4Hq3G7SDQN8pLT1yJz6rMb8PvUg9FiXBwd7), [settle](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL), [MPC signature](https://nearblocks.io/txns/5bs7vGKFEwTqgfPFnt1uASNiGLWoAWzx9FCsqcw5RBjL) |
 | 2026-11-05 | Ethereum | Deliver NFT #2829 to its test winner and return it to the original contributor | 0.000162539215967425 ETH winner release fee; 0.000057241602966725 ETH test-return fee; 0.000728079412264359 ETH remains at the event custody address | [Finalized winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f), [finalized test return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) |
-| 2026-11-05 | NEAR | Publish and register one refundable 1-USDC phone test seat | 0.0006002950311809 NEAR gas from existing funds; deposit approval pending | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6), [registration](https://nearblocks.io/txns/FKpWuQ8YGzJV6GjHkcraqSHu2Q4M2zF2Fu2binA44Vr) |
+| 2026-11-05 | NEAR | Publish, register, fund and cancel one refundable 1-USDC phone test seat | 0.00155098881999 NEAR gas and 1 yoctoNEAR attached to deposit; 1 USDC claim ready to withdraw | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6), [registration](https://nearblocks.io/txns/FKpWuQ8YGzJV6GjHkcraqSHu2Q4M2zF2Fu2binA44Vr), [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT), [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE) |
 
 About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
