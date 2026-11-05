@@ -120,8 +120,44 @@ export async function v1RouteStatus(route: V1Route, transport: typeof fetch = fe
     throw new Error("Routing status unavailable");
   }
   const value = record(await boundedJson(response)),
-    quote = validateV1Route(route.network, route.request, value.quoteResponse, Date.now(), true);
-  if (quote.depositAddress !== route.depositAddress || quote.input !== route.input)
+    echoed = record(value.quoteResponse),
+    echoedRequest = record(echoed.quoteRequest),
+    echoedQuote = record(echoed.quote),
+    originalQuote = record(route.response.quote),
+    original = validateV1Route(route.network, route.request, route.response, Date.now(), true);
+  // Status omits latency settings and updates fees without re-signing. Verify the
+  // stored quote, bind the hint to its immutable money/destination fields, and
+  // discard all echoed fees/estimates. Only actual escrow receipts confirm seats.
+  if (
+    echoed.signature !== route.response.signature ||
+    echoed.timestamp !== route.response.timestamp ||
+    original.depositAddress !== route.depositAddress ||
+    original.input !== route.input
+  )
     throw new Error("Routing status differs from original quote");
-  return typeof value.status === "string" ? value.status.slice(0, 64) : "UNKNOWN";
+  for (const [key, expected] of Object.entries(route.request))
+    if (key !== "quoteWaitingTimeMs" && echoedRequest[key] !== expected)
+      throw new Error("Routing status request changed");
+  for (const key of [
+    "amountIn",
+    "minAmountIn",
+    "amountOut",
+    "minAmountOut",
+    "depositAddress",
+    "depositMemo",
+    "deadline",
+  ])
+    if (echoedQuote[key] !== originalQuote[key])
+      throw new Error("Routing status money fields changed");
+  return [
+    "KNOWN_DEPOSIT_TX",
+    "PENDING_DEPOSIT",
+    "INCOMPLETE_DEPOSIT",
+    "PROCESSING",
+    "SUCCESS",
+    "REFUNDED",
+    "FAILED",
+  ].includes(String(value.status))
+    ? String(value.status)
+    : "UNKNOWN";
 }

@@ -1149,6 +1149,8 @@ checks the pinned Intents deployment and two-source balance, then calls
 The child signs a NEP-366 delegated action; the controller pays its gas and attached
 yoctoNEAR. This avoids reserving 0.1 NEAR for gas in each child. Before signing, the
 worker checks the controller's two-source key, nonce and liquid gas reserve.
+Source approval closes at the requested short deadline. The provider's signed
+deadline, currently three days later, is bounded and shown separately in review.
 Provider success and an internal balance alone do not confirm a seat. The actual
 escrow receipt or fixed recovery claim must confirm the forwarded amount. Original
 account/withdrawal transactions are persisted before one submission; unresolved

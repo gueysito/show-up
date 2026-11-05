@@ -14,9 +14,14 @@ import { mainnetJournal } from "../tests/fixtures/v1-mainnet";
 
 async function main() {
   const args = process.argv.slice(2);
-  if (args.length > 1 || (args.length === 1 && args[0] !== "--execute"))
-    throw new Error("Use --execute for the fixed 0.1-NEAR reserve transfer");
-  const name = "route-native-reserve",
+  if (
+    args.length > 2 ||
+    new Set(args).size !== args.length ||
+    args.some((arg) => !["--execute", "--demo-b"].includes(arg))
+  )
+    throw new Error("Use --execute and optionally --demo-b for the fixed reserve transfer");
+  const donorAccount = v1DemoAccounts[args.includes("--demo-b") ? 1 : 0],
+    name = `route-native-reserve${args.includes("--demo-b") ? "-b" : ""}`,
     path = `contracts/.cache/v1-browser/${name}.json`;
   let previous: Awaited<ReturnType<typeof readFile>> | undefined;
   try {
@@ -28,7 +33,7 @@ async function main() {
     const value = JSON.parse(previous.toString());
     if (value.images?.reserve) {
       const { v1FinalTransaction } = await import("./v1-publication-worker");
-      const final = await v1FinalTransaction(value.images.reserve, v1DemoAccounts[0]);
+      const final = await v1FinalTransaction(value.images.reserve, donorAccount);
       console.log(
         JSON.stringify({
           phase: "original_reserve_reconciled",
@@ -45,7 +50,7 @@ async function main() {
       ["near-fastnear", "near-drpc"].map(async (endpoint) => {
         const rpc = new V1ReadOnlyRpc(endpoint),
           values = [];
-        for (const account_id of [v1DemoAccounts[0], v1Deployment.account]) {
+        for (const account_id of [donorAccount, v1Deployment.account]) {
           const params = { account_id, block_id: snapshot.block.hash },
             [account, list] = await Promise.all([
               rpc.read("query", { ...params, request_type: "view_account" }),

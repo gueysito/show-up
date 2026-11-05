@@ -28,8 +28,9 @@ prize. Browser checks with a preauthenticated test host verified a real 1-USDC p
 publication and full cancellation refund. Public terms are checked against two
 mainnet RPCs. Attendees can now register and deposit native USDC from a verified NEAR
 wallet, with funded-seat confirmation and a verified full cancellation refund.
-Base/Solana/Ethereum adapters and per-registration Intents forwarding are prepared
-locally, with authenticated quotes available; funded mainnet route checks are next.
+Base, Solana and Ethereum deposits also pass the real browser journey through
+NEAR Intents: each funded 1 USDC in escrow and received its full cancellation refund
+in the locked NEAR payout wallet. [Transaction links](docs/plan.md#v1-evidence).
 Live-code check-in, host/deadline
 closing and fixed-wallet payout receipts now work in the real app on mainnet: two
 1-USDC deposits and a 0.25-USDC prize settled into a verified 2.25-USDC payout to
@@ -57,6 +58,19 @@ remains unverified.
   retains the V2 prototype).
 - **Cross-chain deposits:** NEAR Intents 1Click API.
 - **Cross-chain prizes:** NEAR Chain Signatures ([ADR-0002](docs/adr/0002-nft-custody.md)).
+
+```mermaid
+flowchart LR
+  App[Showup web app] --> DB[(PostgreSQL)] --> Worker[Private worker]
+  Worker --> Escrow[NEAR escrow]
+  Wallets[Base / Solana / Ethereum wallets] --> Intents[NEAR Intents]
+  Intents --> Receiving[Registration Intents balance] -->|worker forwards USDC| Escrow
+  Near[NEAR USDC wallet] --> Escrow
+  Escrow --> Payout[NEAR payout wallet]
+  Escrow -.-> Signer[Chain Signatures] -.-> NFT[Ethereum NFT custody]
+```
+
+The dotted NFT path is implemented locally; its mainnet custody/release proof remains open.
 
 ## Run it locally
 

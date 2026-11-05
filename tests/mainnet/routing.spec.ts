@@ -265,6 +265,10 @@ test("a source wallet routes one real USDC through its isolated Intents account,
     await panel.getByRole("button", { name: "Get routing quote" }).click();
     const review = panel.getByRole("region", { name: "Cross-chain quote review" });
     await expect(review.getByText("Deposit in NEAR escrow", { exact: true })).toBeVisible();
+    await expect(review.getByText("Approve before", { exact: true })).toBeVisible();
+    await expect(
+      review.getByText("Provider deadline for unresolved routing", { exact: true }),
+    ).toBeVisible();
     if (network === "solana") {
       await page.exposeFunction("showupIsolatedSolanaSend", async (wire: number[]) => {
         sourceAttempted = true;
@@ -402,6 +406,8 @@ test("a source wallet routes one real USDC through its isolated Intents account,
       page.getByRole("heading", { name: "Deposit confirmed", exact: true }),
     ).toBeVisible();
     await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );

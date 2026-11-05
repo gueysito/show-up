@@ -5,7 +5,11 @@ import { readFileSync } from "node:fs";
 import { Interface } from "ethers";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { quoteMessage } from "../../src/server/protocol/quote-signature";
-import { v1RouteRequest, validateV1Route } from "../../src/server/protocol/v1-routing";
+import {
+  v1RouteRequest,
+  validateV1Route,
+  v1RouteStatus,
+} from "../../src/server/protocol/v1-routing";
 import { prepareV1EvmPayment } from "../../src/server/protocol/v1-evm-payment";
 import { v1Deployment } from "../../src/server/protocol/v1-escrow";
 import { v1RouteAccount } from "../../src/server/protocol/v1-intents";
@@ -25,6 +29,69 @@ test("authentic live Intents quotes retain a short app approval window and a sep
     () => validateV1Route("base", request, response, Date.parse(request.deadline) + 1),
     /Expired|deadline/,
   );
+});
+
+test("status defaults preserve the original signed quote while altered recipients and money fields are rejected", async () => {
+  const response = JSON.parse(readFileSync("tests/fixtures/v1-intents-quote.json", "utf8")),
+    request = v1RouteRequest(
+      "base",
+      response.quoteRequest.refundTo,
+      response.quoteRequest.customRecipientMsg.slice(8),
+      response.quoteRequest.amount,
+      Date.parse(response.quoteRequest.deadline) - 5 * 60000,
+    ),
+    route = validateV1Route("base", request, response, Date.parse(response.timestamp));
+  const normalizedRequest: Record<string, unknown> = { ...response.quoteRequest };
+  delete normalizedRequest.quoteWaitingTimeMs;
+  let echo = {
+    ...response,
+    quoteRequest: {
+      ...normalizedRequest,
+      insured: false,
+      appFees: [],
+      referral: null,
+    },
+  };
+  const transport: typeof fetch = async (url) => {
+    assert(
+      String(url).endsWith(
+        new URLSearchParams({ depositAddress: route.depositAddress }).toString(),
+      ),
+    );
+    return Response.json({ status: "SUCCESS", quoteResponse: echo });
+  };
+  assert.equal(await v1RouteStatus(route, transport), "SUCCESS");
+  echo = { ...echo, quoteRequest: { ...echo.quoteRequest, recipient: "attacker.near" } };
+  await assert.rejects(v1RouteStatus(route, transport), /signature|changed/);
+  echo = {
+    ...response,
+    quoteRequest: {
+      ...normalizedRequest,
+      insured: false,
+      appFees: [],
+      referral: null,
+    },
+    quote: { ...response.quote, amountIn: "2000000" },
+  };
+  await assert.rejects(v1RouteStatus(route, transport), /money fields/);
+  echo = {
+    ...response,
+    quoteRequest: normalizedRequest,
+    quote: { ...response.quote, refundFee: "9952", timeEstimate: 999 },
+  };
+  assert.equal(await v1RouteStatus(route, transport), "SUCCESS");
+  assert.notEqual(route.response.quote, echo.quote);
+  assert.equal(
+    (route.response.quote as Record<string, unknown>).refundFee,
+    response.quote.refundFee,
+  );
+  echo = {
+    ...echo,
+    quote: { ...echo.quote, depositAddress: "0x3333333333333333333333333333333333333333" },
+  };
+  await assert.rejects(v1RouteStatus(route, transport), /money fields/);
+  echo = { ...response, quoteRequest: normalizedRequest, signature: "ed25519:changed" };
+  await assert.rejects(v1RouteStatus(route, transport), /differs/);
 });
 
 test("signed cross-chain quotes bind the native token, exact output, fixed message, source refund and expiry", () => {
