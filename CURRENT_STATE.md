@@ -51,3 +51,8 @@ anonymous NFT requests return 401 and foreign-origin mutations return 403.
 Phone access depends on the development computer and its existing tunnel staying
 running. A new browser may show ngrok's one-time **Visit Site** screen. Fresh owner
 phone sign-in and external-wallet approval remain to verify.
+
+The live MyNearWallet `/sign-message` and `/sign` screens now reject app requests
+following its [retirement](https://www.mynearwallet.com/sunset). The earlier
+engineering runs bypassed those screens. V1 needs a supported NEAR wallet for
+new payout-wallet proofs and native deposit, storage and prize approvals.

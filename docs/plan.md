@@ -133,6 +133,12 @@ GitHub [run 41991538690](https://github.com/gueysito/show-up/actions/runs/419915
 did not start any jobs: account billing/spending limit requires owner attention.
 Continue local checks; do not rerun jobs or weaken required checks.
 
+V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens
+reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
+Replace the wallet handoff for account verification and USDC approval, then
+verify the real phone return and a small deposit/refund. Earlier mainnet receipts
+prove the contract flow with isolated project-wallet approvals.
+
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra
 cases ran in an isolated snapshot under `contracts/.cache/security-review/`.
