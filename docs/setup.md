@@ -1194,6 +1194,8 @@ there. After returning, **Deposit confirmed** means
 both sources agree the contract received the deposit. The explorer link appears
 after both sources verify the exact deposit transaction. If indexing lags, tap
 **Check deposit status**.
+Direct NEAR payments use native USDC in the selected wallet. If the balance is
+held in NEAR Intents, withdraw USDC to the selected wallet on NEAR before retrying.
 Keep financial browser checks separate from synthetic database tests. The explicit
 `SHOWUP_MAINNET_DEPOSIT=1` check creates a new event, funds one USDC and refunds it
 after cancellation, retaining its original public signed images before each send.

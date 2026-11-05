@@ -172,7 +172,8 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
           return route.fulfill({
             status: 422,
             json: {
-              error: "This wallet has 0.00 USDC on NEAR. It needs 1.00 USDC before approval.",
+              error:
+                "This wallet has 0.00 native USDC on NEAR. It needs 1.00 USDC before approval. This account has 5.00 USDC in NEAR Intents. Withdraw it to this wallet on NEAR, then retry.",
             },
           });
         return route.fulfill({
@@ -199,7 +200,9 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     const pay = choices.getByRole("button", { name: "NEAR Mobile", exact: true });
     await expect(choices.getByRole("button", { name: "Meteor Wallet" })).toBeVisible();
     await pay.click();
-    await expect(actions.getByRole("alert")).toContainText("This wallet has 0.00 USDC on NEAR");
+    await expect(actions.getByRole("alert")).toContainText(
+      "This account has 5.00 USDC in NEAR Intents. Withdraw it to this wallet on NEAR",
+    );
     expect(relayCreates).toBe(0);
     insufficient = false;
     await pay.click();

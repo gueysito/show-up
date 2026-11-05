@@ -75,23 +75,33 @@ export async function readV1IntentsBalance(
   snapshot: V1Snapshot,
   transport?: typeof fetch,
 ) {
+  return readV1IntentsUsdcBalance(v1RouteAccount(registrationId), snapshot, transport);
+}
+
+export async function readV1IntentsUsdcBalance(
+  accountId: string,
+  snapshot: V1Snapshot,
+  transport?: typeof fetch,
+  signal?: AbortSignal,
+) {
   const balances = await Promise.all(
     ["near-fastnear", "near-drpc"].map(async (endpoint) => {
       const rpc = new V1ReadOnlyRpc(endpoint, transport),
         params = { account_id: v1Intents.account, block_id: snapshot.block.hash },
         [account, result] = await Promise.all([
-          rpc.read("query", { ...params, request_type: "view_account" }),
-          rpc.read("query", {
-            ...params,
-            request_type: "call_function",
-            method_name: "mt_balance_of",
-            args_base64: Buffer.from(
-              canonicalJson({
-                account_id: v1RouteAccount(registrationId),
-                token_id: `nep141:${v1Deployment.token}`,
-              }),
-            ).toString("base64"),
-          }),
+          rpc.read("query", { ...params, request_type: "view_account" }, signal),
+          rpc.read(
+            "query",
+            {
+              ...params,
+              request_type: "call_function",
+              method_name: "mt_balance_of",
+              args_base64: Buffer.from(
+                canonicalJson({ account_id: accountId, token_id: `nep141:${v1Deployment.token}` }),
+              ).toString("base64"),
+            },
+            signal,
+          ),
         ]);
       for (const value of [account, result])
         if (

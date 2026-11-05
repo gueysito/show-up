@@ -4,6 +4,7 @@ import { canonicalJson } from "./canonical";
 import { record } from "./quote-signature";
 import { unsigned } from "./rpc";
 import { v1Deployment, type V1Snapshot } from "./v1-escrow";
+import { readV1IntentsUsdcBalance } from "./v1-intents";
 import { AppFailure } from "../http/security";
 import { formatUsdc } from "../../domain/event-draft";
 import {
@@ -106,11 +107,22 @@ export async function prepareV1WalletPayment(
     walletFacts.spendable !== crossCheck.spendable
   )
     throw new Error("Payment wallet sources disagree");
-  if (walletFacts.usdc < BigInt(amount))
+  if (walletFacts.usdc < BigInt(amount)) {
+    const intentsBalance = await readV1IntentsUsdcBalance(
+      wallet.address,
+      snapshot,
+      transport,
+      AbortSignal.timeout(5000),
+    ).catch(() => null);
+    const guidance =
+      intentsBalance && BigInt(intentsBalance) > 0n
+        ? `This account has ${formatUsdc(BigInt(intentsBalance))} USDC in NEAR Intents. Withdraw it to this wallet on NEAR, then retry.`
+        : "If your USDC is in NEAR Intents, withdraw it to this wallet on NEAR, then retry.";
     throw new AppFailure(
       422,
-      `This wallet has ${formatUsdc(walletFacts.usdc)} USDC on NEAR. It needs ${formatUsdc(BigInt(amount))} USDC before approval.`,
+      `This wallet has ${formatUsdc(walletFacts.usdc)} native USDC on NEAR. It needs ${formatUsdc(BigInt(amount))} USDC before approval. ${guidance}`,
     );
+  }
   if (
     walletFacts.spendable <
     (purpose === "storage" ? 161250000000000000000000n : 160000000000000000000000n)

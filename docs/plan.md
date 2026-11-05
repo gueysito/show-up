@@ -148,7 +148,10 @@ is published with one seat, 1 USDC and no prize. The public pilot page shows the
 verified mainnet terms.
 The Android Chrome retest stopped before opening a wallet. Both NEAR RPCs showed
 enough gas and no native USDC in the selected deposit wallet. Showup now shows
-which balance is missing before contacting the wallet provider.
+which balance is missing before contacting the wallet provider. If native USDC
+is short, Showup checks the selected account's Intents balance on both sources
+and explains how to withdraw to NEAR. The attendee moved the test funds to
+native NEAR and passed the live payment preflight.
 NEAR Mobile opened from Showup, signed a real phone message and saved the verified
 wallet through refresh. The Meteor choice passes an isolated test for message-only
 approval with the pinned connector. The wallet page has Phantom, MetaMask and

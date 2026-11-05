@@ -17,6 +17,7 @@ import { runV1Publication, type V1PublicationGateway } from "../../src/worker/v1
 import { canonicalHash } from "../../src/server/protocol/canonical";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { type V1Snapshot, v1Deployment } from "../../src/server/protocol/v1-escrow";
+import { v1Intents } from "../../src/server/protocol/v1-intents";
 import { nativeKey } from "../../scripts/lib/native-engineering-transaction";
 import { accountFixtures } from "../fixtures/accounts";
 import { verifyNearWallet } from "../fixtures/near-wallet";
@@ -142,6 +143,8 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
     assert.equal((await runV1Publication(f.pool, key, gateway)).state, "idle");
     let balance = "1250000",
       nearBalance = "200000000000000000000000",
+      intentsBalance = "0",
+      disagreeOnIntents = false,
       permission = "FullAccess",
       disagreeNonce = false;
     const fundingSource: typeof fetch = async (url, options) => {
@@ -165,7 +168,10 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
                 ? { permission, nonce: disagreeNonce && String(url).includes("drpc") ? "2" : "1" }
                 : params.request_type === "view_account"
                   ? {
-                      code_hash: v1Deployment.codeHash,
+                      code_hash:
+                        params.account_id === v1Intents.account
+                          ? v1Intents.codeHash
+                          : v1Deployment.codeHash,
                       amount: nearBalance,
                       storage_usage: 182,
                     }
@@ -173,7 +179,13 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
                       result: [
                         ...Buffer.from(
                           JSON.stringify(
-                            params.method_name === "get_event" ? snapshot.event : balance,
+                            params.method_name === "get_event"
+                              ? snapshot.event
+                              : params.method_name === "mt_balance_of"
+                                ? disagreeOnIntents && String(url).includes("drpc")
+                                  ? "0"
+                                  : intentsBalance
+                                : balance,
                           ),
                         ),
                       ],
@@ -204,7 +216,17 @@ test("prize publication freezes an owned sponsor, confirms real funding and reco
     balance = "1249999";
     await assert.rejects(
       prepareV1PrizeFunding(f.pool, config, session, id, 1, fundingSource),
-      /1\.249999 USDC on NEAR.*1\.25 USDC before approval/,
+      /1\.249999 native USDC on NEAR.*1\.25 USDC before approval.*If your USDC is in NEAR Intents/,
+    );
+    intentsBalance = "5000000";
+    await assert.rejects(
+      prepareV1PrizeFunding(f.pool, config, session, id, 1, fundingSource),
+      /has 5\.00 USDC in NEAR Intents\. Withdraw it to this wallet on NEAR/,
+    );
+    disagreeOnIntents = true;
+    await assert.rejects(
+      prepareV1PrizeFunding(f.pool, config, session, id, 1, fundingSource),
+      /If your USDC is in NEAR Intents/,
     );
     balance = "1250000";
     nearBalance = "160000000000000000000000";
