@@ -2,6 +2,9 @@ import { defineConfig } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 
 const containerHarness = process.env.SHOWUP_CONTAINER_E2E === "1";
+const databasePort = process.env.SHOWUP_TEST_DATABASE_PORT ?? "55433";
+if (!["55433", "55434"].includes(databasePort)) throw new Error("Invalid test database port");
+const testDatabase = `postgresql://showup@127.0.0.1:${databasePort}/showup_test`;
 // Disposable per-run keys, inherited by browser-test workers for fixture records.
 // Application configuration never reads these names; no operator credential file is used.
 const fixtureKey = (name: string) => (process.env[name] ??= randomBytes(32).toString("hex"));
@@ -27,7 +30,7 @@ export default defineConfig({
       reuseExistingServer: false,
       env: {
         SHOWUP_ENV: "test",
-        DATABASE_URL: "postgresql://showup@127.0.0.1:55433/showup_test",
+        DATABASE_URL: testDatabase,
         NEXT_TELEMETRY_DISABLED: "1",
         PORT: "3102",
         HOSTNAME: "127.0.0.1",
@@ -59,7 +62,7 @@ export default defineConfig({
             env: {
               NODE_ENV: "development",
               SHOWUP_ENV: "test",
-              DATABASE_URL: "postgresql://showup@127.0.0.1:55433/showup_test",
+              DATABASE_URL: testDatabase,
               NEXT_TELEMETRY_DISABLED: "1",
               SHOWUP_HARNESS: "1",
               SHOWUP_ORIGIN: "http://127.0.0.1:3103",

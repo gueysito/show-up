@@ -14,7 +14,7 @@ import {
   prepareV1NftTransfer,
   v1NftCustody,
   v1NftTransferData,
-  v1NftGasLimit,
+  v1NftGasBudget,
 } from "../protocol/v1-nft";
 import { v1NftMaximumGasWei } from "../../domain/v1-nft-budget";
 import { enqueueV1Action, readV1ActionSnapshot } from "./v1-actions";
@@ -182,8 +182,10 @@ export async function prepareV1NftWalletPayment(
       );
       if (facts[0].nonce !== facts[1].nonce || facts[0].balance !== facts[1].balance)
         throw new Error("NFT gas funding sources disagree");
-      const price = facts.reduce((n, f) => (f.price > n ? f.price : n), 0n) * 2n,
-        gas = v1NftGasLimit(facts.reduce((n, f) => (f.gas > n ? f.gas : n), 0n)),
+      const { gas, fee: price } = v1NftGasBudget(
+          facts.reduce((n, f) => (f.gas > n ? f.gas : n), 0n),
+          facts.reduce((n, f) => (f.price > n ? f.price : n), 0n),
+        ),
         reserve = gas * price,
         value = reserve > facts[0].balance ? reserve - facts[0].balance : 0n;
       if (price === 0n || reserve > v1NftMaximumGasWei)

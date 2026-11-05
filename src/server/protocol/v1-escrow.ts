@@ -8,7 +8,7 @@ export const v1Deployment = {
   account: "showup-dev-14989f.near",
   owner: "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
   publicKey: "ed25519:2PQ8rQ56kQV6dFeiMNwEmbbQvxiTXGFPLt2uk4UyU8cB",
-  codeHash: "5Zcnzdu6sRusS2DjpLw55nwTqvZJiUhGudySVsnV1sm4",
+  codeHash: "9XexeUPC5CvWauP7aSd7NuffX5NK9766HD5TUYU5pHxd",
   token: "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
   writeOrigin: "https://rpc.mainnet.fastnear.com",
 } as const;
@@ -16,6 +16,7 @@ export const v1Deployment = {
 // Frozen event images retain their original reviewed deployment. Live RPC reads
 // must still match v1Deployment.codeHash, including for these historical images.
 export const v1PreviousCodeHashes: readonly string[] = [
+  "5Zcnzdu6sRusS2DjpLw55nwTqvZJiUhGudySVsnV1sm4",
   "5ErodH9NRYPUMmh4k5DnQ3wnmj8Azqu68YtuqgNvVM5U",
 ];
 

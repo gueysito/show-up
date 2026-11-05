@@ -818,7 +818,7 @@ async fn v1_nft_fee_ceiling_is_bounded_and_preserves_the_fixed_recipient() {
     f.call("cancel", json!({"event":"fee-bound"})).await;
     f.call("confirm_nft_custody", json!({"event":"fee-bound"}))
         .await;
-    for (gas, fee) in [(100000, 4000000001u64), (250001, 1)] {
+    for (gas, fee) in [(100000, 20000000001u64), (250001, 1)] {
         let rejected=f.host.call(f.escrow.id(),"release_nft").args_json(json!({"event":"fee-bound","nonce":0,"gas_limit":gas,"priority_fee":"1","max_fee":fee.to_string()})).deposit(NearToken::from_yoctonear(1)).max_gas().transact().await.unwrap();
         assert!(rejected.is_failure());
         assert!(
@@ -828,7 +828,7 @@ async fn v1_nft_fee_ceiling_is_bounded_and_preserves_the_fixed_recipient() {
     // The signer can fail without changing the accepted, fixed transaction.
     f.mock(json!({"caller":f.escrow.id(),"request":{},"failure":true}))
         .await;
-    let accepted=f.host.call(f.escrow.id(),"release_nft").args_json(json!({"event":"fee-bound","nonce":0,"gas_limit":100000,"priority_fee":"100000000","max_fee":"4000000000"})).deposit(NearToken::from_yoctonear(1)).max_gas().transact().await.unwrap();
+    let accepted=f.host.call(f.escrow.id(),"release_nft").args_json(json!({"event":"fee-bound","nonce":0,"gas_limit":100000,"priority_fee":"100000000","max_fee":"20000000000"})).deposit(NearToken::from_yoctonear(1)).max_gas().transact().await.unwrap();
     assert!(
         accepted.is_success(),
         "Reviewed NFT fee ceiling must support real-network fees"

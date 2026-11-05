@@ -114,7 +114,7 @@ impl EscrowV1 {
                 && max_fee
                     .0
                     .checked_mul(gas_limit as u128)
-                    .is_some_and(|cost| cost <= 400_000_000_000_000),
+                    .is_some_and(|cost| cost <= 2_000_000_000_000_000),
             "NFT gas limit"
         );
         let item = self.events.get(&event).expect("Unknown event").clone();

@@ -23,6 +23,18 @@ export function v1NftGasLimit(estimate: bigint) {
   return buffered < 50000n ? 50000n : buffered;
 }
 
+export function v1NftGasBudget(estimate: bigint, suggestedPrice: bigint) {
+  const gas = v1NftGasLimit(estimate),
+    ceiling = v1NftMaximumGasWei / gas;
+  if (suggestedPrice <= 0n || suggestedPrice > ceiling)
+    throw new AppFailure(422, "Ethereum gas exceeds the NFT's small-transfer budget. Check later.");
+  return {
+    gas,
+    fee: suggestedPrice * 2n < ceiling ? suggestedPrice * 2n : ceiling,
+    priority: suggestedPrice / 10n || 1n,
+  };
+}
+
 const erc721 = new Interface([
   "function ownerOf(uint256) view returns(address)",
   "function supportsInterface(bytes4) view returns(bool)",
@@ -175,9 +187,7 @@ export async function prepareV1NftTransfer(
     );
   if (facts[0].nonce !== facts[1].nonce) throw new Error("NFT nonce sources disagree");
   const max = (field: "price" | "gas") => facts.reduce((n, f) => (f[field] > n ? f[field] : n), 0n),
-    gas = v1NftGasLimit(max("gas")),
-    fee = max("price") * 2n,
-    priority = max("price") / 10n || 1n;
+    { gas, fee, priority } = v1NftGasBudget(max("gas"), max("price"));
   const envelope = {
     nonce: facts[0].nonce.toString(),
     gas_limit: gas.toString(),

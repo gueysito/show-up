@@ -11,9 +11,11 @@ import {
   signedV1NftRelease,
   readV1NftHolding,
   prepareV1NftTransfer,
+  v1NftGasBudget,
 } from "../../src/server/protocol/v1-nft";
 import { matchesV1Terms } from "../../src/server/protocol/v1-escrow";
 import { v1DraftTerms } from "../../src/server/events/v1-publication";
+import { v1NftMaximumGasWei } from "../../src/domain/v1-nft-budget";
 import { validDraft } from "../fixtures/draft";
 import { randomUUID } from "node:crypto";
 
@@ -97,11 +99,11 @@ test("two Ethereum sources preflight NFT ownership, nonce, gas and actual transf
   assert.equal(payment.transaction.from, f.contributor);
   assert.equal(payment.transaction.value, "0x0");
   assert.equal(payment.transaction.chainId, "0x1");
-  assert.ok(BigInt(payment.maximumGasWei) <= 400000000000000n);
+  assert.ok(BigInt(payment.maximumGasWei) <= v1NftMaximumGasWei);
   f.setPrice("0x59682f00"); // 1.5 gwei, observed on mainnet after custody deposit.
   const realistic = await prepareV1NftTransfer(f.nft, f.contributor, f.custody, f.transport);
   assert(BigInt(realistic.maximumGasWei) > 100000000000000n);
-  assert(BigInt(realistic.maximumGasWei) <= 400000000000000n);
+  assert(BigInt(realistic.maximumGasWei) <= v1NftMaximumGasWei);
   f.setPrice("0x989680");
   f.setPending("0x1");
   await assert.rejects(
@@ -128,7 +130,7 @@ test("NFT fee ceilings allow the reviewed bound and reject an extra wei or overs
       nonce: "0",
       gas_limit: "100000",
       priority_fee: "100000000",
-      max_fee: "4000000000",
+      max_fee: "20000000000",
     };
   assert.equal(
     v1NftReleaseTransaction(f.nft, f.custody, f.recipient.address, envelope).gasLimit,
@@ -137,7 +139,7 @@ test("NFT fee ceilings allow the reviewed bound and reject an extra wei or overs
   assert.throws(() =>
     v1NftReleaseTransaction(f.nft, f.custody, f.recipient.address, {
       ...envelope,
-      max_fee: "4000000001",
+      max_fee: "20000000001",
     }),
   );
   assert.throws(() =>
@@ -146,6 +148,17 @@ test("NFT fee ceilings allow the reviewed bound and reject an extra wei or overs
       gas_limit: "250001",
     }),
   );
+});
+
+test("NFT fee planning fits current network prices inside the fixed cap and refuses unaffordable gas", () => {
+  const low = v1NftGasBudget(67774n, 1500000000n);
+  assert.equal(low.fee, 3000000000n);
+  const high = v1NftGasBudget(67774n, 18000000000n);
+  assert(high.fee >= 18000000000n);
+  assert(high.gas * high.fee <= v1NftMaximumGasWei);
+  assert(high.priority <= high.fee);
+  assert.throws(() => v1NftGasBudget(67774n, high.fee + 1n), /exceeds/);
+  assert.throws(() => v1NftGasBudget(67774n, 0n));
 });
 
 test("NFT delivery requires the original signed image, finalized inclusion and the exact ERC-721 transfer on both sources", async () => {

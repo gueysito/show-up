@@ -137,6 +137,7 @@ test("synthetic NFT wallet approval fixes the asset and custody; a reload cannot
     const panel = page.getByRole("region", { name: "Ethereum NFT prize" });
     await panel.getByRole("button", { name: "Check NFT custody and delivery" }).click();
     await expect(panel).toContainText("Token #2829");
+    await expect(panel).toContainText("capped at 0.002 ETH plus its funding fee");
     await expect(
       panel.getByRole("button", { name: "Transfer this NFT into custody" }),
     ).toBeDisabled();

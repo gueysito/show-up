@@ -8,7 +8,9 @@ import { sessionCookie } from "../../src/server/auth/sessions";
 export async function accountFixtures(roles: string[][]) {
   // Preauthenticated engineering fixtures only, never a provider or runtime bypass.
   process.env.SHOWUP_ENV = "test";
-  process.env.DATABASE_URL = "postgresql://showup@127.0.0.1:55433/showup_test";
+  const port = process.env.SHOWUP_TEST_DATABASE_PORT ?? "55433";
+  if (!["55433", "55434"].includes(port)) throw new Error("Invalid isolated test database port");
+  process.env.DATABASE_URL = `postgresql://showup@127.0.0.1:${port}/showup_test`;
   const { pool } = createDatabase();
   await migrate(pool);
   const accounts: { id: string; value: string }[] = [];
