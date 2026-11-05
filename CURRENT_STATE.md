@@ -22,6 +22,6 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 
 ## Remaining
 
-- V1-9: real Android Rabby verification saved Base and Ethereum in the original Chrome session. Base survived refresh. On Ethereum, Rabby opened automatically and returned after connecting. The attendee switched back to Chrome after signing. Safari app links remain.
+- V1-9: Rabby verification saved Base and Ethereum on Android Chrome and reverified Base on iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing. Ethereum on Safari remains.
 - Permanent hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 - GitHub CI requires account billing attention. Continue using local checks.

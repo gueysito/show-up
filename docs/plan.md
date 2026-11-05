@@ -167,13 +167,15 @@ Isolated browser checks cover the picker, app handoff and recovery. Android
 Base and Ethereum approval with Rabby succeeded on Android. Base stayed saved
 after Chrome refreshed. On Ethereum, Rabby opened automatically and returned to
 Chrome after connecting. After signing the message, the attendee switched back
-to Chrome and Showup displayed the saved wallet. Safari remains.
+to Chrome and Showup displayed the saved wallet. Base reverified on iPhone
+Safari using the system Back to Safari link after signing. Ethereum on Safari
+remains.
 
 V1-9 phone check: Google and Telegram sign-in passed on the phone. On Android,
 the app-opening link opened Showup in Phantom, Solana approval saved one verified
 wallet, and it stayed saved after refresh. The [standard Solana chain label](https://github.com/phantom/sign-in-with-solana#specification)
 fix preserves the pinned genesis ID and exact signature verification. iPhone
-Safari app-link testing remains.
+Ethereum verification on Safari remains.
 The deposit form labels the paying account **Deposit Wallet** and the account
 receiving NEAR USDC **Payout Withdrawal Wallet**.
 
