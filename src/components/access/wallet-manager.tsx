@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { WalletChallenge, WalletSignature } from "../../server/wallets/proof";
 import type { OwnWallet } from "../../server/wallets/service";
+import {
+  nearMobileApprovalUrl,
+  readNearMobileProof,
+  startNearMobileProof,
+  type NearMobileProofRequest,
+} from "./near-mobile-wallet";
 import { connectSolanaWallet } from "./solana-wallet-proof";
 
 type EthereumWallet = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
@@ -71,6 +77,7 @@ export function WalletManager({
     returnChallengeId ? "near" : "base",
   );
   const [nearAccount, setNearAccount] = useState("");
+  const [nearApproval, setNearApproval] = useState<NearMobileProofRequest | null>(null);
   const [wallets, setWallets] = useState(initialWallets);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
@@ -126,6 +133,30 @@ export function WalletManager({
       if (pending.current) {
         await save(pending.current);
         setReturnReady(false);
+        return;
+      }
+      if (nearApproval) {
+        let proof: Awaited<ReturnType<typeof readNearMobileProof>>;
+        try {
+          proof = await readNearMobileProof(nearApproval);
+        } catch {
+          throw new WalletUiError(
+            "Could not read the NEAR Mobile approval. Check the same request again.",
+          );
+        }
+        if (proof === "pending") {
+          setNotice({ error: false, text: "Waiting for you to approve in NEAR Mobile." });
+          return;
+        }
+        setNearApproval(null);
+        if (typeof proof === "string")
+          throw new WalletUiError("The NEAR Mobile request was closed. Start a new verification.");
+        await save({
+          operation: "verify",
+          operationId: crypto.randomUUID(),
+          challengeId: nearApproval.challengeId,
+          proof,
+        });
         return;
       }
       if (returnReady) {
@@ -185,21 +216,19 @@ export function WalletManager({
         operationId: crypto.randomUUID(),
         network,
         address,
+        ...(network === "near" && { nearTransport: "near-mobile" }),
         ...(returnEventId && { returnEventId }),
       });
       if (new URL(challenge.callbackUrl).origin !== window.location.origin)
         throw new WalletUiError("Reopen Showup at its configured address and start again.");
       if (network === "near") {
-        const walletUrl = new URL("https://app.mynearwallet.com/sign-message");
-        for (const [name, value] of Object.entries({
-          message: challenge.message,
-          nonce: challenge.nonce,
-          recipient: challenge.recipient,
-          callbackUrl: challenge.callbackUrl,
-          state: challenge.id,
-        }))
-          walletUrl.searchParams.set(name, value);
-        window.location.assign(walletUrl.href);
+        try {
+          setNearApproval(await startNearMobileProof(challenge));
+        } catch {
+          throw new WalletUiError(
+            "NEAR Mobile could not prepare the verification. Try again shortly.",
+          );
+        }
         return;
       }
       let proof: WalletSignature;
@@ -261,7 +290,7 @@ export function WalletManager({
         <select
           id="wallet-network"
           value={network}
-          disabled={busy || retry || returnReady}
+          disabled={busy || retry || returnReady || Boolean(nearApproval)}
           onChange={(event) => setNetwork(event.target.value as WalletChallenge["network"])}
         >
           {Object.entries(labels).map(([value, label]) => (
@@ -277,7 +306,7 @@ export function WalletManager({
           <input
             id="near-wallet-account"
             value={nearAccount}
-            disabled={busy || retry}
+            disabled={busy || retry || Boolean(nearApproval)}
             onChange={(event) => setNearAccount(event.target.value)}
             autoComplete="off"
             spellCheck={false}
@@ -285,13 +314,25 @@ export function WalletManager({
         </div>
       )}
       <p>
-        NEAR uses MyNearWallet and a current full-access key. Base/Ethereum use personal message
-        signing; contract wallets are not verified in this pilot. Solana uses message signing.
+        NEAR Mobile verifies a current full-access key. Base/Ethereum use personal message signing;
+        contract wallets are not verified in this pilot. Solana uses message signing.
       </p>
       {returnReady && (
         <p role="status">
           Your wallet returned to Showup. Finish verification to check and save its proof.
         </p>
+      )}
+      {nearApproval && (
+        <div>
+          <p>Approve the message in your wallet, then return here and check approval.</p>
+          <a
+            href={nearMobileApprovalUrl(nearApproval.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open NEAR Mobile
+          </a>
+        </div>
       )}
       {notice && (
         <p
@@ -309,11 +350,13 @@ export function WalletManager({
               ? "Retry saving this proof"
               : returnReady
                 ? "Finish NEAR wallet verification"
-                : network === "near"
-                  ? "Verify with MyNearWallet"
-                  : "Connect and verify wallet"}
+                : nearApproval
+                  ? "Check NEAR Mobile approval"
+                  : network === "near"
+                    ? "Prepare NEAR Mobile verification"
+                    : "Connect and verify wallet"}
         </button>
-        {(retry || returnReady) && (
+        {(retry || returnReady || nearApproval) && (
           <button
             className="text-button"
             disabled={busy}
@@ -321,6 +364,7 @@ export function WalletManager({
               pending.current = null;
               setRetry(false);
               setReturnReady(false);
+              setNearApproval(null);
               setNotice(null);
             }}
           >

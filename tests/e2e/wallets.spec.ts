@@ -267,7 +267,7 @@ test("lost verification acknowledgement retries the original proof without reque
   }
 });
 
-test("NEAR return parameters are cleared and mismatched proofs cannot succeed; outbound wallet URL is inspected without contacting the wallet", async ({
+test("NEAR Mobile handoff sends a message only and rejects a response for another account", async ({
   page,
   context,
 }) => {
@@ -275,7 +275,9 @@ test("NEAR return parameters are cleared and mismatched proofs cannot succeed; o
   try {
     await fixtures.enter(context, 0);
     const id = randomUUID(),
-      eventId = randomUUID();
+      eventId = randomUUID(),
+      relayId = randomUUID(),
+      relay = "https://near-mobile-production.aws.peersyst.tech";
     await page.goto(
       `/account/wallets?challenge=${id}&event=${eventId}#state=wrong&accountId=fictional-wallet.near&publicKey=invalid&signature=invalid`,
     );
@@ -289,26 +291,48 @@ test("NEAR return parameters are cleared and mismatched proofs cannot succeed; o
     ).toContainText("complete matching proof");
     await page.getByRole("button", { name: "Start a new wallet challenge" }).click();
     await page.getByLabel("NEAR account").fill("fictional-wallet.near");
-    await page.route("https://app.mynearwallet.com/**", (route) =>
+    const relayRequest = {
+      id: relayId,
+      method: "signMessage",
+      network: "mainnet",
+      origin: "https://localhost:3444",
+      expiresAt: new Date(Date.now() + 180_000).toISOString(),
+    };
+    await page.route(`${relay}/connector/request`, async (route) => {
+      const { method, network, origin, payload } = route.request().postDataJSON();
+      expect({ method, network, origin }).toEqual({
+        method: "signMessage",
+        network: "mainnet",
+        origin: "https://localhost:3444",
+      });
+      expect(Object.keys(payload).sort()).toEqual(["message", "nonce", "recipient", "signerId"]);
+      expect(payload.recipient).toBe("localhost:3444");
+      expect(payload.nonce).toHaveLength(32);
+      expect(payload.signerId).toBe("fictional-wallet.near");
+      expect(payload.message).toContain("No transfer or spending approval is authorized.");
+      await route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: { ...relayRequest, payload, status: "pending" },
+      });
+    });
+    await page.route(`${relay}/connector/request/${relayId}`, (route) =>
       route.fulfill({
-        contentType: "text/html",
-        body: "<h1>Test intercept: external wallet was not contacted</h1>",
+        headers: { "access-control-allow-origin": "*" },
+        json: { ...relayRequest, status: "approved", response: { accountId: "different.near" } },
       }),
     );
-    const target = page.waitForRequest((request) =>
-      request.url().startsWith("https://app.mynearwallet.com/"),
-    );
-    await page.getByRole("button", { name: "Verify with MyNearWallet" }).click();
-    const request = await target,
-      url = new URL(request.url());
-    expect(url.pathname).toBe("/sign-message");
-    expect(url.searchParams.get("recipient")).toBe("localhost:3444");
-    expect(Buffer.from(url.searchParams.get("nonce")!, "base64").length).toBe(32);
-    expect(new URL(url.searchParams.get("callbackUrl")!).origin).toBe("https://localhost:3444");
-    expect(new URL(url.searchParams.get("callbackUrl")!).searchParams.get("event")).toBe(eventId);
-    expect(url.searchParams.get("message")).toContain(
-      "No transfer or spending approval is authorized.",
-    );
+    await page.getByRole("button", { name: "Prepare NEAR Mobile verification" }).click();
+    const launch = page.getByRole("link", { name: "Open NEAR Mobile" });
+    await expect(launch).toBeVisible();
+    const url = new URL((await launch.getAttribute("href"))!);
+    expect(url.origin).toBe(relay);
+    expect(url.pathname).toBe("/api/deep-link");
+    expect(url.searchParams.get("path")).toBe("connector-request");
+    expect(url.searchParams.get("params")).toBe(`id=${relayId}`);
+    await page.getByRole("button", { name: "Check NEAR Mobile approval" }).click();
+    await expect(
+      page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
+    ).toContainText("Could not read the NEAR Mobile approval");
     expect(
       (
         await fixtures.pool.query(

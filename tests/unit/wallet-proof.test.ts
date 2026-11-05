@@ -112,6 +112,29 @@ test("NEP-413 serialization matches an independent Rust Borsh specification vect
   );
 });
 
+test("NEAR Mobile signs an absent NEP-413 callback and cannot substitute the legacy proof", () => {
+  const keys = generateKeyPairSync("ed25519");
+  const challenge = createWalletChallenge(
+    origin,
+    "near",
+    "fictional-wallet.near",
+    now,
+    undefined,
+    "near-mobile",
+  );
+  const legacy = { ...challenge, nearTransport: undefined };
+  const publicKey = `ed25519:${encodeBase58(Buffer.from(keys.publicKey.export({ format: "jwk" }).x!, "base64url"))}`;
+  const proof = {
+    accountId: challenge.address,
+    publicKey,
+    signature: sign(null, nearMessageDigest(challenge), keys.privateKey).toString("base64"),
+  };
+  assert(verifyWalletSignature(challenge, proof, origin, now));
+  assert(!verifyWalletSignature(legacy, proof, origin, now));
+  assert(!verifyWalletSignature(challenge, { ...proof, accountId: "other.near" }, origin, now));
+  assert(!verifyWalletSignature(challenge, proof, origin, now + 300_000));
+});
+
 test("Ed25519 proofs distinguish raw Solana messages from tagged NEAR hashes and reject unusable keys", () => {
   for (const network of ["near", "solana"] as const) {
     const keys = generateKeyPairSync("ed25519");

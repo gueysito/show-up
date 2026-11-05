@@ -138,6 +138,10 @@ reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
 Replace the wallet handoff for account verification and USDC approval, then
 verify the real phone return and a small deposit/refund. Earlier mainnet receipts
 prove the contract flow with isolated project-wallet approvals.
+NEAR Mobile's message handoff accepted a fictional request on the live relay and
+returned an app link. Browser and crypto tests check account and challenge binding.
+The wallet page has Phantom, MetaMask and Rabby opening links. Real NEAR Mobile,
+Meteor and native payment checks remain.
 
 V1-9 phone check: Google and Telegram sign-in passed on the phone. On Android,
 the app-opening link opened Showup in Phantom, Solana approval saved one verified

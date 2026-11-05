@@ -19,6 +19,10 @@ export default async function WalletPage({
   const returnChallengeId =
     typeof query.challenge === "string" && isUuid(query.challenge) ? query.challenge : undefined;
   const config = authConfig();
+  const walletPage = config ? new URL("/account/wallets", config.origin) : null;
+  const rabby = new URL("https://go.rabby.io/mobile/");
+  rabby.searchParams.set("_cmd", "open-dapp");
+  if (walletPage) rabby.searchParams.set("dapp", walletPage.href);
   let signedIn = false,
     available = Boolean(config);
   let wallets: OwnWallet[] = [];
@@ -53,6 +57,28 @@ export default async function WalletPage({
         Verification moves no money and creates no event registration. Event funding requires
         separate rules, destination and fee approval.
       </p>
+      {walletPage && (
+        <details>
+          <summary>Open this page in your phone wallet</summary>
+          <ul>
+            <li>
+              <a
+                href={`https://phantom.com/ul/browse/${encodeURIComponent(walletPage.href)}?ref=${encodeURIComponent(walletPage.origin)}`}
+              >
+                Open in Phantom (Solana)
+              </a>
+            </li>
+            <li>
+              <a href={`https://link.metamask.io/dapp/${walletPage.host}${walletPage.pathname}`}>
+                Open in MetaMask (Ethereum or Base)
+              </a>
+            </li>
+            <li>
+              <a href={rabby.href}>Open in Rabby (Ethereum or Base)</a>
+            </li>
+          </ul>
+        </details>
+      )}
       {!available ? (
         <p role="alert">Wallet verification is unavailable. Retry when the service is ready.</p>
       ) : !signedIn ? (

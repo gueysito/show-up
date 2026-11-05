@@ -15,6 +15,7 @@ export type WalletChallenge = {
   nonce: string;
   recipient: string;
   callbackUrl: string;
+  nearTransport?: "near-mobile";
   returnEventId?: string;
   issuedAt: number;
   expiresAt: number;
@@ -22,7 +23,7 @@ export type WalletChallenge = {
 export type WalletSignature = { signature: string; publicKey?: string; accountId?: string };
 export type WalletMessage = Pick<
   WalletChallenge,
-  "network" | "address" | "message" | "nonce" | "recipient" | "callbackUrl"
+  "network" | "address" | "message" | "nonce" | "recipient" | "callbackUrl" | "nearTransport"
 >;
 
 export function walletAddress(network: Network, value: string): string {
@@ -71,10 +72,13 @@ export function createWalletChallenge(
   address: string,
   now = Date.now(),
   returnEventId?: string,
+  nearTransport?: "near-mobile",
 ): WalletChallenge {
   const url = new URL(origin);
   if (url.protocol !== "https:" || origin !== url.origin || !Number.isSafeInteger(now))
     throw new Error("Wallet verification requires a fixed HTTPS origin and valid time");
+  if (nearTransport !== undefined && (network !== "near" || nearTransport !== "near-mobile"))
+    throw new Error("Invalid wallet signing transport");
   if (
     returnEventId !== undefined &&
     !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(returnEventId)
@@ -91,6 +95,7 @@ export function createWalletChallenge(
     nonce: randomBytes(32).toString("base64"),
     recipient: url.host,
     callbackUrl: `${origin}/account/wallets?challenge=${id}${returnEventId ? `&event=${returnEventId}` : ""}`,
+    ...(nearTransport && { nearTransport }),
     ...(returnEventId && { returnEventId }),
     issuedAt: now,
     expiresAt: now + 300_000,
@@ -117,7 +122,10 @@ function borshString(value: string) {
 // NEP-413: little-endian u32 tag, string, fixed 32-byte nonce, string,
 // Option<string> callback URL. Sign SHA-256 of these bytes, never a transaction.
 export function nearMessageDigest(
-  challenge: Pick<WalletMessage, "message" | "nonce" | "recipient" | "callbackUrl">,
+  challenge: Pick<
+    WalletMessage,
+    "message" | "nonce" | "recipient" | "callbackUrl" | "nearTransport"
+  >,
 ): Buffer {
   const tag = Buffer.alloc(4);
   tag.writeUInt32LE(2 ** 31 + 413);
@@ -128,8 +136,9 @@ export function nearMessageDigest(
         borshString(challenge.message),
         base64(challenge.nonce, 32),
         borshString(challenge.recipient),
-        Buffer.from([1]),
-        borshString(challenge.callbackUrl),
+        ...(challenge.nearTransport === "near-mobile"
+          ? [Buffer.from([0])]
+          : [Buffer.from([1]), borshString(challenge.callbackUrl)]),
       ]),
     )
     .digest();
@@ -152,6 +161,8 @@ export function verifyWalletSignature(
       challenge.origin !== origin ||
       challenge.recipient !== url.host ||
       challenge.chainId !== networkIdentity(challenge.network).chainId ||
+      (challenge.nearTransport !== undefined &&
+        (challenge.network !== "near" || challenge.nearTransport !== "near-mobile")) ||
       challenge.address !== walletAddress(challenge.network, challenge.address) ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(challenge.id) ||
       (challenge.returnEventId !== undefined &&

@@ -59,5 +59,7 @@ running. A new browser may show ngrok's one-time **Visit Site** screen.
 
 The live MyNearWallet `/sign-message` and `/sign` screens now reject app requests
 following its [retirement](https://www.mynearwallet.com/sunset). The earlier
-engineering runs bypassed those screens. V1 needs a supported NEAR wallet for
-new payout-wallet proofs and native deposit, storage and prize approvals.
+engineering runs bypassed those screens. NEAR Mobile ownership verification now
+has a tested message handoff. The first real NEAR Mobile approval and native
+deposit, storage and prize approvals remain to verify. The wallet page also has
+mobile opening links for Phantom, MetaMask and Rabby.
