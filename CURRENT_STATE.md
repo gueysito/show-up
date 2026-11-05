@@ -32,9 +32,9 @@ there are no pending native transaction queues.
 ## Remaining
 
 - V1-7: NFT custody/publication, attendee Ethereum binding, cancellation and signed
-  delivery are implemented locally. Both mainnet RPCs verify the MPC key format;
-  synthetic browser/DB cases pass. BasedHeads #2829 still needs its owner's wallet
-  transfer and a real mainnet custody/release round trip.
+  delivery are implemented locally. The test event's Ethereum custody address is
+  now derived and verified: `0x098a2830a7C2Bb6eC97d003361F3090CE3ba2CE0`.
+  BasedHeads #2829 still needs its owner's transfer and a real custody/release round trip.
 - V1-9: front door and V1 preview run locally; desktop/390/320 layouts and real
   host navigation pass. A clean clone installs/builds on pinned Node 24 and serves
   home/preview/database health with HTTP 200. The real-phone journey remains.
