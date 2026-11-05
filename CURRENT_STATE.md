@@ -29,8 +29,10 @@ Working rules are in [AGENTS.md](AGENTS.md).
   each. Allocation remains below $50; no additional owner funding is requested.
 
 Mainnet transaction checks used preauthenticated engineering accounts and isolated
-project-wallet approval. The owner completed Google sign-in on a real phone;
-session refresh and external-wallet approval remain to verify.
+project-wallet approval. The owner completed Google sign-in on a real phone.
+Telegram sign-in also worked inside Phantom. The first Solana signatures did
+not reach Showup's verifier. The Wallet Standard path passes browser tests;
+session refresh and a real Phantom retry remain to verify.
 The existing app baseline passes 195 database and 48 ordinary browser cases;
 the network-fee correction passes 131 unit and six isolated database cases.
 GitHub CI cannot start jobs until the owner resolves its billing/spending limit.

@@ -10,6 +10,95 @@ test.use({
   timezoneId: "Pacific/Auckland",
 });
 
+test("Solana verification uses Wallet Standard and rejects an altered message", async ({
+  page,
+  context,
+}) => {
+  const fixtures = await accountFixtures([[]]);
+  const key = generateKeyPairSync("ed25519");
+  const publicKey = Buffer.from(key.publicKey.export({ format: "jwk" }).x!, "base64url");
+  const address = encodeBase58(publicKey);
+  let signatures = 0;
+  await page.exposeFunction("signSolanaChallenge", (message: number[]) => {
+    const signedMessage = Buffer.from(message);
+    if (++signatures === 1) signedMessage[0] ^= 1;
+    return {
+      signedMessage: [...signedMessage],
+      signature: [...sign(null, signedMessage, key.privateKey)],
+    };
+  });
+  await page.addInitScript(
+    ({ address, publicKey }) => {
+      const target = window as typeof window & {
+        phantom?: unknown;
+        signSolanaChallenge(
+          message: number[],
+        ): Promise<{ signedMessage: number[]; signature: number[] }>;
+      };
+      target.phantom = {
+        solana: {
+          connect: async () => ({ publicKey: { toString: () => address } }),
+          signMessage: async () => {
+            throw new Error("Legacy wallet did not return the approved signature");
+          },
+        },
+      };
+      const account = {
+        address,
+        publicKey: Uint8Array.from(publicKey),
+        chains: ["solana:mainnet"],
+        features: ["solana:signMessage"],
+      };
+      window.addEventListener("wallet-standard:app-ready", (event) => {
+        const { register } = (event as CustomEvent<{ register(wallet: unknown): void }>).detail;
+        register({
+          name: "Fixture Solana Wallet",
+          version: "1.0.0",
+          chains: ["solana:mainnet"],
+          accounts: [],
+          features: {
+            "standard:connect": { connect: async () => ({ accounts: [account] }) },
+            "solana:signMessage": {
+              signMessage: async (input: { account: typeof account; message: Uint8Array }) => {
+                if (input.account !== account) throw new Error("Wrong wallet account");
+                const result = await target.signSolanaChallenge([...input.message]);
+                return [
+                  {
+                    signedMessage: Uint8Array.from(result.signedMessage),
+                    signature: Uint8Array.from(result.signature),
+                  },
+                ];
+              },
+            },
+          },
+        });
+      });
+    },
+    { address, publicKey: [...publicKey] },
+  );
+
+  try {
+    await fixtures.enter(context, 0);
+    await page.goto("/account/wallets");
+    await page.getByLabel("Wallet network").selectOption("solana");
+    const verify = page.getByRole("button", { name: "Connect and verify wallet" });
+    await verify.click();
+    await expect(
+      page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
+    ).toContainText("did not return a usable signature");
+    await expect(
+      page.getByText("No wallet control has been verified for this account."),
+    ).toBeVisible();
+    await verify.click();
+    await expect(page.getByRole("status")).toContainText("Wallet control verified and saved");
+    expect(signatures).toBe(2);
+    await page.reload();
+    await expect(page.getByRole("list").getByText(address, { exact: true })).toBeVisible();
+  } finally {
+    await fixtures.cleanup();
+  }
+});
+
 async function disposableWallets(page: Page) {
   const ethereum = Wallet.createRandom(),
     solana = generateKeyPairSync("ed25519");
@@ -157,7 +246,7 @@ test("lost verification acknowledgement retries the original proof without reque
     await page.getByRole("button", { name: "Connect and verify wallet" }).click();
     await expect(
       page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
-    ).toContainText("Wallet verification was not completed");
+    ).toContainText("Showup could not confirm that your proof was saved");
     await page.getByRole("button", { name: "Retry saving this proof" }).click();
     await expect(page.getByRole("status")).toContainText("Wallet control verified and saved");
     expect(wallet.signatures()).toBe(1);

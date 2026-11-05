@@ -139,6 +139,11 @@ Replace the wallet handoff for account verification and USDC approval, then
 verify the real phone return and a small deposit/refund. Earlier mainnet receipts
 prove the contract flow with isolated project-wallet approvals.
 
+V1-9 phone check: Telegram sign-in worked inside Phantom. After approval, three
+Solana challenges remained unused and no proof reached the verifier. Showup now
+prefers Wallet Standard for Solana message signing and checks the returned
+message before saving; browser regression passes and the real phone retry remains.
+
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra
 cases ran in an isolated snapshot under `contracts/.cache/security-review/`.

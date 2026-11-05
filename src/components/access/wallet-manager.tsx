@@ -3,12 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { WalletChallenge, WalletSignature } from "../../server/wallets/proof";
 import type { OwnWallet } from "../../server/wallets/service";
+import { connectSolanaWallet } from "./solana-wallet-proof";
 
 type EthereumWallet = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
-type SolanaWallet = {
-  connect(): Promise<{ publicKey: { toString(): string } }>;
-  signMessage(message: Uint8Array, format: "utf8"): Promise<{ signature: Uint8Array }>;
-};
 type ProofRequest = {
   operation: "verify";
   operationId: string;
@@ -152,22 +149,26 @@ export function WalletManager({
       }
       const injected = window as unknown as {
         ethereum?: EthereumWallet;
-        phantom?: { solana?: SolanaWallet };
-        solana?: SolanaWallet;
       };
       let address: string;
       let ethereum: EthereumWallet | undefined;
-      let solana: SolanaWallet | undefined;
+      let solana: Awaited<ReturnType<typeof connectSolanaWallet>> = null;
       if (network === "near") {
         address = nearAccount.trim();
         if (!address) throw new WalletUiError("Enter the NEAR account you control.");
       } else if (network === "solana") {
-        solana = injected.phantom?.solana ?? injected.solana;
+        try {
+          solana = await connectSolanaWallet();
+        } catch {
+          throw new WalletUiError(
+            "Could not connect to your Solana account. Reopen your wallet and retry.",
+          );
+        }
         if (!solana)
           throw new WalletUiError(
             "Open this page in a compatible Solana wallet browser or enable its browser extension.",
           );
-        address = (await solana.connect()).publicKey.toString();
+        address = solana.address;
       } else {
         ethereum = injected.ethereum;
         if (!ethereum)
@@ -202,14 +203,18 @@ export function WalletManager({
         return;
       }
       let proof: WalletSignature;
-      if (solana)
-        proof = {
-          signature: encoded(
-            (await solana.signMessage(new TextEncoder().encode(challenge.message), "utf8"))
-              .signature,
-          ),
-        };
-      else {
+      if (solana) {
+        try {
+          const signature = await solana.signMessage(new TextEncoder().encode(challenge.message));
+          if (!(signature instanceof Uint8Array) || signature.length !== 64)
+            throw new Error("Invalid Solana signature");
+          proof = { signature: encoded(signature) };
+        } catch {
+          throw new WalletUiError(
+            "The Solana wallet did not return a usable signature. Open this page in your wallet browser and try again.",
+          );
+        }
+      } else {
         const chain = await ethereum!.request({ method: "eth_chainId" });
         if (typeof chain !== "string" || BigInt(chain) !== BigInt(challenge.chainId))
           throw new WalletUiError(
@@ -240,7 +245,9 @@ export function WalletManager({
         text:
           error instanceof WalletUiError
             ? error.message
-            : "Wallet verification was not completed. Check your wallet and connection, then retry. No success has been recorded here.",
+            : pending.current
+              ? "Showup could not confirm that your proof was saved. Try saving the same proof again."
+              : "Wallet verification was not completed. Check your wallet and connection, then retry. No success has been recorded here.",
       });
     } finally {
       setBusy(false);
