@@ -124,7 +124,7 @@ One concise row per package; distinguish local preparation from mainnet completi
 | V1-5 complete | 2026-11-05 | Two real 1-USDC registrations funded through the app; the host opened a live code, one attendee [checked in](https://nearblocks.io/txns/HJcPUxbvvigcCnQpNWtZ7X3SdApbVaDTEJvuFhYtm1wM), and both browser attendee status and host roster confirmed attendance. Same engineering auth/wallet qualification as V1-2; no contract upgrade. |
 | V1-6 complete | 2026-11-05 | Host [settled](https://nearblocks.io/txns/Hs7qvG1cBaS6bz3DRF3F5ahY9FeayFXipLRNB19YJwsZ); the checked-in attendee [received 2.25 USDC](https://nearblocks.io/txns/3DnWt7mZ31a3j2Q3RdVZ9JmZzADSsBLLUFGMiUmAY2pY): 1 principal + 1 no-show share + 0.25 prize. Mobile receipt and both RPCs confirm payment; all test USDC [returned to the controller](https://nearblocks.io/txns/6k9qP6kY2tfr6D6MciATBRMiTmTHqpLHACBac2hHdVpS), escrow holds zero. Final browser assertion expected `0` instead of displayed `0.00`; corrected against the retained actual receipt without repeating payment. 116 unit/193 database/46 ordinary browser checks, build/code checks and focused retry/order cases pass. |
 | V1-7 mainnet winner journey verified | 2026-11-05 | BasedHeads #2829's [custody deposit](https://etherscan.io/tx/0xeba87b3b1e9402a8ccf6bc297b67366096f333a1aab3e0f860593b6acb28b261), [publication](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [settlement](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [1-USDC refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL) and [winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f) pass through the real mobile browser; the Etherscan link persists through submitted and delivered states. Same-account fee upgrades retain the custody key and pass real $1 refunds; the final artifact passes 11 V1 money-path cases, with 131 unit, six isolated database and focused browser checks. NFT cancellation is covered in sandbox. The subsequent [test-asset return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) finalized back to the original sending wallet. |
-| V1-9 Android Phantom verified; phone payment and hosting remain | 2026-11-05 | Home/preview and README describe the working loop; 48 ordinary browser cases and desktop/390/320 layouts pass. A clean clone at `5f51888` installs/builds with pinned Node 24.22.2/npm 11.19.1 and serves home/preview/health with HTTP 200. The approved [phone pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves the rebuilt app, and fresh iPhone emulation passes the one-time Visit Site screen and reaches both Google and Telegram sign-in pages without entering credentials. The development computer/tunnel must stay running. Owner Google sign-in and Android Phantom wallet approval and refresh passed. iPhone Safari app-link testing, a real phone payment and permanent hosting remain. |
+| V1-9 Android deposit and refund verified; Safari and hosting remain | 2026-11-05 | Home/preview and README describe the working loop; 48 ordinary browser cases and desktop/390/320 layouts pass. A clean clone at `5f51888` installs/builds with pinned Node 24.22.2/npm 11.19.1 and serves home/preview/health with HTTP 200. The approved [phone pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves the rebuilt app. Real Android Phantom proof, NEAR Mobile [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) and [full refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) passed. The development computer and tunnel must stay running. Real Safari app links, Meteor approval and permanent hosting remain. |
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
@@ -141,8 +141,8 @@ the app waits for its existing two-source confirmation. The first phone payment
 test opened browser tabs for both wallets. The branded choices now prepare an
 installed-app link in Showup. Isolated browser checks verify both native link
 targets and restore the same NEAR Mobile request after refresh. Confirmed native deposits show a green receipt and link to the
-independently verified deposit transaction. A real phone deposit/refund remains;
-earlier mainnet receipts used isolated project-wallet approvals.
+independently verified deposit transaction. The initial mainnet receipts used
+isolated project-wallet approvals.
 The [phone deposit test](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6)
 is published with one seat, 1 USDC and no prize. The public pilot page shows the
 verified mainnet terms.
@@ -155,17 +155,18 @@ native NEAR, approved the [1-USDC deposit](https://nearblocks.io/txns/CB3pNnuxYb
 in NEAR Mobile from Android Chrome, then returned to Showup and saw confirmation.
 The wallet's transaction connector has no documented return URL. Both RPCs
 verified the [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE)
-and full withdrawal claim.
+and [full withdrawal](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz);
+the phone showed 1.00 USDC paid and no principal remains in escrow.
 NEAR Mobile opened from Showup, signed a real phone message and saved the verified
 wallet through refresh. The Meteor choice passes an isolated test for message-only
 approval with the pinned connector. The wallet page has Phantom, MetaMask and
-Rabby opening links. Real Meteor and native payment checks remain.
+Rabby opening links. Real Meteor approval remains.
 
 V1-9 phone check: Google and Telegram sign-in passed on the phone. On Android,
 the app-opening link opened Showup in Phantom, Solana approval saved one verified
 wallet, and it stayed saved after refresh. The [standard Solana chain label](https://github.com/phantom/sign-in-with-solana#specification)
 fix preserves the pinned genesis ID and exact signature verification. iPhone
-Safari app-link testing and a real phone payment remain.
+Safari app-link testing remains.
 The deposit form labels the paying account **Deposit Wallet** and the account
 receiving NEAR USDC **Payout Withdrawal Wallet**.
 
@@ -248,7 +249,7 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-05 | NEAR | Publish the funded NFT event and bind/fund its attendee | 1 existing USDC held for the test attendee; 0.0013417147346258 NEAR total gas | [Publish](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [register](https://nearblocks.io/txns/5bKjAcEWQSZ3AXDLcSrcci7UsBAg8K15BPd8wNMrYRaD), [deposit](https://nearblocks.io/txns/GieCsPRzt9igQip2AnD8GjTdRFYL9LsUzvnHUouHS29j) |
 | 2026-11-05 | NEAR | Check in, settle, return the attendee's full deposit and sign the fixed NFT release | 1 USDC fully restored; 0.0024419976883588 NEAR total gas from existing funds | [Check-in](https://nearblocks.io/txns/GngvHdQST4Hq3G7SDQN8pLT1yJz6rMb8PvUg9FiXBwd7), [settle](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL), [MPC signature](https://nearblocks.io/txns/5bs7vGKFEwTqgfPFnt1uASNiGLWoAWzx9FCsqcw5RBjL) |
 | 2026-11-05 | Ethereum | Deliver NFT #2829 to its test winner and return it to the original contributor | 0.000162539215967425 ETH winner release fee; 0.000057241602966725 ETH test-return fee; 0.000728079412264359 ETH remains at the event custody address | [Finalized winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f), [finalized test return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) |
-| 2026-11-05 | NEAR | Publish, register, fund and cancel one refundable 1-USDC phone test seat | 0.00155098881999 NEAR gas and 1 yoctoNEAR attached to deposit; 1 USDC claim ready to withdraw | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6), [registration](https://nearblocks.io/txns/FKpWuQ8YGzJV6GjHkcraqSHu2Q4M2zF2Fu2binA44Vr), [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT), [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE) |
+| 2026-11-05 | NEAR | Publish, register, fund, cancel and refund one 1-USDC phone test seat | 0.0022338833602616 NEAR gas and 1 yoctoNEAR attached to deposit; 1 USDC fully returned | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6), [registration](https://nearblocks.io/txns/FKpWuQ8YGzJV6GjHkcraqSHu2Q4M2zF2Fu2binA44Vr), [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT), [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE), [refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) |
 
 About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's

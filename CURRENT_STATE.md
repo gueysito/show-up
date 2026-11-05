@@ -18,10 +18,10 @@ The owner-local app runs at `https://localhost:3443`. The existing [development 
 
 Owner phone checks passed for Google and Telegram sign-in, Android Phantom verification, and NEAR Mobile message approval. Verified wallets persisted after refresh. The wallet page includes Phantom, MetaMask and Rabby opening links. NEAR Mobile and Meteor replace the retired MyNearWallet approval screens.
 
-The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) verified a real [1-USDC deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) from Android Chrome and NEAR Mobile. The attendee switched back to Chrome and saw confirmation. The event is cancelled and its full refund is ready for withdrawal. The updated build explains the Intents distinction when native USDC is short.
+The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) verified a real [1-USDC deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) from Android Chrome and NEAR Mobile and a [full refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) after cancellation. The phone showed both receipts. The pilot explains the Intents distinction when native USDC is short.
 
 ## Remaining
 
-- V1-9: finish the real phone payment, Meteor approval and Safari app-link checks. The home, preview and host navigation pass local phone/desktop layout checks, and the clean-clone build is verified.
+- V1-9: finish the real Meteor approval and Safari app-link checks. The home, preview and host navigation pass local phone/desktop layout checks, and the clean-clone build is verified.
 - Permanent hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
 - GitHub CI requires account billing attention. Continue using local checks.
