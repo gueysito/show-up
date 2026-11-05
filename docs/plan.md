@@ -64,7 +64,7 @@ the local app operator for host/attendee wallet binding, attendance and observed
 NFT custody; contract code enforces token receipts, fixed beneficiaries and payouts.
 Measured corrected V1 WASM: **321,207 bytes**, code collateral **3.21207 NEAR**;
 SHA-256 `3efb9c95ab79e6d996694a99da4a762f5896a39676063c7c49589a0ecde8b063`.
-Deploy to the still-unregistered `showup-dev-14989f.near` using the existing key;
+Deployed atomically to `showup-dev-14989f.near` using the existing key;
 the prior **3.66-NEAR quote is withdrawn**. Corrections pass locally and in CI.
 The controller received **3.73 wNEAR**, verified at `wrap.near` by both RPCs, and
 [converted it to native NEAR](https://nearblocks.io/txns/FfCBFBUXrGQQQiyvWgjV65HuE2SdsddYjgYfet3zvxV2).
@@ -76,13 +76,14 @@ fees, before the sender's new fee. Original calculation: code 3.21207 + 0.10 sta
 allowance + 0.40 contract gas reserve + 0.25 controller reserve − existing
 0.2485110692734984 = 3.7135589307265016 NEAR, rounded up to **3.72 NEAR**.
 Three-attendee settled state uses 1,896 bytes above code, within the 10,000-byte
-allowance. Recheck factory, key, protocol and balance before using the top-up.
-The existing owner key retains deployment/upgrade authority. No deployment yet.
+allowance. Factory, key, protocol and balances were rechecked before deployment.
+The existing owner key retains deployment/upgrade authority. Account funding is
+3.71207 NEAR, including code collateral, state allowance and gas reserve.
 Reserve **$1 for NFT custody gas**; the remaining budget covers routing/other fees.
 NFT custody gas is provisionally 0.0001 ETH ($0.24), to be simulated for the chosen
 NFT before transfer; no NFT purchase is planned. These allocations do not establish
 every later V1 operation's final cost. The retained V2 WASM is 1,208,397 bytes and
-is outside the V1 deployment. No NFT move or further mainnet spend occurred here.
+is outside the V1 deployment. No NFT move has occurred.
 
 ## V1 work packages
 
@@ -108,7 +109,7 @@ One concise row per package; distinguish local preparation from mainnet completi
 
 | ID | Date | Evidence |
 | --- | --- | --- |
-| V1-1 (in progress; controller funded) | 2026-11-04 | The reviewed 321,207-byte contract retains the passing 53-test/Node replay and [CI evidence](https://github.com/gueysito/show-up/actions/runs/41952837163). The fixed mainnet operator passes 102 app unit tests, app checks/build, Clippy and an independent NEAR native decoder case for unwrap/atomic deployment. The 3.73-wNEAR top-up is converted to native; create/fund the named account, deploy/initialize together, then run the 1-USDC refund round trip. |
+| V1-1 complete | 2026-11-04 | Reviewed 321,207-byte artifact [deployed/initialized atomically](https://nearblocks.io/txns/9HeV9x7NKZ6PZixzLWbDebcJu4ophRoym5EmEg52nsCR) at `showup-dev-14989f.near`; code collateral 3.21207 NEAR. Manual [1-USDC deposit](https://nearblocks.io/txns/DZF1Tuvq7kTU18t8y8jyEcBjh7Z8YL4eNyoFnWnn6nNX), [cancel](https://nearblocks.io/txns/J9RnpzsatiSJmriG1BJRfsD6fBivTtK9FdMUw8ToNVye) and [refund](https://nearblocks.io/txns/BsxTU3pK65apU6mz7cajh6tkoEU1x3XY2iTAfzWwAsnS) restore 2.549953 USDC to the controller, zero in escrow, claim paid in full. Both RPCs agree at finalized block 223121252. The identical artifact retains its 53-test/Node replay [CI evidence](https://github.com/gueysito/show-up/actions/runs/41952837163); 109 current app/operator unit tests, format/lint/types and build pass. Next: V1-2 app publication. |
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra
@@ -118,7 +119,7 @@ cases ran in an isolated snapshot under `contracts/.cache/security-review/`.
 | --- | --- | --- |
 | P1, corrected locally | Late, duplicate or rejected routed receipts could strand principal at the Intents sender. | Official [Intents withdrawal rules](https://docs.near-intents.org/integration/verifier-contract/deposits-and-withdrawals/withdrawals) provide no automatic refund when `msg` is specified. Known receipts from the bound sender now create `recovery:<registration>` credits for the fixed NEAR beneficiary, including wrong amounts, full/closed/late and duplicate cases. Tests move actual mock tokens from one shared sender to distinct payout accounts and conserve every unit. In-flight amounts are separate from newly credited funds, including failed withdrawals. No live loss experiment. |
 | P2, corrected locally | Failed NFT signing could not be retried without an existing signature. | Operator-only `retry_nft_signature` accepts one yoctoNEAR and reuses only the original transaction, up to three total attempts; attempt-bound private callbacks reject stale replies. Failure, invalid response, successful retry, authorization, altered transaction and exhausted-limit reconciliation cases pass. No mainnet signing/custody yet. |
-| Deployment control, tested locally | Deploy and initialize atomically. | Constructor now rejects external callers. A sandbox test denies outsider initialization, then verifies deployment plus `new` in one transaction and intended-owner access. The mainnet executor must use the same self-signed batch; none has run yet. |
+| Deployment control, verified on mainnet | Deploy and initialize atomically. | Constructor rejects external callers. Sandbox outsider rejection and self initialization pass. [Mainnet deployment plus `new`](https://nearblocks.io/txns/9HeV9x7NKZ6PZixzLWbDebcJu4ophRoym5EmEg52nsCR) ran in the same self-signed batch; both RPCs confirm the pinned code hash and sole retained key. |
 
 Controls that held: forged callbacks were rejected; concurrent withdrawals paid
 exactly once to the fixed recipient. A 64-seat / 32-attendee settlement conserved
@@ -136,9 +137,8 @@ exercise mainnet routing/signing/custody. App auth/database/browser code is unch
 current CI checks pass. Corrections add no dependencies. Invalid references
 or wrong senders remain rejected and must be prevented when binding a route. Three
 failed NFT attempts still require an original signature or explicit operator recovery;
-retained full-access authority remains deliberate. No new mainnet spend.
-**Next: create/fund the named account, deploy/initialize atomically,
-and run the small real deposit/refund round trip.**
+retained full-access authority remains deliberate. Mainnet deployment is recorded
+below; the review's money-path evidence still applies to the identical artifact.
 
 ### Mainnet spend ledger
 
@@ -156,15 +156,29 @@ and run the small real deposit/refund round trip.**
 | 2026-11-04 | NEAR | Net incoming USDC, both RPCs agree at finalized block 223088071 | 2.549953 USDC (about $2.55) | [Account](https://nearblocks.io/address/14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc); token-transfer hash not yet indexed |
 | 2026-11-04 | NEAR | Incoming deployment funding in canonical wNEAR, converted 1:1 into native NEAR | 3.73 wNEAR / NEAR (about $15.11 at the funding snapshot); count once | [Conversion](https://nearblocks.io/txns/FfCBFBUXrGQQQiyvWgjV65HuE2SdsddYjgYfet3zvxV2); incoming transfer hash not yet recorded |
 | 2026-11-04 | NEAR | wNEAR conversion fee, paid from existing funding | 0.0010307981559987 NEAR (about $0.0042); no additional allocation | Same conversion transaction above |
+| 2026-11-04 | NEAR | Create named escrow account with the existing key | 0.0074439708099973 NEAR consumed fee | [Creation](https://nearblocks.io/txns/BnqNVM6DaBrreUeSBYrEFgNC1eAcnqLTGSHiA9DoZzFB) |
+| 2026-11-04 | NEAR | Fund escrow from the controller; internal allocation | 3.71207 NEAR moved, including 3.21207 code collateral; 0.0000446365125 NEAR fee | [Funding](https://nearblocks.io/txns/G8yrmiiBnEiN9az8FiTNWYHXYbKHHMvYKD3mMZPPB8hH) |
+| 2026-11-04 | NEAR | Deploy reviewed artifact and initialize in one self-signed transaction | 0.0025062797387012 NEAR consumed fee | [Deployment](https://nearblocks.io/txns/9HeV9x7NKZ6PZixzLWbDebcJu4ophRoym5EmEg52nsCR) |
+| 2026-11-04 | NEAR | Register the escrow for native USDC | 0.00125 NEAR storage collateral; 0.0002369083217194 NEAR fee | [Storage](https://nearblocks.io/txns/GirjZVYRTZAJsST82jRx2ZaFqARkjveGA6AND5Hj31p8) |
+| 2026-11-04 | NEAR | Create/publish manual smoke event and register attendee | 0.0006250973011694 NEAR consumed fees | [Event](https://nearblocks.io/txns/2d3c9QchQ3nLC4aPuRwtFuPsdJK94TdCRfPjNb5w8Vsn), [publish](https://nearblocks.io/txns/BbXeLfCi6SuJD2KrPjCHD21ucbACzwwFxbwjPbkWiifw), [register](https://nearblocks.io/txns/EeCuByd87FCKUnRhDCEiruuJhve2WuZx5sDgFjF9H34y) |
+| 2026-11-04 | NEAR | Deposit exactly 1 USDC into escrow | 1 USDC moved, subsequently refunded; 0.0007233935720751 NEAR fee + 1 yoctoNEAR | [Deposit](https://nearblocks.io/txns/DZF1Tuvq7kTU18t8y8jyEcBjh7Z8YL4eNyoFnWnn6nNX) |
+| 2026-11-04 | NEAR | Cancel event and pay its fixed attendee refund | 1 USDC returned; 0.0009131164755953 NEAR fees + 1 yoctoNEAR | [Cancel](https://nearblocks.io/txns/J9RnpzsatiSJmriG1BJRfsD6fBivTtK9FdMUw8ToNVye), [withdraw](https://nearblocks.io/txns/BsxTU3pK65apU6mz7cajh6tkoEU1x3XY2iTAfzWwAsnS) |
 
 November 4: about **$27.20 funded/allocated including known sender fees and Solana rent**,
-using the recorded funding price snapshots. Registration and conversion fees are paid
-from received funding and are not counted again. Agent-consumed gas:
-0.0012697288825003 NEAR. Remaining native NEAR: **3.9774802711174997**, with USDC storage
-registered. External balances are finalized. Both NEAR RPCs agree on 2,549,953
-atomic native USDC at finalized block 223088071 (November 4, 17:00 Denver).
-Final USDC sender costs/transaction attribution await indexing. First-round funding
-is complete; selected NFT ownership is verified and V1-1 deployment is next. No app/escrow deposit yet.
+using the recorded funding price snapshots. All execution fees and the escrow's
+3.71207-NEAR funding come from received funds, not additional allocation.
+Total agent-consumed gas: **0.013763131614258 NEAR** (about $0.0557 at $4.05/NEAR).
+After the round trip, controller native balance is **0.254173148124443199999999 NEAR**;
+escrow native balance is **3.709563720261298799999999 NEAR**, including code/state
+collateral. Both accounts have USDC storage registration. Both RPCs confirm
+**2.549953 USDC in the controller, zero in escrow**, and a fully paid 1-USDC claim at
+finalized block 223121252. Internal transfers and returned principal are counted once.
+The initial USDC sender attribution and latest incoming wNEAR sender fee remain
+unindexed/unrecorded. The public NEAR RPC throttled publication; manual recovery
+rebroadcast only the identical signed image after both replacement providers
+reported it unknown and the signer nonce unchanged. No new nonce or duplicate
+execution; subsequent calls use FastNEAR with independent dRPC state comparison.
+The app journey and NFT movement remain later V1 packages.
 
 ## V2 roadmap
 

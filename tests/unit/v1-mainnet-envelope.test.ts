@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { v1MainnetStep, v1SubmitOriginal } from "../../scripts/v1-mainnet";
+import {
+  v1MainnetStep,
+  v1SubmitOriginal,
+  v1ReceiptJson,
+  v1WaitForState,
+  v1RpcPacer,
+  v1ReadWithCooldown,
+} from "../../scripts/v1-mainnet";
+import { RpcCooldown } from "../../src/server/protocol/rpc";
+import { canonicalJson } from "../../src/server/protocol/canonical";
 import { mainnetAccount } from "../../scripts/near-mainnet-account-plan";
 import {
   nativeTransaction,
@@ -135,4 +144,164 @@ test("V1 operator dry mode never broadcasts and uncertain execution only reads t
   image.phase = "prepared";
   await assert.rejects(v1SubmitOriginal(image, true, save, rpc));
   assert.equal(calls.length, 2);
+});
+
+test("deployment receipts retain full public WASM images without changing attestation limits", () => {
+  const image = { phase: "prepared", signedBase64: Buffer.alloc(321207 + 256).toString("base64") };
+  assert.throws(() => canonicalJson(image), /Invalid attestation text/);
+  const encoded = v1ReceiptJson(image);
+  assert.deepEqual(JSON.parse(encoded), image);
+  assert(encoded.length > 65_536 && encoded.length < 2_000_000);
+  assert.throws(
+    () => v1ReceiptJson({ signedBase64: "x".repeat(2_000_001) }),
+    /Operator receipt size/,
+  );
+});
+
+test("post-transaction checks wait for the original receipt block with bounded read-only retries", async () => {
+  let reads = 0;
+  const waits: number[] = [];
+  const actual = await v1WaitForState(
+    100n,
+    async () => ({ height: String(99 + reads++), value: "original-state" }),
+    async (milliseconds) => {
+      waits.push(milliseconds);
+    },
+  );
+  assert.deepEqual(actual, { height: "100", value: "original-state" });
+  assert.equal(reads, 2);
+  assert.deepEqual(waits, [1000]);
+  reads = 0;
+  await assert.rejects(
+    v1WaitForState(
+      100n,
+      async () => {
+        reads++;
+        return { height: "99" };
+      },
+      async () => {},
+    ),
+    /original receipt blocks/,
+  );
+  assert.equal(reads, 3);
+});
+
+test("public mainnet RPC requests are paced and retain provider cooldowns", async () => {
+  let time = 0;
+  const starts: number[] = [];
+  const operation = async () => {
+    starts.push(time);
+    return "read";
+  };
+  const request = v1RpcPacer(
+    async (milliseconds) => {
+      time += milliseconds;
+    },
+    () => time,
+  );
+  await Promise.all([1, 2, 3].map(() => request.run("https://rpc.mainnet.near.org", operation)));
+  assert.deepEqual(starts, [1000, 2000, 3000]);
+  time = 0;
+  starts.length = 0;
+  const paced = v1RpcPacer(
+    async (milliseconds) => {
+      time += milliseconds;
+    },
+    () => time,
+  );
+  await paced.run("https://rpc.mainnet.near.org", operation);
+  paced.cooldown("https://rpc.mainnet.near.org", time + 3000);
+  await paced.run("https://rpc.mainnet.near.org", operation);
+  assert.deepEqual(starts, [1000, 5000]);
+});
+
+test("slow RPC replies do not block admission of the next spaced request", async () => {
+  let time = 0;
+  const pacer = v1RpcPacer(
+    async (milliseconds) => {
+      time += milliseconds;
+    },
+    () => time,
+  );
+  let finish!: () => void;
+  const slow = pacer.run(
+    "near",
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const next = await pacer.run("near", async () => time);
+  assert.equal(next, 2000);
+  finish();
+  await slow;
+});
+
+test("a cooldown received while admission waits extends that existing wait", async () => {
+  let time = 0,
+    waits = 0;
+  const pacer = v1RpcPacer(
+    async (milliseconds) => {
+      time += milliseconds;
+      if (++waits === 1) pacer.cooldown("near", 4000);
+    },
+    () => time,
+  );
+  assert.equal(await pacer.run("near", async () => time), 5000);
+  assert.equal(waits, 2);
+});
+
+test("RPC deadlines are created inside admitted operations rather than while queued", async () => {
+  let time = 0,
+    created = 0;
+  const pacer = v1RpcPacer(
+    async (milliseconds) => {
+      time += milliseconds;
+    },
+    () => time,
+  );
+  const jobs = Array.from({ length: 12 }, () =>
+    pacer.run("https://rpc.mainnet.near.org", async () => {
+      created++;
+      const signal = AbortSignal.timeout(1000);
+      signal.throwIfAborted();
+      return time;
+    }),
+  );
+  assert.equal(created, 0);
+  assert.deepEqual(
+    await Promise.all(jobs),
+    Array.from({ length: 12 }, (_, index) => (index + 1) * 1000),
+  );
+  assert.equal(created, 12);
+});
+
+test("mainnet cooldown recovery retries only reads once after the provider window", async () => {
+  let reads = 0;
+  const waits: number[] = [];
+  const result = await v1ReadWithCooldown(
+    async () => {
+      if (++reads === 1) throw new RpcCooldown(105000);
+      return "original-state";
+    },
+    async (milliseconds) => {
+      waits.push(milliseconds);
+    },
+    () => 100000,
+  );
+  assert.equal(result, "original-state");
+  assert.equal(reads, 2);
+  assert.deepEqual(waits, [6000]);
+  reads = 0;
+  await assert.rejects(
+    v1ReadWithCooldown(
+      async () => {
+        reads++;
+        throw new Error("policy mismatch");
+      },
+      async () => {},
+      () => 100000,
+    ),
+  );
+  assert.equal(reads, 1);
 });

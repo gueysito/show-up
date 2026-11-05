@@ -3,6 +3,7 @@ import { constants } from "node:fs";
 import { mkdir, open, readFile, rename, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { homedir } from "node:os";
+import { setTimeout as pause } from "node:timers/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { canonicalHash, canonicalJson } from "../src/server/protocol/canonical";
@@ -10,6 +11,7 @@ import { decodeBase58, encodeBase58 } from "../src/server/protocol/encoding";
 import { compareFinalizedHeads } from "../src/server/protocol/finalized-heads";
 import {
   NearAccountNotFound,
+  RpcCooldown,
   ReadOnlyRpc,
   parseRpcJson,
   unsigned,
@@ -28,6 +30,7 @@ const owner = mainnetAccount.implicit,
 const token = "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1";
 const wasmHash = "3efb9c95ab79e6d996694a99da4a762f5896a39676063c7c49589a0ecde8b063";
 const codeHash = encodeBase58(Buffer.from(wasmHash, "hex"));
+const writeOrigin = "https://rpc.mainnet.fastnear.com";
 const funding = "3712070000000000000000000",
   storage = "1250000000000000000000";
 const directory = fileURLToPath(new URL("../contracts/.cache/v1-mainnet/", import.meta.url));
@@ -75,6 +78,7 @@ type Receipt = {
   tokensBurnt?: string;
   after?: Facts;
   validUntilMs: number;
+  receiptHeight?: string;
 };
 const bytes = (value: unknown) => Buffer.from(canonicalJson(value));
 const call = (
@@ -151,24 +155,114 @@ export function v1MainnetStep(step: Step, context: Context, code: Buffer) {
   };
 }
 
+function retryAt(response: Response, now: number) {
+  const header = response.headers.get("retry-after");
+  if (!header) return undefined;
+  const until = /^\d{1,8}$/.test(header) ? now + Number(header) * 1000 : Date.parse(header);
+  return Number.isSafeInteger(until) && until >= now ? until : undefined;
+}
+export function v1RpcPacer(
+  wait: (milliseconds: number, signal?: AbortSignal) => Promise<unknown> = (milliseconds, signal) =>
+    pause(milliseconds, undefined, { signal }),
+  now: () => number = Date.now,
+) {
+  const pending = new Map<string, Promise<unknown>>(),
+    next = new Map<string, number>();
+  return {
+    cooldown(origin: string, until: number) {
+      next.set(origin, Math.max(next.get(origin) ?? 0, until + 1000));
+    },
+    async run<T>(origin: string, operation: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+      const previous = pending.get(origin) ?? Promise.resolve();
+      const admission = previous
+        .catch(() => {})
+        .then(async () => {
+          signal?.throwIfAborted();
+          if (!next.has(origin)) next.set(origin, now() + 1000);
+          while (next.get(origin)! > now()) {
+            await wait(next.get(origin)! - now(), signal);
+            signal?.throwIfAborted();
+          }
+          signal?.throwIfAborted();
+          next.set(origin, now() + 1000);
+        });
+      pending.set(
+        origin,
+        admission.then(
+          () => undefined,
+          () => undefined,
+        ),
+      );
+      return admission.then(operation);
+    },
+  };
+}
+const pacer = v1RpcPacer();
 async function transport(input: string | URL | Request, init?: RequestInit) {
-  const response = await fetch(input, { ...init, redirect: "error" });
+  let response = await fetch(input, { ...init, redirect: "error" });
+  if (response.status === 429) {
+    const origin = new URL(
+      typeof input === "string" ? input : input instanceof URL ? input.href : input.url,
+    ).origin;
+    const until = retryAt(response, Date.now()) ?? Date.now() + 10_000;
+    pacer.cooldown(origin, until);
+    if (!response.headers.has("retry-after")) {
+      const headers = new Headers(response.headers);
+      headers.set("retry-after", "10");
+      response = new Response(response.body, {
+        status: 429,
+        statusText: response.statusText,
+        headers,
+      });
+    }
+  }
   if (response.ok && response.status !== 200) throw new Error("RPC HTTP status");
   return response;
 }
+class V1ReadOnlyRpc extends ReadOnlyRpc {
+  constructor(id: string) {
+    super(id, transport);
+  }
+  override read(method: string, params: unknown, signal?: AbortSignal): Promise<unknown> {
+    return pacer.run(this.endpoint.origin, () => super.read(method, params, signal), signal);
+  }
+}
+
+export async function v1ReadWithCooldown<T>(
+  read: () => Promise<T>,
+  wait: (milliseconds: number) => Promise<unknown> = pause,
+  now: () => number = Date.now,
+) {
+  try {
+    return await read();
+  } catch (error) {
+    if (!(error instanceof RpcCooldown) || error.retryAt > now() + 60_000) throw error;
+    console.log(
+      JSON.stringify({ status: "waiting_for_rpc_read_cooldown", retryAt: error.retryAt }),
+    );
+    await wait(Math.max(0, error.retryAt - now()) + 1000);
+    return read();
+  }
+}
 async function writeRpc(method: "send_tx" | "tx", params: object) {
-  const response = await transport("https://rpc.mainnet.near.org", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: "showup-v1", method, params }),
-    signal: AbortSignal.timeout(30_000),
+  return pacer.run(writeOrigin, async () => {
+    const response = await transport(writeOrigin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: "showup-v1", method, params }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (response.status === 429 && method === "tx") {
+      const until = retryAt(response, Date.now());
+      if (until !== undefined) throw new RpcCooldown(until);
+    }
+    if (response.status !== 200) throw new Error("Original transaction needs reconciliation");
+    const text = await response.text();
+    if (text.length > 2_000_000) throw new Error("RPC size");
+    const value = record(parseRpcJson(text));
+    if (value.error || value.id !== "showup-v1") throw new Error("Reconcile original image");
+    return record(value.result);
   });
-  if (response.status !== 200) throw new Error("Original transaction needs reconciliation");
-  const text = await response.text();
-  if (text.length > 2_000_000) throw new Error("RPC size");
-  const value = record(parseRpcJson(text));
-  if (value.error || value.id !== "showup-v1") throw new Error("Reconcile original image");
-  return record(value.result);
 }
 
 // A prepared image needs explicit execution; submitted images only reconcile.
@@ -196,6 +290,43 @@ export async function v1SubmitOriginal(
       : { tx_hash: image.hash, sender_account_id: image.signer, wait_until: "FINAL" },
   );
 }
+
+export async function v1WaitForState<T extends { height: string }>(
+  minimum: bigint,
+  read: () => Promise<T>,
+  wait: (milliseconds: number) => Promise<unknown> = pause,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const facts = await read();
+    if (unsigned(facts.height, 64) >= minimum) return facts;
+    if (attempt < 2) await wait(1000);
+  }
+  throw new Error("Finalized sources have not reached the original receipt blocks");
+}
+
+async function receiptHeight(outcomes: Record<string, unknown>[]) {
+  if (outcomes.length > 32) throw new Error("Unexpected receipt count");
+  const hashes = [
+    ...new Set(
+      outcomes.map((value) => {
+        if (typeof value.block_hash !== "string") throw new Error("Receipt block missing");
+        decodeBase58(value.block_hash, 32);
+        return value.block_hash;
+      }),
+    ),
+  ];
+  const client = new V1ReadOnlyRpc("near-fastnear");
+  const heights = await Promise.all(
+    hashes.map(async (hash) => {
+      const header = record(
+        record(await client.read("block", { block_id: hash }, AbortSignal.timeout(20_000))).header,
+      );
+      if (header.hash !== hash) throw new Error("Receipt block mismatch");
+      return unsigned(header.height, 64);
+    }),
+  );
+  return heights.reduce((maximum, height) => (height > maximum ? height : maximum), 0n);
+}
 async function privateJson<T>(path: string): Promise<T | null> {
   let file;
   try {
@@ -219,8 +350,15 @@ async function privateJson<T>(path: string): Promise<T | null> {
     await file.close();
   }
 }
+// Transaction journals can include a full WASM image; they are not attestations.
+export function v1ReceiptJson(value: unknown): string {
+  const encoded = JSON.stringify(value);
+  if (typeof encoded !== "string" || Buffer.byteLength(encoded) > 2_000_000)
+    throw new Error("Operator receipt size");
+  return encoded + "\n";
+}
 async function save(path: string, value: unknown) {
-  await writeFile(path + ".next", canonicalJson(value) + "\n", { mode: 0o600 });
+  await writeFile(path + ".next", v1ReceiptJson(value), { mode: 0o600 });
   await rename(path + ".next", path);
 }
 async function signerKey() {
@@ -260,10 +398,10 @@ async function signerKey() {
   }
 }
 async function snapshot(context: Context): Promise<Facts> {
-  const clients = [
-    new ReadOnlyRpc("near-public", transport),
-    new ReadOnlyRpc("near-fastnear", transport),
-  ];
+  return v1ReadWithCooldown(() => snapshotOnce(context));
+}
+async function snapshotOnce(context: Context): Promise<Facts> {
+  const clients = [new V1ReadOnlyRpc("near-drpc"), new V1ReadOnlyRpc("near-fastnear")];
   const signal = AbortSignal.timeout(45_000),
     finality = await compareFinalizedHeads("near", clients[0], clients[1], Date.now(), signal);
   const hash = finality.block.hash;
@@ -514,6 +652,7 @@ async function main() {
   )
     throw new Error("Operator context mismatch");
   if (requested === "status") {
+    stage = "read_status";
     console.log(
       JSON.stringify({
         status: "read-only",
@@ -593,8 +732,6 @@ async function main() {
     stage = "sign_" + step;
     const signed = signV1MainnetTransaction(input, await signerKey());
     if (signed.hash !== unsignedImage.hash) throw new Error("Signed image mismatch");
-    const lock = await open(join(directory, step + ".lock"), "wx", 0o600);
-    await lock.close();
     image = {
       step,
       semantic,
@@ -603,10 +740,17 @@ async function main() {
       phase: "prepared",
       validUntilMs: Date.now() + 120_000,
     };
-    await writeFile(path, canonicalJson(image) + "\n", { mode: 0o600, flag: "wx" });
+    stage = "persist_" + step;
+    const encoded = v1ReceiptJson(image);
+    const lock = await open(join(directory, step + ".lock"), "wx", 0o600);
+    await lock.close();
+    await writeFile(path, encoded, { mode: 0o600, flag: "wx" });
   }
   stage = "submit_or_reconcile_" + step;
-  const result = await v1SubmitOriginal(image, execute, () => save(path, image));
+  const result =
+    image.phase === "prepared"
+      ? await v1SubmitOriginal(image, execute, () => save(path, image))
+      : await v1ReadWithCooldown(() => v1SubmitOriginal(image, false, () => save(path, image)));
   if (!result) {
     console.log(JSON.stringify({ status: "prepared-not-submitted", step, hash: image.hash }));
     return;
@@ -631,7 +775,10 @@ async function main() {
     .toString();
   await save(path, image);
   stage = "verify_" + step;
-  const after = await snapshot(context);
+  const minimum = await v1ReadWithCooldown(() => receiptHeight(outcomes));
+  image.receiptHeight = minimum.toString();
+  await save(path, image);
+  const after = await v1WaitForState(minimum, () => snapshot(context));
   checkAfter(step, after, context);
   image.phase = "verified";
   image.after = after;
@@ -652,11 +799,16 @@ async function main() {
   );
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1])
-  main().catch(() => {
+  main().catch((error: unknown) => {
     console.error(
       JSON.stringify({
         status: "stopped",
         stage,
+        publicReadDetail:
+          (stage.startsWith("verify_") || stage === "read_status") && error instanceof Error
+            ? error.message.slice(0, 160)
+            : undefined,
+        retryAt: error instanceof RpcCooldown ? error.retryAt : undefined,
         message: "Reconcile the original receipt; no replacement nonce or automatic resend.",
       }),
     );

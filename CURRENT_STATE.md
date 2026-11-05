@@ -23,20 +23,18 @@ NEAR, Solana, Base or Ethereum via NEAR Intents, check in, settle, and award a p
 
 ## Not yet working
 
-No Showup event journey has run on mainnet yet: no mainnet contract, no real cross-chain deposit, no
-live Chain Signatures transfer, no real-phone check-in.
+The V1 escrow is live on mainnet with a verified manual 1-USDC deposit/cancel/refund.
+The app-to-mainnet event journey, cross-chain deposits, live Chain Signatures NFT
+transfer and real-phone check-in are not working yet.
 
 ## Next action
 
-[First-round funding](docs/development-wallets.md#mainnet-preparation-and-initial-funding)
-is finalized on all four networks, including 2.549953 native NEAR USDC and verified
-USDC storage registration. BasedHeads #2829 on Ethereum is selected; finalized
-ERC-721/ownership reads match the external funding signer. No NFT transfer yet.
-The corrected V1 build is 321,207 bytes. Full checks pass: 53 Rust tests including
-nine V1 cases, independent replays, 99 app unit tests and production build. Both CI
-jobs pass, including browser and app-to-contract checks. The [review corrections](docs/plan.md#v1-evidence)
-cover deposit recovery, original-transaction NFT retries and self-only/atomic initialization.
-The controller's 3.73-wNEAR top-up is converted to native NEAR, with both RPCs
-confirming 3.9774802711174997 native NEAR and zero wNEAR. No further transfer needed.
-Next: create/fund the named account, deploy/initialize atomically, then run a 1-USDC
-deposit/refund. No contract deployment or NFT transfer yet; known allocation is about $27.20.
+V1-1 is complete: the reviewed 321,207-byte artifact is atomically deployed and
+initialized at `showup-dev-14989f.near`. A real 1-USDC deposit/cancel/refund restores
+the controller to 2.549953 USDC and leaves escrow at zero; [transaction evidence](docs/plan.md#v1-evidence).
+The artifact retains its passing 53-test Rust/independent-replay CI evidence;
+109 current app/operator unit tests, format/lint/types and production build pass.
+The 3.73-wNEAR top-up was converted to native NEAR. Known allocation remains about
+$27.20/$50; no further funding is requested. BasedHeads #2829 is selected, not moved.
+Next is V1-2: connect host creation/publication and the public event page to this
+mainnet contract, then verify that journey in the browser.

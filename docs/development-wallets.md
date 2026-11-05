@@ -31,7 +31,11 @@ Both RPCs verify 3.9774802711174997 native NEAR and zero wNEAR at block 22311105
 [Conversion and budget](plan.md#mainnet-budget). Known allocation is about $27.20/$50
 before the latest sender's fee. No further transfer is requested; prior quotes are
 superseded. The reviewed artifact locks 3.21207 NEAR for code.
-Do not fund the proposed `.near` name before account creation is verified.
+`showup-dev-14989f.near` is now created, funded and deployed; it retains the same
+sole FullAccess key. The implicit address above remains the controller wallet.
+After the verified 1-USDC cancel/refund test at finalized block 223121252, the
+controller holds **0.254173148124443199999999 NEAR + 2.549953 USDC**; escrow holds
+**3.709563720261298799999999 NEAR + zero USDC**, including deployment collateral.
 
 | Order / exact mainnet | Verified project address | Exact initial amount | Approximate USD |
 | --- | --- | --- | --- |
@@ -83,8 +87,8 @@ layout within NEAR's 64-character account-ID limit. Keeping that layout requires
 a short named parent, created through the `near` account's documented factory.
 The [unsigned registration proposal](evidence/near-mainnet-account-preparation-2026-11-04.json)
 now fixes the candidate name, factory code, original public key and limits below.
-No `.near` name is registered or usable as a funding destination yet, and no
-testnet tool or credential file has been repointed.
+The proposed `.near` name is now the deployed V1 escrow. No testnet tool or
+credential file has been repointed.
 
 ### Pre-V1 account proposal and cost reference
 

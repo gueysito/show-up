@@ -1070,8 +1070,9 @@ mock; actual mainnet custody/release remains V1-7. Existing key/upgrade authorit
 retained for this local pilot. This is not a production security audit.
 
 Deploy and call `new` in one transaction signed by the contract account's retained
-key. The constructor accepts only a self call. No mainnet deployment executor has
-run yet. After a failed signing callback, the operator can call
+key. The constructor accepts only a self call. This atomic deployment is live at
+`showup-dev-14989f.near`; transaction evidence is in the plan. After a failed signing
+callback, the operator can call
 `retry_nft_signature({event})` with one yoctoNEAR, up to three total attempts.
 Retries use the original payload/nonce/fees/recipient, and cannot replace a pending
 or signed request. A valid original signature remains reconcilable after the limit;
@@ -1084,7 +1085,12 @@ one 1-USDC cancel/refund test. It pins the artifact, accounts, token, amounts an
 step order, checks both public RPCs, and retains each signed image before its only
 submission. Default calls are read-only; `--execute` submits the selected new step.
 Existing submitted images only reconcile their original hash. Operator receipts
-stay in ignored `contracts/.cache/v1-mainnet`; the existing owner key stays outside
+retain the full public WASM image separately from bounded app attestations. Reads
+are spaced one second apart per provider, allow overlapping replies, respect
+provider cooldowns, and verify a common finalized block at or after the receipt.
+The operator reads FastNEAR and dRPC, with first submissions through FastNEAR;
+the public NEAR endpoint throttled the initial run. Operator receipts stay in
+ignored `contracts/.cache/v1-mainnet`; the existing owner key stays outside
 the repository. The manual smoke event uses the contract's controlled host account
 and the controller as attendee/payout; no no-show or prize outcome is exercised.
 

@@ -19,8 +19,12 @@ NEAR Chain Signatures.
 V1 is in active development: one complete loop on mainnet — publish, deposit from any
 of the four chains, check in, settle, prize. See [current state](CURRENT_STATE.md) for
 exactly what works today and [the plan](docs/plan.md) for V1 progress and the V2 roadmap.
-The separate V1 contract passes sandbox money-path tests, including the predeployment
-review corrections for deposit recovery, NFT retries and initialization; see the plan.
+The separate V1 contract is deployed at
+[`showup-dev-14989f.near`](https://nearblocks.io/address/showup-dev-14989f.near).
+Its reviewed money paths pass sandbox tests, and a manual mainnet 1-USDC deposit,
+cancellation and full refund succeeded; [transactions](docs/plan.md#v1-evidence).
+The app-to-mainnet event journey is next; cross-chain routing and NFT release have
+not run live.
 [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works
