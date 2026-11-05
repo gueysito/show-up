@@ -103,7 +103,7 @@ One concise row per package; distinguish local preparation from mainnet completi
 
 | ID | Date | Evidence |
 | --- | --- | --- |
-| V1-1 (in progress; not deployed) | 2026-11-04 | Corrected 321,207-byte build passes nine V1 sandbox tests, contract/test Clippy, 99 app unit tests, format/lint/type checks and production build. Recovery credits, immutable NFT retries and self-only/atomic initialization are tested; mainnet deployment and real deposit/refund remain next after fresh funding verification. |
+| V1-1 (in progress; not deployed) | 2026-11-04 | `37895cc` passes full `npm run contracts:check` (53 Rust tests including nine V1 cases, independent Node replays and the 380-package advisory gate), 99 app unit tests, app checks and production build. [CI](https://github.com/gueysito/show-up/actions/runs/41949813862) passes app/browser and contract checks, then reaches its 25-minute job limit during the final app bridge. Raise the contract job limit to 30 minutes, retaining every check; rerun before funding/deployment. |
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
 and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra
