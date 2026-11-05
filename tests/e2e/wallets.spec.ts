@@ -365,6 +365,9 @@ test("Meteor uses the pinned wallet executor for a message without requesting a 
             input.messageParams.recipient !== "localhost:3444" ||
             !input.messageParams.message.includes("No transfer or spending approval is authorized."))
           throw new Error("Invalid fixture request");
+        window.selector.ui.showIframe();
+        const opened = await window.selector.open("meteorwallet://fixture/approval").windowIdPromise;
+        if (opened !== null) throw new Error("Unexpected browser window");
         window.parent.postMessage({ type: "fixture-meteor-message-reviewed" }, "*");
         return [{ accountId: "other.near" }];
       } });`,
@@ -381,6 +384,14 @@ test("Meteor uses the pinned wallet executor for a message without requesting a 
     await page.getByLabel("NEAR wallet app").selectOption("meteor");
     await page.getByLabel("NEAR account").fill("fictional-wallet.near");
     await page.getByRole("button", { name: "Verify with Meteor Wallet" }).click();
+    const open = page.getByRole("link", { name: "Open Meteor Wallet" });
+    await expect(open).toHaveAttribute("href", "meteorwallet://fixture/approval");
+    expect(await open.getAttribute("target")).toBeNull();
+    await open.evaluate((link) =>
+      link.addEventListener("click", (event) => event.preventDefault()),
+    );
+    await open.click();
+    expect(context.pages()).toHaveLength(1);
     await expect(page.locator("html")).toHaveAttribute("data-meteor-reviewed", "true");
     await expect(
       page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),

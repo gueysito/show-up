@@ -115,6 +115,11 @@ export function nearMobileApprovalUrl(id: string) {
   return url.href;
 }
 
+export function nearMobileAppUrl(id: string) {
+  if (!requestId.test(id)) throw new Error("Invalid NEAR Mobile request");
+  return `near-mobile-wallet://connector-request?id=${id}`;
+}
+
 export async function startNearMobilePayment(
   payment: NearWalletPayment,
 ): Promise<NearMobilePaymentRequest> {

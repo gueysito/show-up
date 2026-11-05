@@ -137,9 +137,10 @@ V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens
 reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
 NEAR Mobile and Meteor replace the wallet handoff for account verification and
 USDC approval. The wallet receives one frozen native USDC or storage action, and
-the app waits for its existing two-source confirmation. The branded wallet buttons
-start approval directly, and an isolated browser test restores the original request
-after refresh. Confirmed native deposits show a green receipt and link to the
+the app waits for its existing two-source confirmation. The first phone payment
+test opened browser tabs for both wallets. The branded choices now prepare an
+installed-app link in Showup. Isolated browser checks verify both native link
+targets and restore the same NEAR Mobile request after refresh. Confirmed native deposits show a green receipt and link to the
 independently verified deposit transaction. A real phone deposit/refund remains;
 earlier mainnet receipts used isolated project-wallet approvals.
 The [phone deposit test](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6)

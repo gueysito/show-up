@@ -6,7 +6,7 @@ import { getMeteorWallet } from "./meteor-wallet";
 import nearMobileIcon from "./wallet-icons/near-mobile.svg";
 import meteorIcon from "./wallet-icons/meteor.svg";
 import {
-  nearMobileApprovalUrl,
+  nearMobileAppUrl,
   readNearMobilePayment,
   startNearMobilePayment,
   type NearMobilePaymentRequest,
@@ -20,7 +20,7 @@ function readAttempt(value: string): Attempt {
   const stored = JSON.parse(value) as Attempt;
   if (stored.wallet !== "near-mobile" && stored.wallet !== "meteor")
     throw new Error("The original payment request needs review before trying again.");
-  if (stored.wallet === "near-mobile") nearMobileApprovalUrl(stored.id);
+  if (stored.wallet === "near-mobile") nearMobileAppUrl(stored.id);
   return stored;
 }
 
@@ -142,7 +142,6 @@ export function NearWalletPaymentButton({
     checking.current = true;
     setBusy(true);
     setMessage("");
-    let launch: Window | null = null;
     try {
       const previous = localStorage.getItem(storageKey);
       if (previous) {
@@ -153,19 +152,6 @@ export function NearWalletPaymentButton({
       }
       if (!wallet) throw new Error("Choose your NEAR wallet app.");
       if (wallet === "near-mobile") {
-        // Reserve a tab in the click itself. Waiting for the request first
-        // loses the browser gesture and can block the wallet app launch.
-        launch = window.open("about:blank", "_blank");
-        try {
-          if (launch) {
-            launch.opener = null;
-            launch.document.title = "Open NEAR Mobile";
-            launch.document.body.textContent = "Preparing your reviewed Showup payment…";
-          }
-        } catch {
-          launch?.close();
-          launch = null;
-        }
         const payment = await prepare();
         if ("ready" in payment) {
           await confirm();
@@ -174,11 +160,10 @@ export function NearWalletPaymentButton({
         assertWalletPayment(payment);
         const active = await startNearMobilePayment(payment);
         remember({ wallet, ...active });
-        if (launch && !launch.closed) {
-          launch.location.replace(nearMobileApprovalUrl(active.id));
-          launch = null;
-        }
-        setMessage("Approve the payment in NEAR Mobile, then return to Showup.");
+        // A browser may require a fresh tap by the time both RPCs and the
+        // wallet relay have responded. Keep the same request ready below.
+        if (navigator.userActivation?.isActive) window.location.assign(nearMobileAppUrl(active.id));
+        setMessage("Open NEAR Mobile and approve this payment, then return to Showup.");
         return;
       }
       const payment = await prepare();
@@ -220,7 +205,6 @@ export function NearWalletPaymentButton({
         error instanceof Error ? error.message : "Check the original payment before trying again.",
       );
     } finally {
-      launch?.close();
       checking.current = false;
       setBusy(false);
     }
@@ -247,9 +231,8 @@ export function NearWalletPaymentButton({
       )}
       {attempt?.wallet === "near-mobile" && showLink && (
         <a
-          href={nearMobileApprovalUrl(attempt.id)}
-          target="_blank"
-          rel="noopener noreferrer"
+          className="secondary-button"
+          href={nearMobileAppUrl(attempt.id)}
           onClick={(event) => {
             if (attempt.expiresAt > Date.now()) return;
             event.preventDefault();
@@ -257,7 +240,7 @@ export function NearWalletPaymentButton({
             setMessage("This wallet link expired. Check the original payment status.");
           }}
         >
-          Open NEAR Mobile if it didn’t open automatically
+          Open NEAR Mobile
         </a>
       )}
       {attempt && (

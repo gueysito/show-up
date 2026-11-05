@@ -839,3 +839,6 @@ main {
     max-width: none;
   }
 }
+.meteor-native-link {
+  margin: 0.75rem;
+}

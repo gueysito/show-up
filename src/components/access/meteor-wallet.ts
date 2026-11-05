@@ -53,7 +53,37 @@ export function getMeteorWallet() {
         },
       },
     });
-    return new SandboxWallet(connector, meteorManifest);
+    const wallet = new SandboxWallet(connector, meteorManifest);
+    const executor = wallet.executor;
+    const onMessage = executor._onMessage;
+    executor._onMessage = async (frame, event) => {
+      const { method, params } = event.data ?? {};
+      const url = typeof params?.url === "string" ? URL.parse(params.url) : null;
+      if (method !== "open" || url?.protocol !== "meteorwallet:") {
+        return onMessage(frame, event);
+      }
+      if (event.origin !== "null" || event.data.origin !== frame.origin) return;
+      const iframe = Array.from(
+        document.querySelectorAll<HTMLIFrameElement>(".hot-connector-popup iframe"),
+      ).find((candidate) => candidate.contentWindow === event.source);
+      const panel = iframe?.parentElement;
+      if (!panel) return;
+      executor.assertPermissions(frame, "allowsOpen", event);
+      // The sandbox sends its popup request asynchronously. Place a real link
+      // in the top-level wallet panel so tapping it opens the installed app.
+      panel.querySelector(".meteor-native-link")?.remove();
+      const link = document.createElement("a");
+      link.className = "secondary-button meteor-native-link";
+      link.href = url.href;
+      link.textContent = "Open Meteor Wallet";
+      panel.prepend(link);
+      link.addEventListener(
+        "click",
+        () => frame.postMessage({ ...event.data, status: "success", result: null }),
+        { once: true },
+      );
+    };
+    return wallet;
   }));
 }
 

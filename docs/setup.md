@@ -1187,9 +1187,10 @@ private V1 worker processes publication and attendee registration queues with on
 shared signer lock. An attendee chooses one verified NEAR wallet as both the
 **Deposit Wallet** and **Payout Withdrawal Wallet**, reviews the fixed principal and
 separate 0.16-NEAR gas reserve, and prepares registration. Under **NEAR wallet app**,
-tap **NEAR Mobile** or **Meteor Wallet** and approve the exact USDC amount in the
-wallet. If NEAR Mobile does not open automatically, use the opening link in
-Showup to resume the same request. After returning, **Deposit confirmed** means
+tap **NEAR Mobile** or **Meteor Wallet**. If the wallet does not open
+automatically, tap **Open NEAR Mobile** or **Open Meteor Wallet** in Showup to
+open the prepared request in the installed app. Approve the exact USDC amount
+there. After returning, **Deposit confirmed** means
 both sources agree the contract received the deposit. The explorer link appears
 after both sources verify the exact deposit transaction. If indexing lags, tap
 **Check deposit status**.

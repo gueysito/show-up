@@ -187,24 +187,19 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
       // exercised separately through the actual service/database tests.
       await route.fulfill({ json: { eventId: id, state: "requested" } });
     });
-    await context.route(
-      "https://near-mobile-production.aws.peersyst.tech/api/deep-link?**",
-      (route) => route.fulfill({ body: "Wallet opening intercepted" }),
-    );
     const choices = actions.getByRole("group", { name: "NEAR wallet app" });
     const pay = choices.getByRole("button", { name: "NEAR Mobile", exact: true });
     await expect(choices.getByRole("button", { name: "Meteor Wallet" })).toBeVisible();
-    const popupPromise = page.waitForEvent("popup");
     await pay.click();
-    const popup = await popupPromise;
-    await popup.waitForURL((url) => url.pathname === "/api/deep-link");
-    expect(new URL(popup.url()).searchParams.get("params")).toBe(`id=${relayId}`);
-    await popup.close();
-    await expect(actions.getByRole("link", { name: /Open NEAR Mobile if/ })).toBeVisible();
+    const launch = actions.getByRole("link", { name: "Open NEAR Mobile" });
+    const appLink = `near-mobile-wallet://connector-request?id=${relayId}`;
+    await expect(launch).toHaveAttribute("href", appLink);
+    expect(await launch.getAttribute("target")).toBeNull();
+    expect(context.pages()).toHaveLength(1);
     expect(confirmed).toBe(false);
     await page.goto(`/host?event=${id}`);
     await page.getByRole("button", { name: "Check publication status" }).click();
-    await expect(actions.getByRole("link", { name: /Open NEAR Mobile if/ })).toBeVisible();
+    await expect(launch).toHaveAttribute("href", appLink);
     await expect(
       actions.getByText("The original wallet request is still waiting for approval."),
     ).toBeVisible();
