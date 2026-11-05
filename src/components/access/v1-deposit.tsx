@@ -20,7 +20,18 @@ type Status = {
   amountAtomic?: string;
   recovery?: string;
   transactionUrl?: string | null;
+  depositTransactionUrl?: string | null;
 };
+
+function postDepositAction(eventId: string, operation: string, fields = {}, signal?: AbortSignal) {
+  return fetch("/api/commitments/mainnet", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ eventId, operation, operationId: crypto.randomUUID(), ...fields }),
+    signal,
+  });
+}
+
 export function V1Deposit({
   eventId,
   rulesHash,
@@ -99,7 +110,21 @@ export function V1Deposit({
       signal: controller.signal,
     })
       .then(async (response) => {
-        if (response.ok) setStatus(await response.json());
+        if (!response.ok) return;
+        const initial: Status = await response.json();
+        setStatus(initial);
+        if (!initial.funded || initial.sourceNetwork !== "near" || initial.depositTransactionUrl)
+          return;
+        const receipt = await postDepositAction(eventId, "confirm", {}, controller.signal);
+        if (!receipt.ok) return;
+        const result: Status = await receipt.json();
+        if (result.depositTransactionUrl) {
+          setStatus((current) =>
+            current?.registrationId === result.registrationId && current?.funded
+              ? { ...current, depositTransactionUrl: result.depositTransactionUrl }
+              : current,
+          );
+        }
       })
       .catch(() => {});
     return () => controller.abort();
@@ -144,23 +169,18 @@ export function V1Deposit({
         operationId: crypto.randomUUID(),
       };
     try {
-      const response = await fetch("/api/commitments/mainnet", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          operation: kind,
-          eventId,
-          operationId: kind === "register" ? operation.current.operationId : crypto.randomUUID(),
-          ...(kind === "register" ? { rulesHash, walletId, sourceWalletId } : {}),
-          ...(kind === "register" && nft ? { ethereumWalletId } : {}),
-        }),
+      const response = await postDepositAction(eventId, kind, {
+        ...(kind === "register"
+          ? { operationId: operation.current.operationId, rulesHash, walletId, sourceWalletId }
+          : {}),
+        ...(kind === "register" && nft ? { ethereumWalletId } : {}),
       });
       const result = await response.json();
       if (!response.ok)
         throw new Error(
           result.error ?? "Deposit not confirmed. Check the original status before retrying.",
         );
-      setStatus(result);
+      setStatus((current) => (kind === "confirm" ? { ...current, ...result } : result));
       setMessage(
         kind === "register"
           ? "Registration queued. Check status before approving the deposit."
@@ -185,6 +205,10 @@ export function V1Deposit({
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "Status unavailable. Retry.");
       setStatus(result);
+      if (result.funded && result.sourceNetwork === "near" && !result.depositTransactionUrl) {
+        await action("confirm");
+        return;
+      }
       setMessage(
         result.funded
           ? "Escrow confirms your deposit. Your seat is funded."
@@ -202,7 +226,9 @@ export function V1Deposit({
       aria-label="NEAR USDC deposit"
       style={{ overflowWrap: "anywhere" }}
     >
-      <h2>{status?.funded ? "Deposit confirmed" : "Deposit USDC on NEAR"}</h2>
+      <h2 className={status?.funded ? "deposit-confirmed" : undefined}>
+        {status?.funded ? "Deposit confirmed" : "Deposit USDC on NEAR"}
+      </h2>
       <p>
         {sourceNetwork === "near"
           ? `${amount} USDC commitment. Pay from your verified NEAR wallet; refunds go to that same wallet.`
@@ -342,7 +368,6 @@ export function V1Deposit({
           <NearWalletPaymentButton
             key={`storage:${status?.walletId ?? walletId}`}
             scope={`storage:${status?.walletId ?? walletId}`}
-            label="Enable USDC receiving on NEAR"
             disabled={busy || !(status?.walletId ?? walletId)}
             prepare={() => prepareWalletPayment("storage")}
             confirm={confirmStorage}
@@ -358,7 +383,6 @@ export function V1Deposit({
           <NearWalletPaymentButton
             key={`deposit:${status.registrationId}`}
             scope={`deposit:${status.registrationId}`}
-            label="Approve USDC deposit in your NEAR wallet"
             disabled={busy}
             prepare={() => prepareWalletPayment("pay")}
             confirm={() => action("confirm")}
@@ -374,6 +398,18 @@ export function V1Deposit({
         </>
       )}
       {status?.funded && <p role="status">Your seat is funded. Do not send another deposit.</p>}
+      {status?.depositTransactionUrl && (
+        <p>
+          <a
+            className="deposit-explorer-link"
+            href={status.depositTransactionUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View deposit transaction on NEAR Explorer
+          </a>
+        </p>
+      )}
       {status?.recovery && BigInt(status.recovery) > 0n && (
         <p>{`${formatUsdc(BigInt(status.recovery))} USDC is held for recovery to your refund wallet; it does not create another seat.`}</p>
       )}

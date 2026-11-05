@@ -187,13 +187,24 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
       // exercised separately through the actual service/database tests.
       await route.fulfill({ json: { eventId: id, state: "requested" } });
     });
-    const pay = actions.getByRole("button", { name: "Approve prize funding in your NEAR wallet" });
+    await context.route(
+      "https://near-mobile-production.aws.peersyst.tech/api/deep-link?**",
+      (route) => route.fulfill({ body: "Wallet opening intercepted" }),
+    );
+    const choices = actions.getByRole("group", { name: "NEAR wallet app" });
+    const pay = choices.getByRole("button", { name: "NEAR Mobile", exact: true });
+    await expect(choices.getByRole("button", { name: "Meteor Wallet" })).toBeVisible();
+    const popupPromise = page.waitForEvent("popup");
     await pay.click();
-    await expect(actions.getByRole("link", { name: "Open NEAR Mobile to approve" })).toBeVisible();
+    const popup = await popupPromise;
+    await popup.waitForURL((url) => url.pathname === "/api/deep-link");
+    expect(new URL(popup.url()).searchParams.get("params")).toBe(`id=${relayId}`);
+    await popup.close();
+    await expect(actions.getByRole("link", { name: /Open NEAR Mobile if/ })).toBeVisible();
     expect(confirmed).toBe(false);
     await page.goto(`/host?event=${id}`);
     await page.getByRole("button", { name: "Check publication status" }).click();
-    await pay.click();
+    await expect(actions.getByRole("link", { name: /Open NEAR Mobile if/ })).toBeVisible();
     await expect(
       actions.getByText("The original wallet request is still waiting for approval."),
     ).toBeVisible();
@@ -203,9 +214,7 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     await actions.getByRole("button", { name: "Check original wallet approval" }).click();
     await expect(actions.getByRole("status")).toContainText("Prize receipt confirmed");
     expect(confirmed).toBe(true);
-    await expect(
-      actions.getByRole("button", { name: "Approve prize funding in your NEAR wallet" }),
-    ).toHaveCount(0);
+    await expect(choices).toHaveCount(0);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

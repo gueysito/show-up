@@ -1110,8 +1110,8 @@ worker signs one `create_event` + `publish` batch. **Check publication status**
 opens the event page after both RPCs confirm the pinned code and saved terms.
 For a USDC prize (up to 100 USDC), verify a NEAR funding wallet first and choose it
 in the saved draft. **Create prize event escrow** freezes that wallet and amount;
-the worker creates the draft on chain. Check status, then **Approve prize funding
-in your NEAR wallet**. The request calls only the fixed native USDC token's
+the worker creates the draft on chain. Check status, then choose **NEAR Mobile**
+or **Meteor Wallet** under **NEAR wallet app**. The request calls only the fixed native USDC token's
 `ft_transfer_call`, with the exact prize and `prize:<event ID>` message. The host
 wallet pays this transfer and needs a separate 0.16-NEAR gas reserve. After returning,
 **Confirm prize and publish** checks both RPCs before queuing publication. Callback
@@ -1181,13 +1181,18 @@ The ordinary browser tests never submit to mainnet. The explicit owner-operated
 check uses a preauthenticated test host and real on-chain state, without loading
 provider credentials or putting wallet keys in the browser:
 
-For V1 native USDC deposits, apply migration `034-mainnet-registrations.sql`. The same
+For V1 native USDC deposits, apply migrations `034-mainnet-registrations.sql` and
+`040-native-deposit-receipts.sql`. The same
 private V1 worker processes publication and attendee registration queues with one
 shared signer lock. An attendee chooses one verified NEAR wallet as both the
 **Deposit Wallet** and **Payout Withdrawal Wallet**, reviews the fixed principal and
-separate 0.16-NEAR gas reserve, prepares
-registration, then approves the exact USDC transfer in NEAR Mobile or Meteor. Seat confirmation
-uses the two-source contract registration flag; return parameters cannot fund a seat.
+separate 0.16-NEAR gas reserve, and prepares registration. Under **NEAR wallet app**,
+tap **NEAR Mobile** or **Meteor Wallet** and approve the exact USDC amount in the
+wallet. If NEAR Mobile does not open automatically, use the opening link in
+Showup to resume the same request. After returning, **Deposit confirmed** means
+both sources agree the contract received the deposit. The explorer link appears
+after both sources verify the exact deposit transaction. If indexing lags, tap
+**Check deposit status**.
 Keep financial browser checks separate from synthetic database tests. The explicit
 `SHOWUP_MAINNET_DEPOSIT=1` check creates a new event, funds one USDC and refunds it
 after cancellation, retaining its original public signed images before each send.

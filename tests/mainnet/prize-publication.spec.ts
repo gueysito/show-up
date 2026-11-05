@@ -300,7 +300,7 @@ test("host funds one USDC prize, publishes actual terms and recovers the prize o
     expect(created.state).toBe("awaiting_prize");
     finals.create = created;
     await page.getByRole("button", { name: "Check publication status" }).click();
-    const button = page.getByRole("button", { name: "Approve prize funding in your NEAR wallet" });
+    const button = page.getByRole("button", { name: "NEAR Mobile", exact: true });
     const unsignedBase64 = await prepareBrowserNearPayment(page, button, "fund-prize");
     const callback = `${config.origin}/host?event=${eventId}`;
     expect(unsignedBase64.length).toBeGreaterThan(0);

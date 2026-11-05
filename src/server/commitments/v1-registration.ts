@@ -19,6 +19,7 @@ import {
 } from "../protocol/v1-escrow";
 import { prepareV1WalletPayment } from "../protocol/v1-wallet-payment";
 import { requireV1PayoutStorage, v1PayoutStorageReady } from "../protocol/v1-payout-storage";
+import { findV1NativeDepositReceipt } from "./v1-deposit-receipt";
 
 export type V1RegistrationImage = {
   ethereum?: { walletId: string; address: string };
@@ -45,6 +46,7 @@ export type V1RegistrationRow = {
   encrypted_transaction: string | null;
   source_height: string | null;
   funding_height: string | null;
+  funding_transaction_hash: string | null;
 };
 export function storedV1Registration(key: string, row: V1RegistrationRow): V1RegistrationImage {
   const image = unseal(
@@ -357,6 +359,10 @@ export async function readV1RegistrationState(
     sourceNetwork: image.source?.network ?? "near",
     sourceAddress: image.source?.address ?? image.sender,
     transactionUrl: row.transaction_hash ? v1TransactionUrl(row.transaction_hash) : null,
+    depositTransactionUrl:
+      funded && row.funding_transaction_hash
+        ? v1TransactionUrl(row.funding_transaction_hash)
+        : null,
   };
 }
 async function activePayoutWallet(
@@ -490,9 +496,26 @@ export async function confirmV1Deposit(
       409,
       "Escrow has not confirmed this deposit. Wait and check again; do not pay twice.",
     );
-  await pool.query(
-    "UPDATE app_v1_registrations SET state='funded',funding_height=GREATEST(funding_height,$2::numeric) WHERE id=$1 AND account_id=$3 AND state IN ('registered','funded')",
-    [saved.row.id, snapshot.block.height, saved.row.account_id],
+  const fundingHeight = saved.row.funding_height ?? snapshot.block.height;
+  const hash =
+    saved.row.funding_transaction_hash ??
+    (await findV1NativeDepositReceipt(
+      saved.image,
+      saved.row.source_height,
+      fundingHeight,
+      transport,
+    ));
+  const updated = await pool.query<{ funding_transaction_hash: string | null }>(
+    `UPDATE app_v1_registrations SET state='funded',funding_height=COALESCE(funding_height,$2::numeric),
+    funding_transaction_hash=COALESCE(funding_transaction_hash,$4)
+    WHERE id=$1 AND account_id=$3 AND state IN ('registered','funded') RETURNING funding_transaction_hash`,
+    [saved.row.id, fundingHeight, saved.row.account_id, hash],
   );
-  return { state: "funded", funded: true, registrationId: saved.row.id };
+  const verifiedHash = updated.rows[0]?.funding_transaction_hash;
+  return {
+    state: "funded",
+    funded: true,
+    registrationId: saved.row.id,
+    depositTransactionUrl: verifiedHash ? v1TransactionUrl(verifiedHash) : null,
+  };
 }

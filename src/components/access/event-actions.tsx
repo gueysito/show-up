@@ -280,7 +280,6 @@ export function EventActions({
                       <NearWalletPaymentButton
                         key={`prize:${id}`}
                         scope={`prize:${id}`}
-                        label="Approve prize funding in your NEAR wallet"
                         disabled={busy}
                         prepare={fundPrize}
                         confirm={confirmPrize}

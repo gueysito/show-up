@@ -152,7 +152,8 @@ test("mainnet browser checks in one of two funded attendees, settles the prize a
       ).toBe("registered");
       await page.goto(`${config.origin}/events/${eventId}/commit`);
       const button = panel.getByRole("button", {
-        name: "Approve USDC deposit in your NEAR wallet",
+        name: "NEAR Mobile",
+        exact: true,
       });
       const unsigned = await prepareBrowserNearPayment(page, button, "pay");
       const callback = `${config.origin}/events/${eventId}/commit`;

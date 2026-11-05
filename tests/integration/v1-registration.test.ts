@@ -42,10 +42,55 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
     originalFetch = globalThis.fetch;
   let snapshot!: V1Snapshot,
     registration: Record<string, unknown> | null = null;
+  let agreeOnDeposit = false;
+  const depositHash = encodeBase58(Buffer.alloc(32, 9));
   const blockTime = Date.now() - 1000;
-  const transport: typeof fetch = async (_url, options) => {
+  const transport: typeof fetch = async (url, options) => {
     const input = JSON.parse(String(options?.body)),
       params = input.params;
+    const endpoint = new URL(String(url));
+    const payment = (amount = "1000000") => ({
+      hash: depositHash,
+      signer_id: "attendee.near",
+      receiver_id: v1Deployment.token,
+      actions: [
+        {
+          FunctionCall: {
+            method_name: "ft_transfer_call",
+            deposit: "1",
+            args: Buffer.from(
+              JSON.stringify({
+                receiver_id: v1Deployment.account,
+                amount,
+                msg: `deposit:${registration?.id}`,
+              }),
+            ).toString("base64"),
+          },
+        },
+      ],
+    });
+    if (endpoint.hostname === "tx.main.fastnear.com") {
+      if (endpoint.pathname === "/v0/account") {
+        assert.equal(input.account_id, v1Deployment.account);
+        return Response.json({ account_txs: [{ transaction_hash: depositHash }] });
+      }
+      assert.deepEqual(input.tx_hashes, [depositHash]);
+      return Response.json({ transactions: [{ transaction: payment() }] });
+    }
+    if (input.method === "tx") {
+      assert.equal(params.tx_hash, depositHash);
+      assert.equal(params.wait_until, "FINAL");
+      const amount = !agreeOnDeposit && endpoint.hostname.includes("drpc") ? "2000000" : "1000000";
+      return Response.json({
+        jsonrpc: "2.0",
+        id: input.id,
+        result: {
+          final_execution_status: "FINAL",
+          status: { SuccessValue: Buffer.from(JSON.stringify(amount)).toString("base64") },
+          transaction: payment(amount),
+        },
+      });
+    }
     const result =
       input.method === "status"
         ? { chain_id: "mainnet" }
@@ -306,14 +351,14 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
       prepareV1Deposit(f.pool, config, session, eventId, transport),
       /do not pay again/i,
     );
-    assert.equal(
-      (await confirmV1Deposit(f.pool, config, session, eventId, transport)).funded,
-      true,
-    );
-    assert.equal(
-      (await readV1RegistrationState(f.pool, config, session, eventId, transport)).funded,
-      true,
-    );
+    const disputed = await confirmV1Deposit(f.pool, config, session, eventId, transport);
+    assert.equal(disputed.funded, true);
+    assert.equal(disputed.depositTransactionUrl, null);
+    agreeOnDeposit = true;
+    const confirmed = await confirmV1Deposit(f.pool, config, session, eventId, transport);
+    assert.equal(confirmed.depositTransactionUrl, `https://nearblocks.io/txns/${depositHash}`);
+    const refreshed = await readV1RegistrationState(f.pool, config, session, eventId, transport);
+    assert.equal(refreshed.depositTransactionUrl, confirmed.depositTransactionUrl);
     const exported = await exportOwnData(f.pool, config, session);
     assert.equal(exported.mainnetRegistrations[0].id, first.registrationId);
     assert.equal((await exportOwnData(f.pool, config, other)).mainnetRegistrations.length, 0);

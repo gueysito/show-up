@@ -26,6 +26,10 @@ export async function prepareBrowserNearPayment(
   operation: "pay" | "fund-prize",
 ) {
   const endpoint = "https://near-mobile-production.aws.peersyst.tech/connector/request";
+  const launch = "https://near-mobile-production.aws.peersyst.tech/api/deep-link?**";
+  await page
+    .context()
+    .route(launch, (route) => route.fulfill({ body: "Wallet opening intercepted" }));
   const response = page.waitForResponse((result) => {
     const path = new URL(result.url()).pathname;
     return (
@@ -51,7 +55,7 @@ export async function prepareBrowserNearPayment(
   try {
     await button.click();
     const payment = await (await response).json();
-    await expect(page.getByRole("link", { name: "Open NEAR Mobile to approve" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Open NEAR Mobile if/ })).toBeVisible();
     assert.deepEqual(relayBody, {
       method: "signAndSendTransaction",
       network: "mainnet",
@@ -62,6 +66,7 @@ export async function prepareBrowserNearPayment(
     return payment.unsignedBase64 as string;
   } finally {
     await page.unroute(endpoint);
+    await page.context().unroute(launch);
   }
 }
 

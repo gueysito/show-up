@@ -166,7 +166,7 @@ test("attendee reviews and funds a real native-USDC seat through the browser, th
       ).state,
     ).toBe("registered");
     await panel.getByRole("button", { name: "Check deposit status" }).click();
-    const button = panel.getByRole("button", { name: "Approve USDC deposit in your NEAR wallet" });
+    const button = panel.getByRole("button", { name: "NEAR Mobile", exact: true });
     const unsigned = await prepareBrowserNearPayment(page, button, "pay");
     const callback = `${config.origin}/events/${eventId}/commit`;
     await journal.submit(

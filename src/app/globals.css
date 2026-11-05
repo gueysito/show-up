@@ -328,6 +328,32 @@ main {
   border: 1px solid #aeb8a4;
   color: var(--ink);
 }
+.near-wallet-apps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.near-wallet-apps legend {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.near-wallet-apps button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.deposit-confirmed {
+  color: #226437;
+}
+.deposit-explorer-link {
+  color: #1648a6;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .text-button {
   color: var(--ink);
   background: transparent;
