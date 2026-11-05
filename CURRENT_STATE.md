@@ -32,9 +32,10 @@ live Chain Signatures transfer, no real-phone check-in.
 is finalized on all four networks, including 2.549953 native NEAR USDC and verified
 USDC storage registration. BasedHeads #2829 on Ethereum is selected; finalized
 ERC-721/ownership reads match the external funding signer. No NFT transfer yet.
-The separate V1 build is 315,613 bytes. Full contract checks and both CI jobs pass,
-but the [predeployment review](docs/plan.md#v1-evidence) found two blockers: rejected
-routed receipts lack recovery credit, and failed NFT signing cannot be retried
-without an existing signature. Next: fix these paths and enforce atomic
-deployment/initialization, retest and reprice. **The 3.66-NEAR top-up is on hold.**
+The corrected V1 build is 321,207 bytes. Nine V1 sandbox tests pass, including
+fixed-beneficiary recovery for rejected deposits, bounded retries of the original NFT
+transaction and self-only/atomic initialization. App checks and production build pass.
+See [review corrections](docs/plan.md#v1-evidence). Next: complete branch checks,
+reprice funding, deploy/initialize atomically, then run a small deposit/refund.
+**The old 3.66-NEAR top-up is withdrawn; no replacement transfer requested yet.**
 No contract deployment or NFT transfer yet; known allocation remains about $12.09.

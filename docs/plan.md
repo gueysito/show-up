@@ -62,16 +62,15 @@ NFT transfer. V1-1 now builds a separate `showup-v1` contract from the existing
 workspace, keeping all V2 modules intact and outside the V1 artifact. V1 trusts
 the local app operator for host/attendee wallet binding, attendance and observed
 NFT custody; contract code enforces token receipts, fixed beneficiaries and payouts.
-Measured V1 WASM: **315,613 bytes**, code collateral **3.15613 NEAR**;
-SHA-256 `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`.
+Measured corrected V1 WASM: **321,207 bytes**, code collateral **3.21207 NEAR**;
+SHA-256 `3efb9c95ab79e6d996694a99da4a762f5896a39676063c7c49589a0ecde8b063`.
 Deploy to the still-unregistered `showup-dev-14989f.near` using the existing key;
-fund the verified implicit controller only after the review fixes below. The prior
-quote was **3.66 NEAR** (about **$14.68** at $4.01/NEAR), for a projected allocation
-of **$26.77/$50** before this sender's fee. **This quote is on hold** and must be
-recomputed after the fixes. Calculation: code 3.15613 + 0.10 state
+the prior **3.66-NEAR quote is withdrawn**. Corrections below pass locally; recheck
+current balances, price and the $50 budget before issuing a replacement funding request.
+Provisional calculation using the last finalized balance: code 3.21207 + 0.10 state
 allowance + 0.40 contract gas reserve + 0.25 controller reserve − existing
-0.2485110692734984 = 3.6576189307265016 NEAR, rounded up to 0.01 NEAR.
-Three-attendee settled state uses 1,866 bytes above code, within the 10,000-byte
+0.2485110692734984 = 3.7135589307265016 NEAR, rounded up to **3.72 NEAR**.
+This is not a transfer request. Three-attendee settled state uses 1,896 bytes above code, within the 10,000-byte
 allowance. Recheck factory, key, protocol and balance before using the top-up.
 The existing owner key retains deployment/upgrade authority. No deployment yet.
 Reserve **$1 for NFT custody gas**; the remaining budget covers routing/other fees.
@@ -104,17 +103,17 @@ One concise row per package; distinguish local preparation from mainnet completi
 
 | ID | Date | Evidence |
 | --- | --- | --- |
-| V1-1 (in progress; deployment blocked) | 2026-11-04 | Separate 315,613-byte build; five V1 sandbox money-path tests and full `npm run contracts:check` pass (49 Rust tests plus Node replays; 380-version advisory gate). Both [CI jobs](https://github.com/gueysito/show-up/actions/runs/41944183794) pass for `3c2d32f`. The focused review below finds two blockers and one required deployment control; do not fund/deploy this build yet. |
+| V1-1 (in progress; not deployed) | 2026-11-04 | Corrected 321,207-byte build passes nine V1 sandbox tests, contract/test Clippy, 99 app unit tests, format/lint/type checks and production build. Recovery credits, immutable NFT retries and self-only/atomic initialization are tested; mainnet deployment and real deposit/refund remain next after fresh funding verification. |
 
 **Predeployment review, November 4:** target `3c2d32f43266aff7e1f156326f146ad1091781a6`
-and the exact WASM hash above; tracked source unchanged during review. Five extra
+and original WASM `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`; source was unchanged during review. Five extra
 cases ran in an isolated snapshot under `contracts/.cache/security-review/`.
 
 | Priority | Finding / condition | Evidence and required follow-through |
 | --- | --- | --- |
-| P1, open | Late, duplicate or rejected routed receipts can strand principal at the Intents sender. | `lib.rs:235–245` rejects the receipt and creates no recovery credit. The cancellation case reproduces this behavior; official [Intents withdrawal rules](https://docs.near-intents.org/integration/verifier-contract/deposits-and-withdrawals/withdrawals) provide no automatic refund when `msg` is specified. Retain attributable routed principal as a fixed-beneficiary recovery credit when no seat can be confirmed. No live loss experiment was run. |
-| P2, open | A signing failure without a produced signature cannot be retried through the contract. | `nft.rs:124–127` requires no prior request, but a failed provider leaves a request in `unresolved`. The isolated failure case rejects an identical retry; reconciliation needs a signature which may never exist. Full-access administrative signing remains possible, but bypasses the normal contract flow. Add bounded retry of the original authorized NFT image before custody. |
-| Required deployment control | Deploy and initialize atomically; do not leave an uninitialized contract exposed. | An external account successfully initialized an uninitialized sandbox deployment and prevented the intended initializer. Batch deployment plus `new` in one transaction; self-only initialization is an additional simple guard. The actual mainnet executor must enforce this before use. |
+| P1, corrected locally | Late, duplicate or rejected routed receipts could strand principal at the Intents sender. | Official [Intents withdrawal rules](https://docs.near-intents.org/integration/verifier-contract/deposits-and-withdrawals/withdrawals) provide no automatic refund when `msg` is specified. Known receipts from the bound sender now create `recovery:<registration>` credits for the fixed NEAR beneficiary, including wrong amounts, full/closed/late and duplicate cases. Tests move actual mock tokens from one shared sender to distinct payout accounts and conserve every unit. In-flight amounts are separate from newly credited funds, including failed withdrawals. No live loss experiment. |
+| P2, corrected locally | Failed NFT signing could not be retried without an existing signature. | Operator-only `retry_nft_signature` accepts one yoctoNEAR and reuses only the original transaction, up to three total attempts; attempt-bound private callbacks reject stale replies. Failure, invalid response, successful retry, authorization, altered transaction and exhausted-limit reconciliation cases pass. No mainnet signing/custody yet. |
+| Deployment control, tested locally | Deploy and initialize atomically. | Constructor now rejects external callers. A sandbox test denies outsider initialization, then verifies deployment plus `new` in one transaction and intended-owner access. The mainnet executor must use the same self-signed batch; none has run yet. |
 
 Controls that held: forged callbacks were rejected; concurrent withdrawals paid
 exactly once to the fixed recipient. A 64-seat / 32-attendee settlement conserved
@@ -129,8 +128,12 @@ Accepted local-pilot trust remains the operator's wallet/attendance/custody bind
 and retained full-access upgrade/spending key. This review did not remove that
 authority, independently audit providers, reproduce their deployed binaries, or
 exercise mainnet routing/signing/custody. App auth/database/browser code is unchanged;
-their existing CI passes are reused. No new mainnet spend. **Next: fix the two V1
-paths, enforce atomic initialization, rerun affected checks, then reprice funding.**
+their existing CI passes are reused. Corrections add no dependencies. Invalid references
+or wrong senders remain rejected and must be prevented when binding a route. Three
+failed NFT attempts still require an original signature or explicit operator recovery;
+retained full-access authority remains deliberate. No new mainnet spend.
+**Next: complete branch checks, reprice funding, then deploy/initialize atomically
+and run the small real deposit/refund round trip.**
 
 ### Mainnet spend ledger
 

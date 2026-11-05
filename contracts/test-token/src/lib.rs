@@ -105,6 +105,39 @@ impl TestToken {
         self.reply_size = bytes;
     }
 
+    /// Test-only deterministic receipt interleaving, backed by a real token debit.
+    pub fn transfer_during_withdraw(
+        &mut self,
+        sender: AccountId,
+        receiver: AccountId,
+        amount: U128,
+        msg: String,
+        claim: String,
+    ) -> Promise {
+        require!(
+            env::predecessor_account_id() == self.owner,
+            "Test owner only"
+        );
+        self.transfer(&sender, &receiver, amount.0);
+        Promise::new(receiver)
+            .function_call(
+                "withdraw",
+                near_sdk::serde_json::to_vec(&near_sdk::serde_json::json!({"claim":claim}))
+                    .unwrap(),
+                NearToken::from_yoctonear(0),
+                Gas::from_tgas(60),
+            )
+            .function_call(
+                "ft_on_transfer",
+                near_sdk::serde_json::to_vec(
+                    &near_sdk::serde_json::json!({"sender_id":sender,"amount":amount,"msg":msg}),
+                )
+                .unwrap(),
+                NearToken::from_yoctonear(0),
+                Gas::from_tgas(35),
+            )
+    }
+
     #[payable]
     pub fn ft_transfer_call(
         &mut self,

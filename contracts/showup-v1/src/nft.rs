@@ -27,6 +27,7 @@ pub struct NftRequest {
     pub unsigned_transaction: Base64VecU8,
     pub state: String,
     pub signature: Option<String>,
+    pub attempt: u32,
 }
 
 impl NftPrize {
@@ -169,6 +170,7 @@ impl EscrowV1 {
             unsigned_transaction: Base64VecU8(unsigned),
             state: "pending".into(),
             signature: None,
+            attempt: 1,
         };
         self.events
             .get_mut(&event)
@@ -177,17 +179,44 @@ impl EscrowV1 {
             .as_mut()
             .unwrap()
             .request = Some(request);
-        Promise::new(self.signer.clone()).function_call("sign",
-            bytes(&json!({"request":{"path":path(&event),"domain_id":0,"payload_v2":{"Ecdsa":payload}}})),
-            NearToken::from_yoctonear(1), Gas::from_tgas(60))
-            .then(Promise::new(env::current_account_id()).function_call("on_nft_signature", bytes(&json!({"event":event})), NearToken::from_yoctonear(0), Gas::from_tgas(15)))
+        self.sign_nft(&event, &payload, 1)
+    }
+
+    /// Retry only the original transaction, never a different nonce, fee or recipient.
+    #[payable]
+    pub fn retry_nft_signature(&mut self, event: String) -> Promise {
+        self.only_owner();
+        require!(
+            env::attached_deposit() == NearToken::from_yoctonear(1),
+            "One yocto required"
+        );
+        let request = self
+            .events
+            .get_mut(&event)
+            .expect("Unknown event")
+            .nft
+            .as_mut()
+            .expect("No NFT")
+            .request
+            .as_mut()
+            .expect("No original request");
+        require!(
+            request.state == "unresolved" && request.attempt < 3,
+            "Not retryable/attempt limit"
+        );
+        request.attempt += 1;
+        request.state = "pending".into();
+        let payload = request.payload.clone();
+        let attempt = request.attempt;
+        self.sign_nft(&event, &payload, attempt)
     }
 
     #[private]
-    pub fn on_nft_signature(&mut self, event: String) -> Option<String> {
+    pub fn on_nft_signature(&mut self, event: String, attempt: u32) -> Option<String> {
         require!(env::promise_results_count() == 1, "Invalid callback");
         let nft = self.events.get_mut(&event).unwrap().nft.as_mut().unwrap();
         let request = nft.request.as_mut().unwrap();
+        require!(request.attempt == attempt, "Stale callback");
         if request.state == "signed" {
             return request.signature.clone();
         }
@@ -233,6 +262,15 @@ impl EscrowV1 {
         request.signature = Some(response.to_string());
         request.state = "signed".into();
         true
+    }
+}
+
+impl EscrowV1 {
+    fn sign_nft(&self, event: &str, payload: &str, attempt: u32) -> Promise {
+        Promise::new(self.signer.clone()).function_call("sign",
+            bytes(&json!({"request":{"path":path(event),"domain_id":0,"payload_v2":{"Ecdsa":payload}}})),
+            NearToken::from_yoctonear(1), Gas::from_tgas(60))
+            .then(Promise::new(env::current_account_id()).function_call("on_nft_signature", bytes(&json!({"event":event,"attempt":attempt})), NearToken::from_yoctonear(0), Gas::from_tgas(15)))
     }
 }
 

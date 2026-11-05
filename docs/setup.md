@@ -1055,11 +1055,29 @@ The V1-only release strips symbols; the V2 build profile is unchanged. The norma
 The local operator binds verified wallets/attendance and confirms actual NFT custody;
 the contract enforces the configured USDC sender/amount, funded seats, immutable
 beneficiaries, no host share of forfeitures, settlement and failed-delivery retries.
+Attributable `deposit:<registration>` receipts from the bound sender that arrive
+late, after closure, when full, twice, or for the wrong amount are retained in
+`recovery:<registration>`. Anyone can relay `withdraw` for that claim; payment goes
+only to the attendee's immutable NEAR payout account. The payout account must have
+USDC storage registration. Failed delivery preserves the claim, and credits arriving
+during withdrawal remain available separately. Unknown references and wrong senders
+are rejected; validate the reference/sender before requesting an Intents route.
+
 V1 uses one NEAR payout account per attendee, a 64-seat bound, $1–100 deposits,
 and host-funded optional USDC/NFT prizes. NFT transaction construction/signature
 verification is tested against independent Ethers vectors and a disposable MPC ABI
 mock; actual mainnet custody/release remains V1-7. Existing key/upgrade authority is
 retained for this local pilot. This is not a production security audit.
+
+Deploy and call `new` in one transaction signed by the contract account's retained
+key. The constructor accepts only a self call. No mainnet deployment executor has
+run yet. After a failed signing callback, the operator can call
+`retry_nft_signature({event})` with one yoctoNEAR, up to three total attempts.
+Retries use the original payload/nonce/fees/recipient, and cannot replace a pending
+or signed request. A valid original signature remains reconcilable after the limit;
+if all attempts fail without a signature, explicit operator recovery is still needed.
+These state-layout changes precede the first V1 deployment; an upgrade from an older
+deployed layout would require migration.
 
 ## Local contract sandbox
 

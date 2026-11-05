@@ -59,6 +59,7 @@ pub struct Claim {
     pub paid: U128,
     pub pending: bool,
     pub attempt: u64,
+    pub in_flight: U128,
 }
 
 #[near(contract_state)]
@@ -79,6 +80,10 @@ pub struct EscrowV1 {
 impl EscrowV1 {
     #[init]
     pub fn new(owner: AccountId, token: AccountId, signer: AccountId) -> Self {
+        require!(
+            env::predecessor_account_id() == env::current_account_id(),
+            "Self initialization only"
+        );
         Self {
             owner,
             token,
@@ -232,19 +237,20 @@ impl EscrowV1 {
                 .expect("Unknown registration")
                 .clone();
             let item = self.events.get_mut(&registration.event).unwrap();
-            require!(
-                sender_id == registration.sender && amount == item.deposit,
-                "Wrong sender/amount"
-            );
-            if registration.funded
+            require!(sender_id == registration.sender, "Wrong sender");
+            if amount != item.deposit
+                || registration.funded
                 || item.status != "published"
                 || now() >= item.start_ms
                 || item.funded.len() >= item.capacity as usize
             {
-                return PromiseOrValue::Value(amount);
+                // Intents cannot automatically return a msg withdrawal to its user.
+                // Keep attributable funds in a separate, fixed-beneficiary claim.
+                self.credit_recovery(id, registration.payout, amount.0);
+            } else {
+                item.funded.push(id.into());
+                self.registrations.get_mut(id).unwrap().funded = true;
             }
-            item.funded.push(id.into());
-            self.registrations.get_mut(id).unwrap().funded = true;
         }
         self.received = self
             .received
@@ -349,7 +355,9 @@ impl EscrowV1 {
         );
         item.pending = true;
         item.attempt += 1;
-        Promise::new(self.token.clone()).function_call("ft_transfer", bytes(&json!({"receiver_id":item.recipient,"amount":item.remaining,"memo":"Showup V1"})), NearToken::from_yoctonear(1), Gas::from_tgas(25))
+        item.in_flight = item.remaining;
+        item.remaining = U128(0);
+        Promise::new(self.token.clone()).function_call("ft_transfer", bytes(&json!({"receiver_id":item.recipient,"amount":item.in_flight,"memo":"Showup V1"})), NearToken::from_yoctonear(1), Gas::from_tgas(25))
             .then(Promise::new(env::current_account_id()).function_call("on_withdraw", bytes(&json!({"claim":claim,"attempt":item.attempt})), NearToken::from_yoctonear(0), Gas::from_tgas(15)))
     }
 
@@ -361,10 +369,12 @@ impl EscrowV1 {
         item.pending = false;
         let success = !matches!(env::promise_result_checked(0, 0), Err(PromiseError::Failed));
         if success {
-            self.paid += item.remaining.0;
-            item.paid.0 += item.remaining.0;
-            item.remaining = U128(0);
+            self.paid += item.in_flight.0;
+            item.paid.0 += item.in_flight.0;
+        } else {
+            item.remaining.0 += item.in_flight.0;
         }
+        item.in_flight = U128(0);
         success
     }
 
@@ -399,8 +409,22 @@ impl EscrowV1 {
                 paid: U128(0),
                 pending: false,
                 attempt: 0,
+                in_flight: U128(0),
             },
         );
+    }
+    fn credit_recovery(&mut self, registration: &str, recipient: AccountId, amount: u128) {
+        let id = format!("recovery:{registration}");
+        if let Some(claim) = self.claims.get_mut(&id) {
+            require!(claim.recipient == recipient, "Recovery recipient mismatch");
+            claim.remaining.0 = claim
+                .remaining
+                .0
+                .checked_add(amount)
+                .expect("Amount overflow");
+        } else {
+            self.add_claim(id, recipient, amount);
+        }
     }
 }
 fn valid_id(value: &str) {

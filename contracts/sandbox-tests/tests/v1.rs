@@ -1,5 +1,6 @@
 mod common;
 use base64::{Engine, engine::general_purpose::STANDARD};
+use near_workspaces::operations::Function;
 use near_workspaces::{Account, Contract, Worker, network::Sandbox, types::NearToken};
 use serde_json::{Value, json};
 use sha3::{Digest, Keccak256};
@@ -176,7 +177,17 @@ async fn v1_real_receipt_cancel_and_fixed_beneficiary_refund() {
     assert!(f.host.call(f.escrow.id(),"register").args_json(json!({"id":"host","event":"cancel","sender":f.host.id(),"payout":f.host.id(),"ethereum":null})).transact().await.unwrap().is_failure(), "Host could register to receive forfeitures");
     f.register("alice", "cancel", &f.alice, &f.alice).await;
     assert_eq!(f.fund(&f.bob, 2_000_000, "deposit:alice").await, "0");
-    assert_eq!(f.fund(&f.alice, 1_000_000, "deposit:alice").await, "0");
+    assert_eq!(
+        f.fund(&f.alice, 1_000_000, "deposit:alice").await,
+        "1000000"
+    );
+    assert!(
+        !f.view("get_registration", json!({"registration":"alice"}))
+            .await["funded"]
+            .as_bool()
+            .unwrap()
+    );
+    f.call("withdraw", json!({"claim":"recovery:alice"})).await;
     assert_eq!(f.balance(&f.alice).await, 100_000_000);
     let forged = f
         .alice
@@ -190,7 +201,11 @@ async fn v1_real_receipt_cancel_and_fixed_beneficiary_refund() {
         f.fund(&f.alice, 2_000_000, "deposit:alice").await,
         "2000000"
     );
-    assert_eq!(f.fund(&f.alice, 2_000_000, "deposit:alice").await, "0");
+    assert_eq!(
+        f.fund(&f.alice, 2_000_000, "deposit:alice").await,
+        "2000000"
+    );
+    f.call("withdraw", json!({"claim":"recovery:alice"})).await;
     assert_eq!(f.balance(&f.alice).await, 98_000_000);
     assert!(
         f.bob
@@ -226,7 +241,7 @@ async fn v1_real_receipt_cancel_and_fixed_beneficiary_refund() {
     );
     assert_eq!(
         f.view("accounting", json!({})).await,
-        json!({"received":"2000000","paid":"2000000","held":"0"})
+        json!({"received":"5000000","paid":"5000000","held":"0"})
     );
 }
 
@@ -472,4 +487,294 @@ fn decode_hex(value: &str) -> Vec<u8> {
         .step_by(2)
         .map(|i| u8::from_str_radix(&value[i..i + 2], 16).unwrap())
         .collect()
+}
+
+#[tokio::test]
+async fn v1_routed_rejections_refund_bound_users_not_shared_sender() {
+    let f = V1::new().await;
+    for event in ["cancelled", "full", "mismatch", "duplicate", "late"] {
+        f.call("create_event", json!({"terms":{"id":event,"title":"Recovery","start_ms":f.start,"end_ms":f.start+600_000,"capacity":1,"deposit":"1000000","prize":"0","sponsor":f.host.id(),"nft":null}})).await;
+        f.call("publish", json!({"event":event})).await;
+        f.register(event, event, &f.bob, &f.alice).await;
+    }
+    // Model a shared Intents sender with distinct immutable payout accounts.
+    f.register("seat", "full", &f.bob, &f.carol).await;
+    assert_eq!(f.fund(&f.bob, 1_000_000, "deposit:seat").await, "1000000");
+    f.call("cancel", json!({"event":"cancelled"})).await;
+    for id in ["cancelled", "full", "duplicate"] {
+        assert_eq!(
+            f.fund(&f.bob, 1_000_000, &format!("deposit:{id}")).await,
+            "1000000"
+        );
+    }
+    assert_eq!(
+        f.fund(&f.bob, 1_000_000, "deposit:duplicate").await,
+        "1000000"
+    );
+    for amount in [500_000, 1_500_000] {
+        assert_eq!(
+            f.fund(&f.bob, amount, "deposit:mismatch").await,
+            amount.to_string()
+        );
+    }
+    // A different sender or unknown reference cannot credit another user's claim.
+    assert_eq!(f.fund(&f.carol, 1_000_000, "deposit:mismatch").await, "0");
+    assert_eq!(f.fund(&f.bob, 1_000_000, "deposit:unknown").await, "0");
+    f.advance().await;
+    assert_eq!(f.fund(&f.bob, 1_000_000, "deposit:late").await, "1000000");
+    for event in ["cancelled", "full", "mismatch", "duplicate", "late"] {
+        let registration = f
+            .view("get_registration", json!({"registration":event}))
+            .await;
+        assert_eq!(registration["funded"], event == "duplicate");
+        let claim = format!("recovery:{event}");
+        let before = f.view("get_claim", json!({"claim":claim})).await;
+        assert_eq!(before["recipient"], f.alice.id().as_str());
+        assert_eq!(
+            before["remaining"],
+            if event == "mismatch" {
+                "2000000"
+            } else {
+                "1000000"
+            }
+        );
+        // A third party relays payment; the stored recipient is the only destination.
+        f.call("withdraw", json!({"claim":claim})).await;
+        if event != "cancelled" {
+            f.call("cancel", json!({"event":event})).await;
+        }
+    }
+    for claim in ["seat", "duplicate"] {
+        f.call("withdraw", json!({"claim":claim})).await;
+    }
+    assert_eq!(f.balance(&f.bob).await, 92_000_000);
+    assert_eq!(f.balance(&f.alice).await, 107_000_000);
+    assert_eq!(f.balance(&f.carol).await, 101_000_000);
+    assert_eq!(
+        f.view("accounting", json!({})).await,
+        json!({"received":"8000000","paid":"8000000","held":"0"})
+    );
+}
+
+#[tokio::test]
+async fn v1_recovery_credit_during_withdraw_preserves_both_payments() {
+    let f = V1::new().await;
+    let receiver = f.worker.dev_create_account().await.unwrap();
+    f.event("interleave", 1_000_000, 0, None).await;
+    f.call("publish", json!({"event":"interleave"})).await;
+    f.register("interleave", "interleave", &f.bob, &receiver)
+        .await;
+    f.call("cancel", json!({"event":"interleave"})).await;
+    f.fund(&f.bob, 1_000_000, "deposit:interleave").await;
+    // Fail once while unregistered. The second credit arrives between withdrawal
+    // initiation and callback, in the same NEAR action batch.
+    for success in [false, true] {
+        if success {
+            f.token
+                .call("register")
+                .args_json(json!({"account":receiver.id()}))
+                .transact()
+                .await
+                .unwrap()
+                .into_result()
+                .unwrap();
+        }
+        f.token.call("transfer_during_withdraw").args_json(json!({"sender":f.bob.id(),"receiver":f.escrow.id(),"amount":"1000000","msg":"deposit:interleave","claim":"recovery:interleave"})).max_gas().transact().await.unwrap().into_result().unwrap();
+        let state = f
+            .view("get_claim", json!({"claim":"recovery:interleave"}))
+            .await;
+        assert_eq!(
+            state["remaining"],
+            if success { "1000000" } else { "2000000" }
+        );
+        assert_eq!(state["in_flight"], "0");
+        assert_eq!(state["pending"], false);
+    }
+    f.call("withdraw", json!({"claim":"recovery:interleave"}))
+        .await;
+    assert_eq!(f.balance(&receiver).await, 3_000_000);
+    assert_eq!(f.balance(&f.bob).await, 97_000_000);
+    assert_eq!(
+        f.view("accounting", json!({})).await,
+        json!({"received":"3000000","paid":"3000000","held":"0"})
+    );
+}
+
+#[tokio::test]
+async fn v1_initialization_rejects_outsiders_and_atomic_deployment_works() {
+    let f = V1::new().await;
+    let wasm =
+        std::fs::read("/cache/target/wasm32-unknown-unknown/release/showup_v1.wasm").unwrap();
+    let uninitialized = f.worker.dev_deploy(&wasm).await.unwrap();
+    let args = json!({"owner":f.host.id(),"token":f.token.id(),"signer":f.token.id()});
+    let attempt = f
+        .bob
+        .call(uninitialized.id(), "new")
+        .args_json(args.clone())
+        .transact()
+        .await
+        .unwrap();
+    assert!(format!("{:?}", attempt.failures()).contains("Self initialization only"));
+    uninitialized
+        .call("new")
+        .args_json(args.clone())
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    let fresh = f.worker.dev_create_account().await.unwrap();
+    fresh
+        .batch(fresh.id())
+        .deploy(&wasm)
+        .call(Function::new("new").args_json(args.clone()))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert!(
+        f.bob
+            .call(fresh.id(), "new")
+            .args_json(args)
+            .transact()
+            .await
+            .unwrap()
+            .is_failure()
+    );
+    f.host.call(fresh.id(), "create_event").args_json(json!({"terms":{"id":"atomic","title":"Atomic","start_ms":f.start,"end_ms":f.start+600_000,"capacity":1,"deposit":"1000000","prize":"0","sponsor":f.host.id(),"nft":null}})).transact().await.unwrap().into_result().unwrap();
+}
+
+#[tokio::test]
+async fn v1_nft_retry_is_bounded_authorized_and_keeps_original_transaction() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../fixtures/v1-nft-transactions.json")).unwrap();
+    let vector = &vectors[1];
+    for exhaust in [false, true] {
+        let f = V1::new().await;
+        f.event("cancel", 1_000_000, 0, Some(json!({"collection":format!("0x{}","11".repeat(20)),"token_id":"2829","contributor":format!("0x{}","33".repeat(20))}))).await;
+        let key = bs58::encode(decode_hex(vector["publicKey"].as_str().unwrap())).into_string();
+        f.mock(json!({"caller":f.escrow.id(),"path":"showup:v1:cancel","domain_id":0,"public_key":format!("secp256k1:{key}")})).await;
+        f.call("derive_nft_custody", json!({"event":"cancel"}))
+            .await;
+        f.call("cancel", json!({"event":"cancel"})).await;
+        f.call("confirm_nft_custody", json!({"event":"cancel"}))
+            .await;
+        let request = json!({"path":"showup:v1:cancel","domain_id":0,"payload_v2":{"Ecdsa":vector["payload"]}});
+        f.mock(json!({"caller":f.escrow.id(),"request":request,"failure":true}))
+            .await;
+        let args = json!({"event":"cancel","nonce":0,"gas_limit":100000,"priority_fee":"100000000","max_fee":"200000000"});
+        f.host
+            .call(f.escrow.id(), "release_nft")
+            .args_json(args.clone())
+            .deposit(NearToken::from_yoctonear(1))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let original =
+            f.view("get_event", json!({"event":"cancel"})).await["nft"]["request"].clone();
+        assert_eq!(original["state"], "unresolved");
+        assert!(original["signature"].is_null());
+        assert!(
+            f.bob
+                .call(f.escrow.id(), "retry_nft_signature")
+                .args_json(json!({"event":"cancel"}))
+                .deposit(NearToken::from_yoctonear(1))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+        assert!(
+            f.host
+                .call(f.escrow.id(), "retry_nft_signature")
+                .args_json(json!({"event":"cancel"}))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+        assert!(
+            f.bob
+                .call(f.escrow.id(), "on_nft_signature")
+                .args_json(json!({"event":"cancel","attempt":1}))
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+        let mut changed = args.clone();
+        changed["nonce"] = json!(1);
+        assert!(
+            f.host
+                .call(f.escrow.id(), "release_nft")
+                .args_json(changed)
+                .deposit(NearToken::from_yoctonear(1))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+        for attempt in [2, 3] {
+            // A malformed response must also remain retryable; only the final valid
+            // signature may resolve the immutable transaction.
+            let response = if attempt == 3 {
+                vector["response"].clone()
+            } else {
+                json!({})
+            };
+            f.mock(json!({"caller":f.escrow.id(),"request":request,"failure":exhaust,"response":response})).await;
+            f.host
+                .call(f.escrow.id(), "retry_nft_signature")
+                .args_json(json!({"event":"cancel"}))
+                .deposit(NearToken::from_yoctonear(1))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .into_result()
+                .unwrap();
+            let current =
+                f.view("get_event", json!({"event":"cancel"})).await["nft"]["request"].clone();
+            assert_eq!(current["attempt"], attempt);
+            for field in ["recipient", "payload", "unsigned_transaction"] {
+                assert_eq!(current[field], original[field]);
+            }
+            assert_eq!(
+                current["state"],
+                if attempt == 3 && !exhaust {
+                    "signed"
+                } else {
+                    "unresolved"
+                }
+            );
+        }
+        assert!(
+            f.host
+                .call(f.escrow.id(), "retry_nft_signature")
+                .args_json(json!({"event":"cancel"}))
+                .deposit(NearToken::from_yoctonear(1))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+        if exhaust {
+            f.call(
+                "reconcile_nft_signature",
+                json!({"event":"cancel","response":vector["response"]}),
+            )
+            .await;
+        }
+        let final_state = f.view("get_event", json!({"event":"cancel"})).await;
+        assert_eq!(final_state["nft"]["request"]["state"], "signed");
+        assert_eq!(final_state["nft"]["request"]["payload"], vector["payload"]);
+    }
 }
