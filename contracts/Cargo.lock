@@ -2846,6 +2846,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "showup-v1"
+version = "0.1.0"
+dependencies = [
+ "bs58 0.5.1",
+ "near-sdk",
+ "serde_json",
+]
+
+[[package]]
 name = "showup-sandbox-tests"
 version = "0.1.0"
 dependencies = [

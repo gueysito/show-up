@@ -55,17 +55,29 @@ sum to **$11.77 including 2.54 NEAR USDC** at the preparation prices.
 Public key metadata matches all three addresses. External-chain funds have arrived
 as recorded below. NEAR activation, USDC storage registration and **2.549953 native
 NEAR USDC** are finalized. First-round funding is complete on all four networks.
-Awaiting the owner's Ethereum NFT contract/token ID and ownership check; no custody
-transfer yet. Then proceed to V1-1.
-Reserve **$30 for the trimmed NEAR deployment including state/gas**, **$1 for NFT
-custody gas**, and **$7.23 for sender/provider/signing/other fees**.
-At $4.12/NEAR, a 700,000-byte V1 artifact needs 7 NEAR ($28.84) code collateral;
-this is a size target, not a measured build. Exact top-up follows the V1 build.
+Selected NFT: [BasedHeads #2829](https://etherscan.io/nft/0x42dc0cecefbaf8e81d631a75fa212510c347f66b/2829),
+Ethereum ERC-721 `0x42dc0cecefbaf8e81d631a75fa212510c347f66b`. Two finalized RPC
+reads agree on ERC-721 support and ownership by the external funding signer; no
+NFT transfer. V1-1 now builds a separate `showup-v1` contract from the existing
+workspace, keeping all V2 modules intact and outside the V1 artifact. V1 trusts
+the local app operator for host/attendee wallet binding, attendance and observed
+NFT custody; contract code enforces token receipts, fixed beneficiaries and payouts.
+Measured V1 WASM: **315,613 bytes**, code collateral **3.15613 NEAR**;
+SHA-256 `365a94695dba3d92a88cc33ad5a67443b9ea1def217b24fe9b80aa3aba3d526f`.
+Deploy to the still-unregistered `showup-dev-14989f.near` using the existing key;
+fund the verified implicit controller first. Required top-up: **3.66 NEAR**
+(about **$14.68** at $4.01/NEAR), bringing known funded/allocated total to about
+**$26.77/$50** before this sender's fee. Calculation: code 3.15613 + 0.10 state
+allowance + 0.40 contract gas reserve + 0.25 controller reserve − existing
+0.2485110692734984 = 3.6576189307265016 NEAR, rounded up to 0.01 NEAR.
+Three-attendee settled state uses 1,866 bytes above code, within the 10,000-byte
+allowance. Recheck factory, key, protocol and balance before using the top-up.
+The existing owner key retains deployment/upgrade authority. No deployment yet.
+Reserve **$1 for NFT custody gas**; the remaining budget covers routing/other fees.
 NFT custody gas is provisionally 0.0001 ETH ($0.24), to be simulated for the chosen
 NFT before transfer; no NFT purchase is planned. These allocations do not establish
-the unbuilt V1's final cost. Existing WASM is 1,208,397 bytes; excluding custom
-sections leaves 894,429 bytes ($36.85 code collateral), so trim V2 before deployment.
-Funding proceeds one wallet at a time, native NEAR first; register USDC before its transfer.
+every later V1 operation's final cost. The retained V2 WASM is 1,208,397 bytes and
+is outside the V1 deployment. No NFT move or further mainnet spend occurred here.
 
 ## V1 work packages
 
@@ -87,11 +99,11 @@ is fully polished if it is blocked on an external step.
 
 ### V1 evidence
 
-One row per finished package: what was verified, with tx/explorer links. Keep it short.
+One concise row per package; distinguish local preparation from mainnet completion.
 
 | ID | Date | Evidence |
 | --- | --- | --- |
-| — | — | — |
+| V1-1 (in progress) | 2026-11-04 | Separate 315,613-byte build; five actual sandbox money-path tests pass (deposit/refund, equal split/draw, no-attendee recovery, failed transfer retry, fixed NFT winner/cancel images and original-signature recovery). Host exclusion regression fails before the guard and passes afterward. Rust format/Clippy, app static checks, 99 JS unit tests and unchanged 380-version advisory gate pass; V2 code is unchanged. Contract permissions, receipt origin/amount, payout binding/replay, callbacks and NFT signatures checked; app/database/browser unchanged, no broad audit or mainnet completion claim. Awaiting 3.66-NEAR deployment top-up. |
 
 ### Mainnet spend ledger
 

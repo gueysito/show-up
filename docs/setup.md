@@ -1037,6 +1037,30 @@ control receipts without this private configuration. Both workers can run concur
 Agent verification uses only disposable keys/database records; these operator commands
 have not migrated or started maintenance against the owner's linked account.
 
+## V1 escrow build
+
+The V1 target is `contracts/showup-v1`; the larger V2 prototype remains in
+`contracts/showup`. Using the prepared Docker toolchain below:
+
+```sh
+sh scripts/contracts.sh v1-wasm
+sh scripts/contracts.sh v1-lint
+sh scripts/contracts.sh test v1_
+```
+
+The artifact is `contracts/.cache/target/wasm32-unknown-unknown/release/showup_v1.wasm`.
+The V1-only release strips symbols; the V2 build profile is unchanged. The normal
+`contracts:check` also builds/lints V1 and runs its tests. No new registry packages.
+
+The local operator binds verified wallets/attendance and confirms actual NFT custody;
+the contract enforces the configured USDC sender/amount, funded seats, immutable
+beneficiaries, no host share of forfeitures, settlement and failed-delivery retries.
+V1 uses one NEAR payout account per attendee, a 64-seat bound, $1–100 deposits,
+and host-funded optional USDC/NFT prizes. NFT transaction construction/signature
+verification is tested against independent Ethers vectors and a disposable MPC ABI
+mock; actual mainnet custody/release remains V1-7. Existing key/upgrade authority is
+retained for this local pilot. This is not a production security audit.
+
 ## Local contract sandbox
 
 Requires Docker and the accepted Node runtime. No workstation Rust upgrade, wallet
@@ -1070,7 +1094,7 @@ uses long test epochs for clock jumps; published economic windows are unchanged.
 Current native-M4 evidence is ARM64; the CI job independently exercises AMD64.
 The Trixie runtime supplies the GLIBC needed by the pinned sandbox binary.
 
-The prototype accepts only its pinned non-production authorization domains. Direct funding checks
+The V2 prototype accepts only its pinned non-production authorization domains. Direct funding checks
 the actual token sender, signed source/refund/payout destinations, event/rules,
 participant/wallet uniqueness, capacity and authorization expiry. Only actual token
 receipt creates a funded sandbox seat. Principal liabilities outlive failed

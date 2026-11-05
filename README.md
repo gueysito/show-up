@@ -19,6 +19,8 @@ NEAR Chain Signatures.
 V1 is in active development: one complete loop on mainnet — publish, deposit from any
 of the four chains, check in, settle, prize. See [current state](CURRENT_STATE.md) for
 exactly what works today and [the plan](docs/plan.md) for V1 progress and the V2 roadmap.
+The separate V1 contract passes sandbox money-path tests; mainnet deployment and
+app integration are next. [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works
 
@@ -34,7 +36,8 @@ exactly what works today and [the plan](docs/plan.md) for V1 progress and the V2
 
 - **Web app:** Next.js and TypeScript, PostgreSQL, and a background worker
   ([ADR-0001](docs/adr/0001-application-and-authentication.md)).
-- **Escrow contract:** Rust on NEAR (`contracts/showup`), the source of truth for money.
+- **Escrow contract:** Rust on NEAR (`contracts/showup-v1` for V1; `contracts/showup`
+  retains the V2 prototype).
 - **Cross-chain deposits:** NEAR Intents 1Click API.
 - **Cross-chain prizes:** NEAR Chain Signatures ([ADR-0002](docs/adr/0002-nft-custody.md)).
 

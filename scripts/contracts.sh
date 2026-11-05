@@ -28,8 +28,10 @@ case "$task" in
   format) source_mode=consistent; set -- cargo fmt --all ;;
   format-check) set -- cargo fmt --all --check ;;
   runtime-check) set -- /cache/bin/near-sandbox --version ;;
-  wasm) set -- env 'RUSTFLAGS=--cfg near' cargo build --frozen --release --target wasm32-unknown-unknown -p showup-escrow -p showup-test-token ;;
-  lint) set -- env 'RUSTFLAGS=--cfg near' cargo clippy --frozen --release --target wasm32-unknown-unknown -p showup-escrow -p showup-test-token -- -D warnings ;;
+  wasm) set -- env 'RUSTFLAGS=--cfg near' cargo build --frozen --release --target wasm32-unknown-unknown -p showup-escrow -p showup-test-token -p showup-v1 ;;
+  v1-wasm) set -- env 'RUSTFLAGS=--cfg near' cargo build --frozen --release --target wasm32-unknown-unknown -p showup-v1 -p showup-test-token ;;
+  v1-lint) set -- env 'RUSTFLAGS=--cfg near' cargo clippy --frozen --release --target wasm32-unknown-unknown -p showup-v1 -- -D warnings ;;
+  lint) set -- env 'RUSTFLAGS=--cfg near' cargo clippy --frozen --release --target wasm32-unknown-unknown -p showup-escrow -p showup-test-token -p showup-v1 -- -D warnings ;;
   lint-tests) set -- cargo clippy --frozen -p showup-sandbox-tests --tests -- -D warnings ;;
   test)
     node "$project_root/scripts/prepare-contracts.mjs" --verify

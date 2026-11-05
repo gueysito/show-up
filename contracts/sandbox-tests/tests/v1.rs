@@ -1,0 +1,475 @@
+mod common;
+use base64::{Engine, engine::general_purpose::STANDARD};
+use near_workspaces::{Account, Contract, Worker, network::Sandbox, types::NearToken};
+use serde_json::{Value, json};
+use sha3::{Digest, Keccak256};
+
+struct V1 {
+    worker: Worker<Sandbox>,
+    escrow: Contract,
+    token: Contract,
+    host: Account,
+    alice: Account,
+    bob: Account,
+    carol: Account,
+    start: u64,
+    _node: near_sandbox::Sandbox,
+}
+
+impl V1 {
+    async fn new() -> Self {
+        let (worker, node) = common::start_node().await;
+        let wasm = "/cache/target/wasm32-unknown-unknown/release";
+        let escrow = worker
+            .dev_deploy(&std::fs::read(format!("{wasm}/showup_v1.wasm")).unwrap())
+            .await
+            .unwrap();
+        let token = worker
+            .dev_deploy(&std::fs::read(format!("{wasm}/showup_test_token.wasm")).unwrap())
+            .await
+            .unwrap();
+        let host = worker.dev_create_account().await.unwrap();
+        let alice = worker.dev_create_account().await.unwrap();
+        let bob = worker.dev_create_account().await.unwrap();
+        let carol = worker.dev_create_account().await.unwrap();
+        token
+            .call("new")
+            .args_json(json!({}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        escrow
+            .call("new")
+            .args_json(json!({"owner":host.id(),"token":token.id(),"signer":token.id()}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        for a in [escrow.id(), host.id(), alice.id(), bob.id(), carol.id()] {
+            token
+                .call("register")
+                .args_json(json!({"account":a}))
+                .transact()
+                .await
+                .unwrap()
+                .into_result()
+                .unwrap();
+            if a != escrow.id() {
+                token
+                    .call("mint")
+                    .args_json(json!({"account":a,"amount":"100000000"}))
+                    .transact()
+                    .await
+                    .unwrap()
+                    .into_result()
+                    .unwrap();
+            }
+        }
+        let start = worker.view_block().await.unwrap().timestamp() / 1_000_000 + 60_000;
+        Self {
+            worker,
+            escrow,
+            token,
+            host,
+            alice,
+            bob,
+            carol,
+            start,
+            _node: node,
+        }
+    }
+    async fn call(&self, method: &str, args: Value) -> Value {
+        let result = self
+            .host
+            .call(self.escrow.id(), method)
+            .args_json(args)
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap()
+            .raw_bytes()
+            .unwrap();
+        if result.is_empty() {
+            Value::Null
+        } else {
+            serde_json::from_slice(&result).unwrap()
+        }
+    }
+    async fn view(&self, method: &str, args: Value) -> Value {
+        self.escrow
+            .view(method)
+            .args_json(args)
+            .await
+            .unwrap()
+            .json()
+            .unwrap()
+    }
+    async fn balance(&self, account: &Account) -> u128 {
+        let x: String = self
+            .token
+            .view("ft_balance_of")
+            .args_json(json!({"account_id":account.id()}))
+            .await
+            .unwrap()
+            .json()
+            .unwrap();
+        x.parse().unwrap()
+    }
+    async fn event(&self, event: &str, deposit: u128, prize: u128, nft: Option<Value>) {
+        self.call("create_event",json!({"terms":{"id":event,"title":"Local V1 event","start_ms":self.start,"end_ms":self.start+600_000,
+            "capacity":4,"deposit":deposit.to_string(),"prize":prize.to_string(),"sponsor":self.host.id(),"nft":nft}})).await;
+    }
+    async fn register(&self, id: &str, event: &str, account: &Account, payout: &Account) {
+        self.call("register",json!({"id":id,"event":event,"sender":account.id(),"payout":payout.id(),"ethereum":format!("0x{}","22".repeat(20))})).await;
+    }
+    async fn fund(&self, account: &Account, amount: u128, msg: &str) -> String {
+        account
+            .call(self.token.id(), "ft_transfer_call")
+            .args_json(
+                json!({"receiver_id":self.escrow.id(),"amount":amount.to_string(),"msg":msg}),
+            )
+            .deposit(NearToken::from_yoctonear(1))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap()
+            .json()
+            .unwrap()
+    }
+    async fn advance(&self) {
+        for _ in 0..8 {
+            let current = self.worker.view_block().await.unwrap().timestamp() / 1_000_000;
+            if current >= self.start {
+                return;
+            }
+            self.worker
+                .fast_forward((self.start - current).div_ceil(310) + 2)
+                .await
+                .unwrap();
+        }
+        panic!("Sandbox clock did not advance");
+    }
+    async fn mock(&self, configuration: Value) {
+        self.token
+            .call("configure_signer")
+            .args_json(json!({"configuration":configuration}))
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+    }
+}
+
+#[tokio::test]
+async fn v1_real_receipt_cancel_and_fixed_beneficiary_refund() {
+    let f = V1::new().await;
+    f.event("cancel", 2_000_000, 0, None).await;
+    f.call("publish", json!({"event":"cancel"})).await;
+    assert!(f.host.call(f.escrow.id(),"register").args_json(json!({"id":"host","event":"cancel","sender":f.host.id(),"payout":f.host.id(),"ethereum":null})).transact().await.unwrap().is_failure(), "Host could register to receive forfeitures");
+    f.register("alice", "cancel", &f.alice, &f.alice).await;
+    assert_eq!(f.fund(&f.bob, 2_000_000, "deposit:alice").await, "0");
+    assert_eq!(f.fund(&f.alice, 1_000_000, "deposit:alice").await, "0");
+    assert_eq!(f.balance(&f.alice).await, 100_000_000);
+    let forged = f
+        .alice
+        .call(f.escrow.id(), "ft_on_transfer")
+        .args_json(json!({"sender_id":f.alice.id(),"amount":"2000000","msg":"deposit:alice"}))
+        .transact()
+        .await
+        .unwrap();
+    assert!(forged.is_failure());
+    assert_eq!(
+        f.fund(&f.alice, 2_000_000, "deposit:alice").await,
+        "2000000"
+    );
+    assert_eq!(f.fund(&f.alice, 2_000_000, "deposit:alice").await, "0");
+    assert_eq!(f.balance(&f.alice).await, 98_000_000);
+    assert!(
+        f.bob
+            .call(f.escrow.id(), "cancel")
+            .args_json(json!({"event":"cancel"}))
+            .transact()
+            .await
+            .unwrap()
+            .is_failure()
+    );
+    f.call("cancel", json!({"event":"cancel"})).await;
+    // Anyone can relay withdrawal, but cannot replace the stored beneficiary.
+    f.bob
+        .call(f.escrow.id(), "withdraw")
+        .args_json(json!({"claim":"alice"}))
+        .max_gas()
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(f.balance(&f.alice).await, 100_000_000);
+    assert_eq!(f.balance(&f.bob).await, 100_000_000);
+    assert!(
+        f.alice
+            .call(f.escrow.id(), "withdraw")
+            .args_json(json!({"claim":"alice"}))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .is_failure()
+    );
+    assert_eq!(
+        f.view("accounting", json!({})).await,
+        json!({"received":"2000000","paid":"2000000","held":"0"})
+    );
+}
+
+#[tokio::test]
+async fn v1_forfeitures_equal_split_draw_and_actual_usdc_payouts() {
+    let f = V1::new().await;
+    f.event("settle", 1_000_001, 500_000, None).await;
+    assert_eq!(f.fund(&f.host, 500_000, "prize:settle").await, "500000");
+    f.call("publish", json!({"event":"settle"})).await;
+    for (id, a) in [("alice", &f.alice), ("bob", &f.bob), ("carol", &f.carol)] {
+        f.register(id, "settle", a, a).await;
+        assert_eq!(
+            f.fund(a, 1_000_001, &format!("deposit:{id}")).await,
+            "1000001"
+        );
+    }
+    f.advance().await;
+    for id in ["alice", "bob"] {
+        f.call("check_in", json!({"registration":id})).await;
+    }
+    assert!(
+        f.carol
+            .call(f.escrow.id(), "check_in")
+            .args_json(json!({"registration":"carol"}))
+            .transact()
+            .await
+            .unwrap()
+            .is_failure()
+    );
+    f.call("settle", json!({"event":"settle"})).await;
+    let event = f.view("get_event", json!({"event":"settle"})).await;
+    let winner = event["winner"].as_str().unwrap();
+    assert!(winner == "alice" || winner == "bob");
+    assert!(
+        f.view("get_claim", json!({"claim":"carol"}))
+            .await
+            .is_null()
+    );
+    assert!(
+        f.host
+            .call(f.escrow.id(), "settle")
+            .args_json(json!({"event":"settle"}))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .is_failure()
+    );
+    for id in ["alice", "bob"] {
+        f.call("withdraw", json!({"claim":id})).await;
+    }
+    assert_eq!(
+        f.balance(&f.alice).await,
+        100_000_000 + 500_001 + if winner == "alice" { 500_000 } else { 0 }
+    );
+    assert_eq!(
+        f.balance(&f.bob).await,
+        100_000_000 + 500_000 + if winner == "bob" { 500_000 } else { 0 }
+    );
+    assert_eq!(f.balance(&f.carol).await, 98_999_999);
+    assert_eq!(f.balance(&f.host).await, 99_500_000);
+    assert_eq!(f.view("accounting", json!({})).await["held"], "0");
+    let storage = f.escrow.view_account().await.unwrap().storage_usage;
+    let code = std::fs::metadata("/cache/target/wasm32-unknown-unknown/release/showup_v1.wasm")
+        .unwrap()
+        .len();
+    println!(
+        "V1 three-attendee settlement state above code: {} bytes",
+        storage - code
+    );
+    assert!(
+        storage <= code + 10_000,
+        "Demo exceeds quoted state allowance"
+    );
+}
+
+#[tokio::test]
+async fn v1_no_attendees_refunds_every_principal_and_prize() {
+    let f = V1::new().await;
+    f.event("empty", 1_000_000, 500_000, None).await;
+    f.fund(&f.host, 500_000, "prize:empty").await;
+    f.call("publish", json!({"event":"empty"})).await;
+    f.register("alice", "empty", &f.alice, &f.alice).await;
+    f.fund(&f.alice, 1_000_000, "deposit:alice").await;
+    f.advance().await;
+    f.call("settle", json!({"event":"empty"})).await;
+    for id in ["alice", "prize:empty"] {
+        f.call("withdraw", json!({"claim":id})).await;
+    }
+    assert_eq!(f.balance(&f.alice).await, 100_000_000);
+    assert_eq!(f.balance(&f.host).await, 100_000_000);
+    assert_eq!(f.view("accounting", json!({})).await["held"], "0");
+}
+
+#[tokio::test]
+async fn v1_failed_token_transfer_preserves_claim_until_actual_delivery() {
+    let f = V1::new().await;
+    let receiver = f.worker.dev_create_account().await.unwrap();
+    f.event("retry", 1_000_000, 0, None).await;
+    f.call("publish", json!({"event":"retry"})).await;
+    f.register("alice", "retry", &f.alice, &receiver).await;
+    f.fund(&f.alice, 1_000_000, "deposit:alice").await;
+    f.call("cancel", json!({"event":"retry"})).await;
+    assert_eq!(f.call("withdraw", json!({"claim":"alice"})).await, false);
+    assert_eq!(
+        f.view("get_claim", json!({"claim":"alice"})).await["remaining"],
+        "1000000"
+    );
+    f.token
+        .call("register")
+        .args_json(json!({"account":receiver.id()}))
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
+    assert_eq!(f.call("withdraw", json!({"claim":"alice"})).await, true);
+    assert_eq!(f.balance(&receiver).await, 1_000_000);
+    assert_eq!(f.view("accounting", json!({})).await["held"], "0");
+}
+
+#[tokio::test]
+async fn v1_nft_requests_match_independent_ethereum_images_for_winner_and_cancel() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../fixtures/v1-nft-transactions.json")).unwrap();
+    for (index, event) in ["winner", "cancel"].iter().enumerate() {
+        let f = V1::new().await;
+        let vector = &vectors[index];
+        f.event(event,1_000_000,0,Some(json!({"collection":format!("0x{}","11".repeat(20)),"token_id":"2829","contributor":format!("0x{}","33".repeat(20))}))).await;
+        assert!(
+            f.host
+                .call(f.escrow.id(), "publish")
+                .args_json(json!({"event":event}))
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+        let key = bs58::encode(decode_hex(vector["publicKey"].as_str().unwrap())).into_string();
+        f.mock(json!({"caller":f.escrow.id(),"path":format!("showup:v1:{event}"),"domain_id":0,"public_key":format!("secp256k1:{key}")})).await;
+        f.call("derive_nft_custody", json!({"event":event})).await;
+        let state = f.view("get_event", json!({"event":event})).await;
+        assert_eq!(
+            state["nft"]["custody"],
+            "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+        );
+        if index == 0 {
+            f.call("confirm_nft_custody", json!({"event":event})).await;
+            f.call("publish", json!({"event":event})).await;
+            f.register("nft-alice", event, &f.alice, &f.alice).await;
+            f.fund(&f.alice, 1_000_000, "deposit:nft-alice").await;
+            let early=f.host.call(f.escrow.id(),"release_nft").args_json(json!({"event":event,"nonce":0,"gas_limit":100000,"priority_fee":"100000000","max_fee":"200000000"})).deposit(NearToken::from_yoctonear(1)).max_gas().transact().await.unwrap();
+            assert!(early.is_failure());
+            f.advance().await;
+            f.call("check_in", json!({"registration":"nft-alice"}))
+                .await;
+            f.call("settle", json!({"event":event})).await;
+        } else {
+            f.call("cancel", json!({"event":event})).await;
+            // A late observed NFT arrival after cancellation must remain returnable.
+            f.call("confirm_nft_custody", json!({"event":event})).await;
+        }
+        let request = json!({"path":format!("showup:v1:{event}"),"domain_id":0,"payload_v2":{"Ecdsa":vector["payload"]}});
+        f.mock(json!({"caller":f.escrow.id(),"request":request,"response":vector["response"],"failure":index==0}))
+            .await;
+        let args = json!({"event":event,"nonce":0,"gas_limit":100000,"priority_fee":"100000000","max_fee":"200000000"});
+        assert!(
+            f.bob
+                .call(f.escrow.id(), "release_nft")
+                .args_json(args.clone())
+                .deposit(NearToken::from_yoctonear(1))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+        f.host
+            .call(f.escrow.id(), "release_nft")
+            .args_json(args.clone())
+            .deposit(NearToken::from_yoctonear(1))
+            .max_gas()
+            .transact()
+            .await
+            .unwrap()
+            .into_result()
+            .unwrap();
+        let state = f.view("get_event", json!({"event":event})).await;
+        if index == 0 {
+            assert_eq!(state["nft"]["request"]["state"], "unresolved");
+            assert!(
+                f.bob
+                    .call(f.escrow.id(), "reconcile_nft_signature")
+                    .args_json(json!({"event":event,"response":vectors[1]["response"]}))
+                    .transact()
+                    .await
+                    .unwrap()
+                    .is_failure()
+            );
+            f.bob
+                .call(f.escrow.id(), "reconcile_nft_signature")
+                .args_json(json!({"event":event,"response":vector["response"]}))
+                .transact()
+                .await
+                .unwrap()
+                .into_result()
+                .unwrap();
+        }
+        let state = f.view("get_event", json!({"event":event})).await;
+        let image = &state["nft"]["request"];
+        assert_eq!(image["state"], "signed");
+        assert_eq!(image["recipient"], vector["recipient"]);
+        assert_eq!(image["payload"], vector["payload"]);
+        let wire = STANDARD
+            .decode(image["unsigned_transaction"].as_str().unwrap())
+            .unwrap();
+        assert_eq!(
+            wire,
+            decode_hex(
+                vector["unsigned"]
+                    .as_str()
+                    .unwrap()
+                    .trim_start_matches("0x")
+            )
+        );
+        assert_eq!(format!("{:x}", Keccak256::digest(&wire)), vector["payload"]);
+        assert!(
+            f.host
+                .call(f.escrow.id(), "release_nft")
+                .args_json(args)
+                .deposit(NearToken::from_yoctonear(1))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+    }
+}
+
+fn decode_hex(value: &str) -> Vec<u8> {
+    (0..value.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&value[i..i + 2], 16).unwrap())
+        .collect()
+}

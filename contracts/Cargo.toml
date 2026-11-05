@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["showup", "test-token", "sandbox-tests"]
+members = ["showup", "showup-v1", "test-token", "sandbox-tests"]
 
 [workspace.package]
 edition = "2024"
@@ -18,3 +18,6 @@ lto = true
 debug = false
 panic = "abort"
 overflow-checks = true
+
+[profile.release.package.showup-v1]
+strip = "symbols"
