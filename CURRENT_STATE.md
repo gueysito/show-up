@@ -68,4 +68,6 @@ has opening links for Phantom, MetaMask and Rabby.
 
 The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5)
 is published on mainnet with one seat, a 1-USDC deposit and no prize. The next
-action is the real phone deposit, followed by cancellation and refund.
+action is the real phone deposit after confirmed registration, followed by
+cancellation and refund. Updated wallet labels are built separately while the
+current phone payment stays on its original build.
