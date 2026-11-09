@@ -133,7 +133,8 @@ receipt and foreign-origin sign-in requests return 401 and 403. Provider
 sign-ins, worker activation, and the hosted deposit/refund smoke test remain.
 Railway redeployed `fc7c568` after the Google credential replacement. Home,
 health and account return HTTP 200, both provider redirects use the exact hosted
-callbacks, and Google opens its sign-in page. Signed-in sessions remain unverified.
+callbacks, and the owner confirmed a signed-in session through Google. Hosted
+Telegram sign-in remains unverified.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
