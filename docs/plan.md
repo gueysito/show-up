@@ -147,12 +147,17 @@ Railway deployed `a090fa9` to web (`93a31b0c`) and worker (`c4daf3c1`). Home
 and health returned HTTP 200. The worker processed the original
 [publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1),
 and both NEAR sources confirmed one seat, a 1-USDC commitment and no prize.
-The event page returned 404 to an anonymous request. Next: accept an attendee
-invitation and run the deposit and refund smoke test.
+The event page returned 404 to an anonymous request. The Telegram attendee
+funded the 1-USDC seat. Both NEAR sources confirmed it at finalized height
+223838184. Next: cancel the test event and verify the full withdrawal.
 
 Deferred V1 polish: increase the font size and choose a more readable typeface.
 Check the NEAR Mobile return to Chrome after wallet verification. The owner
 returned to Chrome manually and completed verification.
+After a confirmed deposit, briefly highlight the green success message and
+keep it visible. Distinguish wallet approval from the wait for confirmation.
+Show a prominent message that names the missing balance when USDC or NEAR gas
+is insufficient.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency

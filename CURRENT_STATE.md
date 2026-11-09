@@ -31,7 +31,7 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   The initial administrator grant succeeded and one-time setup closed.
   The owner redeemed a host invitation, and the protocol 88 worker processed the
   original [test publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1).
-  Next: accept an attendee invitation in a separate session and complete the
-  1-USDC deposit and refund smoke test.
+  The Telegram attendee funded the 1-USDC seat on NEAR. Next: cancel the test
+  event from the host session and verify the attendee withdrawal.
   Merging requires owner approval. V1-8 remains stretch.
 - GitHub CI requires account billing attention. Continue using local checks.
