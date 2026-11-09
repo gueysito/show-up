@@ -1426,6 +1426,45 @@ file must never be deployed or populated with personal records. Docker Desktop
 did not publish ports for an internal network during verification, so this uses
 a bridge with verified loopback bindings. No wallet/provider code can spend money.
 
+## Hosted V1 on Railway
+
+Run the web app, V1 worker and PostgreSQL 17 as three services in one private
+Railway project. Attach persistent storage to PostgreSQL and keep its port on
+Railway's private network. The worker needs no public domain. Use a fresh
+`showup` database and keep pilot records and secrets on the pilot machine.
+
+- Set `SHOWUP_ENV=production` on web and worker. Set
+  `SHOWUP_DATABASE_HOST` to the Postgres private hostname and `DATABASE_URL`
+  to its authenticated connection URL on port 5432. Use Railway references.
+- Start web from the repository Dockerfile with port 3100. Configure
+  `npm run db:migrate` as its pre-deploy command and `/api/health` as its health
+  check. The migration command is also the path for future releases.
+- On web set `SHOWUP_AUTH=1`, `SHOWUP_AUTH_ORIGIN` to the exact generated HTTPS
+  address, both providers' client ID and secret pairs, and the public
+  `SHOWUP_WALLETCONNECT_PROJECT_ID`. Register the same origin with Google,
+  Telegram and Reown. The exact redirect paths are
+  `/api/auth/callback/google` and `/api/auth/callback/telegram`.
+- Generate fresh separate 32-byte keys encoded as 64 lowercase hex characters.
+  Put `SHOWUP_IDENTITY_KEY` on both web and worker. Put
+  `SHOWUP_IDENTITY_INDEX_KEY` only on web. Enter credentials as private service
+  variables through the dashboard. Preserve both identity keys while data exists.
+- Run one worker with
+  `node --import tsx scripts/v1-publication-worker.ts --execute --watch`.
+  The retained controller key goes into `SHOWUP_V1_SIGNER_KEY` on the worker
+  only. Stop the pilot signer and reconcile its pending operations before
+  enabling the hosted signer. Start the worker after the web migration succeeds.
+  The worker logs its readiness after validating its key and connecting to the
+  migrated database. Verify it by completing a queued operation in the app.
+- After the owner signs in, an operator runs
+  `node --import tsx scripts/bootstrap-admin.ts ACCOUNT_REFERENCE` once in the
+  hosted environment. Use the reference shown in the owner's signed-in account.
+  The owner can then issue a host invitation.
+
+Verify the home and health URLs return HTTP 200. Smoke-test both sign-in
+providers, one wallet proof and one 1-USDC deposit with a full cancellation
+refund. Record the public transaction links in the plan. Verify database
+backups are enabled before keeping real attendee records.
+
 ## Database, worker and browser checks
 
 Native checks additionally require the accepted Node/npm runtime and `npm ci`.

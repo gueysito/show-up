@@ -13,6 +13,6 @@ FROM tools AS production
 USER root
 RUN npm run build && chown -R node:node .next
 USER node
-ENV NODE_ENV=production
+ENV NODE_ENV=production HOSTNAME=0.0.0.0
 EXPOSE 3100
-CMD ["sh", "-c", "node --import tsx scripts/check-config.ts && node .next/standalone/server.js"]
+CMD ["sh", "-c", "node --import tsx scripts/check-config.ts && exec node .next/standalone/server.js"]

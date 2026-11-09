@@ -18,19 +18,24 @@ export function authConfig(env: Record<string, string | undefined> = process.env
   } catch {
     throw new Error("SHOWUP_AUTH_ORIGIN is required");
   }
+  const railwayHost = env.RAILWAY_PUBLIC_DOMAIN ?? "";
+  const validHost =
+    env.SHOWUP_ENV === "production"
+      ? env.NODE_ENV === "production" &&
+        /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.up\.railway\.app$/.test(railwayHost) &&
+        origin.origin === `https://${railwayHost}`
+      : ["localhost", "127.0.0.1"].includes(origin.hostname) ||
+        (origin.origin === approvedTunnelOrigin && env.NODE_ENV === "production");
   if (
     origin.protocol !== "https:" ||
-    (!["localhost", "127.0.0.1"].includes(origin.hostname) &&
-      !(origin.origin === approvedTunnelOrigin && env.NODE_ENV === "production")) ||
+    !validHost ||
     origin.username ||
     origin.password ||
     origin.pathname !== "/" ||
     origin.search ||
     origin.hash
   )
-    throw new Error(
-      "Authentication requires HTTPS loopback or the approved production-mode tunnel",
-    );
+    throw new Error("Authentication requires the configured HTTPS origin for this environment");
   const encryptionKey = env.SHOWUP_IDENTITY_KEY ?? "";
   const indexKey = env.SHOWUP_IDENTITY_INDEX_KEY ?? "";
   if (

@@ -126,6 +126,11 @@ One concise row per package; distinguish local preparation from mainnet completi
 | V1-7 mainnet winner journey verified | 2026-11-05 | BasedHeads #2829's [custody deposit](https://etherscan.io/tx/0xeba87b3b1e9402a8ccf6bc297b67366096f333a1aab3e0f860593b6acb28b261), [publication](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [settlement](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [1-USDC refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL) and [winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f) pass through the real mobile browser; the Etherscan link persists through submitted and delivered states. Same-account fee upgrades retain the custody key and pass real $1 refunds; the final artifact passes 11 V1 money-path cases, with 131 unit, six isolated database and focused browser checks. NFT cancellation is covered in sandbox. The subsequent [test-asset return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) finalized back to the original sending wallet. |
 | V1-9 phone checks passed | 2026-11-05 | Home/preview and README describe the working loop. 48 ordinary browser cases and desktop/390/320 layouts pass. A clean clone at `5f51888` installs/builds with pinned Node 24.22.2/npm 11.19.1 and serves home/preview/health with HTTP 200. The approved [phone pilot](https://liable-pleat-maritime.ngrok-free.dev/account) passed Android Phantom, Rabby Base and Ethereum verification on Chrome and Safari, and NEAR Mobile [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) and [full refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz). Permanent hosting, a hosted smoke test and merge validation remain. |
 
+Hosted V1 preparation: the Railway project has web, worker and private Postgres
+services. A local production container applied all 40 migrations and served
+the homepage and health check. Provider registration and hosted verification are
+pending.
+
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.

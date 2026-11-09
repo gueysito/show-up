@@ -23,5 +23,8 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 ## Remaining
 
 - V1-9: Rabby verification saved Base and Ethereum on Android Chrome and iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing on Base.
-- Permanent hosting and merging require owner approval. V1-8 source-chain returns remain stretch.
+- Railway web, worker and private Postgres are configured but offline. The
+  hosted runtime and migrations pass a local container rehearsal. Next: register
+  the HTTPS origin, provision the service credentials and verify the hosted loop.
+  Merging requires owner approval. V1-8 source-chain returns remain stretch.
 - GitHub CI requires account billing attention. Continue using local checks.

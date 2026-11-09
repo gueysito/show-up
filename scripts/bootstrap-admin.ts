@@ -3,8 +3,9 @@ import { createDatabase } from "../src/server/db/client";
 import { AppFailure } from "../src/server/http/security";
 import { loadAuthEnvironment } from "./auth-environment";
 
-// databaseConfig limits this command to the explicitly named disposable local DB.
-Object.assign(process.env, await loadAuthEnvironment());
+// In production the operator runs this once from the private deployment environment.
+if (process.env.SHOWUP_ENV !== "production")
+  Object.assign(process.env, await loadAuthEnvironment());
 const { pool } = createDatabase();
 try {
   await bootstrapAdmin(pool, process.argv[2] ?? "");

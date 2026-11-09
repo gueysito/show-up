@@ -102,6 +102,31 @@ test("the production tunnel accepts only its frozen HTTPS origin and preserves r
   );
 });
 
+test("hosted sign-in accepts only this deployment's Railway HTTPS origin", () => {
+  const host = "web-production-example.up.railway.app";
+  const configured = {
+    SHOWUP_AUTH: "1",
+    SHOWUP_ENV: "production",
+    SHOWUP_AUTH_ORIGIN: `https://${host}`,
+    NODE_ENV: "production",
+    RAILWAY_PUBLIC_DOMAIN: host,
+    SHOWUP_IDENTITY_KEY: randomBytes(32).toString("hex"),
+    SHOWUP_IDENTITY_INDEX_KEY: randomBytes(32).toString("hex"),
+  };
+  assert.equal(authConfig(configured)?.origin, configured.SHOWUP_AUTH_ORIGIN);
+  for (const origin of [
+    approvedTunnelOrigin,
+    "https://localhost:3443",
+    "https://different.up.railway.app",
+    `https://${host}:3100`,
+    `https://${host}.example.org`,
+    `http://${host}`,
+  ])
+    assert.throws(() => authConfig({ ...configured, SHOWUP_AUTH_ORIGIN: origin }));
+  assert.throws(() => authConfig({ ...configured, RAILWAY_PUBLIC_DOMAIN: undefined }));
+  assert.throws(() => authConfig({ ...configured, NODE_ENV: "development" }));
+});
+
 test("tunnel startup requires configured identity and development data and disables the harness", () => {
   const configured = {
     SHOWUP_ENV: "development",

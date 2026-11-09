@@ -368,9 +368,22 @@ async function main() {
     );
     return;
   }
-  const env = privateWorkerEnvironment(await loadAuthEnvironment());
+  const hosted = process.env.SHOWUP_ENV === "production";
+  const env = hosted ? process.env : privateWorkerEnvironment(await loadAuthEnvironment());
+  const database = databaseConfig(env);
+  if (hosted) {
+    if (
+      env.SHOWUP_AUTH === "1" ||
+      env.SHOWUP_GOOGLE_CLIENT_SECRET ||
+      env.SHOWUP_TELEGRAM_CLIENT_SECRET ||
+      env.SHOWUP_IDENTITY_INDEX_KEY ||
+      !/^[a-f0-9]{64}$/.test(env.SHOWUP_IDENTITY_KEY ?? "")
+    )
+      throw new Error("Hosted worker requires its own private configuration");
+    await loadV1MainnetKey();
+  }
   const pool = new pg.Pool({
-    ...databaseConfig(env),
+    ...database,
     max: 3,
     connectionTimeoutMillis: 5000,
     statement_timeout: 10000,
@@ -383,6 +396,10 @@ async function main() {
       stopping = true;
     });
   try {
+    if (hosted) {
+      await pool.query("SELECT funding_transaction_hash FROM app_v1_registrations LIMIT 0");
+      console.log("Showup V1 worker ready");
+    }
     do {
       try {
         const account = await runV1IntentsQueue(
@@ -500,8 +517,6 @@ async function main() {
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
   main().catch(() => {
-    console.error(
-      "Private V1 worker refused. Check owner-only local configuration and migrations.",
-    );
+    console.error("Private V1 worker refused. Check its configuration, signer and migrations.");
     process.exitCode = 1;
   });
