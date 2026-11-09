@@ -125,6 +125,20 @@ test("hosted sign-in accepts only this deployment's Railway HTTPS origin", () =>
     assert.throws(() => authConfig({ ...configured, SHOWUP_AUTH_ORIGIN: origin }));
   assert.throws(() => authConfig({ ...configured, RAILWAY_PUBLIC_DOMAIN: undefined }));
   assert.throws(() => authConfig({ ...configured, NODE_ENV: "development" }));
+  const id = "123456789-fixture.apps.googleusercontent.com";
+  const google = {
+    ...configured,
+    SHOWUP_GOOGLE_CLIENT_ID: id,
+    SHOWUP_GOOGLE_CLIENT_SECRET: "fixture-secret",
+  };
+  assert.equal(authConfig(google)?.clients.google?.id, id);
+  for (const invalidId of ["GOCSPX-fixture", "123456789", "Client ID", `${id} `])
+    assert.throws(
+      () => authConfig({ ...google, SHOWUP_GOOGLE_CLIENT_ID: invalidId }),
+      (error: Error) =>
+        error.message === "Hosted Google sign-in requires the full Google Client ID",
+    );
+  assert.throws(() => authConfig({ ...google, SHOWUP_GOOGLE_CLIENT_SECRET: id }));
 });
 
 test("tunnel startup requires configured identity and development data and disables the harness", () => {

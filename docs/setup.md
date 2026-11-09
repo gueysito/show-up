@@ -1441,7 +1441,10 @@ Railway's private network. The worker needs no public domain. Use a fresh
   check. The migration command is also the path for future releases.
 - On web set `SHOWUP_AUTH=1`, `SHOWUP_AUTH_ORIGIN` to the exact generated HTTPS
   address, both providers' client ID and secret pairs, and the public
-  `SHOWUP_WALLETCONNECT_PROJECT_ID`. Register the same origin with Google,
+  `SHOWUP_WALLETCONNECT_PROJECT_ID`. Copy the full Google Client ID ending in
+  `.apps.googleusercontent.com` into `SHOWUP_GOOGLE_CLIENT_ID` and put the separate
+  secret in `SHOWUP_GOOGLE_CLIENT_SECRET`. The Client ID is sent to the browser.
+  Register the same origin with Google,
   Telegram and Reown. The exact redirect paths are
   `/api/auth/callback/google` and `/api/auth/callback/telegram`.
 - Generate fresh separate 32-byte keys encoded as 64 lowercase hex characters.

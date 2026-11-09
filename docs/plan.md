@@ -131,6 +131,9 @@ migrations to private Postgres. [Home](https://web-production-f1245d.up.railway.
 shows “Make showing up”; health and account also return HTTP 200. Anonymous
 receipt and foreign-origin sign-in requests return 401 and 403. Provider
 sign-ins, worker activation, and the hosted deposit/refund smoke test remain.
+The Google sign-in probe found a malformed Client ID. A new configuration check
+rejects it before creating an authorization URL. Deploying the check, replacing
+the credential and verifying live sign-in remain pending.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency

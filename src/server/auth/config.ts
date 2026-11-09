@@ -51,6 +51,13 @@ export function authConfig(env: Record<string, string | undefined> = process.env
       const secret = env[`${prefix}_CLIENT_SECRET`];
       if (Boolean(id) !== Boolean(secret))
         throw new Error(`${prefix} client configuration is incomplete`);
+      if (
+        env.SHOWUP_ENV === "production" &&
+        provider === "google" &&
+        id &&
+        (id === secret || !/^[0-9]+(?:-[a-z0-9_-]+)?\.apps\.googleusercontent\.com$/i.test(id))
+      )
+        throw new Error("Hosted Google sign-in requires the full Google Client ID");
       return [provider, id && secret ? { id, secret } : null];
     }),
   ) as Record<Provider, { id: string; secret: string } | null>;
