@@ -143,8 +143,12 @@ administrator grant and closed one-time setup. The owner redeemed a host
 invitation and requested publication of a private test event. The hosted worker
 stopped before signing because NEAR mainnet moved from protocol 87 to 88. Both
 RPCs agreed at finalized height 223831974, with unchanged gas and storage limits.
-The hosted signing and wallet preparation code now pins 88. Next: deploy the
-update, verify the existing request, and run the deposit and refund smoke test.
+Railway deployed `a090fa9` to web (`93a31b0c`) and worker (`c4daf3c1`). Home
+and health returned HTTP 200. The worker processed the original
+[publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1),
+and both NEAR sources confirmed one seat, a 1-USDC commitment and no prize.
+The event page returned 404 to an anonymous request. Next: accept an attendee
+invitation and run the deposit and refund smoke test.
 
 Deferred V1 polish: increase the font size and choose a more readable typeface.
 Check the NEAR Mobile return to Chrome after wallet verification. The owner
@@ -282,11 +286,12 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-05 | NEAR | Check in, settle, return the attendee's full deposit and sign the fixed NFT release | 1 USDC fully restored; 0.0024419976883588 NEAR total gas from existing funds | [Check-in](https://nearblocks.io/txns/GngvHdQST4Hq3G7SDQN8pLT1yJz6rMb8PvUg9FiXBwd7), [settle](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL), [MPC signature](https://nearblocks.io/txns/5bs7vGKFEwTqgfPFnt1uASNiGLWoAWzx9FCsqcw5RBjL) |
 | 2026-11-05 | Ethereum | Deliver NFT #2829 to its test winner and return it to the original contributor | 0.000162539215967425 ETH winner release fee; 0.000057241602966725 ETH test-return fee; 0.000728079412264359 ETH remains at the event custody address | [Finalized winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f), [finalized test return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) |
 | 2026-11-05 | NEAR | Publish, register, fund, cancel and refund one 1-USDC phone test seat | 0.0022338833602616 NEAR gas and 1 yoctoNEAR attached to deposit; 1 USDC fully returned | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6), [registration](https://nearblocks.io/txns/FKpWuQ8YGzJV6GjHkcraqSHu2Q4M2zF2Fu2binA44Vr), [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT), [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE), [refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) |
+| 2026-11-09 | NEAR | Publish the hosted invitation-only payment test | 0.0003736117449985 NEAR gas from existing funds | [Publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1) |
 
 About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
-Total agent-consumed gas: **0.0988002384973624 NEAR** (about $0.4001 at $4.05/NEAR).
+Total agent-consumed gas: **0.0991738502423609 NEAR** (about $0.4017 at $4.05/NEAR).
 Before NFT custody preparation, controller native balance was **0.226839523809198299999988 NEAR**;
 escrow native balance is **3.456873783036298799999990 NEAR** after reserve replenishment, including code/state
 collateral. Both accounts have USDC storage registration. Both RPCs confirm

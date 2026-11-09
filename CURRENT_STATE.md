@@ -23,15 +23,15 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 ## Remaining
 
 - V1-9: Rabby verification saved Base and Ethereum on Android Chrome and iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing on Base.
-- [Railway web](https://web-production-f1245d.up.railway.app) runs `fc7c568` with
+- [Railway web](https://web-production-f1245d.up.railway.app) runs `a090fa9` with
   private Postgres. Home, health and account return HTTP 200. Both sign-in
   redirects use the hosted callbacks, and the owner completed Google and
   Telegram sign-in. The private worker is online and passed its signer and
   database checks. Hosted NEAR Mobile wallet verification persisted after refresh.
   The initial administrator grant succeeded and one-time setup closed.
-  The owner redeemed a host invitation. Test publication is queued without a
-  signed transaction because the deployed worker pins NEAR protocol 87 and
-  mainnet now reports 88. Next: deploy the protocol update and complete the
-  deposit and refund smoke test.
+  The owner redeemed a host invitation, and the protocol 88 worker processed the
+  original [test publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1).
+  Next: accept an attendee invitation in a separate session and complete the
+  1-USDC deposit and refund smoke test.
   Merging requires owner approval. V1-8 remains stretch.
 - GitHub CI requires account billing attention. Continue using local checks.
