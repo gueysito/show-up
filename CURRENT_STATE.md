@@ -29,6 +29,9 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   Telegram sign-in. The private worker is online and passed its signer and
   database checks. Hosted NEAR Mobile wallet verification persisted after refresh.
   The initial administrator grant succeeded and one-time setup closed.
-  Next: redeem a host invitation and smoke-test a deposit and refund.
+  The owner redeemed a host invitation. Test publication is queued without a
+  signed transaction because the deployed worker pins NEAR protocol 87 and
+  mainnet now reports 88. Next: deploy the protocol update and complete the
+  deposit and refund smoke test.
   Merging requires owner approval. V1-8 remains stretch.
 - GitHub CI requires account billing attention. Continue using local checks.

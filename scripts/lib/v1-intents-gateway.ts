@@ -47,7 +47,7 @@ export function v1IntentsGateway(
         !registration.source ||
         registration.sender !== v1Intents.account ||
         protocol.chain_id !== "mainnet" ||
-        protocol.protocol_version !== 87 ||
+        protocol.protocol_version !== v1Deployment.protocolVersion ||
         unsigned(record(protocol.runtime_config).min_gas_purchase_price) > 1000000000n ||
         unsigned(record(protocol.runtime_config).storage_amount_per_byte) !== 10000000000000000000n
       )

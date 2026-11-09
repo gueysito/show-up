@@ -139,8 +139,12 @@ Railway worker deployment `fa3d04f1` runs `fc7c568` with one private replica.
 Its startup check validated the signer and reached migrated Postgres.
 The owner verified a NEAR Mobile wallet on the hosted site. It stayed saved
 after refreshing Chrome. The production web console confirmed the initial
-administrator grant and closed one-time setup. Next: redeem a host invitation
-and run the hosted deposit and refund smoke test.
+administrator grant and closed one-time setup. The owner redeemed a host
+invitation and requested publication of a private test event. The hosted worker
+stopped before signing because NEAR mainnet moved from protocol 87 to 88. Both
+RPCs agreed at finalized height 223831974, with unchanged gas and storage limits.
+The hosted signing and wallet preparation code now pins 88. Next: deploy the
+update, verify the existing request, and run the deposit and refund smoke test.
 
 Deferred V1 polish: increase the font size and choose a more readable typeface.
 Check the NEAR Mobile return to Chrome after wallet verification. The owner

@@ -76,7 +76,7 @@ export async function prepareV1WalletPayment(
         unsigned(account.amount, 128) - unsigned(account.storage_usage, 64) * storagePrice;
       if (
         record(protocol).chain_id !== "mainnet" ||
-        record(protocol).protocol_version !== 87 ||
+        record(protocol).protocol_version !== v1Deployment.protocolVersion ||
         unsigned(record(record(protocol).runtime_config).min_gas_purchase_price) > 1000000000n
       )
         throw new Error("Payment gas purchase policy changed");

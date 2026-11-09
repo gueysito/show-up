@@ -11,6 +11,7 @@ export const v1Deployment = {
   codeHash: "9XexeUPC5CvWauP7aSd7NuffX5NK9766HD5TUYU5pHxd",
   token: "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
   writeOrigin: "https://rpc.mainnet.fastnear.com",
+  protocolVersion: 88,
 } as const;
 
 // Frozen event images retain their original reviewed deployment. Live RPC reads

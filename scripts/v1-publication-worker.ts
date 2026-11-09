@@ -41,7 +41,7 @@ export async function signV1OwnerCalls(
   );
   if (
     protocol.chain_id !== "mainnet" ||
-    protocol.protocol_version !== 87 ||
+    protocol.protocol_version !== v1Deployment.protocolVersion ||
     unsigned(record(protocol.runtime_config).min_gas_purchase_price) > 1_000_000_000n
   )
     throw new Error("V1 gas purchase policy changed");

@@ -105,7 +105,7 @@ test("native V1 deposit binds the owning attendee wallet, reconciles one registr
           : input.method === "EXPERIMENTAL_protocol_config"
             ? {
                 chain_id: "mainnet",
-                protocol_version: 87,
+                protocol_version: 88,
                 runtime_config: {
                   min_gas_purchase_price: "1000000000",
                   storage_amount_per_byte: "10000000000000000000",
