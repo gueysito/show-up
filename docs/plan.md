@@ -135,6 +135,9 @@ Railway redeployed `fc7c568` after the Google credential replacement. Home,
 health and account return HTTP 200, both provider redirects use the exact hosted
 callbacks, and the owner confirmed signed-in sessions through Google and
 Telegram in separate browser sessions.
+Railway worker deployment `fa3d04f1` runs `fc7c568` with one private replica.
+Its startup check validated the signer and reached migrated Postgres.
+The hosted wallet and payment smoke test remains open.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
