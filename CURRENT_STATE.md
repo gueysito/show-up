@@ -27,6 +27,7 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   private Postgres. Home, health and account return HTTP 200. Both sign-in
   redirects use the hosted callbacks, and the owner completed Google and
   Telegram sign-in. The private worker is online and passed its signer and
-  database checks. Next: verify a wallet and smoke-test a deposit and refund.
+  database checks. Hosted NEAR Mobile wallet verification persisted after refresh.
+  Next: smoke-test a deposit and refund.
   Merging requires owner approval. V1-8 remains stretch.
 - GitHub CI requires account billing attention. Continue using local checks.

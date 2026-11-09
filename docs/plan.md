@@ -137,7 +137,12 @@ callbacks, and the owner confirmed signed-in sessions through Google and
 Telegram in separate browser sessions.
 Railway worker deployment `fa3d04f1` runs `fc7c568` with one private replica.
 Its startup check validated the signer and reached migrated Postgres.
-The hosted wallet and payment smoke test remains open.
+The owner verified a NEAR Mobile wallet on the hosted site. It stayed saved
+after refreshing Chrome. The hosted deposit and refund smoke test remains open.
+
+Deferred V1 polish: increase the font size and choose a more readable typeface.
+Check the NEAR Mobile return to Chrome after wallet verification. The owner
+returned to Chrome manually and completed verification.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
