@@ -138,7 +138,9 @@ Telegram in separate browser sessions.
 Railway worker deployment `fa3d04f1` runs `fc7c568` with one private replica.
 Its startup check validated the signer and reached migrated Postgres.
 The owner verified a NEAR Mobile wallet on the hosted site. It stayed saved
-after refreshing Chrome. The hosted deposit and refund smoke test remains open.
+after refreshing Chrome. The production web console confirmed the initial
+administrator grant and closed one-time setup. Next: redeem a host invitation
+and run the hosted deposit and refund smoke test.
 
 Deferred V1 polish: increase the font size and choose a more readable typeface.
 Check the NEAR Mobile return to Chrome after wallet verification. The owner

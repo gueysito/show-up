@@ -28,6 +28,7 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   redirects use the hosted callbacks, and the owner completed Google and
   Telegram sign-in. The private worker is online and passed its signer and
   database checks. Hosted NEAR Mobile wallet verification persisted after refresh.
-  Next: smoke-test a deposit and refund.
+  The initial administrator grant succeeded and one-time setup closed.
+  Next: redeem a host invitation and smoke-test a deposit and refund.
   Merging requires owner approval. V1-8 remains stretch.
 - GitHub CI requires account billing attention. Continue using local checks.
