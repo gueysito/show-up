@@ -189,15 +189,17 @@ Rabby or MetaMask. Rabby can request the reviewed payment from the original
 browser through WalletConnect. Wallet browser links retain the event through
 sign-in, and the deposit page rechecks the original payment on return or reload.
 Local Chrome verified provider selection, rejection of the wrong Rabby account
-and recovery without another approval. Next, deploy the web update and check
-the Rabby payment and MetaMask continuation on a phone before GitHub merge
-validation.
+and recovery without another approval. Check Rabby payment and MetaMask
+continuation on a phone before GitHub merge validation.
 
 V1-9 visual polish. Wallet verification, deposits, refunds, publication and
 check-in share boxed states for action, checking, confirmed and blocked. Pending
 states pulse a dot, confirmed states highlight briefly, and reduced motion
 preserves the labels and colors without animation. Chrome verified the
-affected journeys, the 320-pixel layout and reduced motion.
+affected journeys, the 320-pixel layout and reduced motion. Railway web
+deployment `827ec947` serves `015b293`. Home, health, the status-card CSS,
+the new wallet approval bundle, and the deposit continuation sign-in page
+returned HTTP 200. The private refund remained HTTP 404 while signed out.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
