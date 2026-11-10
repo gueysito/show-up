@@ -357,62 +357,63 @@ main {
   border-color: var(--ink);
   background: var(--accent);
 }
-.wallet-approval {
-  border: 1px solid var(--ink);
-  border-radius: 5px;
-  padding: 14px;
-}
-.wallet-approval p {
-  margin: 6px 0 0;
-}
-.wallet-approval .saved-actions {
-  align-items: center;
-  margin-top: 4px;
-}
-.wallet-approval .primary-button {
-  width: auto;
-  text-decoration: none;
-}
 @media (max-width: 540px) {
   .wallet-picker fieldset:first-child {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.deposit-confirmed {
-  color: #226437;
-  border: 1px solid #5b8c5d;
-  border-radius: 6px;
-  background: #ebf4e8;
-  padding: 1rem;
-  animation: deposit-highlight 650ms ease-out;
-}
-.deposit-confirmed h2,
-.deposit-confirmed p {
-  margin: 0;
-}
-.deposit-confirmed p {
-  margin-top: 0.25rem;
-}
-@keyframes deposit-highlight {
-  from {
-    background-color: #c8e7bd;
-  }
-}
-.wallet-payment-alert,
-.refund-status {
-  border: 1px solid currentColor;
+.journey-status {
+  border: 1px solid var(--journey-border);
   border-radius: 6px;
   padding: 0.75rem 1rem;
+  margin-block: 0.75rem;
+  color: var(--journey-ink);
+  background: var(--journey-bg);
   overflow-wrap: anywhere;
 }
-.wallet-payment-alert {
-  background: #fbf0e8;
-  color: #81352a;
+.journey-status-title {
+  display: block;
+  margin: 0;
 }
-.refund-status {
-  background: #eef2e4;
-  font-weight: 600;
+.journey-status p {
+  margin: 0.25rem 0 0;
+}
+.journey-status .saved-actions {
+  margin-top: 0.5rem;
+}
+.journey-status .primary-button {
+  width: auto;
+  text-decoration: none;
+}
+.journey-status--action {
+  --journey-ink: #604315;
+  --journey-border: #a08144;
+  --journey-bg: #faf2dd;
+  --journey-highlight: #f2e0aa;
+  animation: journey-highlight 650ms ease-out;
+}
+.journey-status--checking {
+  --journey-ink: #354456;
+  --journey-border: #7d8d9d;
+  --journey-bg: #eef2f6;
+}
+.journey-status--confirmed {
+  --journey-ink: #226437;
+  --journey-border: #5b8c5d;
+  --journey-bg: #ebf4e8;
+  --journey-highlight: #c8e7bd;
+  animation: journey-highlight 650ms ease-out;
+}
+.journey-status--blocked {
+  --journey-ink: #81352a;
+  --journey-border: #a96150;
+  --journey-bg: #fbf0e8;
+}
+@keyframes journey-highlight {
+  from {
+    background-color: var(--journey-highlight);
+  }
 }
 #event-receipts li {
   padding-block: 0.75rem;
@@ -859,20 +860,20 @@ main {
   min-height: 44px;
   text-underline-offset: 4px;
 }
-.routing-status::before {
+.journey-status--checking .journey-status-title::before {
   content: "";
   display: inline-block;
   width: 8px;
   height: 8px;
   margin-right: 8px;
   border-radius: 50%;
-  background: var(--ink);
-  animation: routing-pulse 1.5s ease-in-out infinite;
+  background: currentColor;
+  animation: journey-pulse 1.5s ease-in-out infinite;
 }
 .draw-reveal {
   animation: draw-reveal 350ms ease-out both;
 }
-@keyframes routing-pulse {
+@keyframes journey-pulse {
   50% {
     opacity: 0.25;
   }

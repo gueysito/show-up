@@ -197,6 +197,11 @@ test("preauthenticated disposable wallets: control verification, refresh and mob
       await page.getByRole("button", { name: network, exact: true }).click();
       await page.getByRole("button", { name: app, exact: true }).click();
       await expect(page.getByRole("status")).toContainText("Wallet control verified and saved");
+      await expect(page.getByText("Wallet saved", { exact: true })).toBeVisible();
+      await expect(page.getByRole("status").locator("..")).toHaveCSS(
+        "background-color",
+        "rgb(235, 244, 232)",
+      );
     }
     expect(wallet.signatures()).toBe(3);
     await page.reload();

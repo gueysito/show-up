@@ -23,6 +23,7 @@ import {
   type MobileWallet,
 } from "./wallet-apps";
 import { WalletPicker, networkNames, type WalletApp } from "./wallet-picker";
+import { JourneyStatus, type JourneyTone } from "./journey-status";
 
 type ProofRequest = {
   operation: "verify";
@@ -120,7 +121,9 @@ export function WalletManager({
   } | null>(null);
   const savedWalletsHeading = useRef<HTMLHeadingElement>(null);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: JourneyTone; title?: string; text: string } | null>(
+    null,
+  );
   const [launchLink, setLaunchLink] = useState<{ app: MobileWallet; href: string } | null>(null);
   const [rabbyPrompt, setRabbyPrompt] = useState<RabbyPrompt | null>(null);
   const rabbyAttempt = useRef<AbortController | null>(null);
@@ -173,7 +176,7 @@ export function WalletManager({
     try {
       wallet = await post(request).catch((error: unknown) => {
         if (!retryableSave(error)) throw error;
-        setNotice({ error: false, text: "Checking whether your signed proof was saved…" });
+        setNotice({ tone: "checking", text: "Checking whether your signed proof was saved…" });
         // Replay the exact operation so the server can return its saved receipt.
         return post(request);
       });
@@ -193,7 +196,8 @@ export function WalletManager({
     pending.current = null;
     setRetry(false);
     setNotice({
-      error: false,
+      tone: "confirmed",
+      title: "Wallet saved",
       text: "Wallet control verified and saved. You can refresh or sign in again to review it.",
     });
   }
@@ -215,10 +219,10 @@ export function WalletManager({
       const result = await response.json();
       if (!response.ok) throw new WalletUiError(result.error ?? "Saved wallets unavailable.");
       setWallets(result.wallets);
-      setNotice({ error: false, text: "Saved wallet list refreshed." });
+      setNotice({ tone: "confirmed", text: "Saved wallet list refreshed." });
     } catch {
       setNotice({
-        error: true,
+        tone: "blocked",
         text: "Saved wallets could not be refreshed. Retry when connected.",
       });
     } finally {
@@ -239,7 +243,7 @@ export function WalletManager({
       if (walletId !== removal.walletId) throw new Error("Unexpected wallet removal receipt.");
       setWallets((old) => old.filter((wallet) => wallet.id !== walletId));
       setRemoval(null);
-      setNotice({ error: false, text: "Wallet removed from your Showup account." });
+      setNotice({ tone: "confirmed", text: "Wallet removed from your Showup account." });
       savedWalletsHeading.current?.focus();
     } catch (error) {
       setRemoval({
@@ -287,7 +291,7 @@ export function WalletManager({
           );
         }
         if (proof === "pending") {
-          setNotice({ error: false, text: "Waiting for you to approve in NEAR Mobile." });
+          setNotice({ tone: "action", text: "Waiting for you to approve in NEAR Mobile." });
           return;
         }
         setNearApproval(null);
@@ -364,7 +368,7 @@ export function WalletManager({
           rabbyAttempt.current = controller;
           const tappedOnAndroid =
             /Android/i.test(navigator.userAgent) && navigator.userActivation?.isActive;
-          setNotice({ error: false, text: "Preparing a connection to Rabby…" });
+          setNotice({ tone: "checking", text: "Preparing a connection to Rabby…" });
           rabby = await connectRabby(
             walletConnectProjectId,
             network,
@@ -382,7 +386,7 @@ export function WalletManager({
             },
           );
           setRabbyPrompt(null);
-          setNotice({ error: false, text: "Preparing your verification message…" });
+          setNotice({ tone: "checking", text: "Preparing your verification message…" });
           address = rabby.address;
         } else return openMobileWallet(app);
       }
@@ -451,7 +455,7 @@ export function WalletManager({
             });
         if (rabby) {
           setRabbyPrompt(null);
-          setNotice({ error: false, text: "Saving your signed proof…" });
+          setNotice({ tone: "checking", text: "Saving your signed proof…" });
         }
         if (typeof signature !== "string")
           throw new WalletUiError("Your wallet did not return a message signature.");
@@ -465,7 +469,7 @@ export function WalletManager({
       });
     } catch (error) {
       setNotice({
-        error: true,
+        tone: "blocked",
         text: rabbyAttempt.current?.signal.aborted
           ? "Rabby verification was cancelled. Tap Rabby to start again."
           : error instanceof WalletUiError
@@ -482,6 +486,8 @@ export function WalletManager({
       setBusy(false);
     }
   }
+  const checkingApproval =
+    nearApproval || returnReady || retry || !selectedApp || selectedApp === "near-mobile";
   return (
     <section className="saved-panel" aria-label="Wallet control">
       <h2>Verify a wallet</h2>
@@ -534,86 +540,106 @@ export function WalletManager({
         free.
       </p>
       {launchLink && (
-        <div className="field">
-          <p role="status">
-            {launchLink.app === "phantom"
-              ? "If the app didn’t open, unlock it and try the link below."
-              : `This opens Showup in ${appNames[launchLink.app]}’s browser. That browser may ask you to sign in to Showup again.`}
-          </p>
-          <a href={launchLink.href}>
-            {launchLink.app === "phantom"
-              ? "Open Phantom"
-              : `Open ${appNames[launchLink.app]} browser`}
-          </a>
-        </div>
+        <JourneyStatus
+          tone="action"
+          title={`Continue in ${appNames[launchLink.app]}`}
+          actions={
+            <a className="primary-button" href={launchLink.href}>
+              {launchLink.app === "phantom"
+                ? "Open Phantom"
+                : `Open ${appNames[launchLink.app]} browser`}
+            </a>
+          }
+        >
+          {launchLink.app === "phantom"
+            ? "If the app didn’t open, unlock it and try the link below."
+            : `This opens Showup in ${appNames[launchLink.app]}’s browser. That browser may ask you to sign in to Showup again.`}
+        </JourneyStatus>
       )}
       {rabbyPrompt && (
-        <div className="field wallet-approval">
-          <div role="status">
-            <strong>
-              {rabbyPrompt.step === "connect"
-                ? "Step 1 of 2 · Connect Rabby"
-                : "Step 2 of 2 · Sign the message"}
-            </strong>
-            <p>
-              {rabbyPrompt.step === "connect"
-                ? "Open Rabby, choose your account, and approve the connection. Then switch back here."
-                : "Open Rabby and sign the Showup message. Then switch back here to see your saved wallet."}
-            </p>
-          </div>
-          <div className="saved-actions">
-            <a className="primary-button" href={rabbyPrompt.href} ref={rabbyLink}>
-              {rabbyPrompt.step === "connect" ? "Open Rabby to connect" : "Open Rabby to sign"}
-            </a>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => rabbyAttempt.current?.abort()}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
+        <JourneyStatus
+          key={rabbyPrompt.step}
+          tone="action"
+          title={rabbyPrompt.step === "connect" ? "Connect Rabby" : "Approve in Rabby"}
+          actions={
+            <>
+              <a className="primary-button" href={rabbyPrompt.href} ref={rabbyLink}>
+                {rabbyPrompt.step === "connect" ? "Open Rabby to connect" : "Open Rabby to sign"}
+              </a>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => rabbyAttempt.current?.abort()}
+              >
+                Cancel
+              </button>
+            </>
+          }
+        >
+          {rabbyPrompt.step === "connect"
+            ? "Step 1 of 2. Choose your account in Rabby, approve the connection, then switch back to Showup."
+            : "Step 2 of 2. Sign the message in Rabby, then switch back to Showup to see your saved wallet."}
+        </JourneyStatus>
       )}
-      {busy && !notice && !rabbyPrompt && (
-        <p role="status">
-          {selectedApp === "meteor"
-            ? "Approve in Meteor Wallet, then switch back to this Showup tab. Your wallet will save when the signature arrives."
-            : selectedApp
-              ? `Approve in ${appNames[selectedApp]}. Showup saves your wallet when the signature arrives.`
-              : "Checking your wallet approval…"}
-        </p>
+      {busy && !notice && !rabbyPrompt && !removal && (
+        <JourneyStatus
+          tone={checkingApproval ? "checking" : "action"}
+          title={
+            checkingApproval ? "Checking wallet approval" : `Approve in ${appNames[selectedApp]}`
+          }
+        >
+          {checkingApproval
+            ? selectedApp === "near-mobile" && !nearApproval && !retry
+              ? "Preparing the NEAR Mobile request."
+              : "Showup is checking your original request."
+            : selectedApp === "meteor"
+              ? "Approve in Meteor Wallet, then switch back to this Showup tab. Your wallet will save when the signature arrives."
+              : selectedApp
+                ? `Approve in ${appNames[selectedApp]}. Showup saves your wallet when the signature arrives.`
+                : "Checking your wallet approval…"}
+        </JourneyStatus>
       )}
-      {returnReady && (
-        <p role="status">
+      {returnReady && !busy && (
+        <JourneyStatus tone="action" title="Finish wallet verification">
           Your wallet returned to Showup. Finish verification to check and save its proof.
-        </p>
+        </JourneyStatus>
       )}
-      {nearApproval && (
-        <div>
-          <p>
-            Approve the message in NEAR Mobile, then switch back to this Showup tab. We’ll check the
-            same request when you return. You can also tap Check NEAR Mobile approval below.
-          </p>
-          <a
-            href={nearMobileApprovalUrl(nearApproval.id)}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => {
-              launchedNearApproval.current = nearApproval.id;
-            }}
-          >
-            Open NEAR Mobile
-          </a>
-        </div>
+      {nearApproval && !busy && (
+        <JourneyStatus
+          tone="action"
+          title="Approve in NEAR Mobile"
+          actions={
+            <a
+              className="primary-button"
+              href={nearMobileApprovalUrl(nearApproval.id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                launchedNearApproval.current = nearApproval.id;
+              }}
+            >
+              Open NEAR Mobile
+            </a>
+          }
+        >
+          Approve the message in NEAR Mobile, then switch back to this Showup tab. We’ll check the
+          same request when you return. You can also tap Check NEAR Mobile approval below.
+        </JourneyStatus>
       )}
-      {notice && (
-        <p
-          className={notice.error ? "field-error" : undefined}
-          role={notice.error ? "alert" : "status"}
+      {notice && !(nearApproval && notice.tone === "action") && (
+        <JourneyStatus
+          tone={notice.tone}
+          title={
+            notice.title ??
+            (notice.tone === "confirmed"
+              ? "Wallet list updated"
+              : notice.tone === "blocked"
+                ? "Wallet needs attention"
+                : "Checking wallet approval")
+          }
         >
           {notice.text}
-        </p>
+        </JourneyStatus>
       )}
       <div className="saved-actions">
         {(retry || returnReady || nearApproval || selectedApp === "near-mobile") && (
@@ -682,36 +708,41 @@ export function WalletManager({
                   role="group"
                   aria-label={`Remove ${networkNames[wallet.network]} wallet ${wallet.address}`}
                 >
-                  <p>
+                  <JourneyStatus
+                    tone={busy ? "checking" : "action"}
+                    title={busy ? "Removing wallet" : "Remove this wallet?"}
+                    actions={
+                      <>
+                        <button
+                          type="button"
+                          className="primary-button"
+                          disabled={busy}
+                          onClick={() => void removeWallet()}
+                        >
+                          Confirm removal
+                        </button>
+                        <button
+                          type="button"
+                          className="text-button"
+                          disabled={busy}
+                          onClick={() => {
+                            setRemoval(null);
+                            document.getElementById(`remove-wallet-${wallet.id}`)?.focus();
+                          }}
+                        >
+                          Keep wallet
+                        </button>
+                      </>
+                    }
+                  >
                     This wallet will be removed from future wallet selections. Existing payouts keep
                     their original destination.
-                  </p>
+                  </JourneyStatus>
                   {removal.error && (
-                    <p className="field-error" role="alert">
+                    <JourneyStatus tone="blocked" title="Wallet removal needs attention">
                       {removal.error}
-                    </p>
+                    </JourneyStatus>
                   )}
-                  <div className="saved-actions">
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      disabled={busy}
-                      onClick={() => void removeWallet()}
-                    >
-                      Confirm removal
-                    </button>
-                    <button
-                      type="button"
-                      className="text-button"
-                      disabled={busy}
-                      onClick={() => {
-                        setRemoval(null);
-                        document.getElementById(`remove-wallet-${wallet.id}`)?.focus();
-                      }}
-                    >
-                      Keep wallet
-                    </button>
-                  </div>
                 </div>
               )}
             </li>

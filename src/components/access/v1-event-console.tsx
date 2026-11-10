@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { formatUsdc } from "../../domain/event-draft";
+import { JourneyStatus } from "./journey-status";
 
 type Claim = { remaining: string; paid: string; pending: boolean; inFlight: string; total: string };
 type Action = { id: string; kind: string; state: string; transactionUrl: string | null };
@@ -40,6 +41,8 @@ export function V1EventConsole({
 }) {
   const [view, setView] = useState<View | null>(null),
     [message, setMessage] = useState(""),
+    [actionError, setActionError] = useState(""),
+    [readError, setReadError] = useState(""),
     [busy, setBusy] = useState(false),
     [code, setCode] = useState(""),
     [closeConsent, setCloseConsent] = useState(false);
@@ -69,10 +72,13 @@ export function V1EventConsole({
         );
         const result = await response.json();
         if (!response.ok) throw new Error(result.error ?? "Event status unavailable.");
-        if (!controller.signal.aborted && version === serial.current) setView(result);
+        if (!controller.signal.aborted && version === serial.current) {
+          setView(result);
+          setReadError("");
+        }
       } catch (error) {
-        if (!controller.signal.aborted)
-          setMessage(error instanceof Error ? error.message : "Event status unavailable.");
+        if (!controller.signal.aborted && version === serial.current)
+          setReadError(error instanceof Error ? error.message : "Event status unavailable.");
       }
       if (!controller.signal.aborted) timer = setTimeout(poll, 10000);
     }
@@ -85,6 +91,7 @@ export function V1EventConsole({
   async function act(operation: string, claim?: string) {
     setBusy(true);
     setMessage("");
+    setActionError("");
     const current = {
       operation,
       ...(operation === "check_in" ? { code } : {}),
@@ -124,10 +131,13 @@ export function V1EventConsole({
       );
       if (latest.ok) {
         const result = await latest.json();
-        if (version === serial.current) setView(result);
+        if (version === serial.current) {
+          setView(result);
+          setReadError("");
+        }
       }
     } catch (error) {
-      setMessage(
+      setActionError(
         error instanceof Error ? error.message : "Request status unknown. Retry the same request.",
       );
     } finally {
@@ -140,6 +150,25 @@ export function V1EventConsole({
     );
   const refund = !host && view?.status === "cancelled" && view.funded;
   const withdrawalPending = view?.claim.pending || view?.withdrawalQueued;
+  const refundPaid =
+    refund && view.claim.paid !== "0" && view.claim.remaining === "0" && !withdrawalPending;
+  const refundReady = refund && BigInt(view.claim.remaining) > 0n && !withdrawalPending;
+  const checkInPending =
+    !view?.attended &&
+    view?.actions.some(
+      (action) =>
+        action.kind === "check_in" && ["requested", "prepared", "submitted"].includes(action.state),
+    );
+  const withdraw = (
+    <button
+      type="button"
+      className="primary-button"
+      disabled={busy}
+      onClick={() => void act("withdraw", host ? "prize" : "deposit")}
+    >
+      {host ? "Return the prize to my wallet" : "Withdraw USDC to my NEAR wallet"}
+    </button>
+  );
   return (
     <section
       className="saved-panel"
@@ -149,9 +178,25 @@ export function V1EventConsole({
       <h2 id={host ? undefined : "refund"}>
         {host ? "Event controls" : refund ? "Your refund" : "Your check-in and receipt"}
       </h2>
-      <p role="status" aria-live="polite">
-        {message || (view ? `Contract status: ${view.status}.` : "Loading the contract receipt…")}
-      </p>
+      {actionError || readError ? (
+        <JourneyStatus
+          tone="blocked"
+          title={actionError ? "Request needs attention" : "Status unavailable"}
+        >
+          {actionError || readError}
+        </JourneyStatus>
+      ) : busy || !view ? (
+        <JourneyStatus
+          tone="checking"
+          title={busy ? "Checking your request" : "Loading the contract receipt"}
+        />
+      ) : (
+        message &&
+        !refund &&
+        !checkInPending &&
+        !view.attended &&
+        !closing && <p role="status">{message}</p>
+      )}
       {!view ? (
         <p>Keep this page open to check again.</p>
       ) : (
@@ -209,7 +254,9 @@ export function V1EventConsole({
                     Cancel and return deposits
                   </button>
                   {closing && (
-                    <p>The event is closing. Accepted check-ins finish before closing.</p>
+                    <JourneyStatus tone="checking" title="Event closing">
+                      Accepted check-ins finish before closing.
+                    </JourneyStatus>
                   )}
                 </>
               )}
@@ -250,38 +297,54 @@ export function V1EventConsole({
             </>
           ) : (
             <>
-              <p>
-                {view.attended
-                  ? "Checked in · confirmed by the contract"
-                  : view.funded
-                    ? "Deposit confirmed. You can check in during the live event."
-                    : "Your deposit is not confirmed."}
-              </p>
+              {view.attended ? (
+                <JourneyStatus tone="confirmed" title="Check-in confirmed">
+                  NEAR has recorded your attendance.
+                </JourneyStatus>
+              ) : checkInPending ? (
+                <JourneyStatus tone="checking" title="Check-in pending">
+                  Showup is waiting for NEAR to record your attendance.
+                </JourneyStatus>
+              ) : (
+                !terminal && (
+                  <p>
+                    {view.funded
+                      ? "Deposit confirmed. You can check in during the live event."
+                      : "Your deposit is not confirmed."}
+                  </p>
+                )
+              )}
               {active &&
                 view.funded &&
                 !view.attended &&
                 view.status === "published" &&
                 !closing && (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      void act("check_in");
-                    }}
-                  >
-                    <label htmlFor="v1-live-code">Host&apos;s six-digit check-in code</label>
-                    <input
-                      id="v1-live-code"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      inputMode="numeric"
-                      autoComplete="off"
-                      pattern="[0-9]{6}"
-                      required
-                    />
-                    <button type="submit" disabled={busy || code.length !== 6}>
-                      Check in
-                    </button>
-                  </form>
+                  <JourneyStatus
+                    tone="action"
+                    title="Check in with the host’s code"
+                    actions={
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void act("check_in");
+                        }}
+                      >
+                        <label htmlFor="v1-live-code">Host&apos;s six-digit check-in code</label>
+                        <input
+                          id="v1-live-code"
+                          value={code}
+                          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          inputMode="numeric"
+                          autoComplete="off"
+                          pattern="[0-9]{6}"
+                          required
+                        />
+                        <button type="submit" disabled={busy || code.length !== 6}>
+                          Check in
+                        </button>
+                      </form>
+                    }
+                  />
                 )}
               {terminal && (
                 <>
@@ -318,31 +381,35 @@ export function V1EventConsole({
           {(host ? terminal : true) && (
             <>
               {refund && (
-                <p className="refund-status" role="status">
-                  {view.claim.paid !== "0" && view.claim.remaining === "0" && !view.claim.pending
-                    ? "Refund paid to your NEAR wallet."
-                    : withdrawalPending
-                      ? "Refund pending. We’re checking the original withdrawal."
-                      : BigInt(view.claim.remaining) > 0n
-                        ? "Refund ready to withdraw."
+                <JourneyStatus
+                  tone={refundPaid ? "confirmed" : refundReady ? "action" : "checking"}
+                  title={
+                    refundPaid
+                      ? "Refund paid"
+                      : refundReady
+                        ? "Refund ready to withdraw"
+                        : "Refund pending"
+                  }
+                  actions={refundReady ? withdraw : undefined}
+                >
+                  {refundPaid
+                    ? `${formatUsdc(BigInt(view.claim.paid))} USDC paid to your NEAR wallet.`
+                    : refundReady
+                      ? `${formatUsdc(BigInt(view.claim.remaining))} USDC is ready to send to your NEAR wallet.`
+                      : withdrawalPending
+                        ? "We’re checking the original withdrawal."
                         : "Waiting for your refund to appear."}
-                </p>
+                </JourneyStatus>
               )}
               <p>
                 {`USDC paid: ${formatUsdc(BigInt(view.claim.paid))}. Ready to withdraw: ${formatUsdc(BigInt(view.claim.remaining))}.`}
               </p>
               {withdrawalPending && !refund && (
-                <p>The original token transfer is pending. Do not request another.</p>
+                <JourneyStatus tone="checking" title="Transfer pending">
+                  Showup is checking the original transfer.
+                </JourneyStatus>
               )}
-              {BigInt(view.claim.remaining) > 0n && !withdrawalPending && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void act("withdraw", host ? "prize" : "deposit")}
-                >
-                  {host ? "Return the prize to my wallet" : "Withdraw USDC to my NEAR wallet"}
-                </button>
-              )}
+              {!refund && BigInt(view.claim.remaining) > 0n && !withdrawalPending && withdraw}
             </>
           )}
           {view.recovery && BigInt(view.recovery.remaining) > 0n && !view.recovery.pending && (

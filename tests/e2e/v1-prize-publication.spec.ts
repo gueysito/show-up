@@ -211,11 +211,12 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     await expect(actions.getByRole("alert")).toContainText(
       "Add NEAR to this wallet and try again.",
     );
-    await expect(actions.getByRole("alert")).toHaveClass("wallet-payment-alert");
+    await expect(actions.getByRole("alert").locator("..")).toHaveClass(/journey-status--blocked/);
     expect(relayCreates).toBe(0);
     shortage = null;
     await pay.click();
     const launch = actions.getByRole("link", { name: "Open NEAR Mobile" });
+    await expect(launch.locator("xpath=../..")).toHaveClass(/journey-status--action/);
     const appLink = `near-mobile-wallet://connector-request?id=${relayId}`;
     await expect(launch).toHaveAttribute("href", appLink);
     expect(await launch.getAttribute("target")).toBeNull();
@@ -234,6 +235,13 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     await expect(
       actions.getByRole("status").filter({ hasText: "Prize receipt confirmed" }),
     ).toBeVisible();
+    const queued = actions.getByText("Publication queued", { exact: true });
+    const pendingMotion = () =>
+      queued.evaluate((title) => getComputedStyle(title, "::before").animationName);
+    await expect.poll(pendingMotion).toBe("journey-pulse");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect.poll(pendingMotion).toBe("none");
+    await expect(queued).toBeVisible();
     expect(confirmed).toBe(true);
     await expect(choices).toHaveCount(0);
     await page.setViewportSize({ width: 390, height: 844 });

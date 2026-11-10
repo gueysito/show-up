@@ -14,6 +14,7 @@ import { AppFailure } from "../../../../server/http/security";
 import { findPrivacySession } from "../../../../server/privacy/access";
 import { listOwnWallets, type OwnWallet } from "../../../../server/wallets/service";
 import { formatUsdc } from "../../../../domain/event-draft";
+import { JourneyStatus } from "../../../../components/access/journey-status";
 
 export const dynamic = "force-dynamic";
 export default async function CommitmentPage({
@@ -73,19 +74,25 @@ export default async function CommitmentPage({
       </h1>
       {refund ? (
         <section id="refund" className="saved-panel" aria-label="Refund receipt">
-          <p className="refund-status">{`${formatUsdc(refund.amount)} USDC refunded`}</p>
-          <p>{`Paid to ${refund.payout} on NEAR.`}</p>
-          <p>
-            <a href={refund.transactionUrl} target="_blank" rel="noopener noreferrer">
-              View refund transaction
-            </a>
-          </p>
+          <JourneyStatus
+            tone="confirmed"
+            title={`${formatUsdc(refund.amount)} USDC refunded`}
+            actions={
+              <a href={refund.transactionUrl} target="_blank" rel="noopener noreferrer">
+                View refund transaction
+              </a>
+            }
+          >
+            {`Paid to ${refund.payout} on NEAR.`}
+          </JourneyStatus>
           <Link href={`/events/${id}/commit?view=activity`} prefetch={false}>
             View other deposit activity
           </Link>
         </section>
       ) : !event ? (
-        <p role="alert">Reload to try again. No financial action was taken.</p>
+        <JourneyStatus tone="blocked" title="Couldn’t load this page">
+          Reload to try again. No financial action was taken.
+        </JourneyStatus>
       ) : event.viewer === "anonymous" ? (
         <p>
           <Link href={`/events/${id}`} prefetch={false}>

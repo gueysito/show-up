@@ -34,9 +34,9 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   The hosted [1-USDC deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R)
   and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
   finalized on NEAR. V1-8 remains stretch.
-- The owner confirmed the live paid refund receipt and wallet removal. Wallet
-  handoff polish passes local checks. Next is the Railway update and phone
-  checks for Rabby payment approval and MetaMask return to the original deposit.
+- The owner confirmed the live paid refund receipt and wallet removal. The
+  wallet handoff and shared status cards pass local checks. Next is the Railway
+  update and phone checks for Rabby approval and MetaMask deposit continuation.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. After the phone walkthrough, resolve billing, publish the release
   branch, and open its pull request. Merging requires owner approval.

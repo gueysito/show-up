@@ -6,6 +6,7 @@ import { formatUsdc } from "../../domain/event-draft";
 import { V1RouteReview, type V1RouteSummary } from "./v1-route-review";
 import { NearWalletPaymentButton } from "./near-wallet-payment";
 import type { NearWalletPayment } from "./near-mobile-wallet";
+import { JourneyStatus, type JourneyTone } from "./journey-status";
 
 type Status = {
   sourceNetwork?: string;
@@ -63,7 +64,7 @@ export function V1Deposit({
   const [checkingEscrow, setCheckingEscrow] = useState(false);
   const [consent, setConsent] = useState(false),
     [status, setStatus] = useState<Status | null>(null),
-    [message, setMessage] = useState(""),
+    [notice, setNotice] = useState<{ tone: JourneyTone; title: string; text: string } | null>(null),
     [busy, setBusy] = useState(false);
   const sourceNetwork = status?.sourceNetwork ?? selectedSource?.network ?? "near";
   const operation = useRef<{
@@ -89,16 +90,24 @@ export function V1Deposit({
           if (controller.signal.aborted) return;
           setStatus(result);
           if (result.funded) {
-            setMessage("Escrow confirms your deposit. Your seat is funded.");
+            setNotice(null);
             return;
           }
           if (attempt + 1 < maxChecks) await new Promise((resolve) => setTimeout(resolve, 5000));
           if (controller.signal.aborted) return;
         }
-        setMessage("The deposit is still pending. Tap Check deposit status to check again.");
+        setNotice({
+          tone: "action",
+          title: "Deposit still pending",
+          text: "Tap Check deposit status to check the original payment again.",
+        });
       } catch (error) {
         if (!controller.signal.aborted)
-          setMessage(error instanceof Error ? error.message : "Check the original deposit status.");
+          setNotice({
+            tone: "blocked",
+            title: "Deposit status unavailable",
+            text: error instanceof Error ? error.message : "Check the original deposit status.",
+          });
       } finally {
         if (!controller.signal.aborted) {
           setRouting(false);
@@ -168,11 +177,15 @@ export function V1Deposit({
     const result = await prepareWalletPayment("storage");
     if (!("ready" in result))
       throw new Error("USDC receiving is not confirmed yet. Check again shortly.");
-    setMessage("Your NEAR payout wallet is ready to receive USDC.");
+    setNotice({
+      tone: "confirmed",
+      title: "Payout wallet ready",
+      text: "Your NEAR payout wallet is ready to receive USDC.",
+    });
   }
   async function action(kind: "register" | "confirm") {
     setBusy(true);
-    setMessage("");
+    setNotice(null);
     if (
       !operation.current ||
       operation.current.walletId !== walletId ||
@@ -198,23 +211,28 @@ export function V1Deposit({
           result.error ?? "Deposit not confirmed. Check the original status before retrying.",
         );
       setStatus((current) => (kind === "confirm" ? { ...current, ...result } : result));
-      setMessage(
-        kind === "register"
-          ? "Registration queued. Check status before approving the deposit."
-          : "Escrow confirms your deposit. Your seat is funded.",
-      );
+      if (kind === "register" && result.state !== "registered")
+        setNotice({
+          tone: "checking",
+          title: "Registration queued",
+          text: "Check deposit status before approving a payment.",
+        });
     } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Check the original deposit status before retrying.",
-      );
+      setNotice({
+        tone: "blocked",
+        title: "Deposit needs attention",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Check the original deposit status before retrying.",
+      });
     } finally {
       setBusy(false);
     }
   }
   async function check() {
     setBusy(true);
+    setNotice(null);
     try {
       const response = await fetch(`/api/commitments/mainnet?event=${eventId}`, {
         cache: "no-store",
@@ -226,13 +244,18 @@ export function V1Deposit({
         await action("confirm");
         return;
       }
-      setMessage(
-        result.funded
-          ? "Escrow confirms your deposit. Your seat is funded."
-          : "Status refreshed. A seat is confirmed only after the contract receives your deposit.",
-      );
+      if (!result.funded && result.state !== "registered" && result.state !== "failed")
+        setNotice({
+          tone: "checking",
+          title: "Waiting for registration",
+          text: "Check deposit status before approving a payment.",
+        });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Status unavailable. Retry.");
+      setNotice({
+        tone: "blocked",
+        title: "Deposit status unavailable",
+        text: error instanceof Error ? error.message : "Status unavailable. Retry.",
+      });
     } finally {
       setBusy(false);
     }
@@ -244,10 +267,25 @@ export function V1Deposit({
       style={{ overflowWrap: "anywhere" }}
     >
       {status?.funded ? (
-        <div className="deposit-confirmed" role="status">
-          <h2>Deposit confirmed</h2>
-          <p>{`${amount} USDC received by escrow. Your seat is funded.`}</p>
-        </div>
+        <JourneyStatus
+          tone="confirmed"
+          title="Deposit confirmed"
+          heading
+          actions={
+            status.depositTransactionUrl && (
+              <a
+                className="deposit-explorer-link"
+                href={status.depositTransactionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View deposit transaction on NEAR Explorer
+              </a>
+            )
+          }
+        >
+          {`${amount} USDC received by escrow. Your seat is funded.`}
+        </JourneyStatus>
       ) : (
         <h2>Deposit USDC on NEAR</h2>
       )}
@@ -409,7 +447,7 @@ export function V1Deposit({
             disabled={busy || checkingEscrow}
             prepare={() => prepareWalletPayment("pay")}
             confirm={() => {
-              setMessage("Waiting for NEAR to confirm that escrow received your deposit…");
+              setNotice(null);
               setCheckingEscrow(true);
               return Promise.resolve();
             }}
@@ -424,7 +462,7 @@ export function V1Deposit({
           </button>
         </>
       )}
-      {status?.depositTransactionUrl && (
+      {!status?.funded && status?.depositTransactionUrl && (
         <p>
           <a
             className="deposit-explorer-link"
@@ -445,9 +483,9 @@ export function V1Deposit({
         <p>{`${formatUsdc(BigInt(status.recovery))} USDC is held for recovery to your refund wallet; it does not create another seat.`}</p>
       )}
       {status?.state === "failed" && (
-        <p role="alert">
+        <JourneyStatus tone="blocked" title="Registration failed">
           Registration failed. Its original transaction is retained for review. Do not send USDC.
-        </p>
+        </JourneyStatus>
       )}
       <button
         type="button"
@@ -464,7 +502,19 @@ export function V1Deposit({
           </a>
         </p>
       )}
-      {message && !status?.funded && <p role="status">{message}</p>}
+      {!status?.funded &&
+        status?.state !== "failed" &&
+        (notice ? (
+          <JourneyStatus tone={notice.tone} title={notice.title}>
+            {notice.text}
+          </JourneyStatus>
+        ) : checkingEscrow ? (
+          <JourneyStatus tone="checking" title="Waiting for escrow">
+            NEAR is checking whether escrow received your deposit.
+          </JourneyStatus>
+        ) : busy ? (
+          <JourneyStatus tone="checking" title="Checking deposit status" />
+        ) : null)}
     </section>
   );
 }

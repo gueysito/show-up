@@ -193,6 +193,12 @@ and recovery without another approval. Next, deploy the web update and check
 the Rabby payment and MetaMask continuation on a phone before GitHub merge
 validation.
 
+V1-9 visual polish. Wallet verification, deposits, refunds, publication and
+check-in share boxed states for action, checking, confirmed and blocked. Pending
+states pulse a dot, confirmed states highlight briefly, and reduced motion
+preserves the labels and colors without animation. Chrome verified the
+affected journeys, the 320-pixel layout and reduced motion.
+
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.

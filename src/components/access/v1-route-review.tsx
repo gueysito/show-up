@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
+import { JourneyStatus } from "./journey-status";
 import { connectRabbyPayment, type RabbyPrompt } from "./rabby-connect";
 import {
   announcedEthereumApp,
@@ -349,7 +350,7 @@ export function V1RouteReview({
             The project forwards your converted USDC into escrow and pays the NEAR forwarding gas.
             Your seat is confirmed only after the escrow receives your deposit.
           </p>
-          {!paid && (
+          {!paid && !payingWith && !launchWallet && (
             <>
               {network === "solana" && (
                 <label>
@@ -382,100 +383,124 @@ export function V1RouteReview({
                 />
                 I reviewed the source amount, gas limit, quote expiry and NEAR payout destination.
               </label>
-              <div className="saved-actions">
-                {network === "solana" ? (
-                  <button
-                    type="button"
-                    className="primary-button"
-                    disabled={busy || !consent || !trackingReady}
-                    onClick={() => void pay()}
-                  >
-                    Approve source USDC payment
-                  </button>
-                ) : (
-                  <>
+              <JourneyStatus
+                tone="action"
+                title="Approve the reviewed payment"
+                actions={
+                  network === "solana" ? (
                     <button
                       type="button"
                       className="primary-button"
                       disabled={busy || !consent || !trackingReady}
-                      onClick={() => void pay("rabby")}
+                      onClick={() => void pay()}
                     >
-                      Approve with Rabby
+                      Approve source USDC payment
                     </button>
-                    <button
-                      type="button"
-                      className="primary-button"
-                      disabled={busy || !consent || !trackingReady}
-                      onClick={() => void pay("metamask")}
-                    >
-                      Approve with MetaMask
-                    </button>
-                  </>
-                )}
-              </div>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={busy || !consent || !trackingReady}
+                        onClick={() => void pay("rabby")}
+                      >
+                        Approve with Rabby
+                      </button>
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={busy || !consent || !trackingReady}
+                        onClick={() => void pay("metamask")}
+                      >
+                        Approve with MetaMask
+                      </button>
+                    </>
+                  )
+                }
+              />
             </>
           )}
-          {paid && !payingWith && (
-            <p role="status" className="routing-status">
+          {paid && !payingWith && !error && (
+            <JourneyStatus tone="checking" title="Checking the original payment">
               Checking the original payment and escrow. If it stays pending, tap Check deposit
               status.
-            </p>
+            </JourneyStatus>
           )}
         </>
       )}
       {launchWallet && (
-        <div className="field">
-          <p role="status">
-            {`Continue this event in ${appNames[launchWallet]}’s browser. If it asks you to sign in to Showup, use the account you started with.`}
-          </p>
-          <a
-            href={mobileWalletPageUrl(
-              launchWallet,
-              new URL(`/account?walletEvent=${eventId}`, window.location.origin),
-            )}
-          >
-            {`Open this event in ${appNames[launchWallet]}`}
-          </a>
-        </div>
+        <JourneyStatus
+          tone="action"
+          title={`Continue in ${appNames[launchWallet]}`}
+          actions={
+            <>
+              <a
+                className="primary-button"
+                href={mobileWalletPageUrl(
+                  launchWallet,
+                  new URL(`/account?walletEvent=${eventId}`, window.location.origin),
+                )}
+              >
+                {`Open this event in ${appNames[launchWallet]}`}
+              </a>
+              <button className="text-button" type="button" onClick={() => setLaunchWallet(null)}>
+                Choose another wallet
+              </button>
+            </>
+          }
+        >
+          {`Continue this event in ${appNames[launchWallet]}’s browser. If it asks you to sign in to Showup, use the account you started with.`}
+        </JourneyStatus>
       )}
       {prompt ? (
-        <div className="field wallet-approval">
-          <p role="status">
-            {prompt.step === "connect"
-              ? "Connect your verified deposit account in Rabby, then return here to approve the payment."
-              : "Approve the payment in Rabby, then switch back to this Showup tab. We’ll check the original payment."}
-          </p>
-          <div className="saved-actions">
-            <a className="primary-button" href={prompt.href}>
-              {prompt.step === "connect"
-                ? "Open Rabby to connect"
-                : "Open Rabby to approve payment"}
-            </a>
-            {prompt.step === "connect" && (
-              <button
-                className="text-button"
-                type="button"
-                onClick={() => pairing.current?.abort()}
-              >
-                Cancel connection
-              </button>
-            )}
-          </div>
-        </div>
+        <JourneyStatus
+          key={prompt.step}
+          tone="action"
+          title={prompt.step === "connect" ? "Connect Rabby" : "Approve in Rabby"}
+          actions={
+            <>
+              <a className="primary-button" href={prompt.href}>
+                {prompt.step === "connect"
+                  ? "Open Rabby to connect"
+                  : "Open Rabby to approve payment"}
+              </a>
+              {prompt.step === "connect" && (
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => pairing.current?.abort()}
+                >
+                  Cancel connection
+                </button>
+              )}
+            </>
+          }
+        >
+          {prompt.step === "connect"
+            ? "Connect your verified deposit account in Rabby, then return here to approve the payment."
+            : "Approve the payment in Rabby, then switch back to this Showup tab. We’ll check the original payment."}
+        </JourneyStatus>
       ) : (
         payingWith && (
-          <p role="status">
+          <JourneyStatus
+            tone={paid ? "action" : "checking"}
+            title={paid ? `Approve in ${payingWith}` : "Preparing wallet approval"}
+          >
             {paid
-              ? `Approve in ${payingWith}, then return here to see your deposit status.`
-              : `Preparing your approval in ${payingWith}…`}
-          </p>
+              ? "Return here after approving to see your deposit status."
+              : `Getting your payment ready for ${payingWith}.`}
+          </JourneyStatus>
         )
       )}
-      {error && <p role="alert">{error}</p>}
+      {error && (
+        <JourneyStatus tone="blocked" title="Payment needs attention">
+          {error}
+        </JourneyStatus>
+      )}
       {tracking === "unavailable" && (
-        <p role="alert">
+        <JourneyStatus tone="blocked" title="Payment tracking unavailable">
           Payment tracking is unavailable in this browser. No wallet approval was requested.
-        </p>
+        </JourneyStatus>
       )}
     </section>
   );
