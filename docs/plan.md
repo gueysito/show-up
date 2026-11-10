@@ -179,6 +179,9 @@ from the original account link using the verified payment record, even when live
 chain reads fail. Pending withdrawals continue to use live checks. Chrome
 verified the original link, receipt after reload and access limited to the
 account that paid.
+Railway web deployment `05a93537` serves `2de0aeb`. Health and the bundle
+containing **Remove wallet** returned HTTP 200. Anonymous access to the private
+receipt returned 404. The owner’s signed-in check of the hosted receipt is open.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency

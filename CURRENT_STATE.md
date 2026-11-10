@@ -34,9 +34,9 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   The hosted [1-USDC deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R)
   and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
   finalized on NEAR. V1-8 remains stretch.
-- The six V1 polish items are live and the updated stylesheet is verified.
-  The web update adds wallet removal, clearer empty receipt guidance and a
-  saved receipt for a verified paid refund. The phone walkthrough is still open.
+- The V1 polish, wallet removal and verified paid refund receipts are live on
+  Railway web deployment `05a93537`. The owner can confirm the paid receipt and
+  wallet controls on the phone walkthrough.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. After the phone walkthrough, resolve billing, publish the release
   branch, and open its pull request. Merging requires owner approval.
