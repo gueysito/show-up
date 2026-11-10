@@ -147,9 +147,12 @@ Railway deployed `a090fa9` to web (`93a31b0c`) and worker (`c4daf3c1`). Home
 and health returned HTTP 200. The worker processed the original
 [publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1),
 and both NEAR sources confirmed one seat, a 1-USDC commitment and no prize.
-The event page returned 404 to an anonymous request. The Telegram attendee
-funded the 1-USDC seat. Both NEAR sources confirmed it at finalized height
-223838184. Next: cancel the test event and verify the full withdrawal.
+The event page returned 404 to an anonymous request. The hosted
+[1-USDC deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R),
+[cancellation](https://nearblocks.io/txns/7x1XTK7Ze1SJNvABZhFdADZjFL1sAWVfmXrE8Y3rsmxZ)
+and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
+finalized on NEAR. Both sources confirmed 1 USDC paid and zero remaining at
+finalized height 223839492. Next: validate the release pull request.
 
 Deferred V1 polish: increase the font size and choose a more readable typeface.
 Check the NEAR Mobile return to Chrome after wallet verification. The owner
@@ -157,14 +160,16 @@ returned to Chrome manually and completed verification.
 After a confirmed deposit, briefly highlight the green success message and
 keep it visible. Distinguish wallet approval from the wait for confirmation.
 Show a prominent message that names the missing balance when USDC or NEAR gas
-is insufficient.
+is insufficient. Make the refund receipt easier to find from the event and
+account pages. The owner needed the direct link during the hosted test.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.
-GitHub [run 41991538690](https://github.com/gueysito/show-up/actions/runs/41991538690)
-did not start any jobs: account billing/spending limit requires owner attention.
-Continue local checks; do not rerun jobs or weaken required checks.
+GitHub [run 42656124167](https://github.com/gueysito/show-up/actions/runs/42656124167)
+could not start `verify` or `contracts` because of account billing or the
+Actions spending limit. The release branch has no open pull request. Open it
+after billing is resolved and require both checks to pass before merge approval.
 
 V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens
 reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
@@ -292,11 +297,12 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-05 | Ethereum | Deliver NFT #2829 to its test winner and return it to the original contributor | 0.000162539215967425 ETH winner release fee; 0.000057241602966725 ETH test-return fee; 0.000728079412264359 ETH remains at the event custody address | [Finalized winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f), [finalized test return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) |
 | 2026-11-05 | NEAR | Publish, register, fund, cancel and refund one 1-USDC phone test seat | 0.0022338833602616 NEAR gas and 1 yoctoNEAR attached to deposit; 1 USDC fully returned | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6), [registration](https://nearblocks.io/txns/FKpWuQ8YGzJV6GjHkcraqSHu2Q4M2zF2Fu2binA44Vr), [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT), [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE), [refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) |
 | 2026-11-09 | NEAR | Publish the hosted invitation-only payment test | 0.0003736117449985 NEAR gas from existing funds | [Publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1) |
+| 2026-11-09 | NEAR | Register, fund, cancel and refund the hosted payment test | 1 USDC fully returned, 0.0018601214534429 NEAR gas and 1 yoctoNEAR attached to deposit | [Deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R), [cancellation](https://nearblocks.io/txns/7x1XTK7Ze1SJNvABZhFdADZjFL1sAWVfmXrE8Y3rsmxZ), [refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC) |
 
 About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
-Total agent-consumed gas: **0.0991738502423609 NEAR** (about $0.4017 at $4.05/NEAR).
+Total recorded gas: **0.1010339716958038 NEAR** (about $0.4092 at $4.05/NEAR).
 Before NFT custody preparation, controller native balance was **0.226839523809198299999988 NEAR**;
 escrow native balance is **3.456873783036298799999990 NEAR** after reserve replenishment, including code/state
 collateral. Both accounts have USDC storage registration. Both RPCs confirm

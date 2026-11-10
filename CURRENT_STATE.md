@@ -31,7 +31,9 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   The initial administrator grant succeeded and one-time setup closed.
   The owner redeemed a host invitation, and the protocol 88 worker processed the
   original [test publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1).
-  The Telegram attendee funded the 1-USDC seat on NEAR. Next: cancel the test
-  event from the host session and verify the attendee withdrawal.
-  Merging requires owner approval. V1-8 remains stretch.
-- GitHub CI requires account billing attention. Continue using local checks.
+  The hosted [1-USDC deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R)
+  and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
+  finalized on NEAR. V1-8 remains stretch.
+- GitHub Actions billing blocked `verify` and `contracts` in the latest feature
+  branch run. Next: resolve billing, publish the release branch, and open its
+  pull request. Merging requires owner approval.
