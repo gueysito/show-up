@@ -9,30 +9,48 @@ import { findSession, sessionCookie } from "../../../../server/auth/sessions";
 import { hash, identityIndex } from "../../../../server/auth/crypto";
 import { createDatabase } from "../../../../server/db/client";
 import { readEventEntry, type EventEntry } from "../../../../server/events/entry";
+import { readV1PaidRefund } from "../../../../server/events/v1-actions";
 import { AppFailure } from "../../../../server/http/security";
+import { findPrivacySession } from "../../../../server/privacy/access";
 import { listOwnWallets, type OwnWallet } from "../../../../server/wallets/service";
+import { formatUsdc } from "../../../../domain/event-draft";
 
 export const dynamic = "force-dynamic";
-export default async function CommitmentPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CommitmentPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
+}) {
   const { id } = await params,
     config = authConfig();
   if (!config) notFound();
   const { pool } = createDatabase();
   let event: EventEntry | null = null,
+    refund: Awaited<ReturnType<typeof readV1PaidRefund>> = null,
     wallets: OwnWallet[] = [],
     selectionScope: string | undefined;
   try {
     const value = (await cookies()).get(sessionCookie)?.value;
-    event = await readEventEntry(pool, config, id, value ? hash(value) : undefined);
-    const session = await findSession(pool, value);
-    if (session && event.viewer === "attendee" && event.registration !== "closed") {
-      wallets = await listOwnWallets(pool, config, session.accountId);
-      // A private form namespace only, never an authentication/funding capability.
-      selectionScope = identityIndex(
-        config.indexKey,
-        "showup.commitment-review.form.v1",
-        JSON.stringify([session.accountId, id, event.rulesHash]),
-      );
+    if ((await searchParams).view !== "activity") {
+      const viewer = await findPrivacySession(pool, value);
+      if (viewer) refund = await readV1PaidRefund(pool, config, viewer.tokenHash, id);
+    }
+    if (!refund) {
+      event = await readEventEntry(pool, config, id, value ? hash(value) : undefined);
+      if (event.viewer === "attendee" && event.registration !== "closed") {
+        const session = await findSession(pool, value);
+        if (session) {
+          wallets = await listOwnWallets(pool, config, session.accountId);
+          // A private form namespace only, never an authentication/funding capability.
+          selectionScope = identityIndex(
+            config.indexKey,
+            "showup.commitment-review.form.v1",
+            JSON.stringify([session.accountId, id, event.rulesHash]),
+          );
+        }
+      }
     }
   } catch (failure) {
     if (failure instanceof AppFailure && failure.status === 404) notFound();
@@ -46,9 +64,26 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
         Back to event
       </Link>
       <h1>
-        {event ? `Review commitment for ${event.data.title}` : "Commitment review unavailable"}
+        {refund
+          ? `Refund receipt for ${refund.title}`
+          : event
+            ? `Review commitment for ${event.data.title}`
+            : "Commitment review unavailable"}
       </h1>
-      {!event ? (
+      {refund ? (
+        <section id="refund" className="saved-panel" aria-label="Refund receipt">
+          <p className="refund-status">{`${formatUsdc(refund.amount)} USDC refunded`}</p>
+          <p>{`Paid to ${refund.payout} on NEAR.`}</p>
+          <p>
+            <a href={refund.transactionUrl} target="_blank" rel="noopener noreferrer">
+              View refund transaction
+            </a>
+          </p>
+          <Link href={`/events/${id}/commit?view=activity`} prefetch={false}>
+            View other deposit activity
+          </Link>
+        </section>
+      ) : !event ? (
         <p role="alert">Reload to try again. No financial action was taken.</p>
       ) : event.viewer === "anonymous" ? (
         <p>

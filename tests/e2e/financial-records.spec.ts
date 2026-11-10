@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import { financialFixtures } from "../fixtures/financial-records";
+import { v1EventFixture } from "../fixtures/v1-event";
+import { readV1RegistrationState } from "../../src/server/commitments/v1-registration";
+import {
+  readV1PaidRefund,
+  requestV1Close,
+  requestV1Withdrawal,
+} from "../../src/server/events/v1-actions";
+import { runV1Action } from "../../src/worker/v1-actions";
 
 test.use({
   baseURL: "https://localhost:3444",
@@ -8,35 +16,57 @@ test.use({
   timezoneId: "Pacific/Auckland",
 });
 
-test("an attendee can find their cancelled event refund from their account", async ({
+test("an attendee can open a paid refund from their account without live chain data", async ({
   page,
   context,
 }) => {
-  const f = await financialFixtures("near");
-  const eventId = f.consent.terms.event;
+  const f = await v1EventFixture({
+    encryption: process.env.SHOWUP_E2E_ENCRYPTION_KEY!,
+    index: process.env.SHOWUP_E2E_INDEX_KEY!,
+  });
+  const { pool, config, sessions, eventId, transport, key, gateway } = f;
   try {
-    await f.pool.query(
-      `INSERT INTO app_v1_registrations(id,event_id,account_id,payout_index,image_hash,encrypted_image,state)
-       VALUES ($1,$2,$3,$4,$4,'receipt-navigation-fixture','funded')`,
-      [randomUUID(), eventId, f.accounts[0].id, "e".repeat(64)],
+    expect(
+      (await readV1RegistrationState(pool, config, sessions[1], eventId, transport)).funded,
+    ).toBe(true);
+    await requestV1Close(pool, config, sessions[0], randomUUID(), eventId, "cancel", transport);
+    expect((await runV1Action(pool, key, gateway)).state).toBe("verified");
+    const withdrawal = await requestV1Withdrawal(
+      pool,
+      config,
+      sessions[1],
+      randomUUID(),
+      eventId,
+      "deposit",
+      transport,
     );
-    await f.pool.query(
-      `INSERT INTO app_v1_event_actions(id,event_id,account_id,kind,target,attempt,image_hash,encrypted_image,state)
-       VALUES ($1,$2,$3,'cancel',$2::uuid::text,1,$4,'receipt-navigation-fixture','verified')`,
-      [randomUUID(), eventId, f.accounts[1].id, "f".repeat(64)],
-    );
+    expect(await readV1PaidRefund(pool, config, sessions[1], eventId)).toBeNull();
+    expect((await runV1Action(pool, key, gateway)).state).toBe("verified");
+    const { transaction_hash: hash } = (
+      await pool.query("SELECT transaction_hash FROM app_v1_event_actions WHERE id=$1", [
+        withdrawal.actionId,
+      ])
+    ).rows[0];
     await page.setViewportSize({ width: 390, height: 844 });
-    await f.enter(context, 0);
+    await f.enter(context, 1);
     await page.goto("/account");
     await page.getByRole("link", { name: "View deposits and refunds" }).click();
     const refunds = page.getByRole("region", { name: "Deposits and refunds" });
-    await expect(refunds.getByRole("link", { name: `View refund for ${f.title}` })).toHaveAttribute(
+    await refunds.getByRole("link", { name: `View refund for ${String(f.event().title)}` }).click();
+    await expect(page).toHaveURL(new RegExp(`/events/${eventId}/commit#refund$`));
+    const receipt = page.getByRole("region", { name: "Refund receipt" });
+    await expect(receipt).toContainText("1.00 USDC refunded");
+    await expect(receipt).toContainText("Paid to attendee-1.near on NEAR.");
+    await expect(receipt.getByRole("link", { name: "View refund transaction" })).toHaveAttribute(
       "href",
-      `/events/${eventId}/commit#refund`,
+      `https://nearblocks.io/txns/${hash}`,
     );
-    await f.enter(context, 2);
     await page.reload();
-    await expect(refunds.getByRole("link", { name: /View refund/ })).toHaveCount(0);
+    await expect(receipt).toBeVisible();
+    await f.enter(context, 2);
+    expect(await readV1PaidRefund(pool, config, sessions[2], eventId)).toBeNull();
+    await page.reload();
+    await expect(receipt).toHaveCount(0);
   } finally {
     await f.cleanup();
   }

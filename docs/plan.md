@@ -174,7 +174,11 @@ selections and a new proof can add it again. Existing payout claims keep their
 original destination. The empty receipts screen explains that payment history
 follows the Showup account used to deposit. The build, 10 focused database
 tests and 9 Chrome tests passed, including payout to the original wallet after
-removal and selection among multiple wallets.
+removal and selection among multiple wallets. The paid refund receipt now opens
+from the original account link using the verified payment record, even when live
+chain reads fail. Pending withdrawals continue to use live checks. Chrome
+verified the original link, receipt after reload and access limited to the
+account that paid.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency

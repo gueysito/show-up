@@ -463,6 +463,42 @@ export async function requestV1Withdrawal(
     return result;
   });
 }
+export async function readV1PaidRefund(
+  pool: pg.Pool,
+  config: AuthConfig,
+  session: string,
+  eventId: string,
+) {
+  if (!isUuid(eventId)) return null;
+  const own = await ownedV1Registration(pool, config.encryptionKey, session, eventId, true);
+  if (own?.row.state !== "funded") return null;
+  const { rows } = await pool.query<V1ActionRow & { title: string }>(
+    `SELECT w.*, e.data->>'title' AS title
+       FROM app_v1_event_actions w JOIN app_events e ON e.id=w.event_id
+      WHERE w.event_id=$1 AND w.account_id=$2 AND w.target=$3
+        AND w.kind='withdraw' AND w.state='verified' AND w.source_height IS NOT NULL
+        AND w.transaction_hash IS NOT NULL
+        AND EXISTS (SELECT 1 FROM app_v1_event_actions c
+          WHERE c.event_id=w.event_id AND c.kind='cancel' AND c.state='verified'
+            AND c.source_height<=w.source_height)
+      ORDER BY w.attempt DESC LIMIT 1`,
+    [eventId, own.row.account_id, own.image.id],
+  );
+  const payment = rows[0];
+  if (!payment?.transaction_hash || !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(payment.transaction_hash))
+    return null;
+  // The worker only marks a withdrawal verified after the token transfer completes.
+  const withdrawal = storedV1Action(config.encryptionKey, payment);
+  const paid = unsigned(withdrawal.amount, 128) + unsigned(withdrawal.previousPaid, 128);
+  if (withdrawal.recipient !== own.image.payout || paid !== BigInt(own.image.amount)) return null;
+  return {
+    title: payment.title,
+    amount: paid,
+    payout: own.image.payout,
+    transactionUrl: v1TransactionUrl(payment.transaction_hash),
+  };
+}
+
 export async function readV1OwnReceipt(
   pool: pg.Pool,
   config: AuthConfig,

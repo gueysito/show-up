@@ -18,14 +18,14 @@ import { validateV1Action, observeV1Action } from "../../src/worker/v1-action-ob
 import type { V1ActionGateway } from "../../src/worker/v1-actions";
 import type { V1ActionImage } from "../../src/server/events/v1-actions";
 
-export async function v1EventFixture() {
+export async function v1EventFixture(keys?: { encryption: string; index: string }) {
   const f = await accountFixtures([["host"], [], ["host"]]),
-    key = randomBytes(32).toString("hex"),
+    key = keys?.encryption ?? randomBytes(32).toString("hex"),
     config = authConfig({
       SHOWUP_AUTH: "1",
       SHOWUP_AUTH_ORIGIN: "https://localhost:3444",
       SHOWUP_IDENTITY_KEY: key,
-      SHOWUP_IDENTITY_INDEX_KEY: randomBytes(32).toString("hex"),
+      SHOWUP_IDENTITY_INDEX_KEY: keys?.index ?? randomBytes(32).toString("hex"),
     })!;
   const sessions = f.accounts.map((a) => hash(a.value)),
     eventId = randomUUID(),
@@ -216,7 +216,7 @@ export async function v1EventFixture() {
       async prepare(image) {
         await validateV1Action(image, await readV1Snapshot(eventId, liveTransport), liveTransport);
         const s = signed(canonicalHash(image));
-        s.hash = encodeBase58(Buffer.from(image.id.replaceAll("-", ""), "hex"));
+        s.hash = encodeBase58(Buffer.from(canonicalHash(image), "hex"));
         images.set(s.hash, image);
         return s;
       },
