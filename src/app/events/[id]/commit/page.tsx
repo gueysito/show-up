@@ -62,6 +62,7 @@ export default async function CommitmentPage({ params }: { params: Promise<{ id:
         <>
           {event.registration !== "closed" && event.viewer !== "recovery" && (
             <V1Deposit
+              key={id}
               eventId={id}
               rulesHash={event.rulesHash}
               amount={event.data.commitment}

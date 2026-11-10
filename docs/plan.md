@@ -152,16 +152,18 @@ The event page returned 404 to an anonymous request. The hosted
 [cancellation](https://nearblocks.io/txns/7x1XTK7Ze1SJNvABZhFdADZjFL1sAWVfmXrE8Y3rsmxZ)
 and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
 finalized on NEAR. Both sources confirmed 1 USDC paid and zero remaining at
-finalized height 223839492. Next: validate the release pull request.
+finalized height 223839492.
 
-Deferred V1 polish: increase the font size and choose a more readable typeface.
-Check the NEAR Mobile return to Chrome after wallet verification. The owner
-returned to Chrome manually and completed verification.
-After a confirmed deposit, briefly highlight the green success message and
-keep it visible. Distinguish wallet approval from the wait for confirmation.
-Show a prominent message that names the missing balance when USDC or NEAR gas
-is insufficient. Make the refund receipt easier to find from the event and
-account pages. The owner needed the direct link during the hosted test.
+V1-9 polish implemented locally. Body text and controls use a larger system
+font. When the original tab regains focus after NEAR Mobile verification,
+Showup checks the existing request. Deposits show separate wallet approval and
+escrow confirmation states, highlight confirmed funding, and show the receipt
+link when verified. Balance alerts distinguish native USDC from NEAR gas. The
+cancelled event and account link to the refund, with ready, pending and paid
+states. The build, 134 unit tests, 195 database tests and 52 local Chrome cases
+passed. An isolated browser also verified delayed confirmation, refresh recovery
+and reduced motion. Next is owner approval for the web rollout and a phone
+walkthrough.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency

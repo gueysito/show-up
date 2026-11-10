@@ -57,6 +57,7 @@ export function V1Deposit({
   const [sourceWalletId, setSourceWalletId] = useState(near.length === 1 ? near[0].id : "");
   const selectedSource = sources.find((wallet) => wallet.id === sourceWalletId);
   const [routing, setRouting] = useState(false);
+  const [checkingEscrow, setCheckingEscrow] = useState(false);
   const [consent, setConsent] = useState(false),
     [status, setStatus] = useState<Status | null>(null),
     [message, setMessage] = useState(""),
@@ -69,38 +70,42 @@ export function V1Deposit({
     operationId: string;
   } | null>(null);
   useEffect(() => {
-    if (!routing) return;
+    if (!routing && !checkingEscrow) return;
     const controller = new AbortController();
     async function poll() {
       try {
-        for (let attempt = 0; attempt < 12; attempt++) {
+        const maxChecks = routing ? 12 : 6;
+        for (let attempt = 0; attempt < maxChecks; attempt++) {
           const response = await fetch(`/api/commitments/mainnet?event=${eventId}`, {
             cache: "no-store",
             signal: controller.signal,
           });
           const result = await response.json();
           if (!response.ok)
-            throw new Error(result.error ?? "Routing status unavailable. Check again shortly.");
+            throw new Error(result.error ?? "Deposit status unavailable. Check again shortly.");
           if (controller.signal.aborted) return;
           setStatus(result);
           if (result.funded) {
             setMessage("Escrow confirms your deposit. Your seat is funded.");
             return;
           }
-          await new Promise((resolve) => setTimeout(resolve, 5000));
+          if (attempt + 1 < maxChecks) await new Promise((resolve) => setTimeout(resolve, 5000));
           if (controller.signal.aborted) return;
         }
-        setMessage("The original route is still pending. Check deposit status; do not pay twice.");
+        setMessage("The deposit is still pending. Tap Check deposit status to check again.");
       } catch (error) {
         if (!controller.signal.aborted)
-          setMessage(error instanceof Error ? error.message : "Check the original routing status.");
+          setMessage(error instanceof Error ? error.message : "Check the original deposit status.");
       } finally {
-        if (!controller.signal.aborted) setRouting(false);
+        if (!controller.signal.aborted) {
+          setRouting(false);
+          setCheckingEscrow(false);
+        }
       }
     }
     void poll();
     return () => controller.abort();
-  }, [routing, eventId]);
+  }, [routing, checkingEscrow, eventId]);
   useEffect(() => {
     // Transaction hashes and wallet errors are untrusted return parameters.
     if (window.location.search) window.history.replaceState(null, "", window.location.pathname);
@@ -112,23 +117,32 @@ export function V1Deposit({
       .then(async (response) => {
         if (!response.ok) return;
         const initial: Status = await response.json();
-        setStatus(initial);
-        if (!initial.funded || initial.sourceNetwork !== "near" || initial.depositTransactionUrl)
-          return;
-        const receipt = await postDepositAction(eventId, "confirm", {}, controller.signal);
-        if (!receipt.ok) return;
-        const result: Status = await receipt.json();
-        if (result.depositTransactionUrl) {
-          setStatus((current) =>
-            current?.registrationId === result.registrationId && current?.funded
-              ? { ...current, depositTransactionUrl: result.depositTransactionUrl }
-              : current,
-          );
-        }
+        if (!controller.signal.aborted) setStatus((current) => current ?? initial);
       })
       .catch(() => {});
     return () => controller.abort();
   }, [eventId]);
+  const missingReceipt =
+    status?.funded && status.sourceNetwork === "near" && !status.depositTransactionUrl
+      ? status.registrationId
+      : undefined;
+  useEffect(() => {
+    if (!missingReceipt) return;
+    const controller = new AbortController();
+    postDepositAction(eventId, "confirm", {}, controller.signal)
+      .then(async (response) => {
+        if (!response.ok) return;
+        const result: Status = await response.json();
+        if (controller.signal.aborted || result.registrationId !== missingReceipt) return;
+        setStatus((current) =>
+          current?.registrationId === missingReceipt && result.depositTransactionUrl
+            ? { ...current, depositTransactionUrl: result.depositTransactionUrl }
+            : current,
+        );
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [eventId, missingReceipt]);
   async function prepareWalletPayment(
     kind: "pay" | "storage",
   ): Promise<NearWalletPayment | { ready: true }> {
@@ -226,9 +240,14 @@ export function V1Deposit({
       aria-label="NEAR USDC deposit"
       style={{ overflowWrap: "anywhere" }}
     >
-      <h2 className={status?.funded ? "deposit-confirmed" : undefined}>
-        {status?.funded ? "Deposit confirmed" : "Deposit USDC on NEAR"}
-      </h2>
+      {status?.funded ? (
+        <div className="deposit-confirmed" role="status">
+          <h2>Deposit confirmed</h2>
+          <p>{`${amount} USDC received by escrow. Your seat is funded.`}</p>
+        </div>
+      ) : (
+        <h2>Deposit USDC on NEAR</h2>
+      )}
       <p>
         {sourceNetwork === "near"
           ? `${amount} USDC commitment. Pay from your verified NEAR wallet; refunds go to that same wallet.`
@@ -383,21 +402,24 @@ export function V1Deposit({
           <NearWalletPaymentButton
             key={`deposit:${status.registrationId}`}
             scope={`deposit:${status.registrationId}`}
-            disabled={busy}
+            disabled={busy || checkingEscrow}
             prepare={() => prepareWalletPayment("pay")}
-            confirm={() => action("confirm")}
+            confirm={() => {
+              setMessage("Waiting for NEAR to confirm that escrow received your deposit…");
+              setCheckingEscrow(true);
+              return Promise.resolve();
+            }}
           />
           <button
             type="button"
             className="secondary-button"
-            disabled={busy}
+            disabled={busy || checkingEscrow}
             onClick={() => action("confirm")}
           >
             Confirm my deposit
           </button>
         </>
       )}
-      {status?.funded && <p role="status">Your seat is funded. Do not send another deposit.</p>}
       {status?.depositTransactionUrl && (
         <p>
           <a
@@ -410,6 +432,11 @@ export function V1Deposit({
           </a>
         </p>
       )}
+      {missingReceipt && (
+        <p>
+          The transaction link will appear once verified. Tap Check deposit status to check again.
+        </p>
+      )}
       {status?.recovery && BigInt(status.recovery) > 0n && (
         <p>{`${formatUsdc(BigInt(status.recovery))} USDC is held for recovery to your refund wallet; it does not create another seat.`}</p>
       )}
@@ -418,7 +445,12 @@ export function V1Deposit({
           Registration failed. Its original transaction is retained for review. Do not send USDC.
         </p>
       )}
-      <button type="button" className="secondary-button" disabled={busy} onClick={check}>
+      <button
+        type="button"
+        className="secondary-button"
+        disabled={busy || checkingEscrow}
+        onClick={check}
+      >
         Check deposit status
       </button>
       {status?.transactionUrl && (
@@ -428,7 +460,7 @@ export function V1Deposit({
           </a>
         </p>
       )}
-      {message && <p role="status">{message}</p>}
+      {message && !status?.funded && <p role="status">{message}</p>}
     </section>
   );
 }

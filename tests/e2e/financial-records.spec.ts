@@ -1,10 +1,45 @@
 import { expect, test } from "@playwright/test";
+import { randomUUID } from "node:crypto";
 import { financialFixtures } from "../fixtures/financial-records";
 
 test.use({
   baseURL: "https://localhost:3444",
   ignoreHTTPSErrors: true,
   timezoneId: "Pacific/Auckland",
+});
+
+test("an attendee can find their cancelled event refund from their account", async ({
+  page,
+  context,
+}) => {
+  const f = await financialFixtures("near");
+  const eventId = f.consent.terms.event;
+  try {
+    await f.pool.query(
+      `INSERT INTO app_v1_registrations(id,event_id,account_id,payout_index,image_hash,encrypted_image,state)
+       VALUES ($1,$2,$3,$4,$4,'receipt-navigation-fixture','funded')`,
+      [randomUUID(), eventId, f.accounts[0].id, "e".repeat(64)],
+    );
+    await f.pool.query(
+      `INSERT INTO app_v1_event_actions(id,event_id,account_id,kind,target,attempt,image_hash,encrypted_image,state)
+       VALUES ($1,$2,$3,'cancel',$2::uuid::text,1,$4,'receipt-navigation-fixture','verified')`,
+      [randomUUID(), eventId, f.accounts[1].id, "f".repeat(64)],
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await f.enter(context, 0);
+    await page.goto("/account");
+    await page.getByRole("link", { name: "View deposits and refunds" }).click();
+    const refunds = page.getByRole("region", { name: "Deposits and refunds" });
+    await expect(refunds.getByRole("link", { name: `View refund for ${f.title}` })).toHaveAttribute(
+      "href",
+      `/events/${eventId}/commit#refund`,
+    );
+    await f.enter(context, 2);
+    await page.reload();
+    await expect(refunds.getByRole("link", { name: /View refund/ })).toHaveCount(0);
+  } finally {
+    await f.cleanup();
+  }
 });
 
 test("own reconciliation reports waiting, unavailable and persistent conflict without claiming a funded seat", async ({

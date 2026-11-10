@@ -32,6 +32,7 @@ export default async function CommitmentsPage({
     activeAccount = false,
     available = Boolean(config),
     records: OwnFinancialRecord[] = [],
+    receipts: { eventId: string; title: string; cancelled: boolean }[] = [],
     nextCursor: string | null = null;
   if (config) {
     const { pool } = createDatabase();
@@ -39,7 +40,7 @@ export default async function CommitmentsPage({
       const session = await findPrivacySession(pool, (await cookies()).get(sessionCookie)?.value);
       signedIn = Boolean(session);
       activeAccount = session?.state === "active";
-      if (session)
+      if (session) {
         ({ records, nextCursor } = await listOwnFinancialRecords(
           pool,
           config,
@@ -47,6 +48,20 @@ export default async function CommitmentsPage({
           query.before,
           query.event,
         ));
+        ({ rows: receipts } = await pool.query<(typeof receipts)[number]>(
+          `SELECT e.id AS "eventId",e.data->>'title' AS title,
+              EXISTS(SELECT 1 FROM app_v1_event_actions a WHERE a.event_id=e.id
+                AND a.kind='cancel' AND a.state='verified') AS cancelled
+             FROM app_v1_registrations r JOIN app_events e ON e.id=r.event_id
+             JOIN app_sessions s ON s.account_id=r.account_id
+             JOIN app_accounts a ON a.id=s.account_id
+             WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
+             AND a.state IN ('active','deletion_requested')
+             AND r.state='funded' AND ($2::uuid IS NULL OR e.id=$2)
+             ORDER BY r.created_at DESC,r.id DESC LIMIT 50`,
+          [session.tokenHash, query.event ?? null],
+        ));
+      }
     } catch {
       available = false;
     } finally {
@@ -59,6 +74,27 @@ export default async function CommitmentsPage({
         Back to your account
       </Link>
       <h1>Your financial authorizations</h1>
+      {available && signedIn && (
+        <section id="event-receipts" className="saved-panel" aria-label="Deposits and refunds">
+          <h2>Deposits and refunds</h2>
+          {receipts.length ? (
+            <ul>
+              {receipts.map(({ eventId, title, cancelled }) => (
+                <li key={eventId}>
+                  <Link
+                    href={`/events/${eventId}/commit${cancelled ? "#refund" : ""}`}
+                    prefetch={false}
+                  >
+                    {`${cancelled ? "View refund" : "View deposit and receipt"} for ${title}`}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>Your funded event receipts will appear here.</p>
+          )}
+        </section>
+      )}
       {query.event && (
         <p>
           <Link href="/account/commitments" prefetch={false}>
@@ -66,10 +102,6 @@ export default async function CommitmentsPage({
           </Link>
         </p>
       )}
-      <p>
-        These records show the event terms you reviewed or approved. A signature does not confirm a
-        deposit or book a seat.
-      </p>
       {!available ? (
         <p role="alert">Financial records are temporarily unavailable. Reload to try again.</p>
       ) : !signedIn ? (
@@ -80,11 +112,9 @@ export default async function CommitmentsPage({
         </p>
       ) : (
         <section aria-label="Your financial records">
+          <h2>Reviewed event terms</h2>
+          <p>These authorizations record the terms you reviewed or approved for an event.</p>
           {!records.length && <p>No financial authorizations are saved on this account.</p>}
-          <p>
-            Funding remains unavailable while attributable escrow and authorized returns are being
-            verified.
-          </p>
           {records.map((record) => (
             <article key={record.id} className="saved-panel">
               <h2>{record.eventTitle}</h2>

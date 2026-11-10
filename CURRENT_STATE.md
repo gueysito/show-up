@@ -34,6 +34,8 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   The hosted [1-USDC deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R)
   and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
   finalized on NEAR. V1-8 remains stretch.
+- The six V1 polish items are implemented and verified locally. Next is owner
+  approval to deploy the web update, followed by a short phone walkthrough.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
-  branch run. Next: resolve billing, publish the release branch, and open its
-  pull request. Merging requires owner approval.
+  branch run. After the phone walkthrough, resolve billing, publish the release
+  branch, and open its pull request. Merging requires owner approval.

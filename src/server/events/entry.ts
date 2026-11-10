@@ -9,6 +9,7 @@ import { readV1PublishedTerms, type V1PublicEscrow } from "./v1-publication";
 
 export type EventEntry = {
   canManage?: boolean;
+  hasV1Registration: boolean;
   escrow?: V1PublicEscrow;
   id: string;
   state: string;
@@ -64,7 +65,8 @@ export async function readEventEntry(
     const row = (
       await client.query(
         `SELECT e.*,EXISTS(SELECT 1 FROM app_event_validators v WHERE v.event_id=e.id AND v.account_id=$2
-       AND v.revoked_at IS NULL AND v.assigned_at<=e.published_at) AS assigned
+       AND v.revoked_at IS NULL AND v.assigned_at<=e.published_at) AS assigned,
+       EXISTS(SELECT 1 FROM app_v1_registrations r WHERE r.event_id=e.id AND r.account_id=$2) AS registered_v1
        FROM app_events e WHERE e.id=$1 AND e.state<>'draft'
        AND (e.data->>'access'='open' OR e.owner_id=$2
          OR EXISTS(SELECT 1 FROM app_event_access x WHERE x.event_id=e.id AND x.account_id=$2)
@@ -84,6 +86,7 @@ export async function readEventEntry(
       rulesHash: row.rules_hash,
       hostAlias: eventHostAlias(config, row.id, row.owner_id),
       canManage: Boolean(actor && row.owner_id === actor.id),
+      hasV1Registration: row.registered_v1 === true,
       viewer: !actor
         ? "anonymous"
         : actor.state === "deletion_requested"

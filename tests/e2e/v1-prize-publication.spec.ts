@@ -116,7 +116,7 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     let confirmed = false;
     let prepared = 0;
     let relayCreates = 0;
-    let insufficient = true;
+    let shortage: "usdc" | "near" | null = "usdc";
     let relayStatus = "pending";
     const relay = "https://near-mobile-production.aws.peersyst.tech/connector/request";
     const relayId = randomUUID();
@@ -168,12 +168,14 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
         route.request().postDataJSON().operation === "fund-prize"
       ) {
         prepared++;
-        if (insufficient)
+        if (shortage)
           return route.fulfill({
             status: 422,
             json: {
               error:
-                "This wallet has 0.00 native USDC on NEAR. It needs 1.00 USDC before approval. This account has 5.00 USDC in NEAR Intents. Withdraw it to this wallet on NEAR, then retry.",
+                shortage === "usdc"
+                  ? "This wallet has 0.00 native USDC on NEAR. It needs 1.00 USDC before approval. This account has 5.00 USDC in NEAR Intents. Withdraw it to this wallet on NEAR, then retry."
+                  : "This wallet needs a 0.16 NEAR gas reserve available before approval. Add NEAR to this wallet and try again.",
             },
           });
         return route.fulfill({
@@ -204,7 +206,14 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
       "This account has 5.00 USDC in NEAR Intents. Withdraw it to this wallet on NEAR",
     );
     expect(relayCreates).toBe(0);
-    insufficient = false;
+    shortage = "near";
+    await pay.click();
+    await expect(actions.getByRole("alert")).toContainText(
+      "Add NEAR to this wallet and try again.",
+    );
+    await expect(actions.getByRole("alert")).toHaveClass("wallet-payment-alert");
+    expect(relayCreates).toBe(0);
+    shortage = null;
     await pay.click();
     const launch = actions.getByRole("link", { name: "Open NEAR Mobile" });
     const appLink = `near-mobile-wallet://connector-request?id=${relayId}`;
@@ -216,9 +225,9 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     await page.getByRole("button", { name: "Check publication status" }).click();
     await expect(launch).toHaveAttribute("href", appLink);
     await expect(
-      actions.getByText("The original wallet request is still waiting for approval."),
+      actions.getByText("Waiting for approval in NEAR Mobile. Return to this tab after approving."),
     ).toBeVisible();
-    expect([prepared, relayCreates]).toEqual([2, 1]);
+    expect([prepared, relayCreates]).toEqual([3, 1]);
     expect(confirmed).toBe(false);
     relayStatus = "approved";
     await actions.getByRole("button", { name: "Check original wallet approval" }).click();

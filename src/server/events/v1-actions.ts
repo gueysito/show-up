@@ -501,7 +501,7 @@ export async function readV1OwnReceipt(
   if (share < 0n) throw new Error("V1 claim conservation mismatch");
   const actions = (
     await pool.query(
-      "SELECT id,kind,state,transaction_hash FROM app_v1_event_actions WHERE event_id=$1 AND (account_id=$2 OR kind IN ('settle','cancel')) ORDER BY created_at,id",
+      "SELECT id,kind,state,target,transaction_hash FROM app_v1_event_actions WHERE event_id=$1 AND (account_id=$2 OR kind IN ('settle','cancel')) ORDER BY created_at,id",
       [eventId, own.row.account_id],
     )
   ).rows;
@@ -524,6 +524,12 @@ export async function readV1OwnReceipt(
     share: share.toString(),
     prize: prize.toString(),
     claim,
+    withdrawalQueued: actions.some(
+      (action) =>
+        action.kind === "withdraw" &&
+        action.target === own.image.id &&
+        ["requested", "prepared", "submitted"].includes(action.state),
+    ),
     recovery,
     nft: event.nft
       ? {

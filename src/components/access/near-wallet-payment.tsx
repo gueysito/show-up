@@ -73,9 +73,14 @@ export function NearWalletPaymentButton({
       }
       if (status === "pending" && active.expiresAt > Date.now()) {
         setShowLink(true);
-        setMessage("The original wallet request is still waiting for approval.");
+        setMessage("Waiting for approval in NEAR Mobile. Return to this tab after approving.");
         return;
       }
+      setMessage(
+        status === "approved"
+          ? "Wallet approval received. Checking the original payment on NEAR…"
+          : "Checking the original payment on NEAR…",
+      );
       setShowLink(false);
       if (status === "expired" && allowExpiredRestart && Date.now() >= active.expiresAt + 60_000) {
         // A replacement still requires a fresh server check of the original
@@ -98,7 +103,7 @@ export function NearWalletPaymentButton({
   }
 
   const checkOnReturn = useEffectEvent(async (active: Attempt) => {
-    if (checking.current || busy || document.visibilityState !== "visible") return;
+    if (checking.current || busy || disabled || document.visibilityState !== "visible") return;
     checking.current = true;
     try {
       await check(active);
@@ -165,7 +170,7 @@ export function NearWalletPaymentButton({
         // A browser may require a fresh tap by the time both RPCs and the
         // wallet relay have responded. Keep the same request ready below.
         if (navigator.userActivation?.isActive) window.location.assign(nearMobileAppUrl(active.id));
-        setMessage("Open NEAR Mobile and approve this payment, then return to Showup.");
+        setMessage("Approve in NEAR Mobile, then switch back to this Showup tab.");
         return;
       }
       const payment = await prepare();
@@ -256,7 +261,7 @@ export function NearWalletPaymentButton({
         </button>
       )}
       {failure ? (
-        <p className="field-error" role="alert">
+        <p className="wallet-payment-alert" role="alert">
           {failure}
         </p>
       ) : message || busy ? (

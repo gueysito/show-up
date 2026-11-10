@@ -24,6 +24,7 @@ type View = {
   share?: string;
   prize?: string;
   claim: Claim;
+  withdrawalQueued?: boolean;
   recovery?: Claim;
   roster?: { alias: string; funded: boolean; attended: boolean; winner: boolean }[];
   actions: Action[];
@@ -137,13 +138,17 @@ export function V1EventConsole({
     closing = view?.actions.some(
       (a) => ["settle", "cancel"].includes(a.kind) && a.state !== "failed",
     );
+  const refund = !host && view?.status === "cancelled" && view.funded;
+  const withdrawalPending = view?.claim.pending || view?.withdrawalQueued;
   return (
     <section
       className="saved-panel"
       aria-label={host ? "Host mainnet controls" : "Check-in and receipt"}
       style={{ overflowWrap: "anywhere" }}
     >
-      <h2>{host ? "Event controls" : "Your check-in and receipt"}</h2>
+      <h2 id={host ? undefined : "refund"}>
+        {host ? "Event controls" : refund ? "Your refund" : "Your check-in and receipt"}
+      </h2>
       <p role="status" aria-live="polite">
         {message || (view ? `Contract status: ${view.status}.` : "Loading the contract receipt…")}
       </p>
@@ -312,13 +317,24 @@ export function V1EventConsole({
           )}
           {(host ? terminal : true) && (
             <>
+              {refund && (
+                <p className="refund-status" role="status">
+                  {view.claim.paid !== "0" && view.claim.remaining === "0" && !view.claim.pending
+                    ? "Refund paid to your NEAR wallet."
+                    : withdrawalPending
+                      ? "Refund pending. We’re checking the original withdrawal."
+                      : BigInt(view.claim.remaining) > 0n
+                        ? "Refund ready to withdraw."
+                        : "Waiting for your refund to appear."}
+                </p>
+              )}
               <p>
                 {`USDC paid: ${formatUsdc(BigInt(view.claim.paid))}. Ready to withdraw: ${formatUsdc(BigInt(view.claim.remaining))}.`}
               </p>
-              {view.claim.pending && (
+              {withdrawalPending && !refund && (
                 <p>The original token transfer is pending. Do not request another.</p>
               )}
-              {BigInt(view.claim.remaining) > 0n && !view.claim.pending && (
+              {BigInt(view.claim.remaining) > 0n && !withdrawalPending && (
                 <button
                   type="button"
                   disabled={busy}

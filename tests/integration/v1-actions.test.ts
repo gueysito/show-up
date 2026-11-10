@@ -120,6 +120,10 @@ test("owned live-code check-in survives an unknown write; close waits, then rece
       "deposit",
       transport,
     );
+    assert.equal(
+      (await readV1OwnReceipt(pool, config, sessions[1], eventId, transport))!.withdrawalQueued,
+      true,
+    );
     f.failTransfer(true);
     assert.equal((await runV1Action(pool, key, gateway)).state, "failed");
     assert.equal(
@@ -141,10 +145,9 @@ test("owned live-code check-in survives an unknown write; close waits, then rece
     assert.notEqual(retry.actionId, payout.actionId);
     f.failTransfer(false);
     assert.equal((await runV1Action(pool, key, gateway)).state, "verified");
-    assert.equal(
-      (await readV1OwnReceipt(pool, config, sessions[1], eventId, transport))!.claim.paid,
-      "2000000",
-    );
+    const paid = (await readV1OwnReceipt(pool, config, sessions[1], eventId, transport))!;
+    assert.equal(paid.claim.paid, "2000000");
+    assert.equal(paid.withdrawalQueued, false);
     const row = (
       await pool.query("SELECT encrypted_image FROM app_v1_event_actions WHERE id=$1", [
         accepted.actionId,

@@ -51,8 +51,16 @@ test("the front door leads to real host access and a local V1 preview without fu
   );
   await expect(page.getByRole("button", { name: "Publish event on mainnet" })).toHaveCount(0);
   for (const width of [1440, 390, 320]) {
-    await page.goto("/");
     await page.setViewportSize({ width, height: 900 });
+    await page.goto("/preview");
+    await expect(page.getByLabel("Refundable commitment (USDC)", { exact: true })).toHaveCSS(
+      "font-size",
+      "16px",
+    );
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.goto("/");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );

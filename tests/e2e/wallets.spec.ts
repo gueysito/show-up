@@ -392,7 +392,12 @@ test("NEAR Mobile handoff sends a message only and rejects a response for anothe
     expect(url.pathname).toBe("/api/deep-link");
     expect(url.searchParams.get("path")).toBe("connector-request");
     expect(url.searchParams.get("params")).toBe(`id=${relayId}`);
-    await page.getByRole("button", { name: "Check NEAR Mobile approval" }).click();
+    // Simulate leaving for the wallet and bringing the original tab back.
+    await launch.evaluate((link) =>
+      link.addEventListener("click", (event) => event.preventDefault()),
+    );
+    await launch.click();
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
     await expect(
       page.getByRole("region", { name: "Wallet control" }).getByRole("alert"),
     ).toContainText("Could not read the NEAR Mobile approval");

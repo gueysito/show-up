@@ -130,8 +130,8 @@ export async function prepareV1WalletPayment(
     throw new AppFailure(
       422,
       purpose === "storage"
-        ? "This wallet needs 0.16125 NEAR available for USDC registration and gas."
-        : "This wallet needs a separate 0.16 NEAR gas reserve available before approval.",
+        ? "This wallet needs 0.16125 NEAR available for USDC registration and gas. Add NEAR to this wallet and try again."
+        : "This wallet needs a 0.16 NEAR gas reserve available before approval. Add NEAR to this wallet and try again.",
     );
   const build =
     purpose === "storage"

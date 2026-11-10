@@ -53,6 +53,11 @@ export default async function AccountPage({
           </Link>
         </p>
         <p>
+          <Link href="/account/commitments#event-receipts" prefetch={false}>
+            View deposits and refunds
+          </Link>
+        </p>
+        <p>
           <Link href="/account/commitments" prefetch={false}>
             Review your financial authorizations
           </Link>
@@ -98,6 +103,11 @@ export default async function AccountPage({
           <p>{`Linked providers: ${linked.join(", ")}`}</p>
           <p>
             <Link href="/account/wallets">Verify and review your wallets</Link>
+          </p>
+          <p>
+            <Link href="/account/commitments#event-receipts" prefetch={false}>
+              View deposits and refunds
+            </Link>
           </p>
           <p>
             <Link href="/account/commitments" prefetch={false}>

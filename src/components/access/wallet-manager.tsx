@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { WalletChallenge, WalletSignature } from "../../server/wallets/proof";
 import type { OwnWallet } from "../../server/wallets/service";
 import {
@@ -108,6 +108,8 @@ export function WalletManager({
   const [nearAccount, setNearAccount] = useState("");
   const [selectedApp, setSelectedApp] = useState<WalletApp | null>(openedWallet ?? null);
   const [nearApproval, setNearApproval] = useState<NearMobileProofRequest | null>(null);
+  const launchedNearApproval = useRef<string | null>(null);
+  const verifying = useRef(false);
   const [wallets, setWallets] = useState(initialWallets);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
@@ -135,6 +137,27 @@ export function WalletManager({
     return () => window.removeEventListener("eip6963:announceProvider", announced);
   }, []);
   useEffect(() => () => rabbyAttempt.current?.abort(), []);
+  const checkNearReturn = useEffectEvent(() => {
+    if (
+      !busy &&
+      nearApproval &&
+      launchedNearApproval.current === nearApproval.id &&
+      document.visibilityState === "visible"
+    )
+      void verify();
+  });
+  useEffect(() => {
+    if (!nearApproval) return;
+    function returned() {
+      checkNearReturn();
+    }
+    window.addEventListener("focus", returned);
+    document.addEventListener("visibilitychange", returned);
+    return () => {
+      window.removeEventListener("focus", returned);
+      document.removeEventListener("visibilitychange", returned);
+    };
+  }, [nearApproval]);
   useEffect(() => {
     if (rabbyPrompt && document.visibilityState === "visible") rabbyLink.current?.focus();
   }, [rabbyPrompt]);
@@ -209,6 +232,8 @@ export function WalletManager({
   }
 
   async function verify(app = selectedApp) {
+    if (verifying.current) return;
+    verifying.current = true;
     setBusy(true);
     setNotice(null);
     setLaunchLink(null);
@@ -420,6 +445,7 @@ export function WalletManager({
       rabby?.close();
       rabbyAttempt.current = null;
       setRabbyPrompt(null);
+      verifying.current = false;
       setBusy(false);
     }
   }
@@ -526,11 +552,17 @@ export function WalletManager({
       )}
       {nearApproval && (
         <div>
-          <p>Approve the message in your wallet, then return here and check approval.</p>
+          <p>
+            Approve the message in NEAR Mobile, then switch back to this Showup tab. We’ll check the
+            same request when you return. You can also tap Check NEAR Mobile approval below.
+          </p>
           <a
             href={nearMobileApprovalUrl(nearApproval.id)}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => {
+              launchedNearApproval.current = nearApproval.id;
+            }}
           >
             Open NEAR Mobile
           </a>
