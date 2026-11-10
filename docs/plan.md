@@ -168,6 +168,14 @@ highlight and balance alert, and anonymous access to the test event returned
 404. Next is the phone walkthrough for readability, wallet return and refund
 navigation.
 
+V1-9 follow-up adds **Remove wallet** beside each saved wallet, with the network
+and address visible before confirmation. Removal hides that wallet from new
+selections and a new proof can add it again. Existing payout claims keep their
+original destination. The empty receipts screen explains that payment history
+follows the Showup account used to deposit. The build, 10 focused database
+tests and 9 Chrome tests passed, including payout to the original wallet after
+removal and selection among multiple wallets.
+
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.

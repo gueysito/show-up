@@ -239,6 +239,28 @@ test("preauthenticated disposable wallets: control verification, refresh and mob
     } finally {
       await otherContext.close();
     }
+    const removeBase = page.getByRole("button", {
+      name: `Remove wallet Base ${wallet.ethereumAddress}`,
+    });
+    await removeBase.click();
+    const removal = page.getByRole("group", {
+      name: `Remove Base wallet ${wallet.ethereumAddress}`,
+    });
+    await removal.getByRole("button", { name: "Keep wallet" }).click();
+    await expect(removeBase).toBeFocused();
+    await removeBase.click();
+    await removal.getByRole("button", { name: "Confirm removal" }).click();
+    await expect(page.getByRole("status")).toContainText(
+      "Wallet removed from your Showup account.",
+    );
+    await page.reload();
+    await expect(removeBase).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: `Remove wallet Ethereum ${wallet.ethereumAddress}` }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: `Remove wallet Solana ${wallet.solanaAddress}` }),
+    ).toBeVisible();
     expect(errors).toEqual([]);
   } finally {
     await fixtures.cleanup();

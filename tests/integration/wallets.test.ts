@@ -20,6 +20,7 @@ import {
   acceptWalletProof,
   issueWalletChallenge,
   listOwnWallets,
+  removeOwnWallet,
 } from "../../src/server/wallets/service";
 
 if (process.env.SHOWUP_ENV !== "test")
@@ -247,6 +248,42 @@ test("account/session swaps and changed messages cannot redeem another wallet au
     proof,
   });
   assert.equal((await listOwnWallets(pool, config, other.accountId)).length, 0);
+});
+
+test("removal is account scoped and only a fresh challenge can restore the selected wallet", async () => {
+  const actor = await login(),
+    other = await login();
+  const wallet = edWallet("solana"),
+    keep = edWallet("solana");
+  const challengeFor = (address: string) =>
+    issueWalletChallenge(pool, config, actor.session, {
+      operationId: randomUUID(),
+      network: "solana",
+      address,
+    });
+  const prove = (challenge: WalletChallenge, signer: typeof wallet) =>
+    acceptWalletProof(pool, config, actor.session, {
+      operationId: randomUUID(),
+      challengeId: challenge.id,
+      proof: signer.sign(challenge),
+    });
+  const removed = await prove(await challengeFor(wallet.address), wallet);
+  const retained = await prove(await challengeFor(keep.address), keep);
+  const stale = await challengeFor(wallet.address);
+  const removal = { walletId: removed.id, operationId: randomUUID() };
+  await assert.rejects(removeOwnWallet(pool, config, other.session, removal), status(404));
+  assert.deepEqual(await removeOwnWallet(pool, config, actor.session, removal), {
+    walletId: removed.id,
+  });
+  assert.deepEqual(await listOwnWallets(pool, config, actor.accountId), [retained]);
+  await assert.rejects(prove(stale, wallet), status(409));
+  const restored = await prove(await challengeFor(wallet.address), wallet);
+  assert.equal(restored.id, removed.id);
+  await removeOwnWallet(pool, config, actor.session, removal);
+  assert.deepEqual(
+    new Set((await listOwnWallets(pool, config, actor.accountId)).map(({ id }) => id)),
+    new Set([retained.id, restored.id]),
+  );
 });
 
 test("expiry and session revocation prevent proof acceptance without leaving a verified record", async () => {

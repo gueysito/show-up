@@ -111,6 +111,12 @@ export function WalletManager({
   const launchedNearApproval = useRef<string | null>(null);
   const verifying = useRef(false);
   const [wallets, setWallets] = useState(initialWallets);
+  const [removal, setRemoval] = useState<{
+    walletId: string;
+    operationId: string;
+    error?: string;
+  } | null>(null);
+  const savedWalletsHeading = useRef<HTMLHeadingElement>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ error: boolean; text: string } | null>(null);
   const [launchLink, setLaunchLink] = useState<{ app: MobileWallet; href: string } | null>(null);
@@ -218,6 +224,35 @@ export function WalletManager({
         text: "Saved wallets could not be refreshed. Retry when connected.",
       });
     } finally {
+      setBusy(false);
+    }
+  }
+  async function removeWallet() {
+    if (!removal || busy || verifying.current) return;
+    verifying.current = true;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const { walletId } = await post({
+        operation: "remove",
+        operationId: removal.operationId,
+        walletId: removal.walletId,
+      });
+      if (walletId !== removal.walletId) throw new Error("Unexpected wallet removal receipt.");
+      setWallets((old) => old.filter((wallet) => wallet.id !== walletId));
+      setRemoval(null);
+      setNotice({ error: false, text: "Wallet removed from your Showup account." });
+      savedWalletsHeading.current?.focus();
+    } catch (error) {
+      setRemoval({
+        ...removal,
+        error:
+          error instanceof WalletUiError
+            ? error.message
+            : "Wallet removal could not be confirmed. Try again.",
+      });
+    } finally {
+      verifying.current = false;
       setBusy(false);
     }
   }
@@ -609,7 +644,9 @@ export function WalletManager({
           Refresh saved wallets
         </button>
       </div>
-      <h2>Saved wallets</h2>
+      <h2 ref={savedWalletsHeading} tabIndex={-1}>
+        Saved wallets
+      </h2>
       {wallets.length ? (
         <ul>
           {wallets.map((wallet) => (
@@ -619,6 +656,60 @@ export function WalletManager({
               <p>
                 <time dateTime={wallet.verifiedAt}>{verifiedTime(wallet.verifiedAt)}</time>
               </p>
+              <button
+                type="button"
+                className="text-button"
+                disabled={busy}
+                id={`remove-wallet-${wallet.id}`}
+                aria-label={`Remove wallet ${networkNames[wallet.network]} ${wallet.address}`}
+                aria-expanded={removal?.walletId === wallet.id}
+                onClick={() =>
+                  setRemoval(
+                    removal?.walletId === wallet.id
+                      ? null
+                      : { walletId: wallet.id, operationId: crypto.randomUUID() },
+                  )
+                }
+              >
+                Remove wallet
+              </button>
+              {removal?.walletId === wallet.id && (
+                <div
+                  role="group"
+                  aria-label={`Remove ${networkNames[wallet.network]} wallet ${wallet.address}`}
+                >
+                  <p>
+                    This wallet will be removed from future wallet selections. Existing payouts keep
+                    their original destination.
+                  </p>
+                  {removal.error && (
+                    <p className="field-error" role="alert">
+                      {removal.error}
+                    </p>
+                  )}
+                  <div className="saved-actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={busy}
+                      onClick={() => void removeWallet()}
+                    >
+                      Confirm removal
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      disabled={busy}
+                      onClick={() => {
+                        setRemoval(null);
+                        document.getElementById(`remove-wallet-${wallet.id}`)?.focus();
+                      }}
+                    >
+                      Keep wallet
+                    </button>
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>

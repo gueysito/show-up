@@ -27,7 +27,7 @@ async function rate(pool: pg.Pool, session: string, operation: string, maximum: 
     WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp() AND a.state='active'`,
     [session],
   );
-  if (!result.rowCount) throw new AppFailure(401, "Sign in again to verify a wallet.");
+  if (!result.rowCount) throw new AppFailure(401, "Sign in again to manage your wallets.");
   await limit(pool, `wallet:${operation}:${result.rows[0].account_id}`, maximum);
   await limit(pool, "wallet:global", 120);
 }
@@ -159,9 +159,16 @@ export async function acceptWalletProof(
         challenge.address,
       );
       const previous = await client.query(
-        "SELECT id FROM app_wallets WHERE account_id=$1 AND wallet_index=$2 FOR UPDATE",
-        [actor.id, index],
+        `SELECT id, revoked_at >= (SELECT created_at FROM app_wallet_challenges WHERE id=$3)
+          AS challenge_precedes_removal
+         FROM app_wallets WHERE account_id=$1 AND wallet_index=$2 FOR UPDATE`,
+        [actor.id, index, challenge.id],
       );
+      if (previous.rows[0]?.challenge_precedes_removal)
+        throw new AppFailure(
+          409,
+          "This wallet was removed. Start a new verification to add it again.",
+        );
       const id = previous.rows[0]?.id ?? randomUUID();
       const verifiedAt = (consumed.rows[0].consumed_at as Date).toISOString();
       const wallet: OwnWallet = {
@@ -183,6 +190,33 @@ export async function acceptWalletProof(
         [id, actor.id, index, wallet.network, encrypted, verifiedAt],
       );
       return wallet;
+    },
+  );
+}
+
+export async function removeOwnWallet(
+  pool: pg.Pool,
+  config: AuthConfig,
+  session: string,
+  input: { operationId: string; walletId: string },
+) {
+  if (!isUuid(input.walletId)) throw new AppFailure(400, "Choose a saved wallet to remove.");
+  await rate(pool, session, "remove", 12);
+  return mutate(
+    pool,
+    config.encryptionKey,
+    session,
+    input.operationId,
+    input,
+    "wallet.removed",
+    async (client, actor) => {
+      const result = await client.query(
+        `UPDATE app_wallets SET revoked_at=COALESCE(revoked_at,clock_timestamp())
+         WHERE id=$1 AND account_id=$2 RETURNING id`,
+        [input.walletId, actor.id],
+      );
+      if (!result.rowCount) throw new AppFailure(404, "Saved wallet unavailable.");
+      return { walletId: input.walletId };
     },
   );
 }

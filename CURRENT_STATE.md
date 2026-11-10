@@ -35,7 +35,8 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
   finalized on NEAR. V1-8 remains stretch.
 - The six V1 polish items are live and the updated stylesheet is verified.
-  Next is a phone walkthrough for readability, wallet return and refund navigation.
+  Wallet removal and clearer empty receipt guidance are ready for owner approval
+  to deploy. The phone walkthrough is still open.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. After the phone walkthrough, resolve billing, publish the release
   branch, and open its pull request. Merging requires owner approval.

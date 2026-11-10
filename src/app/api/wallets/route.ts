@@ -7,6 +7,7 @@ import {
   acceptWalletProof,
   issueWalletChallenge,
   listOwnWallets,
+  removeOwnWallet,
 } from "../../../server/wallets/service";
 import type { WalletSignature } from "../../../server/wallets/proof";
 
@@ -68,7 +69,16 @@ async function handle(request: Request) {
         challengeId: body.challengeId,
         proof: body.proof as WalletSignature,
       });
-    else throw new AppFailure(400, "Invalid wallet action. Start a fresh verification.");
+    else if (
+      body.operation === "remove" &&
+      fields === "operation,operationId,walletId" &&
+      typeof body.walletId === "string"
+    )
+      result = await removeOwnWallet(database.pool, config, session.tokenHash, {
+        operationId: body.operationId,
+        walletId: body.walletId,
+      });
+    else throw new AppFailure(400, "Invalid wallet action. Refresh and try again.");
     return Response.json(result, { headers });
   } catch (error) {
     return failureResponse(error);

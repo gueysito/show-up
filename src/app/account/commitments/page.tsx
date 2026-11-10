@@ -91,7 +91,10 @@ export default async function CommitmentsPage({
               ))}
             </ul>
           ) : (
-            <p>Your funded event receipts will appear here.</p>
+            <p>
+              There are no funded event receipts for this account. If you deposited with a different
+              Showup sign-in, switch to that account to see its receipts.
+            </p>
           )}
         </section>
       )}

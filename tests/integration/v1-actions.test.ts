@@ -13,6 +13,7 @@ import {
 } from "../../src/server/events/v1-actions";
 import { runV1Action } from "../../src/worker/v1-actions";
 import { runV1Registration } from "../../src/worker/v1-registration";
+import { listOwnWallets, removeOwnWallet } from "../../src/server/wallets/service";
 
 test("owned live-code check-in survives an unknown write; close waits, then receipts conserve the no-show split", async () => {
   const f = await v1EventFixture();
@@ -107,6 +108,12 @@ test("owned live-code check-in survives an unknown write; close waits, then rece
     assert.equal(missed!.principal, "0");
     assert.equal(missed!.claim.total, "0");
     assert.equal(missed!.payout, "attendee-2.near");
+    const [paidWallet] = await listOwnWallets(pool, config, f.accounts[1].id);
+    await removeOwnWallet(pool, config, sessions[1], {
+      walletId: paidWallet.id,
+      operationId: randomUUID(),
+    });
+    assert.deepEqual(await listOwnWallets(pool, config, f.accounts[1].id), []);
     await assert.rejects(
       requestV1Withdrawal(pool, config, sessions[2], randomUUID(), eventId, "deposit", transport),
       /No unpaid claim/,
@@ -147,6 +154,7 @@ test("owned live-code check-in survives an unknown write; close waits, then rece
     assert.equal((await runV1Action(pool, key, gateway)).state, "verified");
     const paid = (await readV1OwnReceipt(pool, config, sessions[1], eventId, transport))!;
     assert.equal(paid.claim.paid, "2000000");
+    assert.equal(paid.payout, paidWallet.address);
     assert.equal(paid.withdrawalQueued, false);
     const row = (
       await pool.query("SELECT encrypted_image FROM app_v1_event_actions WHERE id=$1", [
