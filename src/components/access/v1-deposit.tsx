@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import type { OwnWallet } from "../../server/wallets/service";
 import { formatUsdc } from "../../domain/event-draft";
@@ -38,12 +38,14 @@ export function V1Deposit({
   amount,
   wallets,
   nft = false,
+  walletConnectProjectId,
 }: {
   eventId: string;
   rulesHash: string;
   amount: string;
   wallets: OwnWallet[];
   nft?: boolean;
+  walletConnectProjectId?: string;
 }) {
   const ethereum = wallets.filter((wallet) => wallet.network === "ethereum");
   const [ethereumWalletId, setEthereumWalletId] = useState(
@@ -57,6 +59,7 @@ export function V1Deposit({
   const [sourceWalletId, setSourceWalletId] = useState(near.length === 1 ? near[0].id : "");
   const selectedSource = sources.find((wallet) => wallet.id === sourceWalletId);
   const [routing, setRouting] = useState(false);
+  const checkRouting = useCallback(() => setRouting(true), []);
   const [checkingEscrow, setCheckingEscrow] = useState(false);
   const [consent, setConsent] = useState(false),
     [status, setStatus] = useState<Status | null>(null),
@@ -375,7 +378,8 @@ export function V1Deposit({
           network={sourceNetwork}
           address={status.sourceAddress!}
           initial={status.route}
-          onSubmitted={() => setRouting(true)}
+          onSubmitted={checkRouting}
+          walletConnectProjectId={walletConnectProjectId}
         />
       )}
       {sourceNetwork !== "near" && !status?.funded && (

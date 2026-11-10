@@ -90,6 +90,15 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     ).toBe(400);
     expect(await page.content()).not.toContain(f.accounts[0].id);
     expect((await page.goto(`/events/${privateId}`))?.status()).toBe(404);
+    await page.goto(`/account?walletEvent=${privateId}`);
+    await expect(page.getByText("Sign in with the same Showup account")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Sign in with Google" }).locator(".."),
+    ).toHaveAttribute(
+      "action",
+      `/api/auth/start/google?returnTo=${encodeURIComponent(`/events/${privateId}/commit`)}`,
+    );
+    await expect(page.getByText(privateEvent.title)).toHaveCount(0);
     const invitation = await issueInvitation(f.pool, config, host, randomUUID(), {
       kind: "event",
       eventId: privateId,
@@ -101,6 +110,9 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     await page.getByRole("link", { name: "Open your invited event" }).click();
     await expect(page.getByRole("heading", { name: privateEvent.title })).toBeVisible();
     await expect(page.getByText("Venue: Fictional studio", { exact: true })).toBeVisible();
+    await page.goto(`/account?walletEvent=${privateId}`);
+    await expect(page).toHaveURL(`/events/${privateId}/commit`);
+    await page.goto(`/events/${privateId}`);
     await expect(page.getByRole("button", { name: "Deposits closed", exact: true })).toBeDisabled();
     const verifiedWallets = [];
     for (const network of requiredNetworks) {

@@ -199,6 +199,7 @@ export function NearWalletPaymentButton({
           "The reviewed payment wallet changed. Open the original event and check status.",
         );
       remember({ wallet });
+      setMessage("Approve in Meteor Wallet, then switch back to this Showup tab.");
       await connector
         .signAndSendTransaction({ ...reviewed.walletTransaction, network: "mainnet" })
         .catch(() => {

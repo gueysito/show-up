@@ -25,6 +25,7 @@ export default async function CommitmentPage({
 }) {
   const { id } = await params,
     config = authConfig();
+  const walletConnectProjectId = process.env.SHOWUP_WALLETCONNECT_PROJECT_ID;
   if (!config) notFound();
   const { pool } = createDatabase();
   let event: EventEntry | null = null,
@@ -103,6 +104,11 @@ export default async function CommitmentPage({
               amount={event.data.commitment}
               wallets={wallets}
               nft={Boolean(event.escrow.nft)}
+              walletConnectProjectId={
+                walletConnectProjectId && /^[0-9a-f]{32}$/i.test(walletConnectProjectId)
+                  ? walletConnectProjectId
+                  : undefined
+              }
             />
           )}
           {(event.registration === "closed" || event.viewer === "recovery") && (

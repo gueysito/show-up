@@ -1,6 +1,16 @@
 "use client";
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
+import { connectRabbyPayment, type RabbyPrompt } from "./rabby-connect";
+import {
+  announcedEthereumApp,
+  appNames,
+  injectedEthereumApp,
+  mobileWalletPageUrl,
+  type EthereumApp,
+  type EthereumProvider,
+  type MobileWallet,
+} from "./wallet-apps";
 import {
   readV1SolanaWallets,
   subscribeV1SolanaWallets,
@@ -19,7 +29,6 @@ export type V1RouteSummary = {
   hint?: string;
   sourceHash?: string | null;
 };
-type EvmWallet = { request(input: { method: string; params?: unknown[] }): Promise<unknown> };
 const attemptEvent = "showup-v1-source-attempt";
 function subscribeAttempts(callback: () => void) {
   window.addEventListener("storage", callback);
@@ -36,6 +45,7 @@ export function V1RouteReview({
   address,
   initial,
   onSubmitted,
+  walletConnectProjectId,
 }: {
   registrationId: string;
   eventId: string;
@@ -43,12 +53,19 @@ export function V1RouteReview({
   address: string;
   initial?: V1RouteSummary | null;
   onSubmitted: () => void;
+  walletConnectProjectId?: string;
 }) {
   const [quote, setQuote] = useState<V1RouteSummary | null>(null),
     [consent, setConsent] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [submitted, setSubmitted] = useState(false);
+  const [prompt, setPrompt] = useState<RabbyPrompt | null>(null);
+  const [launchWallet, setLaunchWallet] = useState<MobileWallet | null>(null);
+  const [payingWith, setPayingWith] = useState<string | null>(null);
+  const paying = useRef(false);
+  const pairing = useRef<AbortController | null>(null);
+  const evmProviders = useRef<Partial<Record<EthereumApp, EthereumProvider>>>({});
   // Opaque registration only. No address, quote or signature is stored here.
   const trackingKey = `showup.v1.source-payment:${registrationId}`;
   const readAttempt = useCallback(() => {
@@ -77,6 +94,30 @@ export function V1RouteReview({
     readWallets,
     () => noV1SolanaWallets,
   );
+  useEffect(() => {
+    if (network === "solana") return;
+    function announced(event: Event) {
+      const wallet = announcedEthereumApp(event);
+      if (wallet) evmProviders.current[wallet.app] ??= wallet.provider;
+    }
+    window.addEventListener("eip6963:announceProvider", announced);
+    window.dispatchEvent(new Event("eip6963:requestProvider"));
+    return () => window.removeEventListener("eip6963:announceProvider", announced);
+  }, [network]);
+  useEffect(() => () => pairing.current?.abort(), []);
+  useEffect(() => {
+    if (!paid) return;
+    function returned() {
+      if (document.visibilityState === "visible") onSubmitted();
+    }
+    returned();
+    window.addEventListener("focus", returned);
+    document.addEventListener("visibilitychange", returned);
+    return () => {
+      window.removeEventListener("focus", returned);
+      document.removeEventListener("visibilitychange", returned);
+    };
+  }, [onSubmitted, paid]);
   async function post(operation: string, extra: object = {}) {
     const response = await fetch("/api/commitments/mainnet", {
       method: "POST",
@@ -102,11 +143,34 @@ export function V1RouteReview({
       setBusy(false);
     }
   }
-  async function pay() {
-    setBusy(true);
+  async function pay(app?: EthereumApp) {
+    if (paying.current || !trackingReady) return;
+    const selected =
+      solanaWallets.find((wallet) => wallet.name === solanaWallet) ??
+      (solanaWallets.length === 1 ? solanaWallets[0] : null);
+    const ethereum = app ? (evmProviders.current[app] ?? injectedEthereumApp(app)) : undefined;
+    const useRabbyRelay =
+      app === "rabby" && !ethereum && walletConnectProjectId && network !== "solana";
     setError("");
+    if (network === "solana" && !selected) {
+      if (solanaWallets.length > 1)
+        setError("Choose the wallet holding your verified Solana account.");
+      else setLaunchWallet("phantom");
+      return;
+    }
+    if (app && !ethereum && !useRabbyRelay) {
+      setLaunchWallet(app);
+      return;
+    }
+    paying.current = true;
+    setPayingWith(app ? appNames[app] : (selected?.name ?? "your wallet"));
+    setBusy(true);
+    setLaunchWallet(null);
     let requested = false;
+    let rabby: Awaited<ReturnType<typeof connectRabbyPayment>> | undefined;
     function requesting() {
+      if (localStorage.getItem(trackingKey))
+        throw new Error("A payment was already requested. Check the original deposit status.");
       localStorage.setItem(trackingKey, "requested");
       window.dispatchEvent(new Event(attemptEvent));
       requested = true;
@@ -117,24 +181,56 @@ export function V1RouteReview({
         throw new Error(
           "This quote expired. Check your original source payment before requesting another.",
         );
-      const result = await post("route-pay");
-      if (network === "solana") {
-        const selected =
-          solanaWallets.find((wallet) => wallet.name === solanaWallet) ??
-          (solanaWallets.length === 1 ? solanaWallets[0] : null);
-        if (!selected) throw new Error("Choose a connected Solana wallet to approve this payment.");
+      if (network === "solana" && selected) {
+        const result = await post("route-pay");
         const hash = await approveV1SolanaPayment(result, current, address, selected, requesting);
         setSubmitted(true);
         onSubmitted();
         await post("source", { sourceHash: hash });
         return;
       }
-      const ethereum = (window as Window & { ethereum?: EvmWallet }).ethereum;
-      if (!ethereum)
-        throw new Error(
-          "Open the wallet browser or install your EVM wallet to approve this payment.",
-        );
-      const chain = network === "base" ? "0x2105" : network === "ethereum" ? "0x1" : null;
+      if (network !== "base" && network !== "ethereum")
+        throw new Error("Choose your source network.");
+      const chain = network === "base" ? "0x2105" : "0x1";
+      if (useRabbyRelay) {
+        const controller = new AbortController();
+        pairing.current = controller;
+        const mayOpenOnAndroid = /Android/i.test(navigator.userAgent);
+        rabby = await connectRabbyPayment(
+          walletConnectProjectId,
+          network,
+          address,
+          AbortSignal.any([controller.signal, AbortSignal.timeout(300_000)]),
+          (step) => {
+            setPrompt(step);
+            if (
+              mayOpenOnAndroid &&
+              navigator.userActivation?.isActive &&
+              document.visibilityState === "visible"
+            )
+              window.location.assign(step.href);
+          },
+        ).catch(() => {
+          throw new Error(
+            "Rabby couldn’t connect. Unlock it and approve your verified deposit account.",
+          );
+        });
+        setPrompt(null);
+      } else if (ethereum) {
+        if (BigInt(String(await ethereum.request({ method: "eth_chainId" }))) !== BigInt(chain))
+          throw new Error(
+            `Switch your wallet to ${network} mainnet, then approve this same quote.`,
+          );
+        const accounts = await ethereum.request({ method: "eth_requestAccounts" });
+        if (
+          !Array.isArray(accounts) ||
+          !accounts.some(
+            (value) => typeof value === "string" && value.toLowerCase() === address.toLowerCase(),
+          )
+        )
+          throw new Error("Choose your verified source account in the wallet.");
+      } else throw new Error("Open the wallet browser to approve this payment.");
+      const result = await post("route-pay");
       const token =
         network === "base"
           ? "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
@@ -144,8 +240,8 @@ export function V1RouteReview({
       const gasCap = network === "base" ? 20000000000000n : 80000000000000n,
         reserve = network === "base" ? 5000000000000n : 0n;
       if (
-        !chain ||
         result.network !== network ||
+        !(Date.parse(result.expiresAt) > Date.now()) ||
         tx.chainId !== chain ||
         String(tx.from).toLowerCase() !== address.toLowerCase() ||
         String(tx.to).toLowerCase() !== token ||
@@ -158,39 +254,33 @@ export function V1RouteReview({
         !/^0x(0|[1-9a-f][0-9a-f]{0,15})$/.test(tx.nonce)
       )
         throw new Error("The wallet request differs from your reviewed route.");
-      if (BigInt(String(await ethereum.request({ method: "eth_chainId" }))) !== BigInt(chain))
-        throw new Error(`Switch your wallet to ${network} mainnet, then approve this same quote.`);
-      const accounts = await ethereum.request({ method: "eth_requestAccounts" });
-      if (
-        !Array.isArray(accounts) ||
-        !accounts.some(
-          (value) => typeof value === "string" && value.toLowerCase() === address.toLowerCase(),
-        )
-      )
-        throw new Error("Choose your verified source account in the wallet.");
       requesting();
-      const hash = await ethereum.request({
-        method: "eth_sendTransaction",
-        params: [
-          {
-            from: tx.from,
-            to: tx.to,
-            value: "0x0",
-            data: tx.data,
-            chainId: chain,
-            gas: tx.gas,
-            gasPrice: tx.gasPrice,
-            nonce: tx.nonce,
-          },
-        ],
-      });
+      const params = [
+        {
+          from: tx.from,
+          to: tx.to,
+          value: "0x0",
+          data: tx.data,
+          chainId: chain,
+          gas: tx.gas,
+          gasPrice: tx.gasPrice,
+          nonce: tx.nonce,
+        },
+      ];
+      const hash = rabby
+        ? await rabby.request(params).catch((failure: unknown) => {
+            if ((failure as { code?: number } | null)?.code === 4001)
+              throw Object.assign(new Error("You declined the Rabby payment."), { code: 4001 });
+            throw new Error("Check the original Rabby payment before trying again.");
+          })
+        : await ethereum!.request({ method: "eth_sendTransaction", params });
       if (typeof hash !== "string" || !/^0x[0-9a-fA-F]{64}$/.test(hash))
         throw new Error("Check your wallet activity for the original source transaction.");
       setSubmitted(true);
       onSubmitted();
       await post("source", { sourceHash: hash.toLowerCase() });
     } catch (error) {
-      if ((error as { code?: number }).code === 4001) {
+      if (requested && (error as { code?: number }).code === 4001) {
         localStorage.removeItem(trackingKey);
         window.dispatchEvent(new Event(attemptEvent));
         setSubmitted(false);
@@ -200,11 +290,18 @@ export function V1RouteReview({
         onSubmitted();
       }
       setError(
-        error instanceof Error
-          ? error.message
-          : "Wallet approval was not confirmed. Check its activity before retrying.",
+        pairing.current?.signal.aborted
+          ? "Rabby connection cancelled. Choose a wallet to continue."
+          : error instanceof Error
+            ? error.message
+            : "Wallet approval was not confirmed. Check its activity before retrying.",
       );
     } finally {
+      rabby?.close();
+      pairing.current = null;
+      paying.current = false;
+      setPrompt(null);
+      setPayingWith(null);
       setBusy(false);
     }
   }
@@ -285,22 +382,94 @@ export function V1RouteReview({
                 />
                 I reviewed the source amount, gas limit, quote expiry and NEAR payout destination.
               </label>
-              <button
-                type="button"
-                className="primary-button"
-                disabled={busy || !consent || !trackingReady}
-                onClick={pay}
-              >
-                Approve source USDC payment
-              </button>
+              <div className="saved-actions">
+                {network === "solana" ? (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    disabled={busy || !consent || !trackingReady}
+                    onClick={() => void pay()}
+                  >
+                    Approve source USDC payment
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={busy || !consent || !trackingReady}
+                      onClick={() => void pay("rabby")}
+                    >
+                      Approve with Rabby
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={busy || !consent || !trackingReady}
+                      onClick={() => void pay("metamask")}
+                    >
+                      Approve with MetaMask
+                    </button>
+                  </>
+                )}
+              </div>
             </>
           )}
-          {paid && (
+          {paid && !payingWith && (
             <p role="status" className="routing-status">
-              Source payment was requested. Check routing and escrow; do not send another payment.
+              Checking the original payment and escrow. If it stays pending, tap Check deposit
+              status.
             </p>
           )}
         </>
+      )}
+      {launchWallet && (
+        <div className="field">
+          <p role="status">
+            {`Continue this event in ${appNames[launchWallet]}’s browser. If it asks you to sign in to Showup, use the account you started with.`}
+          </p>
+          <a
+            href={mobileWalletPageUrl(
+              launchWallet,
+              new URL(`/account?walletEvent=${eventId}`, window.location.origin),
+            )}
+          >
+            {`Open this event in ${appNames[launchWallet]}`}
+          </a>
+        </div>
+      )}
+      {prompt ? (
+        <div className="field wallet-approval">
+          <p role="status">
+            {prompt.step === "connect"
+              ? "Connect your verified deposit account in Rabby, then return here to approve the payment."
+              : "Approve the payment in Rabby, then switch back to this Showup tab. We’ll check the original payment."}
+          </p>
+          <div className="saved-actions">
+            <a className="primary-button" href={prompt.href}>
+              {prompt.step === "connect"
+                ? "Open Rabby to connect"
+                : "Open Rabby to approve payment"}
+            </a>
+            {prompt.step === "connect" && (
+              <button
+                className="text-button"
+                type="button"
+                onClick={() => pairing.current?.abort()}
+              >
+                Cancel connection
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        payingWith && (
+          <p role="status">
+            {paid
+              ? `Approve in ${payingWith}, then return here to see your deposit status.`
+              : `Preparing your approval in ${payingWith}…`}
+          </p>
+        )
       )}
       {error && <p role="alert">{error}</p>}
       {tracking === "unavailable" && (

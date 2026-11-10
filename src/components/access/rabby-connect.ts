@@ -2,6 +2,7 @@ import type { WalletChallenge } from "../../server/wallets/proof";
 import { evmVerificationMessage } from "./wallet-apps";
 
 type EvmNetwork = "base" | "ethereum";
+type RabbyMethod = "personal_sign" | "eth_sendTransaction";
 export type RabbyPrompt = { step: "connect" | "sign"; href: string };
 
 async function initialize(projectId: string, origin: string) {
@@ -12,7 +13,7 @@ async function initialize(projectId: string, origin: string) {
     telemetryEnabled: false,
     metadata: {
       name: "Showup",
-      description: "Verify control of your wallet in Showup",
+      description: "Connect your wallet to Showup",
       url: origin,
       icons: [],
     },
@@ -30,11 +31,13 @@ function waitForWallet<T>(result: Promise<T>, signal: AbortSignal) {
   });
 }
 
-export async function connectRabby(
+async function connectRabbySession(
   projectId: string,
   network: EvmNetwork,
   signal: AbortSignal,
   showPrompt: (prompt: RabbyPrompt) => void,
+  method: RabbyMethod,
+  source?: string,
 ) {
   const origin = window.location.origin;
   const chain = network === "base" ? "8453" : "1";
@@ -45,7 +48,7 @@ export async function connectRabby(
   });
   const client = await waitForWallet(relay, signal);
   const { uri, approval } = await client.connect({
-    optionalNamespaces: { eip155: { chains: [chainId], methods: ["personal_sign"], events: [] } },
+    optionalNamespaces: { eip155: { chains: [chainId], methods: [method], events: [] } },
   });
   if (!uri?.startsWith("wc:")) throw new Error("WalletConnect did not create a pairing link");
   const disconnect = (topic: string) => {
@@ -65,29 +68,29 @@ export async function connectRabby(
   const accounts = [
     ...new Set(
       namespaces
-        .filter((namespace) => namespace.methods.includes("personal_sign"))
+        .filter((namespace) => namespace.methods.includes(method))
         .flatMap((namespace) => namespace.accounts)
         .filter((account) => account.startsWith(`${chainId}:`)),
     ),
   ];
   const address = accounts[0]?.slice(chainId.length + 1);
-  if (accounts.length !== 1 || !/^0x[0-9a-f]{40}$/i.test(address)) {
+  if (
+    accounts.length !== 1 ||
+    !/^0x[0-9a-f]{40}$/i.test(address) ||
+    (source && address.toLowerCase() !== source.toLowerCase())
+  ) {
     disconnect(session.topic);
-    throw new Error("Rabby did not approve one account on the selected network");
+    throw new Error(
+      source
+        ? "Connect the verified deposit account in Rabby on the selected network."
+        : "Rabby did not approve one account on the selected network",
+    );
   }
   return {
     address,
     close: () => disconnect(session.topic),
-    async sign(challenge: WalletChallenge) {
+    async request(params: unknown[]) {
       signal.throwIfAborted();
-      if (
-        challenge.network !== network ||
-        challenge.chainId !== chain ||
-        challenge.origin !== origin ||
-        challenge.address.toLowerCase() !== address.toLowerCase() ||
-        challenge.expiresAt <= Date.now()
-      )
-        throw new Error("Wallet challenge no longer matches the selected Rabby account");
       const showSigningLink = (event: { topic: string; chainId: string }) => {
         if (event.topic === session.topic && event.chainId === chainId)
           showPrompt({ step: "sign", href: "rabby://" });
@@ -98,10 +101,7 @@ export async function connectRabby(
           client.request<string>({
             topic: session.topic,
             chainId,
-            request: {
-              method: "personal_sign",
-              params: [evmVerificationMessage(challenge.message), address],
-            },
+            request: { method, params },
           }),
           signal,
         );
@@ -110,4 +110,44 @@ export async function connectRabby(
       }
     },
   };
+}
+
+export async function connectRabby(
+  projectId: string,
+  network: EvmNetwork,
+  signal: AbortSignal,
+  showPrompt: (prompt: RabbyPrompt) => void,
+) {
+  const session = await connectRabbySession(
+    projectId,
+    network,
+    signal,
+    showPrompt,
+    "personal_sign",
+  );
+  return {
+    address: session.address,
+    close: session.close,
+    sign(challenge: WalletChallenge) {
+      if (
+        challenge.network !== network ||
+        challenge.chainId !== (network === "base" ? "8453" : "1") ||
+        challenge.origin !== window.location.origin ||
+        challenge.address.toLowerCase() !== session.address.toLowerCase() ||
+        challenge.expiresAt <= Date.now()
+      )
+        throw new Error("Wallet challenge no longer matches the selected Rabby account");
+      return session.request([evmVerificationMessage(challenge.message), session.address]);
+    },
+  };
+}
+
+export function connectRabbyPayment(
+  projectId: string,
+  network: EvmNetwork,
+  source: string,
+  signal: AbortSignal,
+  showPrompt: (prompt: RabbyPrompt) => void,
+) {
+  return connectRabbySession(projectId, network, signal, showPrompt, "eth_sendTransaction", source);
 }

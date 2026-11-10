@@ -1,6 +1,6 @@
 import Image from "next/image";
 import type { WalletChallenge } from "../../server/wallets/proof";
-import type { MobileWallet } from "./wallet-apps";
+import { appNames, type MobileWallet } from "./wallet-apps";
 import base from "./wallet-icons/base.svg";
 import ethereum from "./wallet-icons/ethereum.svg";
 import metamask from "./wallet-icons/metamask.svg";
@@ -14,13 +14,6 @@ import solana from "./wallet-icons/solana.svg";
 type Network = WalletChallenge["network"];
 export type WalletApp = MobileWallet | "near-mobile" | "meteor";
 export const networkNames = { near: "NEAR", solana: "Solana", base: "Base", ethereum: "Ethereum" };
-export const appNames = {
-  "near-mobile": "NEAR Mobile",
-  meteor: "Meteor Wallet",
-  phantom: "Phantom",
-  rabby: "Rabby",
-  metamask: "MetaMask",
-};
 const networkIcons = { near, solana, base, ethereum };
 const appIcons = { "near-mobile": nearMobile, meteor, phantom, rabby, metamask };
 const apps: Record<Network, readonly WalletApp[]> = {

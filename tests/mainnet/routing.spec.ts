@@ -359,6 +359,7 @@ test("a source wallet routes one real USDC through its isolated Intents account,
       await page.evaluate(
         ({ address, chain }) => {
           (window as Window & { ethereum?: unknown }).ethereum = {
+            isRabby: true,
             async request(input: { method: string; params?: unknown[] }) {
               if (input.method === "wallet_switchEthereumChain") return null;
               if (input.method === "eth_chainId") return chain;
@@ -375,7 +376,11 @@ test("a source wallet routes one real USDC through its isolated Intents account,
       );
     }
     await review.getByRole("checkbox").check();
-    await review.getByRole("button", { name: "Approve source USDC payment" }).click();
+    await review
+      .getByRole("button", {
+        name: network === "solana" ? "Approve source USDC payment" : "Approve with Rabby",
+      })
+      .click();
     await expect.poll(() => sourceHash, { timeout: 45000 }).toBeTruthy();
     await journal.save({ phase: "routing", sourceHash });
     const forward = v1IntentsGateway("route_withdrawal", {

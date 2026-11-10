@@ -14,13 +14,15 @@ import { connectRabby, type RabbyPrompt } from "./rabby-connect";
 import { connectSolanaWallet } from "./solana-wallet-proof";
 import {
   evmVerificationMessage,
+  announcedEthereumApp,
+  appNames,
   injectedEthereumApp,
   mobileWalletUrl,
   type EthereumApp,
   type EthereumProvider,
   type MobileWallet,
 } from "./wallet-apps";
-import { WalletPicker, appNames, networkNames, type WalletApp } from "./wallet-picker";
+import { WalletPicker, networkNames, type WalletApp } from "./wallet-picker";
 
 type ProofRequest = {
   operation: "verify";
@@ -131,12 +133,8 @@ export function WalletManager({
 
   useEffect(() => {
     function announced(event: Event) {
-      const { info, provider } =
-        (event as CustomEvent<{ info?: { rdns?: string }; provider?: EthereumProvider }>).detail ??
-        {};
-      const app =
-        info?.rdns === "io.rabby" ? "rabby" : info?.rdns === "io.metamask" ? "metamask" : null;
-      if (app && typeof provider?.request === "function") evmProviders.current[app] ??= provider;
+      const wallet = announcedEthereumApp(event);
+      if (wallet) evmProviders.current[wallet.app] ??= wallet.provider;
     }
     window.addEventListener("eip6963:announceProvider", announced);
     window.dispatchEvent(new Event("eip6963:requestProvider"));
@@ -578,7 +576,13 @@ export function WalletManager({
         </div>
       )}
       {busy && !notice && !rabbyPrompt && (
-        <p role="status">Waiting for your wallet or checking its proof…</p>
+        <p role="status">
+          {selectedApp === "meteor"
+            ? "Approve in Meteor Wallet, then switch back to this Showup tab. Your wallet will save when the signature arrives."
+            : selectedApp
+              ? `Approve in ${appNames[selectedApp]}. Showup saves your wallet when the signature arrives.`
+              : "Checking your wallet approval…"}
+        </p>
       )}
       {returnReady && (
         <p role="status">

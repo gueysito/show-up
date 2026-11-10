@@ -1,19 +1,22 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { authConfig, providers } from "../../server/auth/config";
 import { findSession, sessionCookie } from "../../server/auth/sessions";
 import { createDatabase } from "../../server/db/client";
 import { InvitationManager } from "../../components/access/invitation-manager";
 import { findPrivacySession } from "../../server/privacy/access";
+import { isUuid } from "../../server/events/drafts";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ auth?: string }>;
+  searchParams: Promise<{ auth?: string; walletEvent?: string }>;
 }) {
   const query = await searchParams;
+  const walletReturn = isUuid(query.walletEvent) ? `/events/${query.walletEvent}/commit` : null;
   const config = authConfig();
   let session = null;
   let recovery = false;
@@ -39,6 +42,7 @@ export default async function AccountPage({
       await pool.end();
     }
   }
+  if (session && walletReturn) redirect(walletReturn);
   if (recovery)
     return (
       <main>
@@ -149,8 +153,13 @@ export default async function AccountPage({
         </section>
       ) : (
         <section aria-label="Sign in">
+          {walletReturn && <p>Sign in with the same Showup account to return to your deposit.</p>}
           {providers.map((provider) => (
-            <form key={provider} method="post" action={`/api/auth/start/${provider}`}>
+            <form
+              key={provider}
+              method="post"
+              action={`/api/auth/start/${provider}${walletReturn ? `?returnTo=${encodeURIComponent(walletReturn)}` : ""}`}
+            >
               <button
                 className="secondary-button"
                 disabled={!available || !config?.clients[provider]}

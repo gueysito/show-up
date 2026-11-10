@@ -181,7 +181,17 @@ verified the original link, receipt after reload and access limited to the
 account that paid.
 Railway web deployment `05a93537` serves `2de0aeb`. Health and the bundle
 containing **Remove wallet** returned HTTP 200. Anonymous access to the private
-receipt returned 404. The owner’s signed-in check of the hosted receipt is open.
+receipt returned 404. The owner confirmed the signed-in refund receipt and
+wallet removal on the hosted site.
+
+V1-9 wallet handoff follow-up. Base and Ethereum deposits explicitly choose
+Rabby or MetaMask. Rabby can request the reviewed payment from the original
+browser through WalletConnect. Wallet browser links retain the event through
+sign-in, and the deposit page rechecks the original payment on return or reload.
+Local Chrome verified provider selection, rejection of the wrong Rabby account
+and recovery without another approval. Next, deploy the web update and check
+the Rabby payment and MetaMask continuation on a phone before GitHub merge
+validation.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency

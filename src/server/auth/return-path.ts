@@ -5,12 +5,9 @@ import { AppFailure } from "../http/security";
 // encrypted cookie flow; arbitrary origins, queries and fragments never redirect.
 export function eventLoginReturn(value: unknown): string | null {
   if (value === undefined || value === null || value === "") return null;
-  if (
-    typeof value !== "string" ||
-    value.length !== 44 ||
-    !value.startsWith("/events/") ||
-    !isUuid(value.slice(8))
-  )
+  const eventId =
+    typeof value === "string" ? /^\/events\/([^/]+)(?:\/commit)?$/.exec(value)?.[1] : undefined;
+  if (typeof value !== "string" || value.trim() !== value || !isUuid(eventId))
     throw new AppFailure(400, "Choose a Showup event before signing in.");
   return value;
 }
