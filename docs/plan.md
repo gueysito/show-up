@@ -162,8 +162,11 @@ link when verified. Balance alerts distinguish native USDC from NEAR gas. The
 cancelled event and account link to the refund, with ready, pending and paid
 states. The build, 134 unit tests, 195 database tests and 52 local Chrome cases
 passed. An isolated browser also verified delayed confirmation, refresh recovery
-and reduced motion. Next is owner approval for the web rollout and a phone
-walkthrough.
+and reduced motion. Railway web deployment `20ee13c8` serves `3c648f9`. Home,
+preview and health returned HTTP 200, the live stylesheet includes the deposit
+highlight and balance alert, and anonymous access to the test event returned
+404. Next is the phone walkthrough for readability, wallet return and refund
+navigation.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency

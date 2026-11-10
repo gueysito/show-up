@@ -23,7 +23,7 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 ## Remaining
 
 - V1-9: Rabby verification saved Base and Ethereum on Android Chrome and iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing on Base.
-- [Railway web](https://web-production-f1245d.up.railway.app) runs `a090fa9` with
+- [Railway web](https://web-production-f1245d.up.railway.app) runs `3c648f9` with
   private Postgres. Home, health and account return HTTP 200. Both sign-in
   redirects use the hosted callbacks, and the owner completed Google and
   Telegram sign-in. The private worker is online and passed its signer and
@@ -34,8 +34,8 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   The hosted [1-USDC deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R)
   and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
   finalized on NEAR. V1-8 remains stretch.
-- The six V1 polish items are implemented and verified locally. Next is owner
-  approval to deploy the web update, followed by a short phone walkthrough.
+- The six V1 polish items are live and the updated stylesheet is verified.
+  Next is a phone walkthrough for readability, wallet return and refund navigation.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. After the phone walkthrough, resolve billing, publish the release
   branch, and open its pull request. Merging requires owner approval.
