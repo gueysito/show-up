@@ -505,6 +505,16 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-12 | Ethereum → NEAR | Reallocate existing project ETH for demo wallet gas and escrow reserve | 0.000511990608314570 ETH input, 0.3 native NEAR delivered, 0.000003629867262 ETH gas | [Source](https://etherscan.io/tx/0x36296ad72db4a88294c02ea5ff89201a964cae6ab7a79b690c678f7bf5a086df), [delivery](https://nearblocks.io/txns/41kjFhwK5GZ6ucyB5WFX5w5kNHrJ6FSCcH4ykh2ZDcE9) |
 | 2026-11-12 | NEAR | Allocate the existing demo principal and gas; restore escrow operating reserve | 1 USDC and 0.102 NEAR to each demo wallet, 0.05 NEAR to escrow, 0.000635818266409 NEAR combined gas | [USDC allocation](https://nearblocks.io/txns/EsehziKL8JERpHzfktjad3Re2ycnGbkBetLaYci2FUQR), [demo A gas](https://nearblocks.io/txns/8noc8TYgZNEGZ2EjGJy8WELAsTY51FdV21toVmWFfy7J), [demo B gas](https://nearblocks.io/txns/3ggsdJXDdbmrSjaqsnwd3r8b47zaKjBJEPvDjZCoPLsg), [reserve](https://nearblocks.io/txns/8Hd3eNoZDTUvnSggDpvt1j9BaEyA3kJRAKFyayzSSHSn) |
 
+Recovery inventory (2026-11-12, read-only): the six test receiving accounts hold
+0.12 NEAR total, of which 0.10908 is above account storage before fees, and zero
+native or Intents USDC. Verify that each route has no outstanding deposit or
+refund before reclaiming its NEAR. The completed NFT winner test's custody
+address still holds 0.000728079412264359 ETH. Recovery needs a separate
+Chain Signatures transaction. The controller still has 0.038156 USDC in Intents.
+The reusable source wallets hold 0.519483 USDC and 0.000896191129890033 ETH on
+Ethereum, 0.088209 USDC and 0.000018508084029922 ETH on Base, and 1.529843 USDC
+and 0.00150656 SOL on Solana, plus 0.00148844 SOL in token-account collateral.
+
 About **$27.35 funded/allocated before the 1 NEAR reserve top-up**, including known sender fees and Solana rent,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.

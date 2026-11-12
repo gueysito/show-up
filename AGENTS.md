@@ -48,6 +48,16 @@ and adding work packages or changing V1 scope.
 
 Keep a running mainnet spend ledger in the plan (date, chain, purpose, amount, tx link).
 
+Reuse the two existing NEAR demo attendee wallets and the existing project
+controller, Ethereum/Base wallet, and Solana wallet for mainnet tests. Ask the
+owner before adding or funding any new demo wallet. Per-registration receiving
+accounts and per-event custody addresses are protocol accounts. Record them when
+funded and track their balances and recovery status in the mainnet spend ledger.
+Before each money-path test, check existing balances and reserve enough native gas
+to return funds on the same chain. After the test, reconcile deposits, refunds,
+remaining balances and fees. Return reusable principal to the existing project
+wallet for that chain unless it is allocated to the next test.
+
 ## Repository rules
 
 Keep this repository private until November 13, 2026. After that date the owner makes
