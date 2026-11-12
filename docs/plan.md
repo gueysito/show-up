@@ -288,8 +288,9 @@ NEAR each for receiving balances, creation fees and storage, and 0.01 NEAR each
 for controller fees, plus signing floors. Proposed funding is 0.75 NEAR to escrow
 and 0.25 NEAR to the controller. The local change logs below-target balances every five
 minutes and checks both signing floors before creating a receiving account.
-Deploy the web and worker changes, confirm the funding and resume the original
-request before verifying the hosted payment. Local build, 135 unit, four database
+The reserve transfers finalized and the original registration resumed. Both sources
+agree on 0.72989 available escrow NEAR and 0.45041 controller NEAR after one
+receiving account setup. Web and worker reserve checks still need hosted rollout. Local build, 135 unit, four database
 integration and four browser cases pass.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
@@ -476,7 +477,10 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-12 | NEAR | Restore controller signing reserve after route account creation | 0.043 NEAR moved internally, 0.0008349895375 NEAR gas | [Reserve transfer](https://nearblocks.io/txns/DiPxrygXkhWcYExSKXVg3QfNykmKcuEDdNhTe8ysoR7g) |
 | 2026-11-12 | NEAR | Finalize the original MetaMask test registration | 0.0002273158015221 NEAR gas, no deposit payment | [Registration](https://nearblocks.io/txns/D66pDGX154wsn1yY4yTE9vQ1Thtuy5JeoyZ5omfKbBGL) |
 
-About **$27.35 funded/allocated including known sender fees and Solana rent**,
+| 2026-11-12 | NEAR | Fund cross-chain operating reserves | 0.75 NEAR to escrow and 0.25 NEAR to controller; 0.00087962605 NEAR combined sender fees | [Escrow](https://nearblocks.io/txns/5oh2nuGQF8ujBC3jogVugs5dzW7i17WZP3Df87GY7bs3), [controller](https://nearblocks.io/txns/Gn39qfNXMddXqWvFY8mnAU72fJ6PcVZ7zfpVyQYY31Hc) |
+| 2026-11-12 | NEAR | Resume the original Base registration after funding | 0.02 NEAR held in its receiving account; 0.0073423289386007 NEAR combined setup and registration fees | [Receiving account](https://nearblocks.io/txns/B7EZmYJSu96XD1k4Vcb9RTbLhBPgZWDs93nas1eFm45E), [registration](https://nearblocks.io/txns/DFVqUKhhvR2M3TAEbpMUQuwyENZzgpNTvTQ2gKFBhush) |
+
+About **$27.35 funded/allocated before the 1 NEAR reserve top-up**, including known sender fees and Solana rent,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
 Project-paid NEAR fees through finalized block 224257601: **0.1220549038417765 NEAR**,
