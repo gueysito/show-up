@@ -253,6 +253,10 @@ extensions and recovery phrases out of this instance. Browser storage isolation
 is not a VM or OS sandbox. Never reset/reinstall a personal wallet to follow an
 import tutorial. The NEAR testnet wallet import path still needs confirmation.
 
+On November 12, the owner reported installing Meteor Wallet in the dedicated
+Brave development profile for desktop NEAR approvals. Access to the two existing
+mainnet demo accounts in Meteor still needs to be verified before payment.
+
 ## Funding sequence
 
 1. The named NEAR testnet account is already funded; use it for subsequent requests at the
