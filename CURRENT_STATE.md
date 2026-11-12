@@ -42,7 +42,7 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   MetaMask exposed a second blocker when its browser refused to launch Telegram.
   The V1 navigation, Rabby-only payment and receipt changes passed hosted smoke checks.
   The Base deposit reached escrow. The reserve and wallet changes are live on web
-  and worker. Next: verify the existing deposit refund and remaining hosted journeys.
+  and worker. The existing deposit was refunded in full. Next: remaining hosted journeys.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. Finish the hosted checks, then resolve billing and open the release
   pull request. Merging requires owner approval.

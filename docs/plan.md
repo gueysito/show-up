@@ -303,8 +303,12 @@ The Railway [web](https://railway.com/project/c96713df-35c0-442a-bd38-cb49b32abd
 and [worker](https://railway.com/project/c96713df-35c0-442a-bd38-cb49b32abd19/service/761d9296-b1b3-4821-9291-d272f6886128?id=ecbc9ce7-1ec2-4a55-a933-496a10d79fc8)
 run `ad6f41a`. HTTP, live copy and signed-out access checks pass. The worker
 reported ready and logged 0.69640 spendable escrow NEAR against the 0.74 target.
-Use the existing funded deposit for the refund check. The revised Rabby handoff
-has local evidence and awaits its next real use.
+The hosted [cancellation](https://nearblocks.io/txns/zJn2kyA9Dk94Pw5uioCuFgk4KTWuqaBwfRDg5hCQhzs)
+and [refund](https://nearblocks.io/txns/HjL9YboLrm7pV4niNWgyDoTbJXjyn8mpfrPqWViHmkjg)
+returned the existing Base deposit in full. The withdrawal was included about 12
+seconds after the HTTP 200 log timestamp. Two NEAR sources confirmed 1 USDC
+paid, zero remaining and no pending transfer by 26 seconds after that timestamp.
+The revised Rabby handoff has local evidence and awaits its next real use.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
 site, but its browser blocked the Telegram app launch even after **Allow**.
@@ -492,6 +496,7 @@ below; the review's money-path evidence still applies to the identical artifact.
 
 | 2026-11-12 | NEAR | Fund cross-chain operating reserves | 0.75 NEAR to escrow and 0.25 NEAR to controller; 0.00087962605 NEAR combined sender fees | [Escrow](https://nearblocks.io/txns/5oh2nuGQF8ujBC3jogVugs5dzW7i17WZP3Df87GY7bs3), [controller](https://nearblocks.io/txns/Gn39qfNXMddXqWvFY8mnAU72fJ6PcVZ7zfpVyQYY31Hc) |
 | 2026-11-12 | NEAR | Resume the original Base registration after funding | 0.02 NEAR held in its receiving account; 0.0073423289386007 NEAR combined setup and registration fees | [Receiving account](https://nearblocks.io/txns/B7EZmYJSu96XD1k4Vcb9RTbLhBPgZWDs93nas1eFm45E), [registration](https://nearblocks.io/txns/DFVqUKhhvR2M3TAEbpMUQuwyENZzgpNTvTQ2gKFBhush) |
+| 2026-11-12 | NEAR | Cancel hosted Base event and refund existing deposit | 1 USDC paid in full, 0.0009136990781181 NEAR combined gas | [Cancel](https://nearblocks.io/txns/zJn2kyA9Dk94Pw5uioCuFgk4KTWuqaBwfRDg5hCQhzs), [refund](https://nearblocks.io/txns/HjL9YboLrm7pV4niNWgyDoTbJXjyn8mpfrPqWViHmkjg) |
 
 About **$27.35 funded/allocated before the 1 NEAR reserve top-up**, including known sender fees and Solana rent,
 using the recorded funding price snapshots. All execution fees and the escrow's
