@@ -292,6 +292,14 @@ The reserve transfers finalized and the original registration resumed. Both sour
 agree on 0.72989 available escrow NEAR and 0.45041 controller NEAR after one
 receiving account setup. Web and worker reserve checks still need hosted rollout. Local build, 135 unit, four database
 integration and four browser cases pass.
+The next hosted Base attempt took about 35 seconds from registration submission
+to on-chain registration. The live page required manual refreshes. The local
+change checks the saved registration automatically for a limited time, explains
+the wait, and keeps a manual check. Rabby connected on retry and the original
+[1 USDC deposit reached escrow](https://nearblocks.io/txns/5WLvHjeZ9oBjRBAHvEzK8pp98ZpaRnp3NqPvyN13UMtq).
+The first WalletConnect error could not be identified. Local changes make the
+connect and payment handoffs explicit and start independent payment checks
+together at the same finalized block. Hosted verification of those changes remains open.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
 site, but its browser blocked the Telegram app launch even after **Allow**.

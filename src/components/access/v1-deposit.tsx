@@ -263,6 +263,7 @@ export function V1Deposit({
     }
   }
   async function check() {
+    setRegistrationWaitElapsed(false);
     setBusy(true);
     setNotice(null);
     try {
@@ -299,6 +300,53 @@ export function V1Deposit({
     status && ["requested", "prepared", "submitted"].includes(status.state),
   );
   const registrationPaused = Boolean(status?.reserveBlocked);
+  const [registrationWaitElapsed, setRegistrationWaitElapsed] = useState(false);
+  useEffect(() => {
+    if (!registrationQueued || registrationPaused || registrationWaitElapsed || busy) return;
+    const controller = new AbortController();
+    const deadline = Date.now() + 75_000;
+    let timer: ReturnType<typeof setTimeout>;
+    function schedule() {
+      if (controller.signal.aborted) return;
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        setRegistrationWaitElapsed(true);
+        return;
+      }
+      timer = setTimeout(poll, Math.min(6000, remaining));
+    }
+    async function poll() {
+      if (Date.now() >= deadline) {
+        setRegistrationWaitElapsed(true);
+        return;
+      }
+      try {
+        const response = await fetch(`/api/commitments/mainnet?event=${eventId}`, {
+          cache: "no-store",
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+        });
+        if (response.ok) {
+          const next: Status = await response.json();
+          if (controller.signal.aborted) return;
+          setStatus(next);
+          setNotice(null);
+          if (next.reserveBlocked || !["requested", "prepared", "submitted"].includes(next.state))
+            return;
+        } else if ([401, 403, 404, 429].includes(response.status)) {
+          if (!controller.signal.aborted) setRegistrationWaitElapsed(true);
+          return;
+        }
+      } catch {
+        // A missed read does not affect the saved registration.
+      }
+      schedule();
+    }
+    schedule();
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [eventId, registrationQueued, registrationPaused, registrationWaitElapsed, busy]);
   return (
     <section
       className="saved-panel"
@@ -570,7 +618,9 @@ export function V1Deposit({
               ? "checking"
               : registrationPaused || notice?.tone === "blocked"
                 ? "blocked"
-                : "action"
+                : registrationWaitElapsed
+                  ? "action"
+                  : "checking"
           }
           title={
             busy
@@ -579,7 +629,9 @@ export function V1Deposit({
                 ? notice.title
                 : registrationPaused
                   ? "Deposit temporarily paused"
-                  : "Registration queued"
+                  : registrationWaitElapsed
+                    ? "Registration is taking longer than expected"
+                    : "Preparing your deposit"
           }
           actions={
             <button type="button" className="secondary-button" disabled={busy} onClick={check}>
@@ -593,7 +645,9 @@ export function V1Deposit({
               ? notice.text
               : registrationPaused
                 ? "Showup needs more NEAR to prepare this deposit. Your request is saved. Check again later to continue."
-                : "Your request is saved. When registration is ready, you can review and approve payment."}
+                : registrationWaitElapsed
+                  ? "Your request is saved. Check registration status to resume."
+                  : "Showup is setting up your registration on NEAR. This can take a minute. Leave this page open and we’ll show the payment review when it’s ready."}
         </JourneyStatus>
       ) : (
         (prepared || notice?.tone === "blocked" || !status) && (

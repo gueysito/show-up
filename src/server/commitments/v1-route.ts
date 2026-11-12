@@ -226,12 +226,16 @@ export async function requireV1RoutePayment(
   transport?: typeof fetch,
 ) {
   const current = await requireV1UnfundedRegistration(pool, config, session, eventId, transport);
-  await requireV1PayoutStorage(current.image.payout, current.snapshot, transport);
-  await currentSource(pool, config, current.image);
   const saved = await ownedV1Route(pool, config, session, eventId);
   if (!saved) throw new AppFailure(409, "Review a signed route quote first.");
-  if (saved.route.request.recipientType === "INTENTS") {
-    const account = await readV1RouteAccount(current.image.id, current.snapshot, transport);
+  const usesReceivingAccount = saved.route.request.recipientType === "INTENTS";
+  // Both checks use the same finalized block and neither depends on the other's result.
+  const [, account] = await Promise.all([
+    requireV1PayoutStorage(current.image.payout, current.snapshot, transport),
+    usesReceivingAccount ? readV1RouteAccount(current.image.id, current.snapshot, transport) : null,
+  ]);
+  await currentSource(pool, config, current.image);
+  if (usesReceivingAccount) {
     if (!account || BigInt(account.liquid) < 12000000000000000000000n)
       throw new AppFailure(
         409,

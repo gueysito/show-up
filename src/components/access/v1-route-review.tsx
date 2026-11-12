@@ -66,6 +66,7 @@ export function V1RouteReview({
   const [prompt, setPrompt] = useState<RabbyPrompt | null>(null);
   const [launchWallet, setLaunchWallet] = useState<MobileWallet | null>(null);
   const [payingWith, setPayingWith] = useState<string | null>(null);
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const paying = useRef(false);
   const pairing = useRef<AbortController | null>(null);
   const evmProviders = useRef<Partial<Record<EthereumApp, EthereumProvider>>>({});
@@ -198,24 +199,24 @@ export function V1RouteReview({
       if (useRabbyRelay) {
         const controller = new AbortController();
         pairing.current = controller;
-        const mayOpenOnAndroid = /Android/i.test(navigator.userAgent);
         rabby = await connectRabbyPayment(
           walletConnectProjectId,
           network,
           address,
           AbortSignal.any([controller.signal, AbortSignal.timeout(300_000)]),
-          (step) => {
-            setPrompt(step);
-            if (
-              mayOpenOnAndroid &&
-              navigator.userActivation?.isActive &&
-              document.visibilityState === "visible"
-            )
-              window.location.assign(step.href);
-          },
-        ).catch(() => {
+          setPrompt,
+        ).catch((error: unknown) => {
+          if (
+            error instanceof Error &&
+            error.message.startsWith("Connect the verified deposit account")
+          )
+            throw error;
+          if (error instanceof Error && error.name === "TimeoutError")
+            throw new Error(
+              "Rabby did not connect in time. Start the connection again from Showup.",
+            );
           throw new Error(
-            "Rabby couldn’t connect. Unlock it and approve your verified deposit account.",
+            "WalletConnect did not finish connecting to Rabby. Return here to start a fresh connection.",
           );
         });
         setPrompt(null);
@@ -233,6 +234,7 @@ export function V1RouteReview({
         )
           throw new Error("Choose your verified source account in the wallet.");
       } else throw new Error("Open the wallet browser to approve this payment.");
+      setCheckingPayment(true);
       const result = await post("route-pay");
       const token =
         network === "base"
@@ -257,6 +259,7 @@ export function V1RouteReview({
         !/^0x(0|[1-9a-f][0-9a-f]{0,15})$/.test(tx.nonce)
       )
         throw new Error("The wallet request differs from your reviewed route.");
+      setCheckingPayment(false);
       requesting();
       const params = [
         {
@@ -305,6 +308,7 @@ export function V1RouteReview({
       paying.current = false;
       setPrompt(null);
       setPayingWith(null);
+      setCheckingPayment(false);
       setBusy(false);
     }
   }
@@ -385,6 +389,12 @@ export function V1RouteReview({
                 />
                 I reviewed the source amount, gas limit, quote expiry and NEAR payout destination.
               </label>
+              {network !== "solana" && (
+                <p>
+                  If Rabby asks to connect, approve the connection and return here. Showup will
+                  check the payment, then ask you to approve one USDC transfer in Rabby.
+                </p>
+              )}
               <JourneyStatus
                 tone="action"
                 title="Approve the reviewed payment"
@@ -477,11 +487,19 @@ export function V1RouteReview({
         payingWith && (
           <JourneyStatus
             tone={paid ? "action" : "checking"}
-            title={paid ? `Approve in ${payingWith}` : "Preparing wallet approval"}
+            title={
+              paid
+                ? `Approve in ${payingWith}`
+                : checkingPayment
+                  ? "Checking your payment"
+                  : "Starting wallet connection"
+            }
           >
             {paid
               ? "Return here after approving to see your deposit status."
-              : `Getting your payment ready for ${payingWith}.`}
+              : checkingPayment
+                ? "Stay here while Showup checks the amount, wallet balance and network fee. We’ll show the approval link when it’s ready."
+                : `Stay here until Showup shows the link to open ${payingWith}.`}
           </JourneyStatus>
         )
       )}

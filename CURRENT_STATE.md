@@ -41,8 +41,8 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   app-opening link reached a browser error page. Opening Showup manually in
   MetaMask exposed a second blocker when its browser refused to launch Telegram.
   The V1 navigation, Rabby-only payment and receipt changes passed hosted smoke checks.
-  Both NEAR top-ups finalized and the paused Base registration resumed. Next: verify
-  the original payment and roll out the web and worker reserve checks.
+  Both NEAR top-ups finalized and a fresh Base deposit reached escrow. Next: verify
+  the remaining hosted journeys and deploy the reserve and wallet status changes.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. Finish the hosted checks, then resolve billing and open the release
   pull request. Merging requires owner approval.
