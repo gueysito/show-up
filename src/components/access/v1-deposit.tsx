@@ -14,6 +14,7 @@ type Status = {
   route?: V1RouteSummary | null;
   state: string;
   funded: boolean;
+  reserveBlocked?: boolean;
   registrationId?: string;
   wallet?: string;
   payout?: string;
@@ -294,6 +295,10 @@ export function V1Deposit({
       setBusy(false);
     }
   }
+  const registrationQueued = Boolean(
+    status && ["requested", "prepared", "submitted"].includes(status.state),
+  );
+  const registrationPaused = Boolean(status?.reserveBlocked);
   return (
     <section
       className="saved-panel"
@@ -558,17 +563,49 @@ export function V1Deposit({
           Registration failed. Its original transaction is retained for review. Do not send USDC.
         </JourneyStatus>
       )}
-      {(prepared || notice?.tone === "blocked" || !status) && (
-        <button
-          type="button"
-          className="secondary-button"
-          disabled={busy || checkingEscrow}
-          onClick={check}
+      {registrationQueued ? (
+        <JourneyStatus
+          tone={
+            busy
+              ? "checking"
+              : registrationPaused || notice?.tone === "blocked"
+                ? "blocked"
+                : "action"
+          }
+          title={
+            busy
+              ? "Checking registration"
+              : notice?.tone === "blocked"
+                ? notice.title
+                : registrationPaused
+                  ? "Deposit temporarily paused"
+                  : "Registration queued"
+          }
+          actions={
+            <button type="button" className="secondary-button" disabled={busy} onClick={check}>
+              Check registration status
+            </button>
+          }
         >
-          {status && ["requested", "prepared", "submitted"].includes(status.state)
-            ? "Check registration status"
-            : "Check deposit status"}
-        </button>
+          {busy
+            ? "Looking up your saved request."
+            : notice?.tone === "blocked"
+              ? notice.text
+              : registrationPaused
+                ? "Showup needs more NEAR to prepare this deposit. Your request is saved. Check again later to continue."
+                : "Your request is saved. When registration is ready, you can review and approve payment."}
+        </JourneyStatus>
+      ) : (
+        (prepared || notice?.tone === "blocked" || !status) && (
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={busy || checkingEscrow}
+            onClick={check}
+          >
+            Check deposit status
+          </button>
+        )
       )}
       {status?.transactionUrl && (
         <p>
@@ -577,7 +614,8 @@ export function V1Deposit({
           </a>
         </p>
       )}
-      {!status?.funded &&
+      {!registrationQueued &&
+        !status?.funded &&
         status?.state !== "failed" &&
         (notice ? (
           <JourneyStatus tone={notice.tone} title={notice.title}>

@@ -274,13 +274,23 @@ verification screen. Show **1. Connect Rabby** followed by **2. Approve payment
 in Rabby**. After submission, show **Waiting for on-chain confirmation** with a
 visible progress cue and offer **Check deposit status** for that payment. Keep
 the green **Deposit confirmed** card when the escrow receipt is final.
-When the project reserve blocks registration, surface a clear service status
-and alert the operator. Keep the original registration available to resume.
-Before release, size the escrow and controller NEAR reserves for the expected
-number of concurrent cross-chain registrations. Include the 0.02 NEAR per
-receiving account, observed creation and registration gas, contract storage
-growth, and both signing thresholds. Verify both balances before opening access
-and alert the operator before either falls below the required headroom.
+When the project reserve blocks registration, show a paused status with a retry
+action for the same request. Both finalized sources confirmed 0.01029 NEAR
+available in escrow against the 0.04 floor, and 0.20064 NEAR in the controller
+against the 0.20 signing floor (block 224257601). At that block, 3.85295 of the
+3.98 funded NEAR was still in project accounts, including 3.39382 in escrow
+storage collateral and 0.12 in six receiving accounts. Four USDC registrations
+hold 0.005 NEAR collateral. The indexed project-signed fees plus the initial
+conversion and storage-registration fees account for about 0.12205 NEAR.
+Before opening access, verify targets of 0.74 available NEAR in escrow and 0.40
+NEAR in the controller. This budgets 20 new cross-chain registrations at 0.035
+NEAR each for receiving balances, creation fees and storage, and 0.01 NEAR each
+for controller fees, plus signing floors. Proposed funding is 0.75 NEAR to escrow
+and 0.25 NEAR to the controller. The local change logs below-target balances every five
+minutes and checks both signing floors before creating a receiving account.
+Deploy the web and worker changes, confirm the funding and resume the original
+request before verifying the hosted payment. Local build, 135 unit, four database
+integration and four browser cases pass.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
 site, but its browser blocked the Telegram app launch even after **Allow**.
@@ -469,7 +479,8 @@ below; the review's money-path evidence still applies to the identical artifact.
 About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
-Total recorded gas: **0.1219999027392159 NEAR** (about $0.4941 at $4.05/NEAR).
+Project-paid NEAR fees through finalized block 224257601: **0.1220549038417765 NEAR**,
+from indexed project-signed transactions and the initial conversion and storage fees.
 Before NFT custody preparation, controller native balance was **0.226839523809198299999988 NEAR**;
 escrow native balance is **3.456873783036298799999990 NEAR** after reserve replenishment, including code/state
 collateral. Both accounts have USDC storage registration. Both RPCs confirm

@@ -1,3 +1,8 @@
+import {
+  v1ControllerSigningFloor,
+  v1RouteAccountFloor,
+  v1StorageCostPerByte,
+} from "../../src/server/protocol/v1-reserves";
 import { V1ReadOnlyRpc } from "../../src/server/protocol/v1-rpc";
 import { readV1Snapshot, readV1Record, v1Deployment } from "../../src/server/protocol/v1-escrow";
 import {
@@ -63,17 +68,26 @@ export function v1IntentsGateway(
           ["near-fastnear", "near-drpc"].map(async (endpoint) => {
             const source = new V1ReadOnlyRpc(endpoint, transport),
               params = { account_id: v1Deployment.account, block_id: snapshot.block.hash },
-              [account, list] = await Promise.all([
+              [account, list, controller] = await Promise.all([
                 source.read("query", { ...params, request_type: "view_account" }),
                 source.read("query", { ...params, request_type: "view_access_key_list" }),
+                source.read("query", {
+                  ...params,
+                  account_id: v1Deployment.owner,
+                  request_type: "view_account",
+                }),
               ]),
               keys = record(list).keys;
-            for (const value of [account, list])
+            for (const value of [account, list, controller])
               if (
                 record(value).block_hash !== snapshot.block.hash ||
                 String(record(value).block_height) !== snapshot.block.height
               )
                 throw new Error("Intents account sponsor block mismatch");
+            if (unsigned(record(controller).amount, 128) < v1ControllerSigningFloor)
+              throw new Error(
+                "Controller reserve is too low to register after route account creation",
+              );
             if (
               record(account).code_hash !== v1Deployment.codeHash ||
               !Array.isArray(keys) ||
@@ -84,8 +98,8 @@ export function v1IntentsGateway(
               throw new Error("Intents account sponsor authority changed");
             const liquid =
               unsigned(record(account).amount, 128) -
-              unsigned(record(account).storage_usage, 64) * 10000000000000000000n;
-            if (liquid < BigInt(v1Intents.accountFunding) + 20000000000000000000000n)
+              unsigned(record(account).storage_usage, 64) * v1StorageCostPerByte;
+            if (liquid < v1RouteAccountFloor)
               throw new Error(
                 "Escrow needs its existing native gas reserve replenished before route account creation",
               );

@@ -1,3 +1,8 @@
+import {
+  readV1Reserves,
+  v1ControllerSigningFloor,
+  v1PilotReserveTarget,
+} from "../src/server/protocol/v1-reserves";
 import { V1ReadOnlyRpc, v1PacedSubmission } from "../src/server/protocol/v1-rpc";
 import { setTimeout as pause } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
@@ -66,7 +71,7 @@ export async function signV1OwnerCalls(
         record(entries[0]).public_key !== v1Deployment.publicKey ||
         record(record(entries[0]).access_key).permission !== "FullAccess" ||
         record(account).code_hash !== "1".repeat(32) ||
-        unsigned(record(account).amount, 128) < 200_000_000_000_000_000_000_000n
+        unsigned(record(account).amount, 128) < v1ControllerSigningFloor
       )
         throw new Error("V1 signer authority or gas reserve changed");
       return unsigned(record(record(entries[0]).access_key).nonce, 64).toString();
@@ -391,6 +396,7 @@ async function main() {
   let stopping = false;
   let lastNftCheck = 0;
   let lastRouteCheck = 0;
+  let lastReserveCheck = 0;
   for (const signal of ["SIGINT", "SIGTERM"] as const)
     process.once(signal, () => {
       stopping = true;
@@ -401,6 +407,21 @@ async function main() {
       console.log("Showup V1 worker ready");
     }
     do {
+      if (hosted && Date.now() - lastReserveCheck >= 300_000) {
+        lastReserveCheck = Date.now();
+        try {
+          const reserves = await readV1Reserves();
+          for (const account of ["escrow", "controller"] as const)
+            if (reserves[account] < v1PilotReserveTarget[account])
+              console.warn(
+                `V1 reserve below pilot target: ${account}. Available: ${reserves[account]} yoctoNEAR; target: ${v1PilotReserveTarget[account]} yoctoNEAR.`,
+              );
+        } catch {
+          console.warn(
+            "V1 reserve check unavailable. Verify finalized balances before opening deposits.",
+          );
+        }
+      }
       try {
         const account = await runV1IntentsQueue(
           pool,

@@ -1,3 +1,8 @@
+import {
+  readV1Reserves,
+  v1ControllerSigningFloor,
+  v1RouteAccountFloor,
+} from "../../../../server/protocol/v1-reserves";
 import { cookies } from "next/headers";
 import { authConfig } from "../../../../server/auth/config";
 import { requireSession, sessionCookie } from "../../../../server/auth/sessions";
@@ -55,8 +60,22 @@ async function handle(request: Request) {
         session.tokenHash,
         params.get("event")!,
       );
+      let reserveBlocked = false;
+      if (state.state === "requested" && "registrationId" in state) {
+        const { rows } = await database.pool.query<{ state: string }>(
+          "SELECT state FROM app_v1_route_accounts WHERE registration_id=$1",
+          [state.registrationId],
+        );
+        const reserves = await readV1Reserves().catch(() => null);
+        reserveBlocked = Boolean(
+          reserves &&
+          (reserves.controller < v1ControllerSigningFloor ||
+            (rows[0]?.state === "requested" && reserves.escrow < v1RouteAccountFloor)),
+        );
+      }
       result = {
         ...state,
+        reserveBlocked,
         ...("sourceNetwork" in state &&
           state.sourceNetwork !== "near" && {
             route: await readV1RouteState(
