@@ -26,6 +26,7 @@ export function SavedDrafts({
   account,
   busy,
   ready,
+  storageUnavailable,
   onOpen,
   onNew,
   onRefresh,
@@ -36,6 +37,7 @@ export function SavedDrafts({
   account: boolean;
   busy: boolean;
   ready: boolean;
+  storageUnavailable: boolean;
   onOpen: (item: SavedDraft) => void;
   onNew: () => void;
   onRefresh: () => void;
@@ -58,9 +60,11 @@ export function SavedDrafts({
         <button type="button" className="secondary-button" disabled={busy} onClick={onNew}>
           New event
         </button>
-        <button type="button" className="text-button" disabled={busy} onClick={onRefresh}>
-          Reconnect storage
-        </button>
+        {storageUnavailable && (
+          <button type="button" className="text-button" disabled={busy} onClick={onRefresh}>
+            Reconnect storage
+          </button>
+        )}
       </div>
       <ul>
         {saved.map((item) => (

@@ -313,7 +313,9 @@ checks: build, 134 unit, 11 database integration and 43 production browser cases
 (including a focused rerun).
 [Railway web deployment](https://railway.com/project/c96713df-35c0-442a-bd38-cb49b32abd19/service/de0c7406-f6f3-4d9e-a19f-fd771ed50c11?id=a31c0cae-1227-4228-a905-8b7f1c5d1eea)
 of `f2dac03` passed HTTP, signed-out access, sign-in redirects and 320 px smoke checks.
-Hosted money journeys and reserve sizing/alerting remain open.
+A local follow-up labels host invitations, shows storage retry only after a failed
+load, and explains the NEAR event check. Build, 134 unit and six focused browser
+cases passed. Hosted money journeys and reserve sizing/alerting remain open.
 After implementation, repeat the hosted journey to verify the next action is
 clear at each step and the deposit and refund still complete. The V1-7
 cancel-to-host NFT path has sandbox evidence and still needs a mainnet receipt.

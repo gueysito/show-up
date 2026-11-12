@@ -80,10 +80,11 @@ export function InvitationManager({
   }
   return (
     <section className="saved-panel" aria-label="Invitation controls">
-      <h2>Invitations</h2>
+      <h2>{canIssueHost ? "Host invitations" : "Invitations"}</h2>
       <p>
-        Links grant account access only. Unused links reserve no capacity. No external message is
-        sent.
+        {canIssueHost
+          ? "Create a single-use link and share it with someone you want to invite to host events."
+          : "Create an invitation link, then copy and share it yourself. An unused link does not reserve a spot."}
       </p>
       <p role="status">{status}</p>
       {canIssueHost && (

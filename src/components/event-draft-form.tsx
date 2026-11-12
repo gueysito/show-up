@@ -50,6 +50,7 @@ export function EventDraftForm({
   const [snapshot, setSnapshot] = useState("");
   const [status, setStatus] = useState("");
   const [ready, setReady] = useState(false);
+  const [storageUnavailable, setStorageUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmation, setConfirmation] = useState<EventDraft | null>(null);
   const [conflict, setConflict] = useState(false);
@@ -60,12 +61,18 @@ export function EventDraftForm({
   const dirty = snapshot !== JSON.stringify(draft);
 
   async function loadSaved() {
-    const response = await fetch(api, { headers, cache: "no-store" });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error ?? "Storage unavailable.");
-    setSaved(result.drafts);
-    setReady(true);
-    return result.drafts as SavedDraft[];
+    try {
+      const response = await fetch(api, { headers, cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Storage unavailable.");
+      setSaved(result.drafts);
+      setReady(true);
+      setStorageUnavailable(false);
+      return result.drafts as SavedDraft[];
+    } catch (error) {
+      setStorageUnavailable(true);
+      throw error;
+    }
   }
 
   useEffect(() => {
@@ -77,6 +84,7 @@ export function EventDraftForm({
         const result = await response.json();
         setSaved(result.drafts);
         setReady(true);
+        setStorageUnavailable(false);
         if (account) {
           const wanted = new URL(window.location.href).searchParams.get("event");
           const item = (result.drafts as SavedDraft[]).find((saved) => saved.id === wanted);
@@ -94,8 +102,12 @@ export function EventDraftForm({
         }
       })
       .catch(() => {
-        if (!controller.signal.aborted)
-          setStatus("Storage unavailable. Your form is still editable. Reconnect storage to save.");
+        if (!controller.signal.aborted) {
+          setStorageUnavailable(true);
+          setStatus(
+            "Could not load saved events. Your edits are still here. Reconnect storage to try again.",
+          );
+        }
       });
     return () => controller.abort();
   }, [persistence, api, headers, account]);
@@ -324,14 +336,21 @@ export function EventDraftForm({
             account={account}
             busy={busy}
             ready={ready}
+            storageUnavailable={storageUnavailable}
             onOpen={openDraft}
             onNew={() => openDraft()}
             onDuplicate={duplicate}
             onClear={clearWorkspace}
-            onRefresh={() => {
-              loadSaved()
-                .then(() => setStatus("Storage reconnected."))
-                .catch(() => setStatus("Storage unavailable. Check the local database and retry."));
+            onRefresh={async () => {
+              setBusy(true);
+              try {
+                await loadSaved();
+                setStatus("Saved events are up to date.");
+              } catch {
+                setStatus("Could not load saved events. Try reconnecting again.");
+              } finally {
+                setBusy(false);
+              }
             }}
           />
         )}

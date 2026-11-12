@@ -15,6 +15,7 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await fixtures.enter(context, 0);
     await page.goto("/account");
     const invitations = page.getByRole("region", { name: "Invitation controls" });
+    await expect(invitations.getByRole("heading", { name: "Host invitations" })).toBeVisible();
     await invitations.getByRole("button", { name: "Issue host invitation" }).click();
     await expect(invitations.getByRole("status")).toContainText("Invitation issued");
     const privateLink = await invitations.getByLabel("Private invitation link").inputValue();
@@ -30,6 +31,17 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await host.getByRole("button", { name: "Accept invitation" }).click();
     await expect(host.getByRole("status")).toContainText("Host access confirmed");
     await host.getByRole("link", { name: "Go to your events" }).click();
+    await expect(host).toHaveURL(/\/host$/);
+    const reconnect = host.getByRole("button", { name: "Reconnect storage" });
+    await expect(reconnect).toHaveCount(0);
+    await host.route("**/api/events", (route) =>
+      route.fulfill({ status: 503, json: { error: "Fixture storage outage" } }),
+    );
+    await host.reload();
+    await expect(reconnect).toBeVisible();
+    await host.unroute("**/api/events");
+    await reconnect.click();
+    await expect(reconnect).toHaveCount(0);
     const save = host.getByRole("button", { name: "Validate & save draft" });
     await expect(save).toBeEnabled();
     const draft = validDraft();

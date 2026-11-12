@@ -196,8 +196,18 @@ export function V1EventConsole({
       ) : busy || !view ? (
         <JourneyStatus
           tone="checking"
-          title={busy ? "Checking your request" : "Loading the contract receipt"}
-        />
+          title={
+            busy
+              ? "Checking your request"
+              : host
+                ? "Checking event status"
+                : "Checking your receipt"
+          }
+        >
+          {!busy &&
+            host &&
+            "Showup is verifying the event on NEAR. The controls will appear when the check finishes."}
+        </JourneyStatus>
       ) : (
         message &&
         !refund &&
