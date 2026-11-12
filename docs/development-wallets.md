@@ -44,6 +44,10 @@ At finalized block 224274090 on 2026-11-12, both sources showed zero USDC in
 the demo wallets and spendable NEAR of **0.06214603** (A) and **0.06241208** (B).
 The wallets still have USDC storage registration. Retain both for settlement
 verification and account for their remaining balances when retiring the test wallets.
+At finalized block 224275981, existing project funds brought both demo wallets
+to 1 USDC each and **0.16414603 / 0.16441208 spendable NEAR**. The controller holds
+0.366697 native USDC and 0.49255390 NEAR total, and escrow has 0.74486576 spendable NEAR.
+The [mainnet budget](plan.md#mainnet-budget) records the transfers and fees.
 
 | Order / exact mainnet | Verified project address | Exact initial amount | Approximate USD |
 | --- | --- | --- | --- |

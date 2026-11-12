@@ -309,12 +309,10 @@ returned the existing Base deposit in full. The withdrawal was included about 12
 seconds after the HTTP 200 log timestamp. Two NEAR sources confirmed 1 USDC
 paid, zero remaining and no pending transfer by 26 seconds after that timestamp.
 The revised Rabby handoff has local evidence and awaits its next real use.
-Hosted settlement preflight (2026-11-12): the two fixed demo wallets have zero
-USDC and each is below the 0.16 NEAR payment floor. The controller has 1.366697
-native USDC, leaving a 0.883303 USDC shortfall for the two seats and 0.25 USDC
-prize. Two settlement integration tests passed. The retained earlier desktop
-mainnet journal confirms all 2.25 USDC returned to the controller. The current
-hosted settlement remains open; no new transaction was submitted.
+Hosted settlement preflight (2026-11-12): existing project Ethereum balances
+covered the USDC and gas shortfalls. The two settlement integration tests passed,
+and the earlier desktop mainnet journal confirms all 2.25 USDC returned to the
+controller. The hosted journey still requires authenticated host and attendee sessions.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
 site, but its browser blocked the Telegram app launch even after **Allow**.
@@ -503,6 +501,9 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-12 | NEAR | Fund cross-chain operating reserves | 0.75 NEAR to escrow and 0.25 NEAR to controller; 0.00087962605 NEAR combined sender fees | [Escrow](https://nearblocks.io/txns/5oh2nuGQF8ujBC3jogVugs5dzW7i17WZP3Df87GY7bs3), [controller](https://nearblocks.io/txns/Gn39qfNXMddXqWvFY8mnAU72fJ6PcVZ7zfpVyQYY31Hc) |
 | 2026-11-12 | NEAR | Resume the original Base registration after funding | 0.02 NEAR held in its receiving account; 0.0073423289386007 NEAR combined setup and registration fees | [Receiving account](https://nearblocks.io/txns/B7EZmYJSu96XD1k4Vcb9RTbLhBPgZWDs93nas1eFm45E), [registration](https://nearblocks.io/txns/DFVqUKhhvR2M3TAEbpMUQuwyENZzgpNTvTQ2gKFBhush) |
 | 2026-11-12 | NEAR | Cancel hosted Base event and refund existing deposit | 1 USDC paid in full, 0.0009136990781181 NEAR combined gas | [Cancel](https://nearblocks.io/txns/zJn2kyA9Dk94Pw5uioCuFgk4KTWuqaBwfRDg5hCQhzs), [refund](https://nearblocks.io/txns/HjL9YboLrm7pV4niNWgyDoTbJXjyn8mpfrPqWViHmkjg) |
+| 2026-11-12 | Ethereum → NEAR | Reallocate existing project USDC to fund two demo seats and the prize | 1.010208 USDC input, 1 USDC delivered, 0.010208 USDC route cost and 0.000011053587447 ETH gas. One same-nonce transaction finalized. | [Source](https://etherscan.io/tx/0xf5a053448b4897e9041038d1aa6bd32e0e1a5ef751de14a61522979513f5849f), [delivery](https://nearblocks.io/txns/2MzZGfwYGELhnDY1Xjs7rWVHsNfLVrxpF7VbyvKyPUXb) |
+| 2026-11-12 | Ethereum → NEAR | Reallocate existing project ETH for demo wallet gas and escrow reserve | 0.000511990608314570 ETH input, 0.3 native NEAR delivered, 0.000003629867262 ETH gas | [Source](https://etherscan.io/tx/0x36296ad72db4a88294c02ea5ff89201a964cae6ab7a79b690c678f7bf5a086df), [delivery](https://nearblocks.io/txns/41kjFhwK5GZ6ucyB5WFX5w5kNHrJ6FSCcH4ykh2ZDcE9) |
+| 2026-11-12 | NEAR | Allocate the existing demo principal and gas; restore escrow operating reserve | 1 USDC and 0.102 NEAR to each demo wallet, 0.05 NEAR to escrow, 0.000635818266409 NEAR combined gas | [USDC allocation](https://nearblocks.io/txns/EsehziKL8JERpHzfktjad3Re2ycnGbkBetLaYci2FUQR), [demo A gas](https://nearblocks.io/txns/8noc8TYgZNEGZ2EjGJy8WELAsTY51FdV21toVmWFfy7J), [demo B gas](https://nearblocks.io/txns/3ggsdJXDdbmrSjaqsnwd3r8b47zaKjBJEPvDjZCoPLsg), [reserve](https://nearblocks.io/txns/8Hd3eNoZDTUvnSggDpvt1j9BaEyA3kJRAKFyayzSSHSn) |
 
 About **$27.35 funded/allocated before the 1 NEAR reserve top-up**, including known sender fees and Solana rent,
 using the recorded funding price snapshots. All execution fees and the escrow's
