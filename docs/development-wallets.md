@@ -40,6 +40,10 @@ Demo subaccounts `attendee-a.showup-dev-14989f.near` and
 `attendee-b.showup-dev-14989f.near` reuse the retained project key and hold zero USDC,
 plus **0.164010667012310099999998 / 0.164276720614659099999999 NEAR** respectively.
 Their 0.33-NEAR initial funding and token storage come from the existing allocation.
+At finalized block 224274090 on 2026-11-12, both sources showed zero USDC in
+the demo wallets and spendable NEAR of **0.06214603** (A) and **0.06241208** (B).
+The wallets still have USDC storage registration. Retain both for settlement
+verification and account for their remaining balances when retiring the test wallets.
 
 | Order / exact mainnet | Verified project address | Exact initial amount | Approximate USD |
 | --- | --- | --- | --- |

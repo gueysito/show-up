@@ -309,6 +309,12 @@ returned the existing Base deposit in full. The withdrawal was included about 12
 seconds after the HTTP 200 log timestamp. Two NEAR sources confirmed 1 USDC
 paid, zero remaining and no pending transfer by 26 seconds after that timestamp.
 The revised Rabby handoff has local evidence and awaits its next real use.
+Hosted settlement preflight (2026-11-12): the two fixed demo wallets have zero
+USDC and each is below the 0.16 NEAR payment floor. The controller has 1.366697
+native USDC, leaving a 0.883303 USDC shortfall for the two seats and 0.25 USDC
+prize. Two settlement integration tests passed. The retained earlier desktop
+mainnet journal confirms all 2.25 USDC returned to the controller. The current
+hosted settlement remains open; no new transaction was submitted.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
 site, but its browser blocked the Telegram app launch even after **Allow**.
