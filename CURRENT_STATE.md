@@ -35,8 +35,13 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
   finalized on NEAR. V1-8 remains stretch.
 - The owner confirmed the live paid refund receipt and wallet removal. The
-  wallet handoff and shared status cards are live. Next are phone checks for
-  Rabby approval and MetaMask deposit continuation.
+  hosted Rabby phone check funded [1 USDC from Base](https://nearblocks.io/txns/9LdDsnWsQeJzjiYyyHDTBq9t7eZCa9E1eWjzzeANYbNu).
+  Its [full refund](https://nearblocks.io/txns/6USn7CJ2Czx2owgort7QdNCwKDRzF1mkfkygmJkQKToj)
+  finalized on NEAR. The MetaMask test registration also finalized. Its mobile
+  app-opening link reached a browser error page. Opening Showup manually in
+  MetaMask exposed a second blocker when its browser refused to launch Telegram.
+  V1 will offer Rabby for Base and Ethereum. Review the [walkthrough follow-ups](docs/plan.md)
+  before implementing the navigation, wallet, refund, and reserve changes.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
-  branch run. After the phone walkthrough, resolve billing, publish the release
-  branch, and open its pull request. Merging requires owner approval.
+  branch run. Finish the hosted checks, then resolve billing and open the release
+  pull request. Merging requires owner approval.

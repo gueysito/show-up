@@ -201,13 +201,122 @@ deployment `827ec947` serves `015b293`. Home, health, the status-card CSS,
 the new wallet approval bundle, and the deposit continuation sign-in page
 returned HTTP 200. The private refund remained HTTP 404 while signed out.
 
+Hosted Base phone check (2026-11-12): the owner approved the payment in Rabby,
+returned to Showup, and saw the green confirmation. NEAR finalized the
+[1-USDC escrow deposit](https://nearblocks.io/txns/9LdDsnWsQeJzjiYyyHDTBq9t7eZCa9E1eWjzzeANYbNu)
+and [full refund](https://nearblocks.io/txns/6USn7CJ2Czx2owgort7QdNCwKDRzF1mkfkygmJkQKToj).
+The MetaMask handoff was attempted separately and did not reach the deposit.
+The hosted MetaMask registration waited on the project escrow’s native reserve.
+Two finalized NEAR sources showed 0.03713571620297 NEAR available against the
+0.04 NEAR required to prepare a route account. An internal
+[0.05 NEAR transfer](https://nearblocks.io/txns/nPV89rymQvsbDHyMky2PBw38jRvqictmwsNLQnWqRUG)
+from the project controller let the worker create the route account. The
+controller then needed 0.20 NEAR to sign the registration, so
+[0.043 NEAR moved back](https://nearblocks.io/txns/DiPxrygXkhWcYExSKXVg3QfNykmKcuEDdNhTe8ysoR7g)
+from escrow after route account creation. The original
+[registration](https://nearblocks.io/txns/D66pDGX154wsn1yY4yTE9vQ1Thtuy5JeoyZ5omfKbBGL)
+then finalized without a deposit payment.
+
+**V1-9 pending walkthrough improvements (2026-11-12).** While the publication card shows “Publication
+queued” or “Waiting for NEAR,” tell the host to wait briefly and tap **Check
+publication status** again. Show **Event published** once NEAR confirms it.
+Keep the host on a Showup confirmation with an explorer link and a prominent
+**Create attendee invitation** link that opens that exact event’s invitation
+controls. The phone walkthrough returned to a form showing **Publish event on
+mainnet** and **Event validators**, with no clear indication which copy was live.
+Show publication state on the event list so similar titles are distinguishable.
+After publication, make **Issue attendee invitation** the next step. Add a direct
+link to **Invitations** from the confirmation card or event page, and highlight
+the invitation controls in green when the host arrives at that step. Put the
+instruction beside the action: “Tap **Issue attendee invitation**, then tap
+**Copy invitation link** below it.” On a phone, finding the controls via **Your
+private events** led to accidental duplicates because the **Duplicate** button
+sits beside the event title.
+After attendee invitation acceptance, make **Open your invited event** the
+primary action and show host workspace navigation only when relevant. In the
+phone walkthrough, the attendee followed the host workspace link. Guide first-time
+hosts and attendees with short instructions and green next-step callouts. Use a
+brief highlight that respects reduced-motion preferences.
+Make host and attendee links explicit before acceptance. Label the grant by role,
+show the event title for attendee links, and make the saved invitation entry point
+identify which invitation it resumes. The phone walkthrough resumed a host grant
+while the user intended to join the test event as an attendee.
+In Account’s **Invitations** area, show the two paths together: **Host
+invitations** for administrators and **Attendee invitations** with a link to
+choose one of the host’s published events. Keep attendee links scoped to the
+selected event and make the event title visible before copying the link. Make
+**Invite attendees** the prominent action for a host managing a published event.
+On the attendee event page, put the supported payment networks beside the main
+deposit button. Use copy such as “Deposit USDC” with “Pay from NEAR, Base,
+Ethereum, or Solana.” Show the source wallet and NEAR refund wallet as separate
+choices. During the phone walkthrough the main button and the secondary wallet
+link opened the same page, but “Deposit USDC on NEAR” and the preselected NEAR
+wallet made the available Base wallet easy to miss.
+Label the NEAR wallet picker as **Set up your NEAR refund wallet** for cross-chain
+deposits. Show it when setup is needed and keep it visually distinct from **Get
+routing quote** and the source wallet’s payment approval. During the Base phone
+test, **Choose a wallet for approval** showed NEAR Mobile and Meteor and looked
+like the only way to approve the deposit.
+Present two distinct steps for Base deposits. First highlight **Set up your NEAR
+refund wallet** and explain that it receives refunds and payouts. When it is
+ready, show **NEAR refund wallet ready** and move attention to a prominent blue
+**Deposit on Base** action. Carry the selected wallet’s name and logo into its
+approval action. In the phone walkthrough the setup card remained visible after
+**Payout wallet ready** and the only apparent next action was **Check deposit
+status**.
+While registration is queued, explain the wait and use **Check registration
+status** if a manual refresh is needed. Before a request exists, guide the
+attendee to **Prepare my deposit** instead of showing **Waiting for
+registration**. When ready, put the route quote in the
+deposit review and make **Deposit on Base** the visible next action. Use the
+existing Rabby logo on the payment button as well as the wallet
+verification screen. Show **1. Connect Rabby** followed by **2. Approve payment
+in Rabby**. After submission, show **Waiting for on-chain confirmation** with a
+visible progress cue and offer **Check deposit status** for that payment. Keep
+the green **Deposit confirmed** card when the escrow receipt is final.
+When the project reserve blocks registration, surface a clear service status
+and alert the operator. Keep the original registration available to resume.
+Before release, size the escrow and controller NEAR reserves for the expected
+number of concurrent cross-chain registrations. Include the 0.02 NEAR per
+receiving account, observed creation and registration gas, contract storage
+growth, and both signing thresholds. Verify both balances before opening access
+and alert the operator before either falls below the required headroom.
+The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
+after updating MetaMask. Opening Showup manually inside MetaMask reached the
+site, but its browser blocked the Telegram app launch even after **Allow**.
+The Base payment through Rabby returned to the original signed-in Showup tab
+and completed the deposit and refund. For V1, remove MetaMask from wallet
+verification and payment after the walkthrough. Keep Rabby as the only Base
+and Ethereum wallet option, and verify both networks after the change. Preserve
+the verified source account, reviewed amount, and original payment tracking.
+
+Open a published event as a summary card with its saved details. Put a prominent
+**Event controls** section directly below the details. Label the link **Event
+page** and show what the host can do there: check attendees, manage check-in and
+results, close and settle early, or cancel and make deposits available for refund.
+Give hosts a clear path from **Account** to their published events.
+Improve contrast and plain-language guidance on the closing consent, including
+what happens to check-in and deposits. In the phone walkthrough the locked form,
+small attendee link, and faint consent text made cancellation hard to find and use.
+In **Account → View deposits and refunds**, show the exact event title and date
+on each receipt. Use prominent labels such as **Refund available**, **Refund
+pending**, and **Refund received**, with a clear withdrawal action for available
+refunds and a receipt link for paid refunds. During the phone walkthrough an old
+paid refund and a newly available refund both appeared as **View refund**.
+Review the host and attendee paths together before implementation, using
+examples from other products to compare navigation and first-time guidance.
+After implementation, repeat the hosted journey to verify the next action is
+clear at each step and the deposit and refund still complete. The V1-7
+cancel-to-host NFT path has sandbox evidence and still needs a mainnet receipt.
+
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.
 GitHub [run 42656124167](https://github.com/gueysito/show-up/actions/runs/42656124167)
 could not start `verify` or `contracts` because of account billing or the
-Actions spending limit. The release branch has no open pull request. Open it
-after billing is resolved and require both checks to pass before merge approval.
+Actions spending limit. Finish the walkthrough follow-ups and hosted checks
+before opening the release pull request. Resolve billing and require both
+checks to pass before merge approval.
 
 V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens
 reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
@@ -336,11 +445,19 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-05 | NEAR | Publish, register, fund, cancel and refund one 1-USDC phone test seat | 0.0022338833602616 NEAR gas and 1 yoctoNEAR attached to deposit; 1 USDC fully returned | [Publication](https://nearblocks.io/txns/7Cb7KubQxoF8Sahmdsp49AqpPBD7ktPiVRSNqLFwJrj6), [registration](https://nearblocks.io/txns/FKpWuQ8YGzJV6GjHkcraqSHu2Q4M2zF2Fu2binA44Vr), [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT), [cancellation](https://nearblocks.io/txns/BcVG7RspG3stnhppbJuS7URe6cbH3n54iAeWmdpc6ZGE), [refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) |
 | 2026-11-09 | NEAR | Publish the hosted invitation-only payment test | 0.0003736117449985 NEAR gas from existing funds | [Publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1) |
 | 2026-11-09 | NEAR | Register, fund, cancel and refund the hosted payment test | 1 USDC fully returned, 0.0018601214534429 NEAR gas and 1 yoctoNEAR attached to deposit | [Deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R), [cancellation](https://nearblocks.io/txns/7x1XTK7Ze1SJNvABZhFdADZjFL1sAWVfmXrE8Y3rsmxZ), [refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC) |
+| 2026-11-12 | NEAR | Hosted phone walkthrough: publish, register, deposit from NEAR, cancel, and refund | 1 USDC fully returned to the registered payout wallet, zero claim balance, 0.0022267527160466 NEAR burned across five transactions | [Publication](https://nearblocks.io/txns/4HkmP9Pqvg7Ki9mkj9JShuUE89qGWD7WgSNKWpCLsQhK), [deposit](https://nearblocks.io/txns/6Xkoeb7zmUaxbmJgQhJcdo7iuH1NJStmn72eaNbQpHFx), [cancellation](https://nearblocks.io/txns/DqJbHsrcHnu1Yp1pt1XnwCa5Bv9JTbVmJ7hWWwZot4Ay), [refund](https://nearblocks.io/txns/EzijDF4JnDmA5ATersTDfdoHT1A5joMVdokR6MZowvYw) |
+| 2026-11-12 | NEAR | Publish the hosted Base/Rabby test event | 0.0003740555184481 NEAR burned | [Publication](https://nearblocks.io/txns/8qcVugpEhdCtGRhWi8HQHK3zbzbrL2mN4qimJkUvYQ3j) |
+| 2026-11-12 | NEAR | Register, fund, cancel and refund the hosted Base/Rabby test | 1 USDC fully returned to the NEAR payout wallet, 0.0097693124803400 NEAR burned across five transactions | [Deposit](https://nearblocks.io/txns/9LdDsnWsQeJzjiYyyHDTBq9t7eZCa9E1eWjzzeANYbNu), [cancellation](https://nearblocks.io/txns/C93kTAEYn6ZyxmFYnhPN6F5EVqxtfzbnTMGTMPEYMu84), [refund](https://nearblocks.io/txns/6USn7CJ2Czx2owgort7QdNCwKDRzF1mkfkygmJkQKToj) |
+| 2026-11-12 | NEAR | Publish the hosted MetaMask handoff test | 0.0003738789395553 NEAR burned | [Publication](https://nearblocks.io/txns/4iooLnf2nZ5obAZRPVmy8QPgzuvh7wq4RAqx6xNWhafF) |
+| 2026-11-12 | NEAR | Restore escrow route-account reserve from the project controller | 0.05 NEAR moved internally, 0.0000446365125 NEAR gas | [Reserve transfer](https://nearblocks.io/txns/nPV89rymQvsbDHyMky2PBw38jRvqictmwsNLQnWqRUG) |
+| 2026-11-12 | NEAR | Create the MetaMask test receiving account | 0.02 NEAR moved to the receiving account, 0.0071149895375 NEAR gas | [Route account](https://nearblocks.io/txns/DaebX9PsGCXHtoGPn5AHPxC2h8bRDZ4TSXvdvUKBgfHW) |
+| 2026-11-12 | NEAR | Restore controller signing reserve after route account creation | 0.043 NEAR moved internally, 0.0008349895375 NEAR gas | [Reserve transfer](https://nearblocks.io/txns/DiPxrygXkhWcYExSKXVg3QfNykmKcuEDdNhTe8ysoR7g) |
+| 2026-11-12 | NEAR | Finalize the original MetaMask test registration | 0.0002273158015221 NEAR gas, no deposit payment | [Registration](https://nearblocks.io/txns/D66pDGX154wsn1yY4yTE9vQ1Thtuy5JeoyZ5omfKbBGL) |
 
 About **$27.35 funded/allocated including known sender fees and Solana rent**,
 using the recorded funding price snapshots. All execution fees and the escrow's
 3.71207-NEAR funding come from received funds, not additional allocation.
-Total recorded gas: **0.1010339716958038 NEAR** (about $0.4092 at $4.05/NEAR).
+Total recorded gas: **0.1219999027392159 NEAR** (about $0.4941 at $4.05/NEAR).
 Before NFT custody preparation, controller native balance was **0.226839523809198299999988 NEAR**;
 escrow native balance is **3.456873783036298799999990 NEAR** after reserve replenishment, including code/state
 collateral. Both accounts have USDC storage registration. Both RPCs confirm
