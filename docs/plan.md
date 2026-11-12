@@ -290,8 +290,7 @@ and 0.25 NEAR to the controller. The local change logs below-target balances eve
 minutes and checks both signing floors before creating a receiving account.
 The reserve transfers finalized and the original registration resumed. Both sources
 agree on 0.72989 available escrow NEAR and 0.45041 controller NEAR after one
-receiving account setup. Web and worker reserve checks still need hosted rollout. Local build, 135 unit, four database
-integration and four browser cases pass.
+receiving account setup. Local build, 135 unit, four database integration and four browser cases pass.
 The next hosted Base attempt took about 35 seconds from registration submission
 to on-chain registration. The live page required manual refreshes. The local
 change checks the saved registration automatically for a limited time, explains
@@ -299,7 +298,13 @@ the wait, and keeps a manual check. Rabby connected on retry and the original
 [1 USDC deposit reached escrow](https://nearblocks.io/txns/5WLvHjeZ9oBjRBAHvEzK8pp98ZpaRnp3NqPvyN13UMtq).
 The first WalletConnect error could not be identified. Local changes make the
 connect and payment handoffs explicit and start independent payment checks
-together at the same finalized block. Hosted verification of those changes remains open.
+together at the same finalized block.
+The Railway [web](https://railway.com/project/c96713df-35c0-442a-bd38-cb49b32abd19/service/de0c7406-f6f3-4d9e-a19f-fd771ed50c11?id=f95aabf4-549a-403b-8f44-c794a695b38e)
+and [worker](https://railway.com/project/c96713df-35c0-442a-bd38-cb49b32abd19/service/761d9296-b1b3-4821-9291-d272f6886128?id=ecbc9ce7-1ec2-4a55-a933-496a10d79fc8)
+run `ad6f41a`. HTTP, live copy and signed-out access checks pass. The worker
+reported ready and logged 0.69640 spendable escrow NEAR against the 0.74 target.
+Use the existing funded deposit for the refund check. The revised Rabby handoff
+has local evidence and awaits its next real use.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
 site, but its browser blocked the Telegram app launch even after **Allow**.

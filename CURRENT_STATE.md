@@ -23,7 +23,7 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 ## Remaining
 
 - V1-9: Rabby verification saved Base and Ethereum on Android Chrome and iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing on Base.
-- [Railway web](https://web-production-f1245d.up.railway.app) runs `fcf150f` with
+- [Railway web](https://web-production-f1245d.up.railway.app) runs `ad6f41a` with
   private Postgres. Home, health and account return HTTP 200. Both sign-in
   redirects use the hosted callbacks, and the owner completed Google and
   Telegram sign-in. The private worker is online and passed its signer and
@@ -41,8 +41,8 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   app-opening link reached a browser error page. Opening Showup manually in
   MetaMask exposed a second blocker when its browser refused to launch Telegram.
   The V1 navigation, Rabby-only payment and receipt changes passed hosted smoke checks.
-  Both NEAR top-ups finalized and a fresh Base deposit reached escrow. Next: verify
-  the remaining hosted journeys and deploy the reserve and wallet status changes.
+  The Base deposit reached escrow. The reserve and wallet changes are live on web
+  and worker. Next: verify the existing deposit refund and remaining hosted journeys.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. Finish the hosted checks, then resolve billing and open the release
   pull request. Merging requires owner approval.
