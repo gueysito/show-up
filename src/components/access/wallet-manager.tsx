@@ -16,7 +16,7 @@ import {
   evmVerificationMessage,
   announcedEthereumApp,
   appNames,
-  injectedEthereumApp,
+  injectedRabby,
   mobileWalletUrl,
   type EthereumApp,
   type EthereumProvider,
@@ -356,8 +356,8 @@ export function WalletManager({
         if (!solana) return openMobileWallet("phantom");
         address = solana.address;
       } else {
-        if (app !== "rabby" && app !== "metamask") return;
-        ethereum = evmProviders.current[app] ?? injectedEthereumApp(app);
+        if (app !== "rabby") return;
+        ethereum = evmProviders.current[app] ?? injectedRabby();
         if (ethereum) {
           const accounts = await ethereum.request({ method: "eth_requestAccounts" });
           if (!Array.isArray(accounts) || typeof accounts[0] !== "string")

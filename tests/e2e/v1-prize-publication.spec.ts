@@ -235,7 +235,7 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     await expect(
       actions.getByRole("status").filter({ hasText: "Prize receipt confirmed" }),
     ).toBeVisible();
-    const queued = actions.getByText("Publication queued", { exact: true });
+    const queued = actions.getByText("Publishing on NEAR", { exact: true });
     const pendingMotion = () =>
       queued.evaluate((title) => getComputedStyle(title, "::before").animationName);
     await expect.poll(pendingMotion).toBe("journey-pulse");

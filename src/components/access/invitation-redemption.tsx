@@ -33,6 +33,7 @@ export function InvitationRedemption() {
   const [status, setStatus] = useState("Reading invitation…");
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(true);
+  const [grantedHost, setGrantedHost] = useState(false);
   const [grantedEvent, setGrantedEvent] = useState<string | null>(null);
   const operationId = useRef<string | null>(null);
   const preparation = useRef<Promise<Response> | null>(null);
@@ -81,6 +82,7 @@ export function InvitationRedemption() {
       setConsent(false);
       operationId.current = null;
       setGrantedEvent(null);
+      setGrantedHost(false);
       startLoad();
     }
     startLoad();
@@ -111,6 +113,7 @@ export function InvitationRedemption() {
         )
       )
         setGrantedEvent(result.eventId);
+      setGrantedHost(result.kind === "host" && result.granted === true);
       setInvitation(null);
       setStatus(
         result.kind === "host"
@@ -130,14 +133,26 @@ export function InvitationRedemption() {
       <p role="status">{status}</p>
       {grantedEvent && (
         <p>
-          <Link href={`/events/${grantedEvent}`} prefetch={false}>
+          <Link className="primary-button" href={`/events/${grantedEvent}`} prefetch={false}>
             Open your invited event
           </Link>
         </p>
       )}
+      {grantedHost && (
+        <Link className="primary-button" href="/host">
+          Go to your events
+        </Link>
+      )}
       {invitation && (
         <>
-          {invitation.eventTitle && <p>{`Event: ${invitation.eventTitle}`}</p>}
+          <h2>
+            {invitation.kind === "host"
+              ? "Host invitation"
+              : invitation.kind === "validator"
+                ? "Validator invitation"
+                : "Attendee invitation"}
+            {invitation.eventTitle ? ` for ${invitation.eventTitle}` : ""}
+          </h2>
           {invitation.startsAt && (
             <p>{`Planned start: ${invitationTime(invitation.startsAt, invitation.timeZone ?? "UTC")} (${invitation.timeZone ?? "UTC"})`}</p>
           )}
@@ -180,9 +195,6 @@ export function InvitationRedemption() {
           )}
         </>
       )}
-      <p>
-        <Link href="/host">Open host workspace</Link>
-      </p>
       <p>
         <Link href="/account">Account and sign-in</Link>
       </p>

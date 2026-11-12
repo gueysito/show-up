@@ -172,7 +172,7 @@ test("duplication is idempotent and creates a new unpublished unfunded event wit
   );
   assert.equal(one.id, two.id);
   assert.notEqual(one.id, original.id);
-  assert.equal(one.data.title, `${original.data.title} (copy)`);
+  assert.equal(one.data.title, `Copy of ${original.data.title}`);
   assert.equal(one.state, "draft");
   const stored = (
     await pool.query("SELECT state,rules_hash,published_at FROM app_events WHERE id=$1", [one.id])

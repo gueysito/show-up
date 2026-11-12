@@ -2,11 +2,13 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
 import { JourneyStatus } from "./journey-status";
+import Image from "next/image";
+import rabbyIcon from "./wallet-icons/rabby.svg";
 import { connectRabbyPayment, type RabbyPrompt } from "./rabby-connect";
 import {
   announcedEthereumApp,
   appNames,
-  injectedEthereumApp,
+  injectedRabby,
   mobileWalletPageUrl,
   type EthereumApp,
   type EthereumProvider,
@@ -149,7 +151,7 @@ export function V1RouteReview({
     const selected =
       solanaWallets.find((wallet) => wallet.name === solanaWallet) ??
       (solanaWallets.length === 1 ? solanaWallets[0] : null);
-    const ethereum = app ? (evmProviders.current[app] ?? injectedEthereumApp(app)) : undefined;
+    const ethereum = app ? (evmProviders.current[app] ?? injectedRabby()) : undefined;
     const useRabbyRelay =
       app === "rabby" && !ethereum && walletConnectProjectId && network !== "solana";
     setError("");
@@ -397,31 +399,22 @@ export function V1RouteReview({
                       Approve source USDC payment
                     </button>
                   ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="primary-button"
-                        disabled={busy || !consent || !trackingReady}
-                        onClick={() => void pay("rabby")}
-                      >
-                        Approve with Rabby
-                      </button>
-                      <button
-                        type="button"
-                        className="primary-button"
-                        disabled={busy || !consent || !trackingReady}
-                        onClick={() => void pay("metamask")}
-                      >
-                        Approve with MetaMask
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={busy || !consent || !trackingReady}
+                      onClick={() => void pay("rabby")}
+                    >
+                      <Image src={rabbyIcon} alt="" width={24} height={24} unoptimized />
+                      Approve payment in Rabby
+                    </button>
                   )
                 }
               />
             </>
           )}
           {paid && !payingWith && !error && (
-            <JourneyStatus tone="checking" title="Checking the original payment">
+            <JourneyStatus tone="checking" title="Waiting for on-chain confirmation">
               Checking the original payment and escrow. If it stays pending, tap Check deposit
               status.
             </JourneyStatus>
@@ -456,7 +449,7 @@ export function V1RouteReview({
         <JourneyStatus
           key={prompt.step}
           tone="action"
-          title={prompt.step === "connect" ? "Connect Rabby" : "Approve in Rabby"}
+          title={prompt.step === "connect" ? "1. Connect Rabby" : "2. Approve payment in Rabby"}
           actions={
             <>
               <a className="primary-button" href={prompt.href}>

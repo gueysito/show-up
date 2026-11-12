@@ -29,7 +29,7 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await host.getByLabel(/I accept this access grant/).check();
     await host.getByRole("button", { name: "Accept invitation" }).click();
     await expect(host.getByRole("status")).toContainText("Host access confirmed");
-    await host.getByRole("link", { name: "Open host workspace" }).click();
+    await host.getByRole("link", { name: "Go to your events" }).click();
     const save = host.getByRole("button", { name: "Validate & save draft" });
     await expect(save).toBeEnabled();
     const draft = validDraft();
@@ -43,13 +43,17 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await expect(host.getByRole("status")).toContainText("Saved private draft · revision 1");
     await host.getByRole("button", { name: "Close saved details" }).click();
     await host.reload();
-    await host.getByRole("button", { name: /Invited host draft Revision 1/ }).click();
+    await host.getByRole("button", { name: /Invited host draft Draft/ }).click();
     await expect(host.getByLabel("Planned sponsor budget (USDC)", { exact: true })).toHaveValue(
       "100",
     );
+    host.once("dialog", (dialog) => dialog.dismiss());
+    await host.getByRole("button", { name: "Duplicate Invited host draft", exact: true }).click();
+    await expect(host.getByLabel("Event name", { exact: true })).toHaveValue("Invited host draft");
+    host.once("dialog", (dialog) => dialog.accept());
     await host.getByRole("button", { name: "Duplicate Invited host draft", exact: true }).click();
     await expect(host.getByLabel("Event name", { exact: true })).toHaveValue(
-      "Invited host draft (copy)",
+      "Copy of Invited host draft",
     );
     await expect(host.getByRole("status")).toContainText("Independent unfunded draft");
     const review = host.getByRole("button", { name: "Check publication status" });
@@ -59,7 +63,7 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await expect(host.getByRole("button", { name: /Create prize event escrow/ })).toBeDisabled();
     const ownEvents = await (await host.request.get("/api/events")).json();
     const copy = ownEvents.drafts.find(
-      (event: { data: { title: string } }) => event.data.title === "Invited host draft (copy)",
+      (event: { data: { title: string } }) => event.data.title === "Copy of Invited host draft",
     );
     expect(
       (
@@ -85,7 +89,7 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     await host.getByLabel("Event name", { exact: true }).fill("Unsaved private edit");
     await expect(review).toBeDisabled();
     await expect(requirements).toHaveCount(0);
-    await host.getByLabel("Event name", { exact: true }).fill("Invited host draft (copy)");
+    await host.getByLabel("Event name", { exact: true }).fill("Copy of Invited host draft");
     await expect(review).toBeEnabled();
     await host.setViewportSize({ width: 390, height: 844 });
     expect(await host.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
@@ -122,6 +126,9 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     extra.push(attendeeContext);
     await fixtures.enter(attendeeContext, 3);
     const attendee = await attendeeContext.newPage();
+    await attendee.goto("https://localhost:3444/account");
+    await expect(attendee.getByRole("link", { name: "Your events", exact: true })).toHaveCount(0);
+    await expect(attendee.getByRole("link", { name: "Use a host invitation" })).toBeVisible();
     await attendee.goto("https://localhost:3444/host");
     await expect(attendee.getByRole("heading", { name: "Host access required" })).toBeVisible();
   } finally {
@@ -146,7 +153,7 @@ test("published engineering fixture locks material terms and permits only a desc
     );
     await fixtures.enter(context, 0);
     await page.goto("/host");
-    await page.getByRole("button", { name: new RegExp(`${draft.title} Revision 1`) }).click();
+    await page.getByRole("button", { name: new RegExp(`${draft.title} Published`) }).click();
     await expect(page.getByLabel("Capacity", { exact: true })).toBeDisabled();
     await expect(page.getByLabel("Planned start (UTC)", { exact: true })).toBeDisabled();
     await expect(page.getByText("Published terms", { exact: true })).toBeVisible();

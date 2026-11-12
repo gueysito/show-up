@@ -3,7 +3,6 @@ import type { WalletChallenge } from "../../server/wallets/proof";
 import { appNames, type MobileWallet } from "./wallet-apps";
 import base from "./wallet-icons/base.svg";
 import ethereum from "./wallet-icons/ethereum.svg";
-import metamask from "./wallet-icons/metamask.svg";
 import meteor from "./wallet-icons/meteor.svg";
 import near from "./wallet-icons/near.svg";
 import nearMobile from "./wallet-icons/near-mobile.svg";
@@ -15,12 +14,12 @@ type Network = WalletChallenge["network"];
 export type WalletApp = MobileWallet | "near-mobile" | "meteor";
 export const networkNames = { near: "NEAR", solana: "Solana", base: "Base", ethereum: "Ethereum" };
 const networkIcons = { near, solana, base, ethereum };
-const appIcons = { "near-mobile": nearMobile, meteor, phantom, rabby, metamask };
+const appIcons = { "near-mobile": nearMobile, meteor, phantom, rabby };
 const apps: Record<Network, readonly WalletApp[]> = {
   near: ["near-mobile", "meteor"],
   solana: ["phantom"],
-  base: ["rabby", "metamask"],
-  ethereum: ["rabby", "metamask"],
+  base: ["rabby"],
+  ethereum: ["rabby"],
 };
 
 export function WalletPicker({

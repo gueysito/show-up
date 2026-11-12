@@ -1,3 +1,4 @@
+import { AppHeader } from "../../../components/app-header";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { authConfig } from "../../../server/auth/config";
@@ -35,20 +36,23 @@ export default async function TelegramPage({
     }
   }
   return (
-    <main>
-      <Link href="/account" prefetch={false}>
-        Back to your account
-      </Link>
-      <h1>Telegram messages</h1>
-      {session ? (
-        <TelegramConnection initialStatus={initialStatus} eventId={eventId} />
-      ) : (
-        <p>
-          <Link href="/account" prefetch={false}>
-            Sign in to an active account to manage optional Telegram messages
-          </Link>
-        </p>
-      )}
-    </main>
+    <>
+      <AppHeader area={"account"} />
+      <main>
+        <Link href="/account" prefetch={false}>
+          Back to your account
+        </Link>
+        <h1>Telegram messages</h1>
+        {session ? (
+          <TelegramConnection initialStatus={initialStatus} eventId={eventId} />
+        ) : (
+          <p>
+            <Link href="/account" prefetch={false}>
+              Sign in to an active account to manage optional Telegram messages
+            </Link>
+          </p>
+        )}
+      </main>
+    </>
   );
 }

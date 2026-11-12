@@ -43,7 +43,9 @@ test("preauthenticated staff: explicit event assignment, revision conflicts, rem
     await f.enter(staffContext, 1);
     const staff = await staffContext.newPage();
     await staff.goto(link);
-    await expect(staff.getByText(`Event: ${title}`, { exact: true })).toBeVisible();
+    await expect(
+      staff.getByText(`Validator invitation for ${title}`, { exact: true }),
+    ).toBeVisible();
     await expect(
       staff.getByText(/Grant: validate physical attendance for one event/),
     ).toBeVisible();
@@ -99,7 +101,7 @@ test("preauthenticated staff: explicit event assignment, revision conflicts, rem
       [event.id],
     );
     await page.reload();
-    await page.getByRole("button", { name: new RegExp(`${title} Revision 4`) }).click();
+    await page.getByRole("button", { name: new RegExp(`${title} Published`) }).click();
     await panel.getByRole("button", { name: "Refresh validator assignments" }).click();
     await expect(
       panel.getByText("Published validator assignments are fixed.", { exact: true }),

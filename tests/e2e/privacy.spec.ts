@@ -25,7 +25,7 @@ test("explicit deletion erases only a cleared fictional account and authenticate
     await page.getByLabel("Planned sponsor budget (USDC)", { exact: true }).fill("100");
     await page.getByRole("button", { name: "Validate & save draft" }).click();
     await page.getByRole("button", { name: "Close saved details" }).click();
-    await page.getByRole("link", { name: "Account and host access" }).click();
+    await page.getByRole("link", { name: "Account", exact: true }).click();
     await page.getByRole("link", { name: "Your data and export" }).click();
     const button = page.getByRole("button", { name: "Request account deletion", exact: true });
     await expect(button).toBeDisabled();

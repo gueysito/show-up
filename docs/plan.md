@@ -303,8 +303,14 @@ on each receipt. Use prominent labels such as **Refund available**, **Refund
 pending**, and **Refund received**, with a clear withdrawal action for available
 refunds and a receipt link for paid refunds. During the phone walkthrough an old
 paid refund and a newly available refund both appeared as **View refund**.
-Review the host and attendee paths together before implementation, using
-examples from other products to compare navigation and first-time guidance.
+The owner approved the V1 navigation and status pass. Hosting stays invitation-only
+and the same account can attend events. Self-service host activation belongs to V2.
+Verify both the hosted check-in/settlement journey and a separate cancellation/refund
+journey. Reuse unchanged wallet evidence and repeat the changed Rabby phone handoff.
+Local implementation covers the account areas, event navigation and invitations,
+refund-wallet setup, Rabby-only approvals, and verified receipt states. Local
+checks: build, 134 unit, 11 database integration and 43 production browser cases
+(including a focused rerun). Hosted verification and reserve sizing/alerting remain open.
 After implementation, repeat the hosted journey to verify the next action is
 clear at each step and the deposit and refund still complete. The V1-7
 cancel-to-host NFT path has sandbox evidence and still needs a mainnet receipt.

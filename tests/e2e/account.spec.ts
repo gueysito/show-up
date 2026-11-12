@@ -11,9 +11,7 @@ test("unconfigured providers stay disabled; cross-site sign-in is rejected", asy
   await page.goto("/account");
   await expect(page.getByRole("button", { name: "Sign in with Telegram" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeDisabled();
-  await expect(
-    page.getByText("Telegram sign-in requires no email.", { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText("Sign in to host or join an event.")).toBeVisible();
   const response = await page.request.post("/api/auth/start/google", {
     headers: { origin: "https://evil.example" },
   });
@@ -57,7 +55,9 @@ test("preauthenticated fixture restores and logs out via real HTTPS UI; this doe
       },
     ]);
     await page.goto("/account");
-    await expect(page.getByRole("region", { name: "Account access" })).toContainText(id);
+    await expect(page.getByRole("heading", { name: "Attending" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hosting" })).toBeVisible();
+    await expect(page.getByText(id, { exact: false })).toHaveCount(0);
     await page.screenshot({ path: "test-results/account-fixture.png" });
     await page.reload();
     await expect(page.getByRole("button", { name: "Log out", exact: true })).toBeVisible();

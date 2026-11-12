@@ -30,7 +30,7 @@ test("published engineering fixture: host rotates private code windows and retri
     );
     await f.enter(context, 0);
     await page.goto("/host");
-    await page.getByRole("button", { name: new RegExp(`${draft.title} Revision 1`) }).click();
+    await page.getByRole("button", { name: new RegExp(`${draft.title} Published`) }).click();
     const codes = page.getByRole("region", { name: "Online attendance code", exact: true });
     await expect(
       codes.getByText(
@@ -89,7 +89,7 @@ test("published engineering fixture: host rotates private code windows and retri
       ).rows[0].count,
     ).toBe("2");
     await page.reload();
-    await page.getByRole("button", { name: new RegExp(`${draft.title} Revision 1`) }).click();
+    await page.getByRole("button", { name: new RegExp(`${draft.title} Published`) }).click();
     await codes.getByRole("button", { name: "Show current code" }).click();
     await expect(codes.getByText("Phrase: Second Fresh Phrase", { exact: true })).toBeVisible();
     const own = await page.request.get(`/api/attendance/codes?event=${eventId}`);

@@ -26,6 +26,7 @@ type View = {
   prize?: string;
   claim: Claim;
   withdrawalQueued?: boolean;
+  payoutTransactionUrl?: string | null;
   recovery?: Claim;
   roster?: { alias: string; funded: boolean; attended: boolean; winner: boolean }[];
   actions: Action[];
@@ -152,6 +153,13 @@ export function V1EventConsole({
   const withdrawalPending = view?.claim.pending || view?.withdrawalQueued;
   const refundPaid =
     refund && view.claim.paid !== "0" && view.claim.remaining === "0" && !withdrawalPending;
+  const payoutPaid =
+    !host &&
+    !refund &&
+    terminal &&
+    view.claim.paid !== "0" &&
+    view.claim.remaining === "0" &&
+    !withdrawalPending;
   const refundReady = refund && BigInt(view.claim.remaining) > 0n && !withdrawalPending;
   const checkInPending =
     !view?.attended &&
@@ -230,14 +238,18 @@ export function V1EventConsole({
                       {`Valid until ${new Date(view.codeExpiresAt).toLocaleTimeString()}.`}
                     </p>
                   )}
-                  <label>
+                  <JourneyStatus tone="action" title="Close or cancel the event">
+                    Closing ends check-in. Checked-in attendees get their deposit back and share
+                    no-show deposits. Cancelling makes attendee deposits refundable. Network fees
+                    still apply.
+                  </JourneyStatus>
+                  <label className="consent-field">
                     <input
                       type="checkbox"
                       checked={closeConsent}
                       onChange={(e) => setCloseConsent(e.target.checked)}
                     />
-                    I understand closing ends check-in. Cancellation returns deposits and the funded
-                    prize.
+                    I understand what happens to check-in and deposits.
                   </label>
                   <button
                     type="button"
@@ -346,13 +358,13 @@ export function V1EventConsole({
                     }
                   />
                 )}
-              {terminal && (
+              {terminal && !refund && (
                 <>
                   <h3 className={view.winner ? "draw-reveal" : undefined}>
                     {view.winner ? "You won the draw" : "Your result"}
                   </h3>
                   <dl>
-                    <dt>Deposit returned</dt>
+                    <dt>Deposit eligible for return</dt>
                     <dd>{formatUsdc(BigInt(view.principal ?? "0")) + " USDC"}</dd>
                     <dt>No-show share</dt>
                     <dd>{formatUsdc(BigInt(view.share ?? "0")) + " USDC"}</dd>
@@ -362,7 +374,7 @@ export function V1EventConsole({
                   {view.funded && view.principal === "0" && (
                     <p>You did not check in. Your deposit was shared among checked-in attendees.</p>
                   )}
-                  <p>{`Payout Withdrawal Wallet: ${view.payout}`}</p>
+                  <p>{`NEAR payout wallet: ${view.payout}`}</p>
                 </>
               )}
             </>
@@ -385,9 +397,9 @@ export function V1EventConsole({
                   tone={refundPaid ? "confirmed" : refundReady ? "action" : "checking"}
                   title={
                     refundPaid
-                      ? "Refund paid"
+                      ? "Refund received"
                       : refundReady
-                        ? "Refund ready to withdraw"
+                        ? "Refund available"
                         : "Refund pending"
                   }
                   actions={refundReady ? withdraw : undefined}
@@ -400,6 +412,21 @@ export function V1EventConsole({
                         ? "We’re checking the original withdrawal."
                         : "Waiting for your refund to appear."}
                 </JourneyStatus>
+              )}
+              {payoutPaid && (
+                <JourneyStatus tone="confirmed" title="Payout received">
+                  {`${formatUsdc(BigInt(view.claim.paid))} USDC sent to your NEAR wallet. No action needed.`}
+                </JourneyStatus>
+              )}
+              {(refundPaid || payoutPaid) && view.payoutTransactionUrl && (
+                <div className="receipt-links">
+                  <a href={view.payoutTransactionUrl} target="_blank" rel="noopener noreferrer">
+                    View payout transaction
+                  </a>
+                  <code className="transaction-hash">
+                    {view.payoutTransactionUrl.split("/").at(-1)}
+                  </code>
+                </div>
               )}
               <p>
                 {`USDC paid: ${formatUsdc(BigInt(view.claim.paid))}. Ready to withdraw: ${formatUsdc(BigInt(view.claim.remaining))}.`}

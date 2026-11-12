@@ -1,4 +1,5 @@
 "use client";
+import { AppHeader } from "./app-header";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
@@ -85,7 +86,9 @@ export function EventDraftForm({
             setIdentity({ id: item.id, revision: item.revision, state: item.state });
             setSnapshot(JSON.stringify(item.data));
             setStatus(
-              "Returned from your wallet. Check publication status to continue with the original event.",
+              item.state === "published"
+                ? "Opened the published event."
+                : "Check publication status to continue with the original event.",
             );
           }
         }
@@ -189,7 +192,14 @@ export function EventDraftForm({
   }
 
   async function duplicate(item: SavedDraft) {
-    if (dirty && !window.confirm("Discard unsaved edits and open an independent copy?")) return;
+    if (
+      !window.confirm(
+        dirty
+          ? `Duplicate “${item.data.title}” as a new draft and discard unsaved edits?`
+          : `Duplicate “${item.data.title}” as a new draft?`,
+      )
+    )
+      return;
     setBusy(true);
     if (duplicatePending.current?.id !== item.id)
       duplicatePending.current = { id: item.id, operationId: crypto.randomUUID() };
@@ -249,54 +259,82 @@ export function EventDraftForm({
 
   return (
     <>
-      <header className="topbar">
-        <Link className="brand" href="/" aria-label="Showup home">
-          <span className="brand-mark" aria-hidden="true">
-            s.
+      {account ? (
+        <AppHeader area="host" />
+      ) : (
+        <header className="topbar">
+          <Link className="brand" href="/" aria-label="Showup home">
+            <span className="brand-mark" aria-hidden="true">
+              s.
+            </span>
+            showup
+            <span className="brand-dot">®</span>
+          </Link>
+          <span className="environment-tag">
+            {account
+              ? "Private host workspace"
+              : persistence
+                ? "Development workspace"
+                : "Local rules preview"}
           </span>
-          showup
-          <span className="brand-dot">®</span>
-        </Link>
-        <span className="environment-tag">
-          {account
-            ? "Private host workspace"
-            : persistence
-              ? "Development workspace"
-              : "Local rules preview"}
-        </span>
-      </header>
+        </header>
+      )}
       <main>
-        <div className="intro">
-          <p className="eyebrow">Gather with intention</p>
-          <h1>
-            Make showing up
-            <br />
-            <em>mean something.</em>
-          </h1>
-          <p className="intro-copy">
-            Shape your gathering. Set a fair commitment. Make the rules clear before anyone joins.
-          </p>
-        </div>
-        <div className="scope-banner">
-          <span className="status-dot" aria-hidden="true" />
-          <p>
-            <span>
-              {account
-                ? "Your private host drafts. Sign-in is required; anonymous workspace data is separate."
-                : persistence
-                  ? "Isolated development harness. Drafts save to this browser workspace for 24 hours of access. Use fictional event details only."
-                  : "Plan and validate an event. This preview stays on this page and is lost on refresh."}
-            </span>
-            <span>
-              {account
-                ? " Saved events can be published to mainnet after prize funding."
-                : " Publication and funding are unavailable in this preview."}
-            </span>
-          </p>
-        </div>
-        <p>
-          <Link href="/account">Account and host access</Link>
-        </p>
+        {account ? (
+          <>
+            <h1>Your host workspace</h1>
+            <p>Open an event or start a new draft.</p>
+          </>
+        ) : (
+          <>
+            <div className="intro">
+              <p className="eyebrow">Gather with intention</p>
+              <h1>
+                Make showing up
+                <br />
+                <em>mean something.</em>
+              </h1>
+              <p className="intro-copy">
+                Shape your gathering. Set a fair commitment. Make the rules clear before anyone
+                joins.
+              </p>
+            </div>
+            <div className="scope-banner">
+              <span className="status-dot" aria-hidden="true" />
+              <p>
+                <span>
+                  {account
+                    ? "Your private host drafts. Sign-in is required; anonymous workspace data is separate."
+                    : persistence
+                      ? "Isolated development harness. Drafts save to this browser workspace for 24 hours of access. Use fictional event details only."
+                      : "Plan and validate an event. This preview stays on this page and is lost on refresh."}
+                </span>
+                <span>
+                  {account
+                    ? " Saved events can be published to mainnet after prize funding."
+                    : " Publication and funding are unavailable in this preview."}
+                </span>
+              </p>
+            </div>
+          </>
+        )}
+        {persistence && (
+          <SavedDrafts
+            saved={saved}
+            account={account}
+            busy={busy}
+            ready={ready}
+            onOpen={openDraft}
+            onNew={() => openDraft()}
+            onDuplicate={duplicate}
+            onClear={clearWorkspace}
+            onRefresh={() => {
+              loadSaved()
+                .then(() => setStatus("Storage reconnected."))
+                .catch(() => setStatus("Storage unavailable. Check the local database and retry."));
+            }}
+          />
+        )}
         <div className="workspace-grid">
           <div className="editor-column">
             <div className="editor-topline">
@@ -455,25 +493,6 @@ export function EventDraftForm({
                   void loadSaved().catch(() =>
                     setStatus("Description saved. Reconnect storage to refresh the list."),
                   );
-                }}
-              />
-            )}
-            {persistence && (
-              <SavedDrafts
-                saved={saved}
-                account={account}
-                busy={busy}
-                ready={ready}
-                onOpen={openDraft}
-                onNew={() => openDraft()}
-                onDuplicate={duplicate}
-                onClear={clearWorkspace}
-                onRefresh={() => {
-                  loadSaved()
-                    .then(() => setStatus("Storage reconnected."))
-                    .catch(() =>
-                      setStatus("Storage unavailable. Check the local database and retry."),
-                    );
                 }}
               />
             )}

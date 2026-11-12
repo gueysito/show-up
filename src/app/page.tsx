@@ -102,7 +102,7 @@ export default function Home() {
           <span className="status-dot" aria-hidden="true" />
           <p>
             USDC deposits on NEAR are live in this private pilot. Base, Solana and Ethereum deposits
-            now work end to end. Ethereum NFT prizes are still being verified.
+            now work end to end. Ethereum NFT prizes can be delivered to the winner.
           </p>
         </div>
         <footer className="home-footer">

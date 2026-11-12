@@ -99,7 +99,7 @@ export function InvitationManager({
       {eventId && !validatorInvites && (
         <button
           type="button"
-          className="secondary-button"
+          className="primary-button"
           disabled={busy}
           onClick={() => act({ operation: "issue", kind: "event", eventId })}
         >

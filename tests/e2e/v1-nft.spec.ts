@@ -152,7 +152,7 @@ test("synthetic NFT wallet approval fixes the asset and custody; a reload cannot
       expect.objectContaining({ from: n.contributor, to: n.nft.collection, value: "0x0", data }),
     ]);
     await page.reload();
-    await page.getByRole("button", { name: /Local NFT custody controls Revision 1/ }).click();
+    await page.getByRole("button", { name: /Local NFT custody controls Publishing/ }).click();
     await panel.getByRole("button", { name: "Check NFT custody and delivery" }).click();
     await panel.getByRole("checkbox").check();
     await panel.getByRole("button", { name: "Transfer this NFT into custody" }).click();

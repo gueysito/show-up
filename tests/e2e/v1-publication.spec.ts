@@ -41,7 +41,7 @@ test("the owning host queues publication once and saved terms stay locked across
     expect(row.transaction_state).toBe("requested");
     expect(row.transaction_hash).toBeNull();
     await page.reload();
-    await page.getByRole("button", { name: /Queued V1 publication Revision 1/ }).click();
+    await page.getByRole("button", { name: /Queued V1 publication Publishing/ }).click();
     await expect(page.getByLabel("Event name", { exact: true })).toBeDisabled();
     await page.getByRole("button", { name: "Check publication status" }).click();
     await expect(

@@ -57,7 +57,7 @@ export function V1Deposit({
   const sources = wallets.filter((wallet) =>
     ["near", "base", "ethereum", "solana"].includes(wallet.network),
   );
-  const [sourceWalletId, setSourceWalletId] = useState(near.length === 1 ? near[0].id : "");
+  const [sourceWalletId, setSourceWalletId] = useState(sources.length === 1 ? sources[0].id : "");
   const selectedSource = sources.find((wallet) => wallet.id === sourceWalletId);
   const [routing, setRouting] = useState(false);
   const checkRouting = useCallback(() => setRouting(true), []);
@@ -66,7 +66,36 @@ export function V1Deposit({
     [status, setStatus] = useState<Status | null>(null),
     [notice, setNotice] = useState<{ tone: JourneyTone; title: string; text: string } | null>(null),
     [busy, setBusy] = useState(false);
-  const sourceNetwork = status?.sourceNetwork ?? selectedSource?.network ?? "near";
+  const selectedNetwork = status?.sourceNetwork ?? selectedSource?.network;
+  const sourceNetwork = selectedNetwork ?? "near";
+  const payoutWalletId = status?.walletId ?? walletId;
+  const [checkedStorage, setCheckedStorage] = useState<{ walletId: string; ready: boolean } | null>(
+    null,
+  );
+  const [storageError, setStorageError] = useState("");
+  const [storageRetry, setStorageRetry] = useState(0);
+  const crossChain = sourceNetwork !== "near";
+  const prepared = Boolean(status && status.state !== "none");
+  const refundReady =
+    prepared || (checkedStorage?.walletId === payoutWalletId && checkedStorage.ready);
+  useEffect(() => {
+    if (!crossChain || !payoutWalletId || prepared) return;
+    const controller = new AbortController();
+    postDepositAction(eventId, "storage", { walletId: payoutWalletId }, controller.signal)
+      .then(async (response) => {
+        if (!response.ok) throw new Error();
+        const result = await response.json();
+        if (!controller.signal.aborted) {
+          setCheckedStorage({ walletId: payoutWalletId, ready: result.ready === true });
+          setStorageError("");
+        }
+      })
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setStorageError("Couldn’t check USDC receiving. Try again.");
+      });
+    return () => controller.abort();
+  }, [crossChain, payoutWalletId, prepared, eventId, storageRetry]);
   const operation = useRef<{
     walletId: string;
     sourceWalletId: string;
@@ -177,11 +206,9 @@ export function V1Deposit({
     const result = await prepareWalletPayment("storage");
     if (!("ready" in result))
       throw new Error("USDC receiving is not confirmed yet. Check again shortly.");
-    setNotice({
-      tone: "confirmed",
-      title: "Payout wallet ready",
-      text: "Your NEAR payout wallet is ready to receive USDC.",
-    });
+    setCheckedStorage({ walletId: payoutWalletId, ready: true });
+    setStorageError("");
+    requestAnimationFrame(() => document.getElementById("v1-review-deposit")?.focus());
   }
   async function action(kind: "register" | "confirm") {
     setBusy(true);
@@ -214,13 +241,17 @@ export function V1Deposit({
       if (kind === "register" && result.state !== "registered")
         setNotice({
           tone: "checking",
-          title: "Registration queued",
-          text: "Check deposit status before approving a payment.",
+          title: "Preparing your deposit",
+          text: "Your request is saved. Check registration status before approving a payment.",
         });
     } catch (error) {
       setNotice({
         tone: "blocked",
-        title: "Deposit needs attention",
+        title:
+          error instanceof Error &&
+          error.message.includes("original receiving account's gas reserve")
+            ? "Deposits temporarily paused"
+            : "Deposit needs attention",
         text:
           error instanceof Error
             ? error.message
@@ -247,8 +278,11 @@ export function V1Deposit({
       if (!result.funded && result.state !== "registered" && result.state !== "failed")
         setNotice({
           tone: "checking",
-          title: "Waiting for registration",
-          text: "Check deposit status before approving a payment.",
+          title: result.state === "none" ? "Prepare your deposit first" : "Preparing your deposit",
+          text:
+            result.state === "none"
+              ? "Choose your wallet and review the amount below."
+              : "Your request is saved. Check registration status before approving a payment.",
         });
     } catch (error) {
       setNotice({
@@ -284,31 +318,37 @@ export function V1Deposit({
             )
           }
         >
-          {`${amount} USDC received by escrow. Your seat is funded.`}
+          {`${amount} USDC received by escrow. Your seat is funded. Return to this event when it starts to check in with the host’s code.`}
         </JourneyStatus>
       ) : (
-        <h2>Deposit USDC on NEAR</h2>
+        <h2>Deposit USDC</h2>
       )}
       <p>
-        {sourceNetwork === "near"
-          ? `${amount} USDC commitment. Pay from your verified NEAR wallet; refunds go to that same wallet.`
-          : `${amount} USDC commitment in NEAR escrow. Pay from ${sourceNetwork.toUpperCase()}; event payouts go to your NEAR wallet.`}
+        {!selectedNetwork
+          ? `${amount} USDC deposit. Choose the wallet you want to pay from to see how it works.`
+          : sourceNetwork === "near"
+            ? `${amount} USDC deposit. Pay from your verified NEAR wallet; refunds go to that same wallet.`
+            : `${amount} USDC commitment in NEAR escrow. Pay from ${sourceNetwork.toUpperCase()}; event payouts go to your NEAR wallet.`}
       </p>
       <dl>
-        <dt>Routing fee</dt>
-        <dd>
-          {sourceNetwork === "near"
-            ? "0 USDC, direct NEAR transfer"
-            : "Included in the signed quote shown before approval"}
-        </dd>
-        <dt>
-          {sourceNetwork === "near" ? "Separate NEAR gas reserve" : "Separate source-chain gas"}
-        </dt>
-        <dd>
-          {sourceNetwork === "near"
-            ? "Up to 0.16 NEAR; unused gas is returned"
-            : "Source-chain gas is separate and shown in the quote review"}
-        </dd>
+        {selectedNetwork && (
+          <>
+            <dt>Routing fee</dt>
+            <dd>
+              {sourceNetwork === "near"
+                ? "0 USDC, direct NEAR transfer"
+                : "Included in the signed quote shown before approval"}
+            </dd>
+            <dt>
+              {sourceNetwork === "near" ? "Separate NEAR gas reserve" : "Separate source-chain gas"}
+            </dt>
+            <dd>
+              {sourceNetwork === "near"
+                ? "Up to 0.16 NEAR; unused gas is returned"
+                : "Source-chain gas is separate and shown in the quote review"}
+            </dd>
+          </>
+        )}
         <dt>Refund rule</dt>
         <dd>
           Attend to receive your deposit back. No-show deposits are shared among checked-in
@@ -361,7 +401,11 @@ export function V1Deposit({
               </option>
             ))}
           </select>
-          <label htmlFor="v1-deposit-wallet">Payout Withdrawal Wallet</label>
+          <label htmlFor="v1-deposit-wallet">
+            {crossChain
+              ? "1. Set up your NEAR refund wallet"
+              : "NEAR wallet for payment and refunds"}
+          </label>
           <select
             id="v1-deposit-wallet"
             aria-describedby="v1-payout-wallet-note"
@@ -369,8 +413,9 @@ export function V1Deposit({
             value={walletId}
             disabled={busy}
             onChange={(event) => {
+              setStorageError("");
               setWalletId(event.target.value);
-              if (sourceNetwork === "near") setSourceWalletId(event.target.value);
+              if (selectedNetwork === "near") setSourceWalletId(event.target.value);
               setConsent(false);
             }}
           >
@@ -387,6 +432,42 @@ export function V1Deposit({
               Verify a NEAR wallet
             </Link>
           </p>
+          {crossChain &&
+            payoutWalletId &&
+            (refundReady ? (
+              <JourneyStatus tone="confirmed" title="NEAR refund wallet ready" />
+            ) : storageError ? (
+              <JourneyStatus
+                tone="blocked"
+                title="Refund wallet check unavailable"
+                actions={
+                  <button type="button" onClick={() => setStorageRetry((current) => current + 1)}>
+                    Check refund wallet
+                  </button>
+                }
+              >
+                {storageError}
+              </JourneyStatus>
+            ) : checkedStorage?.walletId !== payoutWalletId ? (
+              <JourneyStatus tone="checking" title="Checking your NEAR refund wallet" />
+            ) : null)}
+          {crossChain && !refundReady && checkedStorage?.walletId === payoutWalletId && (
+            <>
+              <p>
+                Enable USDC receiving once. Your wallet will show the setup cost before you approve.
+              </p>
+              <NearWalletPaymentButton
+                key={`storage:${status?.walletId ?? walletId}`}
+                scope={`storage:${status?.walletId ?? walletId}`}
+                disabled={busy || !(status?.walletId ?? walletId)}
+                prepare={() => prepareWalletPayment("storage")}
+                confirm={confirmStorage}
+              />
+            </>
+          )}
+          <h3 id="v1-review-deposit" tabIndex={-1}>
+            {crossChain ? "2. Review your deposit" : "Review your deposit"}
+          </h3>
           <label>
             <input
               type="checkbox"
@@ -399,7 +480,9 @@ export function V1Deposit({
           <button
             type="button"
             className="primary-button"
-            disabled={busy || !walletId || !sourceWalletId || !consent}
+            disabled={
+              busy || !walletId || !sourceWalletId || !consent || (crossChain && !refundReady)
+            }
             onClick={() => action("register")}
           >
             Prepare my deposit
@@ -407,31 +490,19 @@ export function V1Deposit({
         </>
       )}
       {status?.wallet && (
-        <p>{`Deposit Wallet: ${status.sourceAddress ?? status.wallet}. Payout Withdrawal Wallet: ${status.payout ?? status.wallet}`}</p>
+        <p>{`Deposit Wallet: ${status.sourceAddress ?? status.wallet}. NEAR refund wallet: ${status.payout ?? status.wallet}`}</p>
       )}
-      {status?.state === "registered" && !status.funded && sourceNetwork !== "near" && (
-        <V1RouteReview
-          registrationId={status.registrationId!}
-          eventId={eventId}
-          network={sourceNetwork}
-          address={status.sourceAddress!}
-          initial={status.route}
-          onSubmitted={checkRouting}
-          walletConnectProjectId={walletConnectProjectId}
-        />
-      )}
-      {sourceNetwork !== "near" && !status?.funded && (
+      {status?.state === "registered" && !status.funded && crossChain && (
         <>
-          <p>
-            Your NEAR payout wallet needs USDC token registration once. Wallet setup attaches at
-            most 0.00125 NEAR; keep a separate 0.16-NEAR gas reserve.
-          </p>
-          <NearWalletPaymentButton
-            key={`storage:${status?.walletId ?? walletId}`}
-            scope={`storage:${status?.walletId ?? walletId}`}
-            disabled={busy || !(status?.walletId ?? walletId)}
-            prepare={() => prepareWalletPayment("storage")}
-            confirm={confirmStorage}
+          <h3>{`2. Deposit from ${sourceNetwork === "base" ? "Base" : sourceNetwork === "ethereum" ? "Ethereum" : "Solana"}`}</h3>
+          <V1RouteReview
+            registrationId={status.registrationId!}
+            eventId={eventId}
+            network={sourceNetwork}
+            address={status.sourceAddress!}
+            initial={status.route}
+            onSubmitted={checkRouting}
+            walletConnectProjectId={walletConnectProjectId}
           />
         </>
       )}
@@ -487,14 +558,18 @@ export function V1Deposit({
           Registration failed. Its original transaction is retained for review. Do not send USDC.
         </JourneyStatus>
       )}
-      <button
-        type="button"
-        className="secondary-button"
-        disabled={busy || checkingEscrow}
-        onClick={check}
-      >
-        Check deposit status
-      </button>
+      {(prepared || notice?.tone === "blocked" || !status) && (
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={busy || checkingEscrow}
+          onClick={check}
+        >
+          {status && ["requested", "prepared", "submitted"].includes(status.state)
+            ? "Check registration status"
+            : "Check deposit status"}
+        </button>
+      )}
       {status?.transactionUrl && (
         <p>
           <a href={status.transactionUrl} target="_blank" rel="noopener noreferrer">
@@ -509,7 +584,7 @@ export function V1Deposit({
             {notice.text}
           </JourneyStatus>
         ) : checkingEscrow ? (
-          <JourneyStatus tone="checking" title="Waiting for escrow">
+          <JourneyStatus tone="checking" title="Waiting for on-chain confirmation">
             NEAR is checking whether escrow received your deposit.
           </JourneyStatus>
         ) : busy ? (

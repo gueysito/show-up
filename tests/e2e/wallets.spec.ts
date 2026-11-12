@@ -187,14 +187,15 @@ test("preauthenticated disposable wallets: control verification, refresh and mob
   try {
     await fixtures.enter(context, 0);
     await page.goto("/account");
-    await page.getByRole("link", { name: "Verify and review your wallets" }).click();
+    await page.getByRole("link", { name: "Your wallets" }).click();
     for (const [network, app] of [
       ["Base", "Rabby"],
-      ["Ethereum", "MetaMask"],
+      ["Ethereum", "Rabby"],
       ["Solana", "Phantom"],
     ]) {
       wallet.setChain(network === "Ethereum" ? "0x1" : "0x2105");
       await page.getByRole("button", { name: network, exact: true }).click();
+      await expect(page.getByRole("button", { name: "MetaMask", exact: true })).toHaveCount(0);
       await page.getByRole("button", { name: app, exact: true }).click();
       await expect(page.getByRole("status")).toContainText("Wallet control verified and saved");
       await expect(page.getByText("Wallet saved", { exact: true })).toBeVisible();
@@ -335,7 +336,7 @@ test("lost verification acknowledgement retries the original proof without reque
   try {
     await fixtures.enter(context, 0);
     await page.goto("/account/wallets");
-    await page.getByRole("button", { name: "MetaMask", exact: true }).click();
+    await page.getByRole("button", { name: "Rabby", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("Wallet control verified and saved");
     expect(wallet.signatures()).toBe(1);
     expect(operations).toEqual([operations[0], operations[0]]);

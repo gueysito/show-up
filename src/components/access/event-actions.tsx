@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { InvitationManager } from "./invitation-manager";
 import type { V1PublicationState } from "../../server/events/v1-publication";
 import { HostCodeWindowManager } from "./host-code-window";
 import { EventValidatorManager } from "./event-validators";
@@ -17,9 +16,9 @@ import { JourneyStatus, type JourneyTone } from "./journey-status";
 const publicationStatus: Record<V1PublicationState["state"], { tone: JourneyTone; title: string }> =
   {
     draft: { tone: "action", title: "Ready to publish" },
-    requested: { tone: "checking", title: "Publication queued" },
-    prepared: { tone: "checking", title: "Publication in progress" },
-    submitted: { tone: "checking", title: "Waiting for NEAR" },
+    requested: { tone: "checking", title: "Publishing on NEAR" },
+    prepared: { tone: "checking", title: "Publishing on NEAR" },
+    submitted: { tone: "checking", title: "Publishing on NEAR" },
     awaiting_prize: { tone: "action", title: "Prize funding required" },
     verified: { tone: "confirmed", title: "Event published" },
     failed: { tone: "blocked", title: "Publication needs attention" },
@@ -192,7 +191,7 @@ export function EventActions({
       );
       setStatus({
         tone: "checking",
-        title: "Publication queued",
+        title: "Publishing on NEAR",
         text: "Prize receipt confirmed. Publication is queued; check status for the final transaction.",
       });
     } catch (error) {
@@ -371,10 +370,18 @@ export function EventActions({
       )}
       {state === "published" && (
         <div>
+          <JourneyStatus tone="confirmed" title="Event published" />
+          <JourneyStatus
+            tone="action"
+            title="Next: invite attendees"
+            actions={
+              <Link className="primary-button" href={`/events/${id}/manage#invitations`}>
+                Create attendee invitation
+              </Link>
+            }
+          />
           <p>
-            <Link href={`/events/${id}`} prefetch={false}>
-              Open attendee event page
-            </Link>
+            <Link href={`/events/${id}`}>Event page</Link>
           </p>
           <label htmlFor="copy-description">Correct description only</label>
           <textarea
@@ -397,7 +404,6 @@ export function EventActions({
               {status.text}
             </JourneyStatus>
           )}
-          <InvitationManager canIssueHost={false} eventId={id} />
           {mode === "digital" && (
             <HostCodeWindowManager key={id} eventId={id} timeZone={timeZone} />
           )}

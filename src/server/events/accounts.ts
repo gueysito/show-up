@@ -101,7 +101,11 @@ export async function listAccountEvents(pool: pg.Pool, accountId: string): Promi
     await pool.query(
       `SELECT id,revision,data,CASE WHEN state='draft' AND EXISTS
        (SELECT 1 FROM app_publication_images p WHERE p.event_id=app_events.id AND p.environment='near-mainnet-v1')
-       THEN 'publication_pending' ELSE state END AS state,updated_at AS "updatedAt"
+       THEN 'publication_pending' ELSE state END AS state,
+       EXISTS(SELECT 1 FROM app_publication_images p WHERE p.event_id=app_events.id AND p.environment='near-mainnet-v1'
+         AND p.transaction_state IN ('verified','awaiting_prize','cancelled','failed')) AS "canManageV1",
+       registration_closes_at > clock_timestamp() AS "registrationOpen",
+       updated_at AS "updatedAt"
     FROM app_events WHERE owner_id=$1 ORDER BY updated_at DESC LIMIT 50`,
       [accountId],
     )
@@ -126,7 +130,7 @@ export async function duplicateAccountEvent(
       hasRole(actor, "host");
       const original = await ownedEvent(client, actor, sourceId);
       const id = randomUUID();
-      const data = { ...original.data, title: `${original.data.title.slice(0, 113)} (copy)` };
+      const data = { ...original.data, title: `Copy of ${original.data.title.slice(0, 112)}` };
       const result = await client.query(
         `INSERT INTO app_events (id,owner_id,revision,data,registration_closes_at)
       VALUES ($1,$2,1,$3,$4) RETURNING updated_at`,

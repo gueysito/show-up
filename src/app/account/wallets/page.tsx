@@ -1,3 +1,4 @@
+import { AppHeader } from "../../../components/app-header";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { authConfig } from "../../../server/auth/config";
@@ -23,8 +24,7 @@ export default async function WalletPage({
   const openedWallet =
     initialNetwork === "solana" && query.app === "phantom"
       ? "phantom"
-      : (initialNetwork === "base" || initialNetwork === "ethereum") &&
-          (query.app === "rabby" || query.app === "metamask")
+      : (initialNetwork === "base" || initialNetwork === "ethereum") && query.app === "rabby"
         ? query.app
         : undefined;
   const config = authConfig();
@@ -45,35 +45,38 @@ export default async function WalletPage({
     }
   }
   return (
-    <main>
-      <Link href="/account">Back to your account</Link>
-      <h1>Your wallets</h1>
-      {returnEventId && (
-        <p>
-          <Link href={`/events/${returnEventId}/commit`} prefetch={false}>
-            Return to this event&apos;s commitment review
-          </Link>
-        </p>
-      )}
-      <p>Verify a wallet with a message signature. Event payments require separate approval.</p>
-      {!available ? (
-        <p role="alert">Wallet verification is unavailable. Retry when the service is ready.</p>
-      ) : !signedIn ? (
-        <p>
-          <Link href="/account">Sign in before verifying a wallet</Link>
-        </p>
-      ) : (
-        <WalletManager
-          initialWallets={wallets}
-          returnChallengeId={returnChallengeId}
-          returnEventId={returnEventId}
-          initialNetwork={initialNetwork}
-          openedWallet={openedWallet}
-          walletConnectProjectId={
-            projectId && /^[0-9a-f]{32}$/i.test(projectId) ? projectId : undefined
-          }
-        />
-      )}
-    </main>
+    <>
+      <AppHeader area={"account"} />
+      <main>
+        <Link href="/account">Back to your account</Link>
+        <h1>Your wallets</h1>
+        {returnEventId && (
+          <p>
+            <Link href={`/events/${returnEventId}/commit`} prefetch={false}>
+              Return to this event&apos;s commitment review
+            </Link>
+          </p>
+        )}
+        <p>Verify a wallet with a message signature. Event payments require separate approval.</p>
+        {!available ? (
+          <p role="alert">Wallet verification is unavailable. Retry when the service is ready.</p>
+        ) : !signedIn ? (
+          <p>
+            <Link href="/account">Sign in before verifying a wallet</Link>
+          </p>
+        ) : (
+          <WalletManager
+            initialWallets={wallets}
+            returnChallengeId={returnChallengeId}
+            returnEventId={returnEventId}
+            initialNetwork={initialNetwork}
+            openedWallet={openedWallet}
+            walletConnectProjectId={
+              projectId && /^[0-9a-f]{32}$/i.test(projectId) ? projectId : undefined
+            }
+          />
+        )}
+      </main>
+    </>
   );
 }

@@ -62,6 +62,7 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     }
     await page.goto(`/events/${publicId}`);
     await expect(page.getByRole("heading", { name: open.title })).toBeVisible();
+    await page.getByText("Event terms", { exact: true }).click();
     for (const [label, instant] of [
       ["Starts", open.startsAt],
       ["Ends", open.endsAt],
@@ -73,7 +74,7 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
           instant,
         );
     }
-    await expect(page.getByRole("button", { name: "Deposits closed", exact: true })).toBeDisabled();
+    await expect(page.getByRole("link", { name: "Deposit USDC", exact: true })).toHaveCount(0);
     const google = page.getByRole("button", {
       name: "Sign in with Google and return to this event",
     });
@@ -113,7 +114,7 @@ test("event entry: public sign-in context, private invitation-to-event handoff a
     await page.goto(`/account?walletEvent=${privateId}`);
     await expect(page).toHaveURL(`/events/${privateId}/commit`);
     await page.goto(`/events/${privateId}`);
-    await expect(page.getByRole("button", { name: "Deposits closed", exact: true })).toBeDisabled();
+    await expect(page.getByRole("link", { name: "Deposit USDC", exact: true })).toHaveCount(0);
     const verifiedWallets = [];
     for (const network of requiredNetworks) {
       // Already-verified engineering records; actual wallet control has its own UI checks.

@@ -1,3 +1,4 @@
+import { AppHeader } from "../../../components/app-header";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { authConfig } from "../../../server/auth/config";
@@ -38,55 +39,58 @@ export default async function StaffAttendancePage({
     }
   }
   return (
-    <main>
-      <Link href="/account" prefetch={false}>
-        Back to your account
-      </Link>
-      <h1>Staff attendance</h1>
-      <p>
-        Only published physical events with your host or validator assignment appear here. Scanning
-        never confirms attendance by itself.
-      </p>
-      {!available ? (
-        <p role="alert">Assigned events are unavailable. Review your account and reload.</p>
-      ) : !signedIn ? (
+    <>
+      <AppHeader area={"account"} />
+      <main>
         <Link href="/account" prefetch={false}>
-          Sign in to review your staff assignments
+          Back to your account
         </Link>
-      ) : (
-        <>
-          {query.event && (
-            <p>
-              <Link href="/account/attendance" prefetch={false}>
-                All your staff events
-              </Link>
-            </p>
-          )}
-          {!events.length && (
-            <p>No published physical events are available for scanning on this account.</p>
-          )}
-          {events.map((event) => (
-            <article key={event.eventId} className="saved-panel">
-              <h2>{event.title}</h2>
-              <p>{`Your assignment: ${event.assignment}.`}</p>
-              {query.event === event.eventId ? (
-                <AttendanceStaffScanner event={event} />
-              ) : (
-                <Link href={`/account/attendance?event=${event.eventId}`} prefetch={false}>
-                  Open scan controls
+        <h1>Staff attendance</h1>
+        <p>
+          Only published physical events with your host or validator assignment appear here.
+          Scanning never confirms attendance by itself.
+        </p>
+        {!available ? (
+          <p role="alert">Assigned events are unavailable. Review your account and reload.</p>
+        ) : !signedIn ? (
+          <Link href="/account" prefetch={false}>
+            Sign in to review your staff assignments
+          </Link>
+        ) : (
+          <>
+            {query.event && (
+              <p>
+                <Link href="/account/attendance" prefetch={false}>
+                  All your staff events
                 </Link>
-              )}
-            </article>
-          ))}
-          {nextCursor && (
-            <p>
-              <Link href={`/account/attendance?before=${nextCursor}`} prefetch={false}>
-                Older staff events
-              </Link>
-            </p>
-          )}
-        </>
-      )}
-    </main>
+              </p>
+            )}
+            {!events.length && (
+              <p>No published physical events are available for scanning on this account.</p>
+            )}
+            {events.map((event) => (
+              <article key={event.eventId} className="saved-panel">
+                <h2>{event.title}</h2>
+                <p>{`Your assignment: ${event.assignment}.`}</p>
+                {query.event === event.eventId ? (
+                  <AttendanceStaffScanner event={event} />
+                ) : (
+                  <Link href={`/account/attendance?event=${event.eventId}`} prefetch={false}>
+                    Open scan controls
+                  </Link>
+                )}
+              </article>
+            ))}
+            {nextCursor && (
+              <p>
+                <Link href={`/account/attendance?before=${nextCursor}`} prefetch={false}>
+                  Older staff events
+                </Link>
+              </p>
+            )}
+          </>
+        )}
+      </main>
+    </>
   );
 }

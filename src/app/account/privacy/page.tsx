@@ -1,3 +1,4 @@
+import { AppHeader } from "../../../components/app-header";
 import Link from "next/link";
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
@@ -35,93 +36,96 @@ export default async function PrivacyPage() {
     }
   }
   return (
-    <main>
-      <Link href="/account" prefetch={false}>
-        Back to your account
-      </Link>
-      <h1>Your data</h1>
-      {completion && !session && (
-        <p role="status">{`Deletion completed at ${completion.completedAt}. Reference: ${completion.id}. Off-chain identity was removed and all sessions were signed out. On-chain records cannot be erased.`}</p>
-      )}
-      {!available ? (
-        <p role="alert">Private data access is temporarily unavailable. Reload to try again.</p>
-      ) : !session ? (
-        <p>
-          <Link href="/account" prefetch={false}>
-            Sign in to access your data
-          </Link>
-        </p>
-      ) : (
-        <section aria-label="Private account export">
-          <p style={{ overflowWrap: "anywhere" }}>{`Account reference: ${session.accountId}`}</p>
-          <h2>Download your account data</h2>
+    <>
+      <AppHeader area={"account"} />
+      <main>
+        <Link href="/account" prefetch={false}>
+          Back to your account
+        </Link>
+        <h1>Your data</h1>
+        {completion && !session && (
+          <p role="status">{`Deletion completed at ${completion.completedAt}. Reference: ${completion.id}. Off-chain identity was removed and all sessions were signed out. On-chain records cannot be erased.`}</p>
+        )}
+        {!available ? (
+          <p role="alert">Private data access is temporarily unavailable. Reload to try again.</p>
+        ) : !session ? (
           <p>
-            Your JSON export includes your linked identities, wallet addresses, financial approvals,
-            hosted event rules and answers, invitations, access grants and account audit records. It
-            contains only your own data.
-          </p>
-          <p>
-            The file is private. Session tokens, invitation capabilities, OAuth credentials and
-            ephemeral challenges are excluded.
-          </p>
-          <p>
-            <a href="/api/account/export" download>
-              Download your data as JSON
-            </a>
-          </p>
-          {deletion ? (
-            <section aria-label="Deletion request status">
-              <h2>Deletion requested</h2>
-              <p>
-                New account activity is disabled. Unneeded records were removed; original financial
-                or published-event records and restricted access remain until obligations are safely
-                reconciled. This does not erase debt or confirm a payment.
-              </p>
-              <p>{`Requested at ${deletion.requestedAt}. Reference: ${deletion.id}.`}</p>
-              <ul aria-label="Unresolved deletion obligations">
-                {deletion.holdReasons.map((reason) => (
-                  <li key={reason}>
-                    {reason === "publication_reconciliation"
-                      ? "A frozen publication request still needs its original contract outcome reconciled."
-                      : reason === "published_event_obligations"
-                        ? "Published event obligations still require qualified settlement and return evidence."
-                        : "Original financial approvals still require qualified settlement and return evidence."}
-                  </li>
-                ))}
-              </ul>
-              <p>
-                Sandbox observations and provider status hints cannot clear these obligations or
-                authorize deletion of recovery records.
-              </p>
-              <p>
-                Use the same linked provider to restore this restricted access after logout. New
-                linking, roles, wallets, events and commitments are disabled.
-              </p>
-            </section>
-          ) : (
-            <DeletionRequest
-              key={operationId}
-              operationId={operationId}
-              intent={createDeletionConfirmation(
-                config!,
-                session.accountId,
-                session.tokenHash,
-                operationId,
-              )}
-            />
-          )}
-          <p>
-            <Link href="/account/commitments" prefetch={false}>
-              Review your financial authorizations
+            <Link href="/account" prefetch={false}>
+              Sign in to access your data
             </Link>
           </p>
-          {session.state === "deletion_requested" && (
-            <form method="post" action="/api/auth/logout">
-              <button className="secondary-button">Log out</button>
-            </form>
-          )}
-        </section>
-      )}
-    </main>
+        ) : (
+          <section aria-label="Private account export">
+            <p style={{ overflowWrap: "anywhere" }}>{`Account reference: ${session.accountId}`}</p>
+            <h2>Download your account data</h2>
+            <p>
+              Your JSON export includes your linked identities, wallet addresses, financial
+              approvals, hosted event rules and answers, invitations, access grants and account
+              audit records. It contains only your own data.
+            </p>
+            <p>
+              The file is private. Session tokens, invitation capabilities, OAuth credentials and
+              ephemeral challenges are excluded.
+            </p>
+            <p>
+              <a href="/api/account/export" download>
+                Download your data as JSON
+              </a>
+            </p>
+            {deletion ? (
+              <section aria-label="Deletion request status">
+                <h2>Deletion requested</h2>
+                <p>
+                  New account activity is disabled. Unneeded records were removed; original
+                  financial or published-event records and restricted access remain until
+                  obligations are safely reconciled. This does not erase debt or confirm a payment.
+                </p>
+                <p>{`Requested at ${deletion.requestedAt}. Reference: ${deletion.id}.`}</p>
+                <ul aria-label="Unresolved deletion obligations">
+                  {deletion.holdReasons.map((reason) => (
+                    <li key={reason}>
+                      {reason === "publication_reconciliation"
+                        ? "A frozen publication request still needs its original contract outcome reconciled."
+                        : reason === "published_event_obligations"
+                          ? "Published event obligations still require qualified settlement and return evidence."
+                          : "Original financial approvals still require qualified settlement and return evidence."}
+                    </li>
+                  ))}
+                </ul>
+                <p>
+                  Sandbox observations and provider status hints cannot clear these obligations or
+                  authorize deletion of recovery records.
+                </p>
+                <p>
+                  Use the same linked provider to restore this restricted access after logout. New
+                  linking, roles, wallets, events and commitments are disabled.
+                </p>
+              </section>
+            ) : (
+              <DeletionRequest
+                key={operationId}
+                operationId={operationId}
+                intent={createDeletionConfirmation(
+                  config!,
+                  session.accountId,
+                  session.tokenHash,
+                  operationId,
+                )}
+              />
+            )}
+            <p>
+              <Link href="/account/commitments" prefetch={false}>
+                Review your financial authorizations
+              </Link>
+            </p>
+            {session.state === "deletion_requested" && (
+              <form method="post" action="/api/auth/logout">
+                <button className="secondary-button">Log out</button>
+              </form>
+            )}
+          </section>
+        )}
+      </main>
+    </>
   );
 }

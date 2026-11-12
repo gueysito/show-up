@@ -1,3 +1,4 @@
+import { AppHeader } from "../../../../components/app-header";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -61,90 +62,99 @@ export default async function CommitmentPage({
     await pool.end();
   }
   return (
-    <main>
-      <Link href={`/events/${id}`} prefetch={false}>
-        Back to event
-      </Link>
-      <h1>
-        {refund
-          ? `Refund receipt for ${refund.title}`
-          : event
-            ? `Review commitment for ${event.data.title}`
-            : "Commitment review unavailable"}
-      </h1>
-      {refund ? (
-        <section id="refund" className="saved-panel" aria-label="Refund receipt">
-          <JourneyStatus
-            tone="confirmed"
-            title={`${formatUsdc(refund.amount)} USDC refunded`}
-            actions={
-              <a href={refund.transactionUrl} target="_blank" rel="noopener noreferrer">
-                View refund transaction
-              </a>
-            }
-          >
-            {`Paid to ${refund.payout} on NEAR.`}
+    <>
+      <AppHeader area={"attend"} />
+      <main>
+        <Link href={`/events/${id}`} prefetch={false}>
+          Back to event
+        </Link>
+        <h1>
+          {refund
+            ? `Refund receipt for ${refund.title}`
+            : event
+              ? `Deposit and check-in for ${event.data.title}`
+              : "Commitment review unavailable"}
+        </h1>
+        {refund ? (
+          <section id="refund" className="saved-panel" aria-label="Refund receipt">
+            <JourneyStatus
+              tone="confirmed"
+              title="Refund received"
+              actions={
+                <a href={refund.transactionUrl} target="_blank" rel="noopener noreferrer">
+                  View refund transaction
+                </a>
+              }
+            >
+              {`${formatUsdc(refund.amount)} USDC sent to ${refund.payout} on NEAR. No action needed.`}
+            </JourneyStatus>
+            <details>
+              <summary>Transaction hash</summary>
+              <code className="transaction-hash">{refund.transactionUrl.split("/").at(-1)}</code>
+            </details>
+            <Link href={`/events/${id}/commit?view=activity`} prefetch={false}>
+              View other deposit activity
+            </Link>
+          </section>
+        ) : !event ? (
+          <JourneyStatus tone="blocked" title="Couldn’t load this page">
+            Reload to try again. No financial action was taken.
           </JourneyStatus>
-          <Link href={`/events/${id}/commit?view=activity`} prefetch={false}>
-            View other deposit activity
-          </Link>
-        </section>
-      ) : !event ? (
-        <JourneyStatus tone="blocked" title="Couldn’t load this page">
-          Reload to try again. No financial action was taken.
-        </JourneyStatus>
-      ) : event.viewer === "anonymous" ? (
-        <p>
-          <Link href={`/events/${id}`} prefetch={false}>
-            Sign in from the event page before selecting wallets
-          </Link>
-        </p>
-      ) : event.viewer === "staff" ? (
-        <p>Hosts and assigned validators cannot commit as attendees.</p>
-      ) : event.escrow ? (
-        <>
-          {event.registration !== "closed" && event.viewer !== "recovery" && (
-            <V1Deposit
-              key={id}
+        ) : event.viewer === "anonymous" ? (
+          <p>
+            <Link href={`/events/${id}`} prefetch={false}>
+              Sign in from the event page before selecting wallets
+            </Link>
+          </p>
+        ) : event.viewer === "staff" ? (
+          <p>Hosts and assigned validators cannot commit as attendees.</p>
+        ) : event.escrow ? (
+          <>
+            {event.registration !== "closed" && event.viewer !== "recovery" && (
+              <V1Deposit
+                key={id}
+                eventId={id}
+                rulesHash={event.rulesHash}
+                amount={event.data.commitment}
+                wallets={wallets}
+                nft={Boolean(event.escrow.nft)}
+                walletConnectProjectId={
+                  walletConnectProjectId && /^[0-9a-f]{32}$/i.test(walletConnectProjectId)
+                    ? walletConnectProjectId
+                    : undefined
+                }
+              />
+            )}
+            {(event.registration === "closed" || event.viewer === "recovery") && (
+              <V1EventConsole eventId={id} active={event.viewer !== "recovery"} />
+            )}
+          </>
+        ) : event.viewer === "recovery" || event.registration === "closed" ? (
+          <>
+            <p>
+              New commitments are closed. Original authorizations and recovery remain available.
+            </p>
+            <Link href={`/account/commitments?event=${id}`} prefetch={false}>
+              Review existing authorizations and recovery
+            </Link>
+          </>
+        ) : (
+          <>
+            <p>{`${event.data.commitment} USDC principal · ${event.data.mode === "digital" ? "Online" : "In person"} · registration closes at the event start.`}</p>
+            <p>
+              Review wallet destinations first. A separately verified quote must disclose amounts,
+              fees and expiry before financial approval. Deposits are currently closed.
+            </p>
+            <CommitmentWalletReview
+              key={selectionScope}
               eventId={id}
               rulesHash={event.rulesHash}
-              amount={event.data.commitment}
               wallets={wallets}
-              nft={Boolean(event.escrow.nft)}
-              walletConnectProjectId={
-                walletConnectProjectId && /^[0-9a-f]{32}$/i.test(walletConnectProjectId)
-                  ? walletConnectProjectId
-                  : undefined
-              }
+              selectionScope={selectionScope}
             />
-          )}
-          {(event.registration === "closed" || event.viewer === "recovery") && (
-            <V1EventConsole eventId={id} active={event.viewer !== "recovery"} />
-          )}
-        </>
-      ) : event.viewer === "recovery" || event.registration === "closed" ? (
-        <>
-          <p>New commitments are closed. Original authorizations and recovery remain available.</p>
-          <Link href={`/account/commitments?event=${id}`} prefetch={false}>
-            Review existing authorizations and recovery
-          </Link>
-        </>
-      ) : (
-        <>
-          <p>{`${event.data.commitment} USDC principal · ${event.data.mode === "digital" ? "Online" : "In person"} · registration closes at the event start.`}</p>
-          <p>
-            Review wallet destinations first. A separately verified quote must disclose amounts,
-            fees and expiry before financial approval. Deposits are currently closed.
-          </p>
-          <CommitmentWalletReview
-            key={selectionScope}
-            eventId={id}
-            rulesHash={event.rulesHash}
-            wallets={wallets}
-            selectionScope={selectionScope}
-          />
-        </>
-      )}
-    </main>
+          </>
+        )}
+      </main>
+    </>
   );
 }

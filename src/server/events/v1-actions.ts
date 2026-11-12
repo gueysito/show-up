@@ -560,6 +560,17 @@ export async function readV1OwnReceipt(
     share: share.toString(),
     prize: prize.toString(),
     claim,
+    payoutTransactionUrl: (() => {
+      const payment = [...actions]
+        .reverse()
+        .find(
+          (action) =>
+            action.kind === "withdraw" &&
+            action.target === own.image.id &&
+            action.state === "verified",
+        );
+      return payment?.transaction_hash ? v1TransactionUrl(payment.transaction_hash) : null;
+    })(),
     withdrawalQueued: actions.some(
       (action) =>
         action.kind === "withdraw" &&

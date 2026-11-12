@@ -31,6 +31,16 @@ test("an attendee can open a paid refund from their account without live chain d
     ).toBe(true);
     await requestV1Close(pool, config, sessions[0], randomUUID(), eventId, "cancel", transport);
     expect((await runV1Action(pool, key, gateway)).state).toBe("verified");
+    await page.setViewportSize({ width: 320, height: 844 });
+    await f.enter(context, 1);
+    await page.goto("/account/commitments");
+    await expect(page.getByRole("region", { name: "Deposits and refunds" })).toContainText(
+      "Refund available",
+    );
+    await expect(page.getByRole("link", { name: /Withdraw refund for/ })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
     const withdrawal = await requestV1Withdrawal(
       pool,
       config,
@@ -39,6 +49,10 @@ test("an attendee can open a paid refund from their account without live chain d
       eventId,
       "deposit",
       transport,
+    );
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Deposits and refunds" })).toContainText(
+      "Refund pending",
     );
     expect(await readV1PaidRefund(pool, config, sessions[1], eventId)).toBeNull();
     expect((await runV1Action(pool, key, gateway)).state).toBe("verified");
@@ -50,21 +64,26 @@ test("an attendee can open a paid refund from their account without live chain d
     await page.setViewportSize({ width: 390, height: 844 });
     await f.enter(context, 1);
     await page.goto("/account");
-    await page.getByRole("link", { name: "View deposits and refunds" }).click();
+    await page.getByRole("link", { name: "Deposits and refunds" }).click();
     const refunds = page.getByRole("region", { name: "Deposits and refunds" });
-    await refunds.getByRole("link", { name: `View refund for ${String(f.event().title)}` }).click();
+    await expect(refunds).toContainText("Refund received");
+    await refunds
+      .getByRole("link", { name: `View receipt for ${String(f.event().title)}` })
+      .click();
     await expect(page).toHaveURL(new RegExp(`/events/${eventId}/commit#refund$`));
     const receipt = page.getByRole("region", { name: "Refund receipt" });
-    await expect(receipt).toContainText("1.00 USDC refunded");
+    await expect(receipt).toContainText("1.00 USDC sent");
     await page.emulateMedia({ reducedMotion: "reduce" });
     const confirmation = receipt.getByRole("status").locator("..");
     await expect(confirmation).toHaveCSS("animation-name", "none");
     await expect(confirmation).toHaveCSS("background-color", "rgb(235, 244, 232)");
-    await expect(receipt).toContainText("Paid to attendee-1.near on NEAR.");
+    await expect(receipt).toContainText("sent to attendee-1.near on NEAR.");
     await expect(receipt.getByRole("link", { name: "View refund transaction" })).toHaveAttribute(
       "href",
       `https://nearblocks.io/txns/${hash}`,
     );
+    await receipt.getByText("Transaction hash", { exact: true }).click();
+    await expect(receipt.getByText(hash, { exact: true })).toBeVisible();
     await page.reload();
     await expect(receipt).toBeVisible();
     await f.enter(context, 2);
@@ -133,7 +152,7 @@ test("own financial approvals persist without claiming escrow, and private histo
   try {
     await f.enter(context, 0);
     await page.goto("/account");
-    await page.getByRole("link", { name: "Review your financial authorizations" }).click();
+    await page.getByRole("link", { name: "Review event terms" }).click();
     await expect(page.getByRole("heading", { name: f.title })).toBeVisible();
     await expect(page.getByText("Financial terms approved", { exact: true })).toBeVisible();
     const release = page.getByRole("region", { name: "Release and recovery availability" });
@@ -264,7 +283,7 @@ test("own financial approvals persist without claiming escrow, and private histo
     const offset = recordsHistoryLength - (await page.evaluate(() => history.length));
     expect(offset).toBeLessThan(0);
     await page.evaluate((delta) => history.go(delta), offset);
-    await expect(page).toHaveURL(/\/account\/commitments$/);
+    await expect(page).toHaveURL(/\/account\/commitments#reviewed-terms$/);
     await expect(
       page.getByRole("link", { name: "Sign in to view your financial authorizations" }),
     ).toBeVisible();

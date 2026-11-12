@@ -40,8 +40,8 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   finalized on NEAR. The MetaMask test registration also finalized. Its mobile
   app-opening link reached a browser error page. Opening Showup manually in
   MetaMask exposed a second blocker when its browser refused to launch Telegram.
-  V1 will offer Rabby for Base and Ethereum. Review the [walkthrough follow-ups](docs/plan.md)
-  before implementing the navigation, wallet, refund, and reserve changes.
+  The V1 navigation, Rabby-only payment and receipt changes are implemented locally.
+  Next: verify the updated hosted app and NFT cancellation, then finish release checks.
 - GitHub Actions billing blocked `verify` and `contracts` in the latest feature
   branch run. Finish the hosted checks, then resolve billing and open the release
   pull request. Merging requires owner approval.
