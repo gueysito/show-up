@@ -312,7 +312,10 @@ The revised Rabby handoff has local evidence and awaits its next real use.
 Hosted settlement preflight (2026-11-12): existing project Ethereum balances
 covered the USDC and gas shortfalls. The two settlement integration tests passed,
 and the earlier desktop mainnet journal confirms all 2.25 USDC returned to the
-controller. The hosted journey still requires authenticated host and attendee sessions.
+controller. The hosted Desktop settlement test published with a confirmed
+0.25 USDC prize. One Base deposit reached escrow before registration closed.
+The event was cancelled. Finalized NEAR state confirms the attendee's 1 USDC
+refund was paid and the host's 0.25 USDC prize remains claimable.
 The hosted MetaMask link repeatedly showed “This page doesn’t exist,” including
 after updating MetaMask. Opening Showup manually inside MetaMask reached the
 site, but its browser blocked the Telegram app launch even after **Allow**.
@@ -337,8 +340,10 @@ refunds and a receipt link for paid refunds. During the phone walkthrough an old
 paid refund and a newly available refund both appeared as **View refund**.
 The owner approved the V1 navigation and status pass. Hosting stays invitation-only
 and the same account can attend events. Self-service host activation belongs to V2.
-Verify both the hosted check-in/settlement journey and a separate cancellation/refund
-journey. Reuse unchanged wallet evidence and repeat the changed Rabby phone handoff.
+The hosted cancellation/refund journey passed. Reuse the completed mainnet
+check-in and 2.25 USDC settlement above for V1-5 and V1-6. A second funded
+settlement on Railway is optional. Check the updated host controls and payout
+receipt in a focused browser pass during polish.
 Local implementation covers the account areas, event navigation and invitations,
 refund-wallet setup, Rabby-only approvals, and verified receipt states. Local
 checks: build, 134 unit, 11 database integration and 43 production browser cases
@@ -347,20 +352,19 @@ checks: build, 134 unit, 11 database integration and 43 production browser cases
 of `f2dac03` passed HTTP, signed-out access, sign-in redirects and 320 px smoke checks.
 The [host controls rollout](https://railway.com/project/c96713df-35c0-442a-bd38-cb49b32abd19/service/de0c7406-f6f3-4d9e-a19f-fd771ed50c11?id=14d910db-b881-4f0f-b7fd-793fc08f2ed2)
 of `fcf150f` passed live copy, health, sign-in redirects and signed-out access
-checks. Build, 134 unit and six focused browser cases passed locally. Hosted money
-journeys and reserve sizing/alerting remain open.
-After implementation, repeat the hosted journey to verify the next action is
-clear at each step and the deposit and refund still complete. The V1-7
-cancel-to-host NFT path has sandbox evidence and still needs a mainnet receipt.
+checks. Build, 134 unit and six focused browser cases passed locally.
+The remaining V1 mainnet test is V1-7 NFT cancellation: publish with the NFT
+in custody, cancel and record the finalized Ethereum return to the contributor.
+Then finish the visual polish and GitHub Actions validation.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.
 GitHub [run 42656124167](https://github.com/gueysito/show-up/actions/runs/42656124167)
 could not start `verify` or `contracts` because of account billing or the
-Actions spending limit. Finish the walkthrough follow-ups and hosted checks
-before opening the release pull request. Resolve billing and require both
-checks to pass before merge approval.
+Actions spending limit. Finish NFT cancellation and visual polish before opening
+the release pull request. Resolve billing and require both checks to pass before
+merge approval.
 
 V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens
 reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
@@ -504,6 +508,8 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-12 | Ethereum → NEAR | Reallocate existing project USDC to fund two demo seats and the prize | 1.010208 USDC input, 1 USDC delivered, 0.010208 USDC route cost and 0.000011053587447 ETH gas. One same-nonce transaction finalized. | [Source](https://etherscan.io/tx/0xf5a053448b4897e9041038d1aa6bd32e0e1a5ef751de14a61522979513f5849f), [delivery](https://nearblocks.io/txns/2MzZGfwYGELhnDY1Xjs7rWVHsNfLVrxpF7VbyvKyPUXb) |
 | 2026-11-12 | Ethereum → NEAR | Reallocate existing project ETH for demo wallet gas and escrow reserve | 0.000511990608314570 ETH input, 0.3 native NEAR delivered, 0.000003629867262 ETH gas | [Source](https://etherscan.io/tx/0x36296ad72db4a88294c02ea5ff89201a964cae6ab7a79b690c678f7bf5a086df), [delivery](https://nearblocks.io/txns/41kjFhwK5GZ6ucyB5WFX5w5kNHrJ6FSCcH4ykh2ZDcE9) |
 | 2026-11-12 | NEAR | Allocate the existing demo principal and gas; restore escrow operating reserve | 1 USDC and 0.102 NEAR to each demo wallet, 0.05 NEAR to escrow, 0.000635818266409 NEAR combined gas | [USDC allocation](https://nearblocks.io/txns/EsehziKL8JERpHzfktjad3Re2ycnGbkBetLaYci2FUQR), [demo A gas](https://nearblocks.io/txns/8noc8TYgZNEGZ2EjGJy8WELAsTY51FdV21toVmWFfy7J), [demo B gas](https://nearblocks.io/txns/3ggsdJXDdbmrSjaqsnwd3r8b47zaKjBJEPvDjZCoPLsg), [reserve](https://nearblocks.io/txns/8Hd3eNoZDTUvnSggDpvt1j9BaEyA3kJRAKFyayzSSHSn) |
+| 2026-11-12 | NEAR | Fund and publish the hosted Desktop settlement test | 0.25 USDC prize funded by the selected host wallet and confirmed in escrow | [Prize payment](https://nearblocks.io/txns/95zEKZyBPJVbMEv1NiidmgBSGh1DBD2DJ116FX3juP7r), [publication](https://nearblocks.io/txns/3d4AAEC8NNyiLb4HZZos5PjmXjJs6S2Ff8bfgk9oK8eR) |
+| 2026-11-12 | Base → NEAR | First attendee deposit for the hosted Desktop settlement test | 1 USDC confirmed in escrow before registration closed | [Escrow receipt](https://nearblocks.io/txns/BqZmoTu7B2Zd9GR8xRDXpaDVQ2RS92zXDzuG1zcWk8CZ) |
 
 Recovery inventory (2026-11-12, read-only): the six test receiving accounts hold
 0.12 NEAR total, of which 0.10908 is above account storage before fees, and zero

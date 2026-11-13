@@ -1145,7 +1145,8 @@ showing delivery. Signing alone is not delivery. Failed MPC responses may retry 
 original payload, up to three attempts. A mined failed Ethereum transfer needs explicit
 operator reconciliation; no automatic nonce replacement. Unused gas allowance remains
 at the event's custody address. Cancelling an unpublished event keeps its venue private.
-These app paths are locally verified; the selected NFT's real round trip remains open.
+The NFT custody-to-winner journey passed on mainnet. The cancellation return has
+sandbox coverage and still needs a mainnet receipt. See [V1 evidence](plan.md#v1-evidence).
 
 For cross-chain deposits, `039-mainnet-intents-accounts.sql` gives each registration
 a separate receiving account under the existing escrow account. All three source
