@@ -372,9 +372,10 @@ Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.
 Making the repository public cleared the Actions billing block. The
-[release PR](https://github.com/gueysito/show-up/pull/2) exposed two clean-checkout
-failures. Generate Next.js types before running TypeScript and pin `rustix` to
-1.1.6 for [RUSTSEC-2026-0486](https://rustsec.org/advisories/RUSTSEC-2026-0486.html).
+[release PR](https://github.com/gueysito/show-up/pull/2) exposed clean-checkout
+and Linux browser failures. Generate Next.js types before running TypeScript,
+pin `rustix` to 1.1.6 for [RUSTSEC-2026-0486](https://rustsec.org/advisories/RUSTSEC-2026-0486.html),
+use Playwright's screenshot paths, and constrain the draft editor's mobile grid.
 Pass `verify` and `contracts` before merging. Visual polish follows separately.
 
 V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens

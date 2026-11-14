@@ -14,7 +14,7 @@ test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
 test("synthetic NFT wallet approval fixes the asset and custody; a reload cannot prompt a second transfer", async ({
   page,
   context,
-}) => {
+}, testInfo) => {
   const f = await accountFixtures([["host"]]),
     n = v1NftFixture(),
     id = randomUUID(),
@@ -175,7 +175,7 @@ test("synthetic NFT wallet approval fixes the asset and custody; a reload cannot
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
-    await panel.screenshot({ path: "/private/tmp/showup-v1-nft-mobile.png" });
+    await panel.screenshot({ path: testInfo.outputPath("showup-v1-nft-mobile.png") });
   } finally {
     await f.cleanup();
   }

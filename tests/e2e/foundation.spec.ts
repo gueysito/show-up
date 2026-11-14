@@ -33,7 +33,7 @@ test("production refuses harness reads and writes even with its flag enabled", a
 
 test("the front door leads to real host access and a local V1 preview without funding actions", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto("/");
   await expect(page.getByRole("region", { name: "How Showup works" })).toContainText("Check in");
   await expect(
@@ -66,7 +66,10 @@ test("the front door leads to real host access and a local V1 preview without fu
     );
     await expect(page.getByRole("link", { name: "Your account" })).toBeVisible();
     if (width !== 320)
-      await page.screenshot({ path: `/private/tmp/showup-home-${width}.png`, fullPage: true });
+      await page.screenshot({
+        path: testInfo.outputPath(`showup-home-${width}.png`),
+        fullPage: true,
+      });
   }
   await page.emulateMedia({ reducedMotion: "reduce" });
   expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(
