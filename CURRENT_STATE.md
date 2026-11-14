@@ -44,4 +44,4 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 - The earlier mainnet check-in and settlement satisfy V1-5 and V1-6. A repeat
   funded Railway settlement is optional.
 - The design refresh includes server-based countdowns, an absolute preview-image URL at build time, and attendee-specific progress on the event page. See the [follow-ups](docs/plan.md#v1-9-design-refresh-follow-ups) for verification and deferred invitation/message decisions.
-- Next: pass the combined release checks and merge the approved design branch to main, then verify the deployed preview URL. The contract upgrade and mainnet round trip remain separate pending work.
+- Next: verify the refreshed web deployment and its preview URL after the combined release passes CI and merges. The contract upgrade and mainnet round trip remain separate pending work.

@@ -35,7 +35,11 @@ const config = authConfig({
 const accounts = new Set<string>();
 const status = (expected: number) => (error: unknown) =>
   error instanceof AppFailure && error.status === expected;
-before(() => migrate(pool));
+before(async () => {
+  await migrate(pool);
+  // Earlier fixture files share this disposable database and consume the global budget.
+  await pool.query("DELETE FROM app_rate_limits WHERE key_hash=$1", [hash("wallet:global")]);
+});
 after(async () => {
   const ids = [...accounts];
   for (const table of [
