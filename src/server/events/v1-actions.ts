@@ -311,7 +311,7 @@ export async function requestV1Close(
   if (
     (snapshot.event!.status !== "published" &&
       !(kind === "cancel" && snapshot.event!.status === "draft")) ||
-    (kind === "settle" && snapshot.block.timestampMs < Number(snapshot.event!.start_ms))
+    (kind === "settle" && snapshot.block.timestampMs < Number(snapshot.event!.end_ms))
   )
     throw new AppFailure(409, "This event cannot close in its current state.");
   return mutate(
@@ -376,6 +376,13 @@ export async function enqueueV1Deadline(pool: pg.Pool, key: string, transport?: 
   ).rows[0];
   if (!candidate) return;
   const { snapshot, image } = await readV1ActionSnapshot(pool, key, candidate.id, transport);
+  if (["settled", "cancelled"].includes(String(snapshot.event!.status))) {
+    await pool.query(
+      "UPDATE app_events SET state=$2,updated_at=clock_timestamp() WHERE id=$1 AND state='published'",
+      [candidate.id, snapshot.event!.status === "settled" ? "closed" : "cancelled"],
+    );
+    return;
+  }
   if (snapshot.event!.status !== "published" || snapshot.block.timestampMs < image.terms.end_ms)
     return;
   return transaction(pool, async (client) => {

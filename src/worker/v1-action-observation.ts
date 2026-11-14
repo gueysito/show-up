@@ -69,8 +69,11 @@ export async function validateV1Action(
       )
         throw new AppFailure(409, "The funded registration changed.");
     }
-    if (image.kind === "settle" && snapshot.block.timestampMs < Number(event.start_ms))
-      throw new AppFailure(409, "The event has not started.");
+    if (image.kind === "settle" && snapshot.block.timestampMs < Number(event.end_ms))
+      throw new AppFailure(
+        409,
+        "Wait until the event ends to settle, or cancel to return deposits.",
+      );
   }
 }
 export async function observeV1Action(

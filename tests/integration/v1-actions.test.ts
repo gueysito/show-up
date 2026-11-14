@@ -14,8 +14,10 @@ import {
 import { runV1Action } from "../../src/worker/v1-actions";
 import { runV1Registration } from "../../src/worker/v1-registration";
 import { listOwnWallets, removeOwnWallet } from "../../src/server/wallets/service";
+import { validateV1Action } from "../../src/worker/v1-action-observation";
+import { readV1Snapshot } from "../../src/server/protocol/v1-escrow";
 
-test("owned live-code check-in survives an unknown write; close waits, then receipts conserve the no-show split", async () => {
+test("owned live-code check-in survives an unknown write; close waits, then receipts conserve the no-show split", async (t) => {
   const f = await v1EventFixture();
   try {
     const { pool, config, eventId, sessions, transport, key, gateway } = f;
@@ -63,10 +65,32 @@ test("owned live-code check-in survives an unknown write; close waits, then rece
       transport,
     );
     assert.equal(repeat.actionId, accepted.actionId);
-    await requestV1Close(pool, config, sessions[0], randomUUID(), eventId, "settle", transport);
+    const snapshot = await readV1Snapshot(eventId, transport);
+    const closeImage = {
+      format: "showup.v1.event-action.v1" as const,
+      id: randomUUID(),
+      eventId,
+      accountId: f.accounts[0].id,
+      kind: "settle" as const,
+      target: eventId,
+      attempt: 1,
+      minimumHeight: "100",
+    };
+    snapshot.block.timestampMs = Number(snapshot.event!.end_ms) - 1;
+    await assert.rejects(validateV1Action(closeImage, snapshot, transport), /Wait until/);
+    snapshot.block.timestampMs++;
+    await validateV1Action(closeImage, snapshot, transport);
     await assert.rejects(
-      requestV1CheckIn(pool, config, sessions[2], randomUUID(), eventId, code.code, transport),
-      /closing/,
+      requestV1Close(pool, config, sessions[0], randomUUID(), eventId, "settle", transport),
+      /cannot close/,
+    );
+    assert.equal(
+      (
+        await pool.query("SELECT 1 FROM app_v1_event_actions WHERE event_id=$1 AND kind='settle'", [
+          eventId,
+        ])
+      ).rowCount,
+      0,
     );
     f.loseNextAck();
     await assert.rejects(runV1Action(pool, key, gateway), /Unknown acknowledgement/);
@@ -99,6 +123,8 @@ test("owned live-code check-in survives an unknown write; close waits, then rece
       (await readV1HostState(pool, config, sessions[0], eventId, transport)).roster[0].attended,
       true,
     );
+    t.mock.timers.enable({ apis: ["Date"], now: f.end() });
+    await requestV1Close(pool, config, sessions[0], randomUUID(), eventId, "settle", transport);
     assert.equal((await runV1Action(pool, key, gateway)).state, "verified");
     const receipt = await readV1OwnReceipt(pool, config, sessions[1], eventId, transport);
     assert.equal(receipt!.principal, "1000000");
@@ -172,6 +198,35 @@ test("owned live-code check-in survives an unknown write; close waits, then rece
   }
 });
 
+test("deadline scan reconciles externally settled events and advances to the next expiry", async (t) => {
+  const first = await v1EventFixture();
+  const second = await v1EventFixture();
+  try {
+    first.event().status = "settled";
+    const deadline = Math.max(first.end(), second.end());
+    t.mock.timers.enable({ apis: ["Date"], now: deadline });
+    await enqueueV1Deadline(first.pool, first.key, first.transport);
+    assert.equal(
+      (await first.pool.query("SELECT state FROM app_events WHERE id=$1", [first.eventId])).rows[0]
+        .state,
+      "closed",
+    );
+    await enqueueV1Deadline(second.pool, second.key, second.transport);
+    assert.equal(
+      (
+        await second.pool.query(
+          "SELECT kind FROM app_v1_event_actions WHERE event_id=$1 AND state='requested'",
+          [second.eventId],
+        )
+      ).rows[0].kind,
+      "settle",
+    );
+  } finally {
+    await second.cleanup();
+    await first.cleanup();
+  }
+});
+
 test("deadline closing cancels after a failed accepted check-in; expired codes and brute force are rejected", async (t) => {
   const f = await v1EventFixture();
   try {
@@ -198,7 +253,7 @@ test("deadline closing cancels after a failed accepted check-in; expired codes a
     await pool.query("UPDATE app_v1_event_actions SET state='failed' WHERE event_id=$1", [eventId]);
     await assert.rejects(
       requestV1Close(pool, config, sessions[0], randomUUID(), eventId, "settle", transport),
-      /Cancel/,
+      /cannot close/,
     );
     for (let n = 0; n < 3; n++)
       await assert.rejects(

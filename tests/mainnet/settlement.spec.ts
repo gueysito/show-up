@@ -30,7 +30,7 @@ import { v1DemoAccounts } from "../../scripts/lib/native-engineering-transaction
 import { readV1Snapshot, readV1Record, v1Deployment } from "../../src/server/protocol/v1-escrow";
 
 test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
-test.setTimeout(1_200_000);
+test.setTimeout(3_600_000);
 test("mainnet browser checks in one of two funded attendees, settles the prize and no-show share, then withdraws to the fixed wallet", async ({
   page,
   context,
@@ -206,6 +206,9 @@ test("mainnet browser checks in one of two funded attendees, settles the prize a
     await f.enter(context, 0);
     await page.goto(`${config.origin}/events/${eventId}/manage`);
     await expect(host.getByText(/Attendee .*Checked in/)).toBeVisible();
+    while (Date.now() < start + 30 * 60000 + 5000)
+      await pause(Math.min(10000, start + 30 * 60000 + 5000 - Date.now()));
+    await page.reload();
     await host.getByRole("checkbox").check();
     await host.getByRole("button", { name: "Close and settle event" }).click();
     await expect(host.getByRole("status")).toContainText("Request saved");

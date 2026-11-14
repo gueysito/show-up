@@ -113,6 +113,10 @@ is fully polished if it is blocked on an external step.
 
 ### V1 evidence
 
+| Review correction | State | Verification and next action |
+| --- | --- | --- |
+| PR #2 settlement and recovery | Local checks passed; CI pending | Settlement now requires the published end in contract, API, worker and UI. Early cancellation returns principal. NFT delivery selects the release matching the signed request. Deadline scans reconcile externally closed events. 136 unit, 197 database, 11 V1 contract and three focused browser cases pass, along with format/lint/types, contract Clippy and production build. Mainnet deployment and its required small round trip remain pending; the live deployment hash stays pinned to the existing contract. |
+
 One concise row per package; distinguish local preparation from mainnet completion.
 
 | ID | Date | Evidence |
@@ -328,7 +332,7 @@ the verified source account, reviewed amount, and original payment tracking.
 Open a published event as a summary card with its saved details. Put a prominent
 **Event controls** section directly below the details. Label the link **Event
 page** and show what the host can do there: check attendees, manage check-in and
-results, close and settle early, or cancel and make deposits available for refund.
+results, settle after the scheduled end, or cancel early and make deposits available for refund.
 Give hosts a clear path from **Account** to their published events.
 Improve contrast and plain-language guidance on the closing consent, including
 what happens to check-in and deposits. In the phone walkthrough the locked form,

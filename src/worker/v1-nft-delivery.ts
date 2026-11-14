@@ -2,7 +2,11 @@ import type pg from "pg";
 import { seal, unseal } from "../server/auth/crypto";
 import { canonicalHash, canonicalJson } from "../server/protocol/canonical";
 import { readV1ActionSnapshot, storedV1Action } from "../server/events/v1-actions";
-import { signedV1NftRelease, type V1NftEnvelope } from "../server/protocol/v1-nft";
+import {
+  signedV1NftRelease,
+  v1NftReleaseTransaction,
+  type V1NftEnvelope,
+} from "../server/protocol/v1-nft";
 import { record } from "../server/protocol/quote-signature";
 import { ReadOnlyRpc, unsigned, rpcCandidates } from "../server/protocol/rpc";
 import { compareFinalizedHeads } from "../server/protocol/finalized-heads";
@@ -101,14 +105,30 @@ export function v1NftDeliveryGateway(
       if (!nft || !["settled", "cancelled"].includes(String(snapshot.event!.status)))
         throw new Error("NFT release event changed");
       if (!live.request || record(live.request).state !== "signed") return null;
-      const row = (
-          await pool.query(
-            "SELECT * FROM app_v1_event_actions WHERE event_id=$1 AND kind='nft_release' ORDER BY attempt LIMIT 1",
-            [eventId],
-          )
-        ).rows[0],
-        action = storedV1Action(key, row);
-      if (!action.nft) throw new Error("Original NFT release parameters missing");
+      const rows = (
+        await pool.query(
+          "SELECT * FROM app_v1_event_actions WHERE event_id=$1 AND kind='nft_release' ORDER BY attempt",
+          [eventId],
+        )
+      ).rows;
+      const request = record(live.request);
+      const action = rows
+        .map((row) => storedV1Action(key, row))
+        .find((candidate) => {
+          if (!candidate.nft || candidate.nft.recipient !== request.recipient) return false;
+          const tx = v1NftReleaseTransaction(
+            nft,
+            String(live.custody),
+            candidate.nft.recipient,
+            candidate.nft.envelope,
+          );
+          return (
+            request.payload === tx.unsignedHash.slice(2) &&
+            request.unsigned_transaction ===
+              Buffer.from(tx.unsignedSerialized.slice(2), "hex").toString("base64")
+          );
+        });
+      if (!action?.nft) throw new Error("Matching NFT release parameters missing");
       const { recipient, envelope } = action.nft,
         signed = signedV1NftRelease(nft, live, recipient, envelope);
       return { ...signed, nft, custody: String(live.custody), recipient, envelope };
