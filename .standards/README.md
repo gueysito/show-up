@@ -17,13 +17,19 @@ in that inventory; it supplies narrowly scoped commit-message exception evidence
 - `../.githooks/`: generated, tracked Git entrypoints.
 
 Run setup on every clone; Git does not activate these hooks merely by cloning.
-Git and Python 3 are prerequisites. No package install is required at this stage.
+Git, Python 3 and the pinned project Node tooling are prerequisites for code checks.
+Use the locked installation in setup; hooks never install tools themselves.
 
 ## Current scope and cost
 
-Documentation-only baseline: no application formatter or linter is needed yet.
-First-party code requires the appropriate enforced tools before adoption can
-remain passing. Checks never install dependencies or rewrite the index.
+The November 2 foundation adds pinned Prettier, ESLint, TypeScript and browser/
+database checks; see [setup](../docs/setup.md). The imported helper and hooks are
+unchanged. First-party JS/TS checks enforce the adopted readability rules.
+Checks never install dependencies or rewrite the index.
+
+Contract Rust uses pinned `cargo fmt` and Clippy with warnings denied through
+`npm run contracts:check` and a separate CI job. The imported kit remains unchanged.
+Downloaded Rust sources and generated caches are excluded from first-party checks.
 
 - `pre-commit`: expected 0.5–3 seconds with code tooling; only local Python and Git
   startup plus staged-document inspection in the current repository.

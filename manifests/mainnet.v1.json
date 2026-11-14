@@ -1,0 +1,112 @@
+{
+  "revision": "showup-mainnet-2026-11-02-v1",
+  "environment": "mainnet",
+  "reviewedAt": "2026-11-02",
+  "signingDomain": "showup.authorization.v1",
+  "settlement": {
+    "network": "near",
+    "contract": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+    "decimals": 6
+  },
+  "providers": {
+    "oneClick": {
+      "origin": "https://1click.chaindefuser.com",
+      "apiVersion": "v0",
+      "hasTestnet": false
+    },
+    "chainSignatures": { "contract": "v1.signer", "codeHash": null },
+    "randomness": { "provider": "outlayer", "project": null, "publicKey": null },
+    "observer": { "publicKey": null, "independentRpcPairs": null }
+  },
+  "networks": [
+    {
+      "id": "near",
+      "family": "near",
+      "chainId": "mainnet",
+      "required": true,
+      "explorer": "https://nearblocks.io",
+      "finality": "final",
+      "assets": [
+        {
+          "id": "usdc",
+          "contract": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "decimals": 6,
+          "routeAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
+        },
+        { "id": "near", "contract": "wrap.near", "decimals": 24, "routeAsset": "nep141:wrap.near" }
+      ],
+      "nftStandard": "NEP-171",
+      "nftCollections": [],
+      "routeState": "disabled"
+    },
+    {
+      "id": "base",
+      "family": "evm",
+      "chainId": "8453",
+      "required": true,
+      "explorer": "https://basescan.org",
+      "finality": "finalized",
+      "assets": [
+        {
+          "id": "usdc",
+          "contract": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "decimals": 6,
+          "routeAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near"
+        },
+        { "id": "eth", "contract": "native", "decimals": 18, "routeAsset": "nep141:base.omft.near" }
+      ],
+      "nftStandard": "ERC-721",
+      "nftCollections": [],
+      "routeState": "disabled"
+    },
+    {
+      "id": "ethereum",
+      "family": "evm",
+      "chainId": "1",
+      "required": true,
+      "explorer": "https://etherscan.io",
+      "finality": "finalized",
+      "assets": [
+        {
+          "id": "usdc",
+          "contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "decimals": 6,
+          "routeAsset": "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near"
+        },
+        { "id": "eth", "contract": "native", "decimals": 18, "routeAsset": "nep141:eth.omft.near" }
+      ],
+      "nftStandard": "ERC-721",
+      "nftCollections": [],
+      "routeState": "disabled"
+    },
+    {
+      "id": "solana",
+      "family": "solana",
+      "chainId": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d",
+      "required": true,
+      "explorer": "https://solscan.io",
+      "finality": "finalized",
+      "assets": [
+        {
+          "id": "usdc",
+          "contract": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          "decimals": 6,
+          "routeAsset": "nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near"
+        },
+        { "id": "sol", "contract": "native", "decimals": 9, "routeAsset": "nep141:sol.omft.near" }
+      ],
+      "nftStandard": "Metaplex Core",
+      "nftCollections": [],
+      "routeState": "disabled"
+    }
+  ],
+  "sources": {
+    "tokens": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+    "routeList": "https://1click.chaindefuser.com/v0/tokens",
+    "routeListObservedAt": "2026-11-02T17:42:03.193Z",
+    "routeListSha256": "c889b7a65d82cc5a735a37a7e3db47020776ddd198cbffd4b964b7d209c6b90e",
+    "base": "https://docs.base.org/base-chain/api-reference/ethereum-json-rpc-api/eth_chainId",
+    "signing": "https://docs.near.org/chain-abstraction/chain-signatures/implementation",
+    "identityReads": "Read-only eth_chainId/getGenesisHash/status at public RPCs, 2026-11-02T18:32:02Z–18:32:06Z"
+  }
+}

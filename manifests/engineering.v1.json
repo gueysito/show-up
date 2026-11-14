@@ -1,0 +1,69 @@
+{
+  "revision": "showup-engineering-2026-11-02-v1",
+  "environment": "engineering",
+  "signingDomain": "showup.engineering.authorization.v1",
+  "networks": [
+    {
+      "id": "near",
+      "chainId": "testnet",
+      "usdc": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+      "decimals": 6,
+      "explorer": "https://testnet.nearblocks.io",
+      "routeState": "disabled"
+    },
+    {
+      "id": "base",
+      "chainId": "84532",
+      "usdc": "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+      "decimals": 6,
+      "explorer": "https://sepolia.basescan.org",
+      "routeState": "disabled"
+    },
+    {
+      "id": "ethereum",
+      "chainId": "11155111",
+      "usdc": "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238",
+      "decimals": 6,
+      "explorer": "https://sepolia.etherscan.io",
+      "routeState": "disabled"
+    },
+    {
+      "id": "solana",
+      "chainId": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+      "usdc": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      "decimals": 6,
+      "explorer": "https://solscan.io/?cluster=devnet",
+      "routeState": "disabled"
+    }
+  ],
+  "chainSignatures": { "contract": "v1.signer-prod.testnet", "codeHash": null },
+  "toolchain": {
+    "nearSdk": "5.29.1",
+    "rust": "1.93.0",
+    "linuxAmd64Image": "rust:1.93.0-trixie@sha256:9707deb7307068a13b22023fc0e8a3804717781641cc7ad823e649415a6af4c8",
+    "linuxArm64Image": "rust:1.93.0-trixie@sha256:dd0174522c412ad5be5f2472ac3ea2ebb686768cbfd7c16884fc5200efdf1857",
+    "sandbox": {
+      "version": "2.13.4",
+      "release": "https://github.com/near/nearcore/releases/tag/2.13.4",
+      "archives": {
+        "arm64": {
+          "platform": "Linux-aarch64",
+          "sha256": "edd77d6d28b960852243fc6f45656c97a7976fc2b3cfe53cda89324a6804bd30",
+          "binarySha256": "90082ad0e5f487081d5a844f570cb8e4deb76a032b32696098b333a8d50ae8ed"
+        },
+        "amd64": {
+          "platform": "Linux-x86_64",
+          "sha256": "5690a4635172263cf026683f75965cac09dd916912584f12709974fed620163f",
+          "binarySha256": "4e89fbc0f2958634e84af44634f90e87c246288fa11b067d2121ce1394cba2c2"
+        }
+      }
+    }
+  },
+  "sources": {
+    "tokens": "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+    "sdk": "https://github.com/near/near-sdk-rs/releases/tag/near-sdk-v5.29.1",
+    "msrv": "https://github.com/near/near-sdk-rs/blob/near-sdk-v5.29.1/README.md",
+    "reviewedAt": "2026-11-02"
+  },
+  "limits": "No public-network signing/deployment is authorized. These are engineering identifiers, not a testnet Intents service or qualified funding routes."
+}

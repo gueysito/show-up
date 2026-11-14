@@ -1,0 +1,254 @@
+import { expect, test } from "@playwright/test";
+import { randomBytes, randomUUID } from "node:crypto";
+import { accountFixtures } from "../fixtures/accounts";
+import { verifyNearWallet } from "../fixtures/near-wallet";
+import { validDraft } from "../fixtures/draft";
+import { nativeKey } from "../../scripts/lib/native-engineering-transaction";
+import { authConfig } from "../../src/server/auth/config";
+import { hash } from "../../src/server/auth/crypto";
+import { saveAccountDraft } from "../../src/server/events/accounts";
+import { prepareV1Publication } from "../../src/server/events/v1-publication";
+import { runV1Publication, type V1PublicationGateway } from "../../src/worker/v1-publication";
+import { canonicalHash } from "../../src/server/protocol/canonical";
+import { encodeBase58 } from "../../src/server/protocol/encoding";
+import { v1Deployment, type V1Snapshot } from "../../src/server/protocol/v1-escrow";
+
+test.use({ baseURL: "https://localhost:3444", ignoreHTTPSErrors: true });
+test("local prize UI returns to its owned frozen event, ignores callback hashes and scopes confirmation status", async ({
+  page,
+  context,
+}) => {
+  const f = await accountFixtures([["host"]]);
+  const key = process.env.SHOWUP_E2E_ENCRYPTION_KEY!,
+    session = hash(f.accounts[0].value),
+    id = randomUUID();
+  const config = authConfig({
+    SHOWUP_AUTH: "1",
+    SHOWUP_AUTH_ORIGIN: "https://localhost:3444",
+    SHOWUP_IDENTITY_KEY: key,
+    SHOWUP_IDENTITY_INDEX_KEY: process.env.SHOWUP_E2E_INDEX_KEY,
+  })!;
+  const signer = nativeKey(randomBytes(32)),
+    block = encodeBase58(Buffer.alloc(32, 7));
+  const blockTime = Date.now() - 1000;
+  const transport: typeof fetch = async (_url, options) => {
+    const input = JSON.parse(String(options?.body));
+    const result =
+      input.method === "status"
+        ? { chain_id: "mainnet" }
+        : input.method === "block"
+          ? {
+              header: {
+                height: 100,
+                hash: block,
+                timestamp_nanosec: (BigInt(blockTime) * 1000000n).toString(),
+              },
+            }
+          : {
+              block_hash: block,
+              block_height: 100,
+              keys: [{ public_key: signer.publicKey, access_key: { permission: "FullAccess" } }],
+            };
+    return Response.json({ jsonrpc: "2.0", id: input.id, result });
+  };
+  try {
+    const wallet = await verifyNearWallet(
+      f.pool,
+      config,
+      session,
+      { address: "fictional-host.near", ...signer },
+      transport,
+    );
+    const data = {
+      ...validDraft(),
+      title: "Local prize UI",
+      capacity: 2,
+      commitment: "1",
+      sponsorBudget: "1",
+    };
+    await saveAccountDraft(
+      f.pool,
+      key,
+      session,
+      { id, revision: 0, operationId: randomUUID(), data },
+      "v1",
+    );
+    await prepareV1Publication(f.pool, key, session, randomUUID(), id, 1, wallet.id);
+    let snapshot!: V1Snapshot;
+    const gateway: V1PublicationGateway = {
+      async prepare(image, phase) {
+        snapshot = {
+          block: { height: "100", hash: block, timestampMs: Date.now() },
+          event: { ...image.terms, status: "draft", prize_received: false },
+        };
+        return {
+          hash: block,
+          signedBase64: "local-only-never-broadcast",
+          semantic: canonicalHash(image.terms),
+          validUntilMs: Date.now() + 120000,
+          phase,
+        };
+      },
+      async submit() {},
+      async final() {
+        return { success: true, minimumHeight: "100", gasYoctoNear: "0" };
+      },
+      async snapshot() {
+        return snapshot;
+      },
+    };
+    expect((await runV1Publication(f.pool, key, gateway)).state).toBe("awaiting_prize");
+    await f.enter(context, 0);
+    await page.goto(`/host?event=${id}&transactionHashes=forged`);
+    await expect(page.getByLabel("Event name", { exact: true })).toHaveValue(data.title);
+    await expect(page).toHaveURL("https://localhost:3444/host");
+    await page.getByRole("button", { name: "Check publication status" }).click();
+    const actions = page.getByRole("region", { name: "Event publication and access" });
+    await expect(actions.getByText(/Funding wallet: fictional-host.near/)).toBeVisible();
+    expect(
+      (
+        await f.pool.query(
+          "SELECT transaction_state FROM app_publication_images WHERE event_id=$1",
+          [id],
+        )
+      ).rows[0].transaction_state,
+    ).toBe("awaiting_prize");
+    let confirmed = false;
+    let prepared = 0;
+    let relayCreates = 0;
+    let shortage: "usdc" | "near" | null = "usdc";
+    let relayStatus = "pending";
+    const relay = "https://near-mobile-production.aws.peersyst.tech/connector/request";
+    const relayId = randomUUID();
+    const walletTransaction = {
+      signerId: "fictional-host.near",
+      receiverId: v1Deployment.token,
+      actions: [
+        {
+          type: "FunctionCall",
+          params: {
+            methodName: "ft_transfer_call",
+            gas: "100000000000000",
+            deposit: "1",
+            args: { receiver_id: v1Deployment.account, amount: "1000000", msg: `prize:${id}` },
+          },
+        },
+      ],
+    };
+    const relayRequest = {
+      id: relayId,
+      network: "mainnet",
+      method: "signAndSendTransaction",
+      origin: config.origin,
+      payload: walletTransaction,
+      expiresAt: new Date(Date.now() + 180_000).toISOString(),
+    };
+    await page.route(relay, async (route) => {
+      relayCreates++;
+      expect(route.request().postDataJSON()).toEqual({
+        method: "signAndSendTransaction",
+        network: "mainnet",
+        origin: config.origin,
+        payload: walletTransaction,
+      });
+      await route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: { ...relayRequest, status: relayStatus },
+      });
+    });
+    await page.route(`${relay}/${relayId}`, (route) =>
+      route.fulfill({
+        headers: { "access-control-allow-origin": "*" },
+        json: { ...relayRequest, status: relayStatus },
+      }),
+    );
+    await page.route("**/api/events", async (route) => {
+      if (
+        route.request().method() === "POST" &&
+        route.request().postDataJSON().operation === "fund-prize"
+      ) {
+        prepared++;
+        if (shortage)
+          return route.fulfill({
+            status: 422,
+            json: {
+              error:
+                shortage === "usdc"
+                  ? "This wallet has 0.00 native USDC on NEAR. It needs 1.00 USDC before approval. This account has 5.00 USDC in NEAR Intents. Withdraw it to this wallet on NEAR, then retry."
+                  : "This wallet needs a 0.16 NEAR gas reserve available before approval. Add NEAR to this wallet and try again.",
+            },
+          });
+        return route.fulfill({
+          json: {
+            origin: config.origin,
+            signer: walletTransaction.signerId,
+            token: walletTransaction.receiverId,
+            walletTransaction,
+          },
+        });
+      }
+      if (
+        route.request().method() !== "POST" ||
+        route.request().postDataJSON().operation !== "confirm-prize"
+      )
+        return route.fallback();
+      confirmed = true;
+      expect(route.request().postDataJSON()).toMatchObject({ id, revision: 1 });
+      // UI contract only. Real funding authorization and RPC disagreement are
+      // exercised separately through the actual service/database tests.
+      await route.fulfill({ json: { eventId: id, state: "requested" } });
+    });
+    const choices = actions.getByRole("group", { name: "NEAR wallet app" });
+    const pay = choices.getByRole("button", { name: "NEAR Mobile", exact: true });
+    await expect(choices.getByRole("button", { name: "Meteor Wallet" })).toBeVisible();
+    await pay.click();
+    await expect(actions.getByRole("alert")).toContainText(
+      "This account has 5.00 USDC in NEAR Intents. Withdraw it to this wallet on NEAR",
+    );
+    expect(relayCreates).toBe(0);
+    shortage = "near";
+    await pay.click();
+    await expect(actions.getByRole("alert")).toContainText(
+      "Add NEAR to this wallet and try again.",
+    );
+    await expect(actions.getByRole("alert").locator("..")).toHaveClass(/journey-status--blocked/);
+    expect(relayCreates).toBe(0);
+    shortage = null;
+    await pay.click();
+    const launch = actions.getByRole("link", { name: "Open NEAR Mobile" });
+    await expect(launch.locator("xpath=../..")).toHaveClass(/journey-status--action/);
+    const appLink = `near-mobile-wallet://connector-request?id=${relayId}`;
+    await expect(launch).toHaveAttribute("href", appLink);
+    expect(await launch.getAttribute("target")).toBeNull();
+    expect(context.pages()).toHaveLength(1);
+    expect(confirmed).toBe(false);
+    await page.goto(`/host?event=${id}`);
+    await page.getByRole("button", { name: "Check publication status" }).click();
+    await expect(launch).toHaveAttribute("href", appLink);
+    await expect(
+      actions.getByText("Waiting for approval in NEAR Mobile. Return to this tab after approving."),
+    ).toBeVisible();
+    expect([prepared, relayCreates]).toEqual([3, 1]);
+    expect(confirmed).toBe(false);
+    relayStatus = "approved";
+    await actions.getByRole("button", { name: "Check original wallet approval" }).click();
+    await expect(
+      actions.getByRole("status").filter({ hasText: "Prize receipt confirmed" }),
+    ).toBeVisible();
+    const queued = actions.getByText("Publishing on NEAR", { exact: true });
+    const pendingMotion = () =>
+      queued.evaluate((title) => getComputedStyle(title, "::before").animationName);
+    await expect.poll(pendingMotion).toBe("journey-pulse");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect.poll(pendingMotion).toBe("none");
+    await expect(queued).toBeVisible();
+    expect(confirmed).toBe(true);
+    await expect(choices).toHaveCount(0);
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  } finally {
+    await f.cleanup();
+  }
+});

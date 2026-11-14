@@ -1,0 +1,162 @@
+import { V1ReadOnlyRpc } from "./v1-rpc";
+import type { AuthConfig } from "../auth/config";
+import { canonicalJson } from "./canonical";
+import { record } from "./quote-signature";
+import { unsigned } from "./rpc";
+import { v1Deployment, type V1Snapshot } from "./v1-escrow";
+import { readV1IntentsUsdcBalance } from "./v1-intents";
+import { AppFailure } from "../http/security";
+import { formatUsdc } from "../../domain/event-draft";
+import {
+  v1PrizeFundingTransaction,
+  v1DepositFundingTransaction,
+  v1StorageRegistrationTransaction,
+} from "../../../scripts/lib/native-engineering-transaction";
+
+// Fixed native USDC payment. Wallet identity, amount and reference must come from
+// the authenticated, frozen publication/registration record, never request fields.
+export async function prepareV1WalletPayment(
+  config: Pick<AuthConfig, "origin">,
+  snapshot: V1Snapshot,
+  wallet: { address: string; publicKey: string },
+  eventId: string,
+  reference: string,
+  amount: string,
+  purpose: "prize" | "deposit" | "storage",
+  transport?: typeof fetch,
+) {
+  function decoded(bytes: unknown): unknown {
+    if (
+      !Array.isArray(bytes) ||
+      bytes.length > 256 ||
+      bytes.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
+    )
+      throw new Error("Payment token view encoding");
+    return JSON.parse(Buffer.from(bytes).toString("utf8"));
+  }
+  const facts = await Promise.all(
+    ["near-fastnear", "near-drpc"].map(async (endpoint) => {
+      const rpc = new V1ReadOnlyRpc(endpoint, transport),
+        signal = AbortSignal.timeout(20000);
+      async function query(account_id: string, request_type: string, extra: object = {}) {
+        const result = record(
+          await rpc.read(
+            "query",
+            { account_id, request_type, block_id: snapshot.block.hash, ...extra },
+            signal,
+          ),
+        );
+        if (
+          result.block_hash !== snapshot.block.hash ||
+          String(result.block_height) !== snapshot.block.height
+        )
+          throw new Error("Payment wallet query block mismatch");
+        return result;
+      }
+      const [account, access, balance, protocol] = await Promise.all([
+        query(wallet.address, "view_account"),
+        query(wallet.address, "view_access_key", { public_key: wallet.publicKey }),
+        query(v1Deployment.token, "call_function", {
+          method_name: "ft_balance_of",
+          args_base64: Buffer.from(canonicalJson({ account_id: wallet.address })).toString(
+            "base64",
+          ),
+        }),
+        rpc.read("EXPERIMENTAL_protocol_config", { block_id: snapshot.block.hash }, signal),
+      ]);
+      const usdc = unsigned(decoded(balance.result), 128),
+        storagePrice = unsigned(
+          record(record(protocol).runtime_config).storage_amount_per_byte,
+          128,
+        );
+      if (storagePrice !== 10000000000000000000n) throw new Error("Payment storage price changed");
+      if (access.permission !== "FullAccess")
+        throw new AppFailure(403, "Reverify a current full-access key for your funding wallet.");
+      const spendable =
+        unsigned(account.amount, 128) - unsigned(account.storage_usage, 64) * storagePrice;
+      if (
+        record(protocol).chain_id !== "mainnet" ||
+        record(protocol).protocol_version !== v1Deployment.protocolVersion ||
+        unsigned(record(record(protocol).runtime_config).min_gas_purchase_price) > 1000000000n
+      )
+        throw new Error("Payment gas purchase policy changed");
+      if (purpose === "storage") {
+        const bounds = record(
+          decoded(
+            (
+              await query(v1Deployment.token, "call_function", {
+                method_name: "storage_balance_bounds",
+                args_base64: Buffer.from("{}").toString("base64"),
+              })
+            ).result,
+          ),
+        );
+        if (unsigned(bounds.min, 128) > 1250000000000000000000n)
+          throw new AppFailure(
+            422,
+            "USDC receiving registration costs changed. Do not approve an outdated amount.",
+          );
+      }
+      return { nonce: unsigned(access.nonce, 64), usdc, spendable };
+    }),
+  );
+  const [walletFacts, crossCheck] = facts;
+  if (
+    walletFacts.nonce !== crossCheck.nonce ||
+    walletFacts.usdc !== crossCheck.usdc ||
+    walletFacts.spendable !== crossCheck.spendable
+  )
+    throw new Error("Payment wallet sources disagree");
+  if (walletFacts.usdc < BigInt(amount)) {
+    const intentsBalance = await readV1IntentsUsdcBalance(
+      wallet.address,
+      snapshot,
+      transport,
+      AbortSignal.timeout(5000),
+    ).catch(() => null);
+    const guidance =
+      intentsBalance && BigInt(intentsBalance) > 0n
+        ? `This account has ${formatUsdc(BigInt(intentsBalance))} USDC in NEAR Intents. Withdraw it to this wallet on NEAR, then retry.`
+        : "If your USDC is in NEAR Intents, withdraw it to this wallet on NEAR, then retry.";
+    throw new AppFailure(
+      422,
+      `This wallet has ${formatUsdc(walletFacts.usdc)} native USDC on NEAR. It needs ${formatUsdc(BigInt(amount))} USDC before approval. ${guidance}`,
+    );
+  }
+  if (
+    walletFacts.spendable <
+    (purpose === "storage" ? 161250000000000000000000n : 160000000000000000000000n)
+  )
+    throw new AppFailure(
+      422,
+      purpose === "storage"
+        ? "This wallet needs 0.16125 NEAR available for USDC registration and gas. Add NEAR to this wallet and try again."
+        : "This wallet needs a 0.16 NEAR gas reserve available before approval. Add NEAR to this wallet and try again.",
+    );
+  const build =
+    purpose === "storage"
+      ? v1StorageRegistrationTransaction
+      : purpose === "prize"
+        ? v1PrizeFundingTransaction
+        : v1DepositFundingTransaction;
+  const tx = build({
+    signer: wallet.address,
+    publicKey: wallet.publicKey,
+    nonce: (walletFacts.nonce + 1n).toString(),
+    blockHash: snapshot.block.hash,
+    eventId: reference,
+    amount,
+  });
+  return {
+    eventId,
+    origin: config.origin,
+    signer: wallet.address,
+    amountAtomic: amount,
+    token: v1Deployment.token,
+    unsignedBase64: tx.bytes.toString("base64"),
+    hash: tx.hash,
+    walletTransaction: tx.walletTransaction,
+    maximumGasYoctoNear: "160000000000000000000000",
+    attachedYoctoNear: purpose === "storage" ? "1250000000000000000000" : "1",
+  };
+}

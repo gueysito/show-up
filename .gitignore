@@ -9,4 +9,19 @@ __pycache__/
 *.pyc
 dist/
 target/
+contracts/.cache/
 *.log
+.next/
+.next-dev/
+next-env.d.ts
+*.tsbuildinfo
+playwright-report/
+test-results/
+.playwright-mcp/
+
+# Wallet credentials must stay outside the repository.
+.showup-test-wallets/
+**/near-testnet.json
+**/evm-testnet.json
+**/solana-devnet.json
+**/solana-import.json

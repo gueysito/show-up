@@ -1,0 +1,63 @@
+{
+  "revision": "showup-rpc-candidates-2026-11-02-v1",
+  "status": "unqualified",
+  "limits": "Public read-only candidates. Matching metadata is not operator-independence, asset, deployment or route qualification.",
+  "endpoints": [
+    {
+      "id": "near-public",
+      "network": "near",
+      "operator": "near-public",
+      "origin": "https://rpc.mainnet.near.org",
+      "source": "https://docs.near.org/api/rpc/providers"
+    },
+    {
+      "id": "near-fastnear",
+      "network": "near",
+      "operator": "fastnear",
+      "origin": "https://rpc.mainnet.fastnear.com",
+      "source": "https://docs.near.org/api/rpc/providers"
+    },
+    {
+      "id": "base-public",
+      "network": "base",
+      "operator": "base-public",
+      "origin": "https://mainnet.base.org",
+      "source": "https://docs.base.org/get-started/connect-to-base"
+    },
+    {
+      "id": "base-publicnode",
+      "network": "base",
+      "operator": "allnodes-publicnode",
+      "origin": "https://base-rpc.publicnode.com",
+      "source": "https://www.publicnode.com/"
+    },
+    {
+      "id": "ethereum-publicnode",
+      "network": "ethereum",
+      "operator": "allnodes-publicnode",
+      "origin": "https://ethereum-rpc.publicnode.com",
+      "source": "https://www.publicnode.com/"
+    },
+    {
+      "id": "ethereum-drpc",
+      "network": "ethereum",
+      "operator": "drpc-candidate",
+      "origin": "https://eth.drpc.org",
+      "source": "https://drpc.org/docs/ethereum-api"
+    },
+    {
+      "id": "solana-public",
+      "network": "solana",
+      "operator": "solana-public",
+      "origin": "https://api.mainnet-beta.solana.com",
+      "source": "https://solana.com/docs/references/clusters"
+    },
+    {
+      "id": "solana-publicnode",
+      "network": "solana",
+      "operator": "allnodes-publicnode",
+      "origin": "https://solana-rpc.publicnode.com",
+      "source": "https://www.publicnode.com/"
+    }
+  ]
+}

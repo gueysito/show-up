@@ -1,0 +1,46 @@
+{
+  "revision": "showup-mpc-interface-2026-11-02-v1",
+  "source": {
+    "repository": "https://github.com/near/mpc",
+    "commit": "0b098d0e9951f658c3c9402480d23c09ca31620e",
+    "files": [
+      {
+        "path": "crates/contract/src/api/keys.rs",
+        "sha256": "43d4f2866ea68c1148a02446954a02f80053b8061619f112bf980e89900a7f8d"
+      },
+      {
+        "path": "crates/contract/src/api/sign.rs",
+        "sha256": "a477e3afb76f33154c191e1f6c2f2dcd9c7e7e6efbde414860c9d55194170ae3"
+      },
+      {
+        "path": "crates/near-mpc-crypto-types/src/sign.rs",
+        "sha256": "61cf897f6e7130c088730e19e974fde5a8ccbd483cd48746bb011152e11c7d50"
+      },
+      {
+        "path": "crates/near-mpc-crypto-types/src/primitives.rs",
+        "sha256": "8cb0f75d1d058aa2e8cb43fea15fc7f3b484592ad6ba1b8b0cf2f4303218fb30"
+      },
+      {
+        "path": "crates/near-mpc-crypto-types/src/crypto.rs",
+        "sha256": "1298efdd5fc12090800720abf0f606671de9b183f7bda4d0850df4132b30cd04"
+      }
+    ]
+  },
+  "documentedContracts": {
+    "mainnet": "v1.signer",
+    "testnet": "v1.signer-prod.testnet"
+  },
+  "signMethod": "sign",
+  "derivedKeyMethod": "derived_public_key",
+  "requestPayloadField": "payload_v2",
+  "ecdsaDomain": 0,
+  "eddsaDomain": 1,
+  "signDepositYoctoNear": "1",
+  "requestGasTgas": 60,
+  "callbackGasTgas": 30,
+  "providerCallsPerImage": 1,
+  "retainedImagesPerIntent": 3,
+  "deployedCodeVerified": false,
+  "liveProviderVerified": false,
+  "fundingAllowed": false
+}

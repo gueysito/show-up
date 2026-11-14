@@ -1,0 +1,27 @@
+[package]
+name = "showup-sandbox-tests"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+near-workspaces = { version = "=0.23.0", default-features = false, features = ["native-tls"] }
+near-sandbox = { version = "=0.3.16", features = ["generate"] }
+serde_json.workspace = true
+tokio = { version = "=1.54.1", features = ["macros", "rt-multi-thread"] }
+ed25519-dalek = "=2.2.0"
+base64 = "=0.22.1"
+sha2 = "=0.10.9"
+bs58 = "=0.5.1"
+near-crypto = "=0.37.4"
+near-primitives = "=0.37.4"
+borsh = "=1.8.1"
+sha3 = "=0.10.9"
+chrono = { version = "=0.4.45", default-features = false, features = ["alloc"] }
+
+# Keep reqwest's matching browser-only packages behind the seven-day release gate.
+# They are resolved in Cargo.lock but are not compiled into the Linux test runner.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = "=0.3.106"
+wasm-bindgen-futures = "=0.4.79"

@@ -1,21 +1,47 @@
 # Current state
 
-Users cannot yet create events, commit funds, or check in; Showup is in product scoping.
+Showup V1 publishes mainnet events, accepts deposits from NEAR, Base, Solana and Ethereum, checks attendees in with a host live code, and pays refunds, no-show shares, USDC prizes and Ethereum NFTs. The [plan](docs/plan.md) tracks scope, receipts and next steps. [AGENTS.md](AGENTS.md) has working rules.
 
-## Available
+## Working on mainnet
 
-- Product requirements with journeys, accounting rules, technical gates, and acceptance criteria.
-- A human and agent front door, one task tracker, and repository commit checks.
+- V1-1: the existing escrow account [upgraded](https://nearblocks.io/txns/3YFQdrpz9f5yr89Fq4yhHEVpmwYZoiegSWwZ4astjFt8) without changing NFT state or accounting. Its next [1-USDC deposit](https://nearblocks.io/txns/61G14BvWNdgLoM9sCRamSQgcHWYiZYJX2X7ukFkX3dSK) and [refund](https://nearblocks.io/txns/DWbiuuU8p5FCHkDPc1BcXTYk6qmJqLDCJHbkPJfGX9Ax) succeeded.
+- V1-2/3: zero-prize and funded-prize publication, native USDC deposits and full cancellation refunds through the browser.
+- V1-4: Base, Solana and Ethereum each routed 1 USDC through Intents to escrow, showed a funded receipt and received a full NEAR cancellation refund. [Transactions](docs/plan.md#v1-evidence)
+- V1-5: host live code and confirmed attendee roster. [Check-in](https://nearblocks.io/txns/HJcPUxbvvigcCnQpNWtZ7X3SdApbVaDTEJvuFhYtm1wM)
+- V1-6: two 1-USDC deposits and a 0.25-USDC prize settled into a [2.25-USDC payout](https://nearblocks.io/txns/3DnWt7mZ31a3j2Q3RdVZ9JmZzADSsBLLUFGMiUmAY2pY).
+- V1-7: BasedHeads #2829 reached the locked winner's wallet. In a separate hosted cancellation, its [return to the contributor](https://etherscan.io/tx/0x8f19763e82b2f540c062c409b9039caa4ff655267aa7f8288ebd6fd266022e58) finalized on Ethereum.
+- After the engineering runs, both NEAR RPCs showed zero USDC in escrow, cumulative receipts and payouts of 14.25 USDC each, and 1.404853 USDC across the controller and its Intents balance. Allocation remains below $50.
 
-## Not implemented or validated
+## Phone pilot
 
-- Application, contracts, authentication, payments, Telegram bot, and host reports.
-- Cross-chain funding and payout authorization, randomness proof, phone behavior,
-  identity isolation, and deployment networks.
-- Pilot outcomes, attendance lift, repeat use, and willingness to pay.
+The owner-local app runs at `https://localhost:3443`. The existing [development pilot](https://liable-pleat-maritime.ngrok-free.dev/account) serves the updated wallet build and requires the development computer and tunnel to stay running. Health, wallets and the test commitment page return HTTP 200. Anonymous and foreign-origin commitment requests return 401 and 403 respectively. The pilot database was backed up and migrated through 040.
 
-## Next action
+Owner phone checks passed for Google and Telegram sign-in, Android Phantom verification, and NEAR Mobile and Meteor message approval. The branded wallet picker and automatic save recovery pass isolated checks, including a lost response after a successful save.
 
-Discuss the proposed product scope and defaults with the owner before planning
-implementation. [SCOPE-01](docs/plan.md) owns this discussion; the PRD is the
-proposed product baseline, not a completed technical design.
+The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0f655d-eb25-483c-aca2-49b02a8d85b5/commit) verified a real [1-USDC deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) from Android Chrome and NEAR Mobile and a [full refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz) after cancellation. The phone showed both receipts. The pilot explains the Intents distinction when native USDC is short.
+
+## Remaining
+
+- V1-9: Rabby verification saved Base and Ethereum on Android Chrome and iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing on Base.
+- [Railway web](https://web-production-f1245d.up.railway.app) runs `ad6f41a` with
+  private Postgres. Home, health and account return HTTP 200. Both sign-in
+  redirects use the hosted callbacks, and the owner completed Google and
+  Telegram sign-in. The private worker is online and passed its signer and
+  database checks. Hosted NEAR Mobile wallet verification persisted after refresh.
+  The initial administrator grant succeeded and one-time setup closed.
+  The owner redeemed a host invitation, and the protocol 88 worker processed the
+  original [test publication](https://nearblocks.io/txns/2zExqmp6NJ92161dXLPsLzqhcrZhktDzPY3nt5ysFks1).
+  The hosted [1-USDC deposit](https://nearblocks.io/txns/DcjkKiJdEuVazzZuHzXj9Yudr1AEZZoJFdTFown9ee1R)
+  and [full refund](https://nearblocks.io/txns/HPiwMYCzMNqxTkqquZ3oTGfhkjyoRdWYyoAV6LcuxLLC)
+  finalized on NEAR. V1-8 remains stretch.
+- The owner confirmed the live paid refund receipt and wallet removal. The
+  hosted Rabby phone check funded [1 USDC from Base](https://nearblocks.io/txns/9LdDsnWsQeJzjiYyyHDTBq9t7eZCa9E1eWjzzeANYbNu).
+  Its [full refund](https://nearblocks.io/txns/6USn7CJ2Czx2owgort7QdNCwKDRzF1mkfkygmJkQKToj)
+  finalized on NEAR. The hosted navigation, Rabby-only payment and receipt changes
+  passed smoke checks. The reserve and wallet changes are live on web and worker.
+- The earlier mainnet check-in and settlement satisfy V1-5 and V1-6. A repeat
+  funded Railway settlement is optional.
+- Next: finish the visual polish and check the updated host controls
+  and payout receipt in the browser. GitHub Actions billing blocked `verify` and
+  `contracts`. Resolve billing and pass both checks on the release pull request.
+  Merging requires owner approval.

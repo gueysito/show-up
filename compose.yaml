@@ -1,0 +1,114 @@
+name: showup-local
+
+x-app: &app
+  build:
+    context: .
+    target: tools
+  environment: &development
+    SHOWUP_ENV: development
+    DATABASE_URL: postgresql://showup@db:5432/showup_dev
+    NEXT_TELEMETRY_DISABLED: "1"
+  networks: [showup]
+  init: true
+
+services:
+  db:
+    image: postgres:17.11-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5
+    environment:
+      POSTGRES_USER: showup
+      POSTGRES_DB: showup_dev
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["development-data:/var/lib/postgresql/data"]
+    networks: [showup]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U showup -d showup_dev"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    command: ["npm", "run", "db:migrate"]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  web:
+    <<: *app
+    build:
+      context: .
+      target: production
+    environment:
+      <<: *development
+      PORT: "3100"
+      HOSTNAME: 0.0.0.0
+      NODE_ENV: production
+    ports: ["127.0.0.1:3100:3100"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3100/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  worker:
+    <<: *app
+    command: ["npm", "run", "worker"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    stop_grace_period: 30s
+
+  harness:
+    <<: *app
+    profiles: [harness]
+    environment:
+      <<: *development
+      NODE_ENV: development
+      SHOWUP_HARNESS: "1"
+      SHOWUP_ORIGIN: http://127.0.0.1:3101
+    command: ["node_modules/.bin/next", "dev", "--hostname", "0.0.0.0", "--port", "3101"]
+    ports: ["127.0.0.1:3101:3101"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3101/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  test-db:
+    profiles: [checks]
+    image: postgres:17.11-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5
+    environment:
+      POSTGRES_USER: showup
+      POSTGRES_DB: showup_test
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports: ["127.0.0.1:55433:5432"]
+    tmpfs: ["/var/lib/postgresql/data"]
+    networks: [showup]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U showup -d showup_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+networks:
+  showup:
+    driver: bridge
+
+volumes:
+  development-data:

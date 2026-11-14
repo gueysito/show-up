@@ -1,0 +1,797 @@
+{
+  "format": "showup.mainnet-funding-preparation.v1",
+  "revision": "a981339d2321a7d68faccedbe2b67b9f8f8ace9d",
+  "observedAt": "2026-11-04T04:28:31.404Z",
+  "scope": "Public reads and dry pricing only. No signing, deposit address, funded account, qualified route or spending authority.",
+  "addresses": {
+    "near": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+    "evm": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+    "solana": "BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd"
+  },
+  "nearPublicKey": "ed25519:2PQ8rQ56kQV6dFeiMNwEmbbQvxiTXGFPLt2uk4UyU8cB",
+  "reads": [
+    {
+      "endpoint": "https://rpc.mainnet.near.org",
+      "method": "status",
+      "params": [],
+      "result": {
+        "chain_id": "mainnet",
+        "genesis_hash": "EPnLgE7iEq9s7yTkos96M3cWymH5avBAPm3qx3NXqR8H"
+      }
+    },
+    {
+      "endpoint": "https://rpc.mainnet.near.org",
+      "method": "query",
+      "params": {
+        "request_type": "view_account",
+        "account_id": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+        "finality": "final"
+      },
+      "error": {
+        "name": "HANDLER_ERROR",
+        "cause": {
+          "info": {
+            "block_hash": "HUxjTgRC64T6TmCSFMcWjYrdTEdaEGoZGPPR8z7R7dSJ",
+            "block_height": 222970521,
+            "requested_account_id": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc"
+          },
+          "name": "UNKNOWN_ACCOUNT"
+        },
+        "code": -32000,
+        "message": "Server error",
+        "data": "account 14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc does not exist while viewing"
+      }
+    },
+    {
+      "endpoint": "https://rpc.mainnet.near.org",
+      "method": "EXPERIMENTAL_protocol_config",
+      "params": {
+        "finality": "final"
+      },
+      "result": {
+        "chain_id": "mainnet",
+        "protocol_version": 86,
+        "min_gas_price": "1000000000",
+        "storage_amount_per_byte": "10000000000000000000",
+        "account_creation_config": {
+          "min_allowed_top_level_account_length": 65,
+          "registrar_account_id": "registrar"
+        }
+      }
+    },
+    {
+      "endpoint": "https://rpc.mainnet.near.org",
+      "method": "query",
+      "params": {
+        "request_type": "call_function",
+        "account_id": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "method_name": "storage_balance_bounds",
+        "args_base64": "e30=",
+        "finality": "final"
+      },
+      "result": {
+        "block_hash": "DDKUTVjBPWFw9AsEs1GA2uXpswCZdMKmHjsfZpjtMPyY",
+        "block_height": 222970530,
+        "value": {
+          "min": "1250000000000000000000",
+          "max": "1250000000000000000000"
+        }
+      }
+    },
+    {
+      "endpoint": "https://rpc.mainnet.fastnear.com",
+      "method": "status",
+      "params": [],
+      "result": {
+        "chain_id": "mainnet",
+        "genesis_hash": "EPnLgE7iEq9s7yTkos96M3cWymH5avBAPm3qx3NXqR8H"
+      }
+    },
+    {
+      "endpoint": "https://rpc.mainnet.fastnear.com",
+      "method": "query",
+      "params": {
+        "request_type": "view_account",
+        "account_id": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+        "finality": "final"
+      },
+      "error": {
+        "name": "HANDLER_ERROR",
+        "cause": {
+          "info": {
+            "block_hash": "Gb2gCEMYM8YGmHR8xoTuhb2AYVcWB6eDaf1FHkgt3TKe",
+            "block_height": 222970531,
+            "requested_account_id": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc"
+          },
+          "name": "UNKNOWN_ACCOUNT"
+        },
+        "code": -32000,
+        "message": "Server error",
+        "data": "account 14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc does not exist while viewing"
+      }
+    },
+    {
+      "endpoint": "https://rpc.mainnet.fastnear.com",
+      "method": "EXPERIMENTAL_protocol_config",
+      "params": {
+        "finality": "final"
+      },
+      "result": {
+        "chain_id": "mainnet",
+        "protocol_version": 86,
+        "min_gas_price": "1000000000",
+        "storage_amount_per_byte": "10000000000000000000",
+        "account_creation_config": {
+          "min_allowed_top_level_account_length": 65,
+          "registrar_account_id": "registrar"
+        }
+      }
+    },
+    {
+      "endpoint": "https://rpc.mainnet.fastnear.com",
+      "method": "query",
+      "params": {
+        "request_type": "call_function",
+        "account_id": "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "method_name": "storage_balance_bounds",
+        "args_base64": "e30=",
+        "finality": "final"
+      },
+      "result": {
+        "block_hash": "CfHxjvF9mdjRVHwsoc7rxZnCaCiEJezrnGjcZDQFa3Nf",
+        "block_height": 222970532,
+        "value": {
+          "min": "1250000000000000000000",
+          "max": "1250000000000000000000"
+        }
+      }
+    },
+    {
+      "endpoint": "https://mainnet.base.org",
+      "method": "eth_chainId",
+      "params": [],
+      "result": "0x2105"
+    },
+    {
+      "endpoint": "https://mainnet.base.org",
+      "method": "eth_getBalance",
+      "params": ["0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a", "finalized"],
+      "result": "0x0"
+    },
+    {
+      "endpoint": "https://mainnet.base.org",
+      "method": "eth_gasPrice",
+      "params": [],
+      "result": "0x5b8d80"
+    },
+    {
+      "endpoint": "https://mainnet.base.org",
+      "method": "eth_estimateGas",
+      "params": [
+        {
+          "from": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "to": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "value": "0x0"
+        }
+      ],
+      "result": "0x5208"
+    },
+    {
+      "endpoint": "https://mainnet.base.org",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+          "data": "0x70a08231000000000000000000000000ae74d31cb01a0f11cdece5a374ac5539dd20d77a"
+        },
+        "finalized"
+      ],
+      "result": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "endpoint": "https://ethereum-rpc.publicnode.com",
+      "method": "eth_chainId",
+      "params": [],
+      "result": "0x1"
+    },
+    {
+      "endpoint": "https://ethereum-rpc.publicnode.com",
+      "method": "eth_getBalance",
+      "params": ["0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a", "finalized"],
+      "result": "0x0"
+    },
+    {
+      "endpoint": "https://ethereum-rpc.publicnode.com",
+      "method": "eth_gasPrice",
+      "params": [],
+      "result": "0x2e9b018"
+    },
+    {
+      "endpoint": "https://ethereum-rpc.publicnode.com",
+      "method": "eth_estimateGas",
+      "params": [
+        {
+          "from": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "to": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "value": "0x0"
+        }
+      ],
+      "result": "0x5208"
+    },
+    {
+      "endpoint": "https://ethereum-rpc.publicnode.com",
+      "method": "eth_call",
+      "params": [
+        {
+          "to": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+          "data": "0x70a08231000000000000000000000000ae74d31cb01a0f11cdece5a374ac5539dd20d77a"
+        },
+        "finalized"
+      ],
+      "result": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "endpoint": "https://api.mainnet-beta.solana.com",
+      "method": "getGenesisHash",
+      "params": [],
+      "result": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+    },
+    {
+      "endpoint": "https://api.mainnet-beta.solana.com",
+      "method": "getAccountInfo",
+      "params": [
+        "BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd",
+        {
+          "encoding": "base64",
+          "commitment": "finalized"
+        }
+      ],
+      "result": {
+        "context": {
+          "apiVersion": "4.4.0",
+          "slot": 465167658
+        },
+        "value": null
+      }
+    },
+    {
+      "endpoint": "https://api.mainnet-beta.solana.com",
+      "method": "getMinimumBalanceForRentExemption",
+      "params": [
+        165,
+        {
+          "commitment": "finalized"
+        }
+      ],
+      "result": 1488440
+    },
+    {
+      "endpoint": "https://solana-rpc.publicnode.com",
+      "method": "getGenesisHash",
+      "params": [],
+      "result": "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d"
+    },
+    {
+      "endpoint": "https://solana-rpc.publicnode.com",
+      "method": "getAccountInfo",
+      "params": [
+        "BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd",
+        {
+          "encoding": "base64",
+          "commitment": "finalized"
+        }
+      ],
+      "result": {
+        "context": {
+          "apiVersion": "4.4.0",
+          "slot": 465167660
+        },
+        "value": null
+      }
+    },
+    {
+      "endpoint": "https://solana-rpc.publicnode.com",
+      "method": "getMinimumBalanceForRentExemption",
+      "params": [
+        165,
+        {
+          "commitment": "finalized"
+        }
+      ],
+      "result": 1488440
+    }
+  ],
+  "quotes": [
+    {
+      "network": "base",
+      "direction": "in",
+      "response": {
+        "quote": {
+          "amountIn": "2530248",
+          "amountInFormatted": "2.530248",
+          "amountInUsd": "2.528901908064",
+          "minAmountIn": "2504992",
+          "amountOut": "2500000",
+          "amountOutFormatted": "2.5",
+          "amountOutUsd": "2.498670000000",
+          "minAmountOut": "2500000",
+          "timeEstimate": 35,
+          "refundFee": "2400",
+          "withdrawFee": "4728"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_OUTPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "amount": "2500000",
+          "refundTo": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:33:53.178Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:5N7CQeSneSUStevTe6b8Rka8qi2tm9AcAwFFQPYKq2KkfbGheCWJQ3mAMD7ZE2AcRFWEm1Kw29RdRe3Q5SZVP55U",
+        "timestamp": "2026-11-04T04:28:53.265Z",
+        "correlationId": "78535ab2-503d-4392-abf6-519e600c9778"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "base",
+      "direction": "out",
+      "response": {
+        "quote": {
+          "amountIn": "2500000",
+          "amountInFormatted": "2.5",
+          "amountInUsd": "2.498670000000",
+          "minAmountIn": "2500000",
+          "amountOut": "2497265",
+          "amountOutFormatted": "2.497265",
+          "amountOutUsd": "2.495936455020",
+          "minAmountOut": "2472292",
+          "timeEstimate": 22,
+          "refundFee": "4728",
+          "withdrawFee": "2400"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_INPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+          "amount": "2500000",
+          "refundTo": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:33:56.532Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:31k1y1mfRPxAu3xodKxESFG1ScKidTNaULvGv2iVSavTwX3cv5aeY4ejVkHF8Wc3kAkwnmxWYEJnnoR6LyVf6qTz",
+        "timestamp": "2026-11-04T04:28:56.621Z",
+        "correlationId": "6ffd2c1c-c26e-4e07-9aee-82194d06fd81"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "solana",
+      "direction": "in",
+      "response": {
+        "quote": {
+          "amountIn": "2530317",
+          "amountInFormatted": "2.530317",
+          "amountInUsd": "2.528970871356",
+          "minAmountIn": "2505061",
+          "amountOut": "2500000",
+          "amountOutFormatted": "2.5",
+          "amountOutUsd": "2.498670000000",
+          "minAmountOut": "2500000",
+          "timeEstimate": 20,
+          "refundFee": "244103",
+          "withdrawFee": "4728"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_OUTPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "amount": "2500000",
+          "refundTo": "BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:34:05.952Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:5DVHB8UpJ9ZSmVYfGorC64AjpYBn2iy4AaQRY71SYwbXbxjwtRGESj9fQF3oC48B1VXNxegjuxVFEJvHb2hh272J",
+        "timestamp": "2026-11-04T04:29:06.064Z",
+        "correlationId": "efe04dd3-c23a-4584-baf4-61168ef6bf3e"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "solana",
+      "direction": "out",
+      "response": {
+        "quote": {
+          "amountIn": "2500000",
+          "amountInFormatted": "2.5",
+          "amountInUsd": "2.498670000000",
+          "minAmountIn": "2500000",
+          "amountOut": "2255634",
+          "amountOutFormatted": "2.255634",
+          "amountOutUsd": "2.254434002712",
+          "minAmountOut": "2233077",
+          "timeEstimate": 17,
+          "refundFee": "4728",
+          "withdrawFee": "244103"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_INPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near",
+          "amount": "2500000",
+          "refundTo": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:34:09.191Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:5tATsaZWL5WPEovV8yg8Uu78S3wG8AoGUpinbtbrTmvu2DzdV1MQ3Vkkgrf7t2YiPr7wKZzxbAwQktrEN9o2oLXC",
+        "timestamp": "2026-11-04T04:29:09.272Z",
+        "correlationId": "bc62f682-f2b1-46b4-8350-7d2c7bf8f6cd"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "ethereum",
+      "direction": "in",
+      "response": {
+        "quote": {
+          "amountIn": "2530240",
+          "amountInFormatted": "2.53024",
+          "amountInUsd": "2.528893912320",
+          "minAmountIn": "2504984",
+          "amountOut": "2500000",
+          "amountOutFormatted": "2.5",
+          "amountOutUsd": "2.498670000000",
+          "minAmountOut": "2500000",
+          "timeEstimate": 45,
+          "refundFee": "300000",
+          "withdrawFee": "4728"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_OUTPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "amount": "2500000",
+          "refundTo": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:34:18.721Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:3UsCo9Z6QDZAfJfLm78mNUZz4ti343aQa1nnVt5LqgUsgTyncGwhq7SpaLQuzbBenvqK2T6v9AymZyzke5muukGu",
+        "timestamp": "2026-11-04T04:29:18.826Z",
+        "correlationId": "20bf995a-d2dc-4ce1-b014-c695f68e1373"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "ethereum",
+      "direction": "out",
+      "response": {
+        "quote": {
+          "amountIn": "2500000",
+          "amountInFormatted": "2.5",
+          "amountInUsd": "2.498670000000",
+          "minAmountIn": "2500000",
+          "amountOut": "2199654",
+          "amountOutFormatted": "2.199654",
+          "amountOutUsd": "2.198483784072",
+          "minAmountOut": "2177657",
+          "timeEstimate": 27,
+          "refundFee": "4728",
+          "withdrawFee": "300000"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_INPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near",
+          "amount": "2500000",
+          "refundTo": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:34:21.959Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:62dbqZwfG7qknRxLDXSrk7xpoXGbf6sqKQpLaqyMhFzFNfzUfg5AwWBg2DBs5cEDZ9rPg5Ge1JYfK3iC4XuKYded",
+        "timestamp": "2026-11-04T04:29:22.051Z",
+        "correlationId": "7ff7edf0-0d77-4be8-b9f7-d452a24e6c97"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "base",
+      "direction": "in",
+      "response": {
+        "quote": {
+          "amountIn": "1014939",
+          "amountInFormatted": "1.014939",
+          "amountInUsd": "1.014399052452",
+          "minAmountIn": "1004836",
+          "amountOut": "1000000",
+          "amountOutFormatted": "1.0",
+          "amountOutUsd": "0.999468000000",
+          "minAmountOut": "1000000",
+          "timeEstimate": 35,
+          "refundFee": "2400",
+          "withdrawFee": "4728"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_OUTPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "amount": "1000000",
+          "refundTo": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:35:15.570Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:34G4T2Mvythb8w92RHhzLZ6xXVzBM8pD3t94Defrpj1R3PQ7XR9un8HXo5g53ZYgf1w92rHaJjfM2qg19rsomvwX",
+        "timestamp": "2026-11-04T04:30:15.668Z",
+        "correlationId": "982b28ca-e798-4716-9c04-1ba3086aae68"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "solana",
+      "direction": "in",
+      "response": {
+        "quote": {
+          "amountIn": "1014967",
+          "amountInFormatted": "1.014967",
+          "amountInUsd": "1.014427037556",
+          "minAmountIn": "1004864",
+          "amountOut": "1000000",
+          "amountOutFormatted": "1.0",
+          "amountOutUsd": "0.999468000000",
+          "minAmountOut": "1000000",
+          "timeEstimate": 20,
+          "refundFee": "244103",
+          "withdrawFee": "4728"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_OUTPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:sol-5ce3bf3a31af18be40ba30f721101b4341690186.omft.near",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "amount": "1000000",
+          "refundTo": "BTXsA7ov3DCLd4yNyK1JpUokk1byw8mSgpGQ6FdGKjKd",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:35:15.767Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:2d5Qz3yBDp4zJPNsGUHcuyzj2YBbbc8MjTa8c2iFNCVkjQGjMsDVTF7jVTHCQfUHAoNzqJ8yT4qhiGjmzSwDW1FT",
+        "timestamp": "2026-11-04T04:30:15.863Z",
+        "correlationId": "dbbf6c69-3cca-40c5-9ea0-d978f7d63b4e"
+      },
+      "signatureVerified": true
+    },
+    {
+      "network": "ethereum",
+      "direction": "in",
+      "response": {
+        "quote": {
+          "amountIn": "1014936",
+          "amountInFormatted": "1.014936",
+          "amountInUsd": "1.014396054048",
+          "minAmountIn": "1004833",
+          "amountOut": "1000000",
+          "amountOutFormatted": "1.0",
+          "amountOutUsd": "0.999468000000",
+          "minAmountOut": "1000000",
+          "timeEstimate": 45,
+          "refundFee": "300000",
+          "withdrawFee": "4728"
+        },
+        "quoteRequest": {
+          "dry": true,
+          "depositMode": "SIMPLE",
+          "swapType": "EXACT_OUTPUT",
+          "slippageTolerance": 100,
+          "originAsset": "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near",
+          "depositType": "ORIGIN_CHAIN",
+          "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+          "amount": "1000000",
+          "refundTo": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+          "refundType": "ORIGIN_CHAIN",
+          "recipient": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+          "recipientType": "DESTINATION_CHAIN",
+          "deadline": "2026-11-04T04:35:15.710Z",
+          "confidentiality": "public",
+          "quoteWaitingTimeMs": 3000,
+          "insured": false,
+          "appFees": [
+            {
+              "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+              "fee": 1
+            }
+          ]
+        },
+        "signature": "ed25519:66Vkip5axPg8P1h4AY8gDvzCGAWrXtjR2weHDmmY85LK9uoucujWNHnKu4YafjPeRUKyVfG6Yomi8ejKn5NW37ny",
+        "timestamp": "2026-11-04T04:30:15.790Z",
+        "correlationId": "fa4c790f-112f-4600-ab1e-35e7cf167641"
+      },
+      "signatureVerified": true
+    }
+  ],
+  "bridgeMinimumHints": [
+    {
+      "network": "base",
+      "requestedOutputAtomic": "100000",
+      "status": 400,
+      "message": "Amount is too low for bridge, try at least 145267"
+    },
+    {
+      "network": "solana",
+      "requestedOutputAtomic": "100000",
+      "status": 400,
+      "message": "Amount is too low for bridge, try at least 239355"
+    },
+    {
+      "network": "ethereum",
+      "requestedOutputAtomic": "100000",
+      "status": 400,
+      "message": "Amount is too low for bridge, try at least 295267"
+    }
+  ],
+  "artifact": {
+    "bytes": 1007612,
+    "sha256": "12be79b214a3a93dc239cbcabb65fb25274eb54963fb2118ad2cb27ff79c8276",
+    "codeOnlyCollateralYoctoNear": "10076120000000000000000000",
+    "initialization": "Rejects mainnet; not a deployable mainnet artifact"
+  },
+  "indicativeUsd": {
+    "source": "CoinGecko connected market-data response during this session",
+    "near": 3.78,
+    "solana": 91.45,
+    "ethereum": 2256.47,
+    "usdc": 0.999468
+  },
+  "initialFundingProposal": {
+    "nearNative": "0.25",
+    "solanaNative": "0.003",
+    "baseNative": "0.00002",
+    "ethereumNative": "0.0001",
+    "usdcPerExternalNetwork": "2.54",
+    "approximateUsd": 9.11,
+    "meaning": "Initial account/gas and one 2.50-USDC route experiment per external network only. Excludes NEAR deployment and remaining experiments; no spending authorized."
+  },
+  "returnAdapter": {
+    "request": {
+      "dry": true,
+      "swapType": "EXACT_INPUT",
+      "slippageTolerance": 100,
+      "originAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+      "depositType": "ORIGIN_CHAIN",
+      "destinationAsset": "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+      "amount": "2500000",
+      "refundTo": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+      "refundType": "ORIGIN_CHAIN",
+      "recipient": "0xaE74d31CB01A0F11cDeCe5a374aC5539DD20d77a",
+      "recipientType": "DESTINATION_CHAIN",
+      "deadline": "2026-11-04T04:37:51.910Z",
+      "quoteWaitingTimeMs": 3000
+    },
+    "result": {
+      "amountIn": "2500000",
+      "principal": "2500000",
+      "quotedOutput": "2497094",
+      "minimumOutput": "2472123",
+      "expiresAt": "2026-11-04T04:37:51.910Z",
+      "hasUnsignedFeeDetails": true,
+      "fundingAllowed": false
+    }
+  }
+}

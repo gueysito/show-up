@@ -1,0 +1,72 @@
+{
+  "fundingConfirmed": false,
+  "plan": {
+    "deploymentAllowed": false,
+    "factoryCodeHash": "HiyC5tB1gBDpgR4x1guEp1orBde5PXqUYGoWaZfX3JGX",
+    "format": "showup.near.mainnet.account-registration.v1",
+    "gates": [
+      "Finalized funding and expected controller FullAccess key",
+      "Owner approval of this exact batch and its signing runtime",
+      "Fresh name, code, gas, nonce and balance checks before a single signature"
+    ],
+    "keysLoaded": false,
+    "maximumFeeYoctoNear": "102000000000000000000000",
+    "maximumGasPurchasePrice": "1000000000",
+    "maximumSignedImages": 1,
+    "maximumTotalYoctoNear": "102000000000000000000000",
+    "network": "near-mainnet",
+    "operations": [
+      {
+        "args": {
+          "new_account_id": "showup-dev-14989f.near",
+          "new_public_key": "ed25519:2PQ8rQ56kQV6dFeiMNwEmbbQvxiTXGFPLt2uk4UyU8cB"
+        },
+        "attachedYoctoNear": "0",
+        "gas": "100000000000000",
+        "method": "create_account",
+        "receiver": "near"
+      }
+    ],
+    "publicKey": "ed25519:2PQ8rQ56kQV6dFeiMNwEmbbQvxiTXGFPLt2uk4UyU8cB",
+    "recovery": {
+      "accountDeletionAllowed": false,
+      "failure": "Preserve original transaction and receipt IDs; verify account absence or actual created state before any new approval.",
+      "originalPrincipal": "0",
+      "success": "Verify the new account, expected FullAccess key, zero initial balance and no contract at a common finalized block.",
+      "uncertainSubmission": "Reconcile the original hash/nonce and full receipt graph; never create another image while unresolved."
+    },
+    "signer": "14989fbcef30b7cfabafb3380a4b707e71513eec2b22ffc6f8b8ff7cd95a11cc",
+    "signingPerformed": false,
+    "tokenTransfersAllowed": false,
+    "writeRetries": 0
+  },
+  "planHash": "a960631b3d59c9d3454d7c4e7179fd0fbd2c17c712186c9809bada6bd08105df",
+  "readEvidence": {
+    "accountCreationCharge": "7000000000000000000000",
+    "displayedGasPrice": "100000000",
+    "factoryBytes": 127855,
+    "factoryCodeHash": "HiyC5tB1gBDpgR4x1guEp1orBde5PXqUYGoWaZfX3JGX",
+    "factorySha256": "f87b56e82fec98541e8ac524851d301be5d1572ff66af905bbf08c8f77afa458",
+    "finality": {
+      "assetEvidence": false,
+      "block": {
+        "hash": "GXGqgmqjShYm76enmPgXaMMMcG1TiLTSRszdwZpJ8nD5",
+        "height": "223043996",
+        "timestampMs": 1793811189612
+      },
+      "chainId": "mainnet",
+      "fundingAllowed": false,
+      "independenceVerified": false,
+      "matched": true,
+      "network": "near",
+      "operatorClaims": ["near-public", "fastnear"],
+      "sourceIds": ["near-public", "near-fastnear"]
+    },
+    "funding": null,
+    "gasPurchaseUpper": "101202558634721000000000",
+    "minimumGasPurchasePrice": "1000000000",
+    "protocolVersion": 87,
+    "sourceClaim": "https://github.com/near/near-linkdrop/tree/9a6bb316f6b7c83b504ce9c94a80c37178097655"
+  },
+  "readyToSign": false
+}

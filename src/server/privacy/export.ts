@@ -1,0 +1,307 @@
+import type pg from "pg";
+import type { AuthConfig } from "../auth/config";
+import { unseal } from "../auth/crypto";
+import { transaction } from "../db/client";
+import { canonicalHash } from "../protocol/canonical";
+import type { CommitmentConsent } from "../commitments/consent";
+import type { WalletSignature } from "../wallets/proof";
+import type { OwnWallet } from "../wallets/service";
+import { requirePrivacyActor } from "./access";
+import { settlementWatchSnapshot } from "../commitments/reconciliation";
+import { attendanceCandidateRecord } from "../attendance/attempts";
+
+// Export owned product data, excluding security tokens, blind indexes and challenges.
+export async function exportOwnData(pool: pg.Pool, config: AuthConfig, sessionHash: string) {
+  return transaction(pool, async (client) => {
+    await client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+    const actor = await requirePrivacyActor(client, sessionHash);
+    const [
+      identities,
+      roles,
+      wallets,
+      consents,
+      events,
+      issued,
+      redeemed,
+      access,
+      audit,
+      watches,
+      deletion,
+      codeWindows,
+      validatorAssignments,
+      hostedValidators,
+      attendanceCandidates,
+      attendanceQrWindows,
+      validatorScans,
+      hostedEvidenceBarriers,
+      hostedAttendanceCheckpoints,
+      attendanceDeliveries,
+      hostedAttendanceClosings,
+      principalRecoveries,
+      attendanceIntakes,
+      telegramConnections,
+      telegramAttendancePrompts,
+      publicationImages,
+      releaseRequests,
+      v1Registrations,
+      v1Actions,
+      v1NftDeliveries,
+    ] = [
+      await client.query(
+        "SELECT provider,identity_hash,encrypted_identity,created_at FROM app_identities WHERE account_id=$1 ORDER BY provider",
+        [actor.id],
+      ),
+      await client.query("SELECT role FROM app_roles WHERE account_id=$1 ORDER BY role", [
+        actor.id,
+      ]),
+      await client.query(
+        "SELECT id,encrypted_wallet,revoked_at FROM app_wallets WHERE account_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT * FROM app_commitment_consents WHERE account_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,revision,data,state,rules_hash,published_at,updated_at FROM app_events WHERE owner_id=$1 ORDER BY updated_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,kind,event_id,expires_at,revoked_at,redeemed_at,created_at FROM app_invitations WHERE issuer_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,kind,event_id,redeemed_at FROM app_invitations WHERE redeemed_by=$1 ORDER BY redeemed_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT event_id,granted_at FROM app_event_access WHERE account_id=$1 ORDER BY granted_at,event_id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,action,entity_id,created_at FROM app_audit WHERE actor_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT l.consent_id,w.* FROM app_commitment_settlement_links l
+          JOIN app_commitment_consents c ON c.id=l.consent_id JOIN app_settlement_watches w ON w.id=l.watch_id
+          WHERE c.account_id=$1`,
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,requested_at,completed_at,hold_reasons FROM app_deletion_requests WHERE account_id=$1",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT w.id,w.event_id,w.opened_at,w.expires_at,w.retired_at FROM app_attendance_code_windows w
+        JOIN app_events e ON e.id=w.event_id WHERE e.owner_id=$1 ORDER BY w.opened_at,w.id`,
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,event_id,alias,assigned_at,revoked_at FROM app_event_validators WHERE account_id=$1 ORDER BY assigned_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT v.id,v.event_id,v.alias,v.assigned_at,v.revoked_at FROM app_event_validators v
+        JOIN app_events e ON e.id=v.event_id WHERE e.owner_id=$1 ORDER BY v.assigned_at,v.id`,
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT * FROM app_attendance_candidates WHERE account_id=$1 ORDER BY received_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,event_id,issued_at,expires_at,retired_at,consumed_at FROM app_attendance_qr WHERE account_id=$1 ORDER BY issued_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT s.id,q.event_id,s.scanned_at,s.confirmed_at FROM app_attendance_qr_scans s
+        JOIN app_attendance_qr q ON q.id=s.qr_id WHERE s.validator_id=$1 ORDER BY s.scanned_at,s.id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT b.event_id,b.complete_through_ms,b.frozen_at_ms,b.candidate_count FROM app_attendance_evidence_barriers b
+        JOIN app_events e ON e.id=b.event_id WHERE e.owner_id=$1 ORDER BY b.frozen_at_ms,b.event_id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT c.id,c.event_id,c.checkpoint_hash,c.observed_height,c.observed_hash,c.ledger_version FROM app_attendance_checkpoints c
+        JOIN app_events e ON e.id=c.event_id WHERE e.owner_id=$1 ORDER BY c.observed_height,c.id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT d.candidate_id,c.event_id,d.state,d.attempts,d.observed_height,d.observed_hash,d.last_error
+        FROM app_attendance_deliveries d JOIN app_attendance_candidates c ON c.id=d.candidate_id
+        WHERE c.account_id=$1 ORDER BY c.received_at,c.id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT c.event_id,c.checkpoint_id,c.state,c.attempts,c.observed_height,c.observed_hash,c.last_error
+        FROM app_attendance_closings c JOIN app_events e ON e.id=c.event_id
+        WHERE e.owner_id=$1 ORDER BY c.updated_at,c.event_id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT p.consent_id,p.state,p.attempts,p.submitted_attempt,p.observed_height,p.observed_hash,p.last_error,p.last_effect
+        FROM app_principal_recoveries p JOIN app_commitment_consents c ON c.id=p.consent_id
+        WHERE c.account_id=$1 ORDER BY p.updated_at,p.consent_id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT event_id,action,received_at_ms,completed_at,outcome FROM app_attendance_intakes
+        WHERE account_id=$1 ORDER BY received_at_ms,id`,
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT bot_id,bot_username,consented_at FROM app_telegram_connections WHERE account_id=$1",
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT p.event_id,p.consent_id,p.created_at,p.expires_at,p.state,p.message_id
+         FROM app_telegram_attendance_prompts p JOIN app_telegram_connections c ON c.id=p.connection_id
+         WHERE c.account_id=$1 ORDER BY p.created_at,p.id`,
+        [actor.id],
+      ),
+      await client.query(
+        `SELECT p.event_id,p.draft_revision,p.image_hash,p.created_at,p.observed_source_hash,p.source_height::text,p.source_block,p.observed_at
+         FROM app_publication_images p JOIN app_events e ON e.id=p.event_id WHERE e.owner_id=$1 ORDER BY p.created_at,p.event_id`,
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT operation_id,consent_id,image_hash,expires_at,created_at FROM app_commitment_releases WHERE account_id=$1 ORDER BY created_at,operation_id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,event_id,state,transaction_hash,source_height::text,funding_height::text,created_at FROM app_v1_registrations WHERE account_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT id,event_id,kind,state,transaction_hash,source_height::text,created_at FROM app_v1_event_actions WHERE account_id=$1 ORDER BY created_at,id",
+        [actor.id],
+      ),
+      await client.query(
+        "SELECT d.event_id,d.state,d.transaction_hash,d.source_height::text,d.execution_fee_wei::text FROM app_v1_nft_deliveries d JOIN app_events e ON e.id=d.event_id WHERE e.owner_id=$1 ORDER BY d.created_at,d.event_id",
+        [actor.id],
+      ),
+    ];
+    return {
+      format: "showup.own-data.v1",
+      mainnetRegistrations: v1Registrations.rows,
+      mainnetActions: v1Actions.rows,
+      mainnetNftDeliveries: v1NftDeliveries.rows,
+      exportedAt: new Date().toISOString(),
+      account: { id: actor.id, state: actor.state, createdAt: actor.createdAt.toISOString() },
+      linkedIdentities: identities.rows.map((row) => {
+        const identity = unseal(
+          config.encryptionKey,
+          `identity:${row.identity_hash}`,
+          row.encrypted_identity,
+        ) as { issuer: string; subject: string; telegramUserId?: string };
+        return {
+          provider: row.provider,
+          issuer: identity.issuer,
+          subject: identity.subject,
+          ...(identity.telegramUserId ? { telegramUserId: identity.telegramUserId } : {}),
+          linkedAt: row.created_at.toISOString(),
+        };
+      }),
+      telegramConnections: telegramConnections.rows.map((row) => ({
+        botId: row.bot_id,
+        botUsername: row.bot_username,
+        consentedAt: row.consented_at.toISOString(),
+      })),
+      telegramAttendancePrompts: telegramAttendancePrompts.rows,
+      publicationImages: publicationImages.rows.map((row) => ({ ...row, sourceQualified: false })),
+      releaseRequests: releaseRequests.rows.map((row) => ({
+        ...row,
+        releaseConfirmed: false,
+        sourceQualified: false,
+      })),
+      roles: roles.rows.map((row) => row.role as string),
+      wallets: wallets.rows.map((row) => {
+        const wallet = unseal(
+          config.encryptionKey,
+          `wallet:${actor.id}:${row.id}`,
+          row.encrypted_wallet,
+        ) as OwnWallet;
+        return {
+          id: row.id,
+          network: wallet.network,
+          address: wallet.address,
+          verifiedAt: wallet.verifiedAt,
+          revokedAt: row.revoked_at?.toISOString() ?? null,
+        };
+      }),
+      financialAuthorizations: consents.rows.map((row) => {
+        const { consent } = unseal(
+          config.encryptionKey,
+          `commitment-consent:${actor.id}:${row.id}`,
+          row.encrypted_consent,
+        ) as { consent: CommitmentConsent };
+        if (canonicalHash(consent) !== row.consent_hash)
+          throw new Error("Financial export integrity failure");
+        const approved = row.encrypted_proof
+          ? (unseal(
+              config.encryptionKey,
+              `commitment-proof:${actor.id}:${row.id}`,
+              row.encrypted_proof,
+            ) as { proof: WalletSignature })
+          : null;
+        return {
+          consent,
+          proof: approved?.proof ?? null,
+          preparedAt: row.created_at.toISOString(),
+          approvedAt: row.authorized_at?.toISOString() ?? null,
+          escrowConfirmed: false,
+          fundingAllowed: false,
+        };
+      }),
+      reconciliation: watches.rows.map((row) => {
+        const snapshot = settlementWatchSnapshot(config, row),
+          facts = snapshot.facts;
+        return {
+          consentId: row.consent_id,
+          available: snapshot.available,
+          paused: snapshot.paused,
+          lastAttemptAt: row.last_attempt_at,
+          lastSuccessAt: row.last_success_at,
+          block: facts?.block ?? null,
+          registrationState: facts?.registration?.state ?? null,
+          principal: facts?.principal ?? null,
+          returned: facts?.returned ?? null,
+          sourceQualified: false,
+          escrowConfirmed: false,
+        };
+      }),
+      hostedEvents: events.rows,
+      hostedCodeWindows: codeWindows.rows,
+      validatorAssignments: validatorAssignments.rows,
+      hostedValidators: hostedValidators.rows,
+      attendanceCandidates: attendanceCandidates.rows.map((row) =>
+        attendanceCandidateRecord(config, row),
+      ),
+      attendanceQrWindows: attendanceQrWindows.rows,
+      validatorScans: validatorScans.rows,
+      hostedEvidenceBarriers: hostedEvidenceBarriers.rows,
+      hostedAttendanceCheckpoints: hostedAttendanceCheckpoints.rows,
+      attendanceDeliveries: attendanceDeliveries.rows,
+      hostedAttendanceClosings: hostedAttendanceClosings.rows,
+      principalRecoveries: principalRecoveries.rows,
+      attendanceIntakes: attendanceIntakes.rows,
+      invitationsIssued: issued.rows,
+      invitationsRedeemed: redeemed.rows,
+      eventAccess: access.rows,
+      audit: audit.rows,
+      deletionRequest: deletion.rows[0] ?? null,
+      excludedSecurityMaterial: [
+        "Session and capability tokens",
+        "OAuth credentials and login attempts",
+        "Blind identity/wallet indexes",
+        "Ephemeral control challenges",
+        "Attendance code phrases and keyed indexes",
+      ],
+      notice:
+        "This export contains private identity, wallet and event data. On-chain records cannot be erased. Approved terms do not confirm escrow or a funded seat.",
+    };
+  });
+}
