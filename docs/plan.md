@@ -371,11 +371,11 @@ times and the controls explain when disabled actions become available.
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.
-GitHub [run 42656124167](https://github.com/gueysito/show-up/actions/runs/42656124167)
-could not start `verify` or `contracts` because of account billing or the
-Actions spending limit. Finish visual polish before opening
-the release pull request. Resolve billing and require both checks to pass before
-merge approval.
+Making the repository public cleared the Actions billing block. The
+[release PR](https://github.com/gueysito/show-up/pull/2) exposed two clean-checkout
+failures. Generate Next.js types before running TypeScript and pin `rustix` to
+1.1.6 for [RUSTSEC-2026-0486](https://rustsec.org/advisories/RUSTSEC-2026-0486.html).
+Pass `verify` and `contracts` before merging. Visual polish follows separately.
 
 V1-3/V1-9 phone blocker: MyNearWallet's live `/sign-message` and `/sign` screens
 reject app requests after its [retirement](https://www.mynearwallet.com/sunset).
