@@ -2,24 +2,21 @@
 
 **Turn an RSVP into a refundable commitment.**
 
-Free RSVPs are cheap, so people don't show up. Showup asks attendees to put down a small
-deposit. Show up and you get it back. Don't, and your deposit is split among the people
-who did. Hosts can add a prize — a USDC pot, an NFT, or both — that one attendee wins.
+Showup makes flaking cost something. RSVP to an in-person event, X Space, or livestream
+with a small USDC deposit. Check in live to get it back, plus a share of any no-show
+deposits.
 
-Showup is being built for deposits from **NEAR, Solana, Base or Ethereum**. NEAR Intents converts the
-deposit, and the money sits in a Showup escrow contract on NEAR that enforces the rules:
-the host never holds attendee funds and never receives a share of forfeited deposits.
-NFT prizes stay on their own chain and are released by the NEAR contract through
-NEAR Chain Signatures.
+Attendees can pay from **NEAR, Solana, Base, or Ethereum**. NEAR Intents routes cross-chain
+payments into USDC escrow on NEAR. The host never holds attendee funds or takes a share
+of no-show deposits.
 
 > Attendees fund the commitment. Hosts fund the excitement.
 
 ## Status
 
-V1 is in active development: one complete loop on mainnet — publish, deposit from any
-of the four chains, check in, settle, prize. See [current state](CURRENT_STATE.md) for
-exactly what works today and [the plan](docs/plan.md) for V1 progress and the V2 roadmap.
-The separate V1 contract is deployed at
+The core V1 flow runs on NEAR mainnet. See [current state](CURRENT_STATE.md) for what
+works today and [the plan](docs/plan.md) for V1 progress and the V2 roadmap.
+The V1 escrow contract is deployed at
 [`showup-dev-14989f.near`](https://nearblocks.io/address/showup-dev-14989f.near).
 
 **Early settlement protection pending deployment.** The live contract currently
@@ -29,35 +26,30 @@ that prevents settlement before the scheduled end and passes automated tests.
 Mainnet deployment and verification of this change are pending.
 [PR #3](https://github.com/gueysito/show-up/pull/3)
 
-Its reviewed money paths pass sandbox tests, and a manual mainnet 1-USDC deposit,
-cancellation and full refund succeeded; [transactions](docs/plan.md#v1-evidence).
-Host publication runs from the app into mainnet with or without a host-funded USDC
-prize. Browser checks with a preauthenticated test host verified a real 1-USDC prize,
-publication and full cancellation refund. Public terms are checked against two
-mainnet RPCs. Attendees can now register and deposit native USDC from a verified NEAR
-wallet, with funded-seat confirmation and a verified full cancellation refund.
-Base, Solana and Ethereum deposits also pass the real browser journey through
-NEAR Intents: each funded 1 USDC in escrow and received its full cancellation refund
-in the locked NEAR payout wallet. [Transaction links](docs/plan.md#v1-evidence).
-Live-code check-in, host/deadline
-closing and fixed-wallet payout receipts now work in the real app on mainnet: two
-1-USDC deposits and a 0.25-USDC prize settled into a verified 2.25-USDC payout to
-the checked-in attendee. Test USDC was restored in full. The Ethereum NFT prize
-flow also runs on mainnet: BasedHeads #2829 entered contract-derived custody and
-was [released to the winner's verified wallet](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f).
-The mobile receipt links to the finalized Ethereum transfer. A hosted cancellation
-also [returned the NFT to the contributor](https://etherscan.io/tx/0x8f19763e82b2f540c062c409b9039caa4ff655267aa7f8288ebd6fd266022e58).
-[Build and test it](docs/setup.md#v1-escrow-build).
+On mainnet, we verified deposits from all four chains and cancellation refunds to NEAR,
+[live-code check-in](https://nearblocks.io/txns/HJcPUxbvvigcCnQpNWtZ7X3SdApbVaDTEJvuFhYtm1wM),
+and a [2.25 USDC payout](https://nearblocks.io/txns/3DnWt7mZ31a3j2Q3RdVZ9JmZzADSsBLLUFGMiUmAY2pY)
+that included the attendee's deposit, a no-show deposit, and the prize. We also verified
+[Ethereum NFT delivery to a winner](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f)
+and [return to the contributor on cancellation](https://etherscan.io/tx/0x8f19763e82b2f540c062c409b9039caa4ff655267aa7f8288ebd6fd266022e58).
+[Full transaction evidence](docs/plan.md#v1-evidence) · [Build and test the contract](docs/setup.md#v1-escrow-build)
 
 ## How V1 works
 
-1. **Host** signs in, creates an event (time, deposit, capacity, optional prize) and
-   publishes it to the escrow contract.
-2. **Attendee** connects a wallet on NEAR, Solana, Base or Ethereum, reviews the deposit
-   and fees, and commits. NEAR Intents routes the deposit into USDC in escrow.
-3. **At the event,** attendees check in and the host sees attendance live.
-4. **At close,** the contract returns deposits, splits no-show deposits among attendees
-   and draws the prize winner. Everyone gets a receipt with explorer links.
+1. **Publish the event.** The host sets the time, deposit, and capacity, then publishes
+   to the escrow contract. They can offer a USDC prize, an Ethereum NFT, or both.
+2. **Commit to a seat.** The attendee connects a wallet, reviews the deposit and fees,
+   and gets a funded seat once USDC reaches escrow.
+3. **Catch the live code.** The host chooses when to share it in the room or on air,
+   giving attendees a reason to tune in. The code is valid for up to three minutes.
+   The host can issue a fresh code to give people another chance to check in.
+4. **Settle on NEAR.** The contract returns deposits to the people who checked in and
+   splits any no-show deposits among them. If nobody checks in, everyone gets their
+   deposit back and there is no prize draw.
+5. **Award the prize, if offered.** The contract uses NEAR's on-chain randomness to
+   select one winner from the checked-in attendees. NEAR Chain Signatures deliver
+   an NFT prize to the winner's verified Ethereum wallet. Payout receipts link to
+   their transactions.
 
 ## Architecture
 
