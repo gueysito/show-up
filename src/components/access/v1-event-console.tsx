@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { formatUsdc } from "../../domain/event-draft";
+import { DotText } from "../dot-text";
 import { JourneyStatus } from "./journey-status";
+import { JourneyStrip, attendeeJourney } from "./journey-strip";
+import { LiveCode } from "./live-code";
 
 type Claim = { remaining: string; paid: string; pending: boolean; inFlight: string; total: string };
 type Action = { id: string; kind: string; state: string; transactionUrl: string | null };
@@ -248,16 +251,7 @@ export function V1EventConsole({
                     <p>Check-in codes and settlement become available when the event starts.</p>
                   )}
                   {view.code && view.codeExpiresAt && Date.parse(view.codeExpiresAt) > now && (
-                    <p>
-                      <strong
-                        aria-label="Live check-in code"
-                        style={{ fontSize: "2rem", letterSpacing: ".2em" }}
-                      >
-                        {view.code}
-                      </strong>
-                      <br />
-                      {`Valid until ${new Date(view.codeExpiresAt).toLocaleTimeString()}.`}
-                    </p>
+                    <LiveCode code={view.code} expiresAt={view.codeExpiresAt} now={now} />
                   )}
                   <JourneyStatus tone="action" title="Close or cancel the event">
                     Closing ends check-in. Checked-in attendees get their deposit back and share
@@ -327,10 +321,27 @@ export function V1EventConsole({
                   </li>
                 ))}
               </ul>
-              {view.roster?.length === 0 && <p>No registrations yet.</p>}
+              {view.roster?.length === 0 && (
+                <div className="empty-state">
+                  <p className="empty-state-title">No registrations yet.</p>
+                  <p>Attendees appear here once they register through an invitation link.</p>
+                </div>
+              )}
             </>
           ) : (
             <>
+              {(view.funded || payoutPaid || refundPaid) && (
+                <JourneyStrip
+                  steps={attendeeJourney({
+                    registered: true,
+                    funded: Boolean(view.funded),
+                    attended: Boolean(view.attended),
+                    paid: Boolean(payoutPaid || refundPaid),
+                    ended: Boolean(terminal),
+                    cancelled: view.status === "cancelled",
+                  })}
+                />
+              )}
               {view.attended ? (
                 <JourneyStatus tone="confirmed" title="Check-in confirmed">
                   NEAR has recorded your attendance.
@@ -381,10 +392,28 @@ export function V1EventConsole({
                   />
                 )}
               {terminal && !refund && (
-                <>
+                <div className="ticket">
+                  {view.winner && (
+                    <p className="draw-banner draw-reveal" aria-hidden="true">
+                      ★ Winner
+                    </p>
+                  )}
                   <h3 className={view.winner ? "draw-reveal" : undefined}>
                     {view.winner ? "You won the draw" : "Your result"}
                   </h3>
+                  <p className="ticket-total">
+                    <span className="dot-number">
+                      <DotText
+                        value={formatUsdc(
+                          BigInt(view.principal ?? "0") +
+                            BigInt(view.share ?? "0") +
+                            BigInt(view.prize ?? "0"),
+                        )}
+                      />
+                    </span>
+                    <span>USDC total</span>
+                  </p>
+                  <div className="ticket-tear" aria-hidden="true" />
                   <dl>
                     <dt>Deposit eligible for return</dt>
                     <dd>{formatUsdc(BigInt(view.principal ?? "0")) + " USDC"}</dd>
@@ -397,7 +426,7 @@ export function V1EventConsole({
                     <p>You did not check in. Your deposit was shared among checked-in attendees.</p>
                   )}
                   <p>{`NEAR payout wallet: ${view.payout}`}</p>
-                </>
+                </div>
               )}
             </>
           )}

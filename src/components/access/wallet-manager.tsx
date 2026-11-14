@@ -749,7 +749,11 @@ export function WalletManager({
           ))}
         </ul>
       ) : (
-        <p>No wallet control has been verified for this account.</p>
+        <div className="empty-state">
+          <p className="empty-state-title">No wallets verified yet.</p>
+          <p>No wallet control has been verified for this account.</p>
+          <p>Pick a network above, then approve a free message in your wallet to verify it.</p>
+        </div>
       )}
     </section>
   );

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
+import { Countdown } from "./countdown";
 import { JourneyStatus } from "./journey-status";
 import Image from "next/image";
 import rabbyIcon from "./wallet-icons/rabby.svg";
@@ -342,7 +343,11 @@ export function V1RouteReview({
                   : "Up to 0.00008 ETH"}
             </dd>
             <dt>Approve before</dt>
-            <dd>{new Date(current.expiresAt).toISOString()}</dd>
+            <dd>
+              <Countdown until={current.expiresAt} label="Time left to approve this quote" />
+              <br />
+              {new Date(current.expiresAt).toISOString()}
+            </dd>
             {current.providerDeadline && (
               <>
                 <dt>Provider deadline for unresolved routing</dt>
