@@ -5,10 +5,12 @@ import { DotText } from "../dot-text";
 import { JourneyStatus } from "./journey-status";
 import { JourneyStrip, attendeeJourney } from "./journey-strip";
 import { LiveCode } from "./live-code";
+import { useServerClock } from "./server-clock";
 
 type Claim = { remaining: string; paid: string; pending: boolean; inFlight: string; total: string };
 type Action = { id: string; kind: string; state: string; transactionUrl: string | null };
 type View = {
+  serverNow?: number;
   nft?: {
     winner: boolean;
     recipient: string | null;
@@ -51,13 +53,7 @@ export function V1EventConsole({
     [busy, setBusy] = useState(false),
     [code, setCode] = useState(""),
     [closeConsent, setCloseConsent] = useState(false);
-  const [now, setNow] = useState(0);
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    tick();
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useServerClock(view?.serverNow);
   const pending = useRef<{
     operationId: string;
     operation: string;
@@ -121,7 +117,14 @@ export function V1EventConsole({
       pending.current = null;
       if (operation === "code")
         setView((old) =>
-          old ? { ...old, code: result.code, codeExpiresAt: result.expiresAt } : old,
+          old
+            ? {
+                ...old,
+                code: result.code,
+                codeExpiresAt: result.expiresAt,
+                serverNow: result.serverNow,
+              }
+            : old,
         );
       if (operation === "check_in") setCode("");
       setMessage(

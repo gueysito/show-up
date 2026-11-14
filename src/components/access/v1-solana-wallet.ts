@@ -50,13 +50,15 @@ export async function approveV1SolanaPayment(
   source: string,
   wallet: V1SolanaWallet,
   onRequest: () => void,
+  now = Date.now(),
 ) {
   if (
     payment.network !== "solana" ||
     payment.source !== source ||
     payment.recipient !== reviewed.depositAddress ||
     payment.inputAtomic !== reviewed.inputAtomic ||
-    Date.parse(payment.expiresAt) <= Date.now() + 5000 ||
+    !Number.isFinite(now) ||
+    Date.parse(payment.expiresAt) <= now + 5000 ||
     !/^[0-9]{1,10}$/.test(payment.maximumGasLamports) ||
     BigInt(payment.maximumGasLamports) > 2500000n ||
     typeof payment.transactionBase64 !== "string" ||

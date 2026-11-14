@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { formatUsdc } from "../../domain/event-draft";
 import { Countdown } from "./countdown";
+import { useServerClock } from "./server-clock";
 import { JourneyStatus } from "./journey-status";
 import Image from "next/image";
 import rabbyIcon from "./wallet-icons/rabby.svg";
@@ -23,6 +24,7 @@ import {
 } from "./v1-solana-wallet";
 
 export type V1RouteSummary = {
+  serverNow?: number;
   network: string;
   inputAtomic: string;
   principalAtomic: string;
@@ -84,6 +86,7 @@ export function V1RouteReview({
     trackingReady = tracking === "clear";
   const current = quote ?? initial,
     paid = submitted || tracking === "requested" || Boolean(initial?.sourceHash);
+  const now = useServerClock(current?.serverNow);
   const [solanaWallet, setSolanaWallet] = useState("");
   const readWallets = useCallback(
     () => (network === "solana" ? readV1SolanaWallets() : noV1SolanaWallets),
@@ -182,13 +185,20 @@ export function V1RouteReview({
       setSubmitted(true);
     }
     try {
-      if (!current || Date.parse(current.expiresAt) <= Date.now())
+      if (!current || !now || Date.parse(current.expiresAt) <= now)
         throw new Error(
           "This quote expired. Check your original source payment before requesting another.",
         );
       if (network === "solana" && selected) {
         const result = await post("route-pay");
-        const hash = await approveV1SolanaPayment(result, current, address, selected, requesting);
+        const hash = await approveV1SolanaPayment(
+          result,
+          current,
+          address,
+          selected,
+          requesting,
+          result.serverNow,
+        );
         setSubmitted(true);
         onSubmitted();
         await post("source", { sourceHash: hash });
@@ -247,7 +257,8 @@ export function V1RouteReview({
         reserve = network === "base" ? 5000000000000n : 0n;
       if (
         result.network !== network ||
-        !(Date.parse(result.expiresAt) > Date.now()) ||
+        !Number.isFinite(result.serverNow) ||
+        !(Date.parse(result.expiresAt) > result.serverNow) ||
         tx.chainId !== chain ||
         String(tx.from).toLowerCase() !== address.toLowerCase() ||
         String(tx.to).toLowerCase() !== token ||
@@ -344,7 +355,11 @@ export function V1RouteReview({
             </dd>
             <dt>Approve before</dt>
             <dd>
-              <Countdown until={current.expiresAt} label="Time left to approve this quote" />
+              <Countdown
+                until={current.expiresAt}
+                serverNow={current.serverNow}
+                label="Time left to approve this quote"
+              />
               <br />
               {new Date(current.expiresAt).toISOString()}
             </dd>

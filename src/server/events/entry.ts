@@ -6,10 +6,19 @@ import { transaction } from "../db/client";
 import { AppFailure } from "../http/security";
 import { isUuid } from "./drafts";
 import { readV1PublishedTerms, type V1PublicEscrow } from "./v1-publication";
+import { readV1OwnReceipt } from "./v1-actions";
 
 export type EventEntry = {
   canManage?: boolean;
   hasV1Registration: boolean;
+  progress?: {
+    registered: boolean;
+    funded: boolean;
+    attended: boolean;
+    paid: boolean;
+    ended: boolean;
+    cancelled: boolean;
+  };
   escrow?: V1PublicEscrow;
   id: string;
   state: string;
@@ -49,6 +58,7 @@ export async function readEventEntry(
   eventId: string,
   sessionHash?: string,
   transport?: typeof fetch,
+  includeProgress = false,
 ): Promise<EventEntry> {
   if (!isUuid(eventId)) throw new AppFailure(404, "Event unavailable.");
   const entry = await transaction<EventEntry>(pool, async (client) => {
@@ -122,8 +132,27 @@ export async function readEventEntry(
   // Access is checked before any mainnet read or public projection.
   const escrow = await readV1PublishedTerms(pool, config.encryptionKey, eventId, transport);
   if (!escrow) return entry;
+  const receipt =
+    includeProgress && entry.hasV1Registration && sessionHash
+      ? await readV1OwnReceipt(pool, config, sessionHash, eventId, transport)
+      : null;
   return {
     ...entry,
+    ...(receipt && {
+      progress: {
+        registered: true,
+        funded: receipt.funded,
+        attended: receipt.attended,
+        paid:
+          ["settled", "cancelled"].includes(receipt.status) &&
+          receipt.claim.paid !== "0" &&
+          receipt.claim.remaining === "0" &&
+          !receipt.claim.pending &&
+          !receipt.withdrawalQueued,
+        ended: ["settled", "cancelled"].includes(receipt.status),
+        cancelled: receipt.status === "cancelled",
+      },
+    }),
     escrow,
     state: escrow.status,
     registration:

@@ -5,8 +5,7 @@ import { clock, remainingSeconds } from "./countdown";
 
 /**
  * The host's check-in code, sized for a room or a stream, with a read-aloud card
- * for audio-only events. The countdown uses the device clock against the server's
- * closing time. docs/plan.md tracks moving it to server time.
+ * for audio-only events. The parent supplies its advancing server clock.
  */
 export function LiveCode({
   code,

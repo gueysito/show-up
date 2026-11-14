@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useServerClock } from "./server-clock";
 import { DotText } from "../dot-text";
 
 export function remainingSeconds(deadline: number, now: number) {
@@ -12,25 +12,21 @@ export function clock(seconds: number) {
 
 /**
  * Counts down to an instant in dot-matrix digits and warns near the end.
- * It reads the device clock. docs/plan.md tracks moving it to server time.
+ * Server time anchors the countdown independently of the device clock.
  */
 export function Countdown({
   until,
   label,
   warnBelow = 60,
+  serverNow,
 }: {
   until: string;
   label: string;
   warnBelow?: number;
+  serverNow?: number;
 }) {
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    const tick = () => setNow(Date.now());
-    tick();
-    const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, []);
-  if (now === null) return null;
+  const now = useServerClock(serverNow);
+  if (!now) return null;
   const left = remainingSeconds(Date.parse(until), now);
   const low = left > 0 && left < warnBelow;
   return (

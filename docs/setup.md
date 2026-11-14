@@ -1438,6 +1438,7 @@ Railway's private network. The worker needs no public domain. Use a fresh
 - Set `SHOWUP_ENV=production` on web and worker. Set
   `SHOWUP_DATABASE_HOST` to the Postgres private hostname and `DATABASE_URL`
   to its authenticated connection URL on port 5432. Use Railway references.
+- The Docker build uses `SHOWUP_PUBLIC_ORIGIN` for the prerendered link-preview URL, defaulting to `https://web-production-f1245d.up.railway.app`. Override this build argument when hosting elsewhere; native builds should set the same environment variable before `npm run build`. It is a public URL, not a credential.
 - Start web from the repository Dockerfile with port 3100. Configure
   `npm run db:migrate` as its pre-deploy command and `/api/health` as its health
   check. The migration command is also the path for future releases.

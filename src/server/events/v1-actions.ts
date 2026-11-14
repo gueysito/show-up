@@ -183,7 +183,7 @@ export async function rotateV1Code(
           new Date(expires),
         ],
       );
-      return { eventId, code, expiresAt: new Date(expires).toISOString() };
+      return { eventId, code, expiresAt: new Date(expires).toISOString(), serverNow: Date.now() };
     },
   );
 }
@@ -576,6 +576,7 @@ export async function readV1OwnReceipt(
   return {
     eventId,
     status: String(event.status),
+    serverNow: Date.now(),
     funded: registration!.funded === true,
     attended: registration!.attended === true,
     winner,
@@ -675,6 +676,7 @@ export async function readV1HostState(
     eventId,
     title: (owner.data as { title: string }).title,
     status: String(snapshot.event!.status),
+    serverNow: Date.now(),
     hasNft: Boolean(image.terms.nft),
     startsAt: Number(snapshot.event!.start_ms),
     endsAt: Number(snapshot.event!.end_ms),

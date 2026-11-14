@@ -9,6 +9,53 @@ import { issueInvitation, redeemInvitation } from "../../src/server/invitations/
 import { AppFailure } from "../../src/server/http/security";
 import { accountFixtures } from "../fixtures/accounts";
 import { validDraft } from "../fixtures/draft";
+import { v1EventFixture } from "../fixtures/v1-event";
+
+test("event progress uses the viewer's verified receipt and hides it from other viewers", async () => {
+  const f = await v1EventFixture();
+  try {
+    const read = (session?: string) =>
+      readEventEntry(f.pool, f.config, f.eventId, session, f.transport, true);
+    assert.equal((await read()).progress, undefined);
+    assert.equal((await read(f.sessions[0])).progress, undefined);
+    assert.deepEqual((await read(f.sessions[1])).progress, {
+      registered: true,
+      funded: true,
+      attended: false,
+      paid: false,
+      ended: false,
+      cancelled: false,
+    });
+    f.registrations.get(f.ids[0])!.attended = true;
+    assert.equal((await read(f.sessions[1])).progress!.attended, true);
+    assert.equal((await read(f.sessions[2])).progress!.attended, false);
+    f.event().status = "cancelled";
+    f.claims.set(f.ids[0], {
+      recipient: "attendee-1.near",
+      remaining: "1000000",
+      paid: "0",
+      pending: false,
+      in_flight: "0",
+    });
+    assert.equal((await read(f.sessions[1])).progress!.paid, false);
+    f.claims.set(f.ids[0], {
+      recipient: "attendee-1.near",
+      remaining: "0",
+      paid: "1000000",
+      pending: false,
+      in_flight: "0",
+    });
+    const refunded = (await read(f.sessions[1])).progress!;
+    assert.equal(refunded.paid, true);
+    assert.equal(refunded.cancelled, true);
+    await f.pool.query("UPDATE app_sessions SET revoked_at=clock_timestamp() WHERE token_hash=$1", [
+      f.sessions[1],
+    ]);
+    assert.equal((await read(f.sessions[1])).progress, undefined);
+  } finally {
+    await f.cleanup();
+  }
+});
 
 test("published event entry exposes public terms, preserves private invitation access and excludes answers and account identifiers", async () => {
   const f = await accountFixtures([["host"], [], []]),

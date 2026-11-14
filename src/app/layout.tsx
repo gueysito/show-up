@@ -4,7 +4,7 @@ import "./globals.css";
 
 const description =
   "Turn an RSVP into a refundable commitment. Show up, check in, and get your deposit back.";
-const origin = process.env.SHOWUP_AUTH_ORIGIN;
+const origin = process.env.SHOWUP_PUBLIC_ORIGIN ?? process.env.SHOWUP_AUTH_ORIGIN;
 
 export const metadata: Metadata = {
   metadataBase: origin ? new URL(origin) : undefined,
