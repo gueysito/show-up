@@ -5,7 +5,9 @@ import {
   recoverAddress,
   keccak256,
   getAddress,
+  id,
   toQuantity,
+  toBeHex,
 } from "ethers";
 import type { NFTDraft } from "../../domain/event-draft";
 import type { V1NftTerms } from "./v1-escrow";
@@ -33,6 +35,138 @@ export function v1NftGasBudget(estimate: bigint, suggestedPrice: bigint) {
     fee: suggestedPrice * 2n < ceiling ? suggestedPrice * 2n : ceiling,
     priority: suggestedPrice / 10n || 1n,
   };
+}
+
+const nftEthereumSources = ["ethereum-drpc", "ethereum-publicnode"] as const;
+const transferTopic = id("Transfer(address,address,uint256)");
+
+export async function readV1NftCustodyProgress(
+  nft: Pick<V1NftTerms, "collection" | "token_id" | "contributor">,
+  custody: string,
+  transport?: typeof fetch,
+) {
+  const clients = nftEthereumSources.map((source) => new ReadOnlyRpc(source, transport));
+  const heads = await Promise.all(
+    clients.map(async (rpc) => {
+      if (unsigned(await rpc.read("eth_chainId", [])) !== 1n) throw new Error("Wrong NFT chain");
+      return unsigned(record(await rpc.read("eth_getBlockByNumber", ["latest", false])).number, 64);
+    }),
+  );
+  const height = heads[0] < heads[1] ? heads[0] : heads[1];
+  if (height < 2n) throw new Error("Ethereum confirmation height unavailable");
+  const readBlock = async (block: bigint) => {
+    const tag = toQuantity(block);
+    const facts = await Promise.all(
+      clients.map(async (rpc) => {
+        const [header, owner, balance] = await Promise.all([
+          rpc.read("eth_getBlockByNumber", [tag, false]),
+          rpc.read("eth_call", [
+            {
+              to: nft.collection,
+              data: erc721.encodeFunctionData("ownerOf", [BigInt(nft.token_id)]),
+            },
+            tag,
+          ]),
+          rpc.read("eth_getBalance", [custody, tag]),
+        ]);
+        const raw = record(header);
+        if (
+          unsigned(raw.number, 64) !== block ||
+          typeof raw.hash !== "string" ||
+          !/^0x[0-9a-f]{64}$/.test(raw.hash) ||
+          typeof raw.parentHash !== "string"
+        )
+          throw new Error("Ethereum custody block unavailable");
+        return {
+          hash: raw.hash,
+          parent: raw.parentHash,
+          owner: v1NftAddress(erc721.decodeFunctionResult("ownerOf", String(owner))[0]),
+          balance: unsigned(balance).toString(),
+        };
+      }),
+    );
+    if (canonicalJson(facts[0]) !== canonicalJson(facts[1]))
+      throw new Error("Ethereum custody sources disagree");
+    return facts[0];
+  };
+  const [latest, previous] = await Promise.all([readBlock(height), readBlock(height - 1n)]);
+  if (latest.parent !== previous.hash) throw new Error("Ethereum custody blocks changed");
+  const confirmations = latest.owner !== custody ? 0 : previous.owner === custody ? 2 : 1;
+  if (!confirmations) return { confirmations, gasConfirmations: 0, gasShortfall: "0" };
+  const transfer = {
+    from: latest.owner,
+    to: nft.collection,
+    value: "0x0",
+    data: v1NftTransferData(nft, custody, nft.contributor),
+  };
+  const quotes = await Promise.all(
+    clients.map(async (rpc) => {
+      const [gas, price] = await Promise.all([
+        rpc.read("eth_estimateGas", [transfer]),
+        rpc.read("eth_gasPrice", []),
+      ]);
+      return { gas: unsigned(gas, 64), price: unsigned(price, 128) };
+    }),
+  );
+  const { gas, fee } = v1NftGasBudget(
+    quotes[0].gas > quotes[1].gas ? quotes[0].gas : quotes[1].gas,
+    quotes[0].price > quotes[1].price ? quotes[0].price : quotes[1].price,
+  );
+  const reserve = gas * fee;
+  const balance = BigInt(latest.balance);
+  return {
+    confirmations,
+    gasConfirmations: balance < reserve ? 0 : BigInt(previous.balance) >= reserve ? 2 : 1,
+    gasShortfall: (balance < reserve ? reserve - balance : 0n).toString(),
+  };
+}
+
+export async function readV1NftReturnIncluded(
+  nft: Pick<V1NftTerms, "collection" | "token_id" | "contributor">,
+  custody: string,
+  hash: string,
+  transport?: typeof fetch,
+) {
+  const topics = [
+    transferTopic,
+    "0x" + custody.slice(2).padStart(64, "0"),
+    "0x" + nft.contributor.slice(2).padStart(64, "0"),
+    toBeHex(BigInt(nft.token_id), 32),
+  ];
+  const blocks = await Promise.all(
+    nftEthereumSources.map(async (source) => {
+      const rpc = new ReadOnlyRpc(source, transport);
+      const result = await rpc.read("eth_getTransactionReceipt", [hash]);
+      if (!result) return null;
+      const receipt = record(result);
+      if (
+        receipt.transactionHash !== hash ||
+        receipt.status !== "0x1" ||
+        !Array.isArray(receipt.logs)
+      )
+        return null;
+      const found = receipt.logs
+        .map(record)
+        .some(
+          (log) =>
+            log.address === nft.collection &&
+            log.transactionHash === hash &&
+            log.blockHash === receipt.blockHash &&
+            log.blockNumber === receipt.blockNumber &&
+            log.removed === false &&
+            log.data === "0x" &&
+            canonicalJson(log.topics) === canonicalJson(topics),
+        );
+      if (!found) return null;
+      const block = record(await rpc.read("eth_getBlockByNumber", [receipt.blockNumber, false]));
+      return block.hash === receipt.blockHash &&
+        Array.isArray(block.transactions) &&
+        block.transactions.includes(hash)
+        ? receipt.blockHash
+        : null;
+    }),
+  );
+  return Boolean(blocks[0] && blocks[0] === blocks[1]);
 }
 
 const erc721 = new Interface([

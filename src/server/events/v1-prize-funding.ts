@@ -4,7 +4,7 @@ import { hasRole, mutate } from "../auth/mutations";
 import { AppFailure } from "../http/security";
 import { matchesV1Terms, readV1Snapshot, type V1Snapshot } from "../protocol/v1-escrow";
 import { prepareV1WalletPayment } from "../protocol/v1-wallet-payment";
-import { readV1NftHolding, v1NftCustody } from "../protocol/v1-nft";
+import { readV1NftCustodyProgress, v1NftCustody } from "../protocol/v1-nft";
 import { record } from "../protocol/quote-signature";
 import {
   ownedV1Sponsor,
@@ -95,7 +95,7 @@ export async function confirmV1PrizeFunding(
   eventId: string,
   revision: number,
   read: typeof readV1Snapshot = readV1Snapshot,
-  holding: typeof readV1NftHolding = readV1NftHolding,
+  progress: typeof readV1NftCustodyProgress = readV1NftCustodyProgress,
 ) {
   const state = await readV1PublicationState(pool, session, eventId, revision, key);
   if (state.state !== "awaiting_prize") return { eventId, state: state.state };
@@ -124,6 +124,15 @@ export async function confirmV1PrizeFunding(
       ).rows[0];
       if (row.transaction_state !== "awaiting_prize")
         return { eventId, state: row.transaction_state as string };
+      if (
+        (
+          await client.query(
+            "SELECT 1 FROM app_v1_event_actions WHERE event_id=$1 AND kind='cancel' AND state<>'failed'",
+            [eventId],
+          )
+        ).rowCount
+      )
+        throw new AppFailure(409, "This event is being cancelled. Check its original status.");
       const full = { ...event, ...row } as V1PublicationRow;
       const image = storedV1Publication(key, full);
       requirePrizeEvent(source, full, image.terms);
@@ -134,10 +143,16 @@ export async function confirmV1PrizeFunding(
         );
       if (image.terms.nft) {
         const custody = v1NftCustody(record(source.event!.nft));
-        if ((await holding(image.terms.nft)).owner !== custody)
+        const observed = await progress(image.terms.nft, custody).catch(() => null);
+        if (!observed)
+          throw new AppFailure(
+            503,
+            "Ethereum custody status is unavailable. Check NFT custody and delivery again in a moment.",
+          );
+        if (observed.confirmations < 2 || observed.gasConfirmations < 2)
           throw new AppFailure(
             409,
-            "The NFT has not reached its contract-derived Ethereum custody address.",
+            "Wait for two Ethereum confirmations of the NFT and return gas, then check NFT custody and delivery. You can track the original transfers in your wallet.",
           );
       }
       await client.query(

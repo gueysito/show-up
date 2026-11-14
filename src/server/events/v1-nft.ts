@@ -11,6 +11,8 @@ import { ReadOnlyRpc, unsigned } from "../protocol/rpc";
 import { readV1Record } from "../protocol/v1-escrow";
 import {
   readV1NftHolding,
+  readV1NftCustodyProgress,
+  readV1NftReturnIncluded,
   prepareV1NftTransfer,
   v1NftCustody,
   v1NftTransferData,
@@ -58,7 +60,13 @@ export async function readV1NftState(
   eventId: string,
   transport?: typeof fetch,
 ) {
-  const { nft, live, snapshot } = await ownedV1Nft(pool, config, session, eventId, transport),
+  const { nft, live, snapshot, publicationPending } = await ownedV1Nft(
+      pool,
+      config,
+      session,
+      eventId,
+      transport,
+    ),
     custody = live.custody ? v1NftCustody(live) : null,
     holding = await readV1NftHolding(nft, transport),
     delivery = (
@@ -72,7 +80,28 @@ export async function readV1NftState(
         "SELECT purpose,source_hash FROM app_v1_nft_wallet_payments WHERE event_id=$1",
         [eventId],
       )
-    ).rows;
+    ).rows,
+    releaseQueued =
+      (
+        await pool.query(
+          "SELECT 1 FROM app_v1_event_actions WHERE event_id=$1 AND kind='nft_release' AND state IN ('requested','prepared','submitted')",
+          [eventId],
+        )
+      ).rowCount !== 0;
+  const status = String(snapshot.event!.status);
+  const needsGas =
+    custody &&
+    !live.request &&
+    !releaseQueued &&
+    ["draft", "cancelled", "settled"].includes(status);
+  const [progress, returnIncluded] = await Promise.all([
+    needsGas ? readV1NftCustodyProgress(nft, custody, transport).catch(() => null) : null,
+    custody && status === "cancelled" && delivery?.state === "submitted"
+      ? readV1NftReturnIncluded(nft, custody, delivery.transaction_hash, transport).catch(
+          () => false,
+        )
+      : false,
+  ]);
   return {
     collection: nft.collection,
     tokenId: nft.token_id,
@@ -80,7 +109,11 @@ export async function readV1NftState(
     custody,
     owner: holding.owner,
     held: Boolean(custody && holding.owner === custody),
-    status: String(snapshot.event!.status),
+    status,
+    progress,
+    returnIncluded,
+    releaseQueued,
+    publicationPending,
     signatureState: live.request ? String(record(live.request).state) : null,
     delivery: delivery?.state ?? null,
     transactionUrl: delivery ? `https://etherscan.io/tx/${delivery.transaction_hash}` : null,

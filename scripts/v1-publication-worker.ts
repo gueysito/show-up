@@ -140,9 +140,13 @@ export function v1PublicationGateway(): V1PublicationGateway {
             deposit: "0",
           });
         } else {
-          if (holding.owner !== v1NftCustody(record(snapshot.event!.nft)))
-            throw new Error("NFT custody not confirmed on Ethereum");
-          await prepareV1NftTransfer(image.terms.nft, holding.owner, image.terms.nft.contributor);
+          if (holding.owner !== v1NftCustody(record(snapshot.event!.nft))) return null;
+          try {
+            await prepareV1NftTransfer(image.terms.nft, holding.owner, image.terms.nft.contributor);
+          } catch (error) {
+            if (error instanceof AppFailure && error.status === 422) return null;
+            throw error;
+          }
           selected = [
             {
               kind: "call",

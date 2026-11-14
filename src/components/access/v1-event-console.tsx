@@ -13,6 +13,7 @@ type View = {
     transactionUrl: string | null;
   } | null;
   status: string;
+  hasNft?: boolean;
   code?: string | null;
   codeExpiresAt?: string | null;
   startsAt?: number;
@@ -179,7 +180,7 @@ export function V1EventConsole({
   );
   return (
     <section
-      className="saved-panel"
+      className={host ? "saved-panel host-event-controls" : "saved-panel"}
       aria-label={host ? "Host mainnet controls" : "Check-in and receipt"}
       style={{ overflowWrap: "anywhere" }}
     >
@@ -221,6 +222,13 @@ export function V1EventConsole({
         <>
           {host ? (
             <>
+              {view.status === "cancelled" && (
+                <JourneyStatus tone="confirmed" title="Event cancelled">
+                  {view.hasNft
+                    ? "To send the prize back, open the Ethereum NFT prize panel and select Return NFT to contributor."
+                    : "Attendees can withdraw any refundable deposits from their receipts."}
+                </JourneyStatus>
+              )}
               {view.status === "published" && active && (
                 <>
                   <p>
@@ -236,6 +244,9 @@ export function V1EventConsole({
                   >
                     Show a fresh check-in code
                   </button>
+                  {now < (view.startsAt ?? 0) && !closing && (
+                    <p>Check-in codes and settlement become available when the event starts.</p>
+                  )}
                   {view.code && view.codeExpiresAt && Date.parse(view.codeExpiresAt) > now && (
                     <p>
                       <strong
@@ -261,6 +272,7 @@ export function V1EventConsole({
                     />
                     I understand what happens to check-in and deposits.
                   </label>
+                  {!closeConsent && !closing && <p>Tick the checkbox to enable cancellation.</p>}
                   <button
                     type="button"
                     disabled={busy || closing || !closeConsent || now < (view.startsAt ?? 0)}

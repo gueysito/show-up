@@ -47,8 +47,8 @@ test("preauthenticated fixtures: admin invitation, host redemption and isolated 
     const draft = validDraft();
     await host.getByLabel("Event name", { exact: true }).fill("Invited host draft");
     await host.getByLabel("Session URL", { exact: true }).fill(draft.sessionReference);
-    await host.getByLabel("Planned start (UTC)", { exact: true }).fill(draft.startsAt.slice(0, 16));
-    await host.getByLabel("Planned end (UTC)", { exact: true }).fill(draft.endsAt.slice(0, 16));
+    await host.getByLabel("Planned start", { exact: true }).fill(draft.startsAt.slice(0, 16));
+    await host.getByLabel("Planned end", { exact: true }).fill(draft.endsAt.slice(0, 16));
     await host.getByLabel("Planned sponsor budget (USDC)", { exact: true }).fill("100");
     await expect(host.getByRole("button", { name: /Add optional question/ })).toHaveCount(0);
     await save.click();
@@ -167,7 +167,7 @@ test("published engineering fixture locks material terms and permits only a desc
     await page.goto("/host");
     await page.getByRole("button", { name: new RegExp(`${draft.title} Published`) }).click();
     await expect(page.getByLabel("Capacity", { exact: true })).toBeDisabled();
-    await expect(page.getByLabel("Planned start (UTC)", { exact: true })).toBeDisabled();
+    await expect(page.getByLabel("Planned start", { exact: true })).toBeDisabled();
     await expect(page.getByText("Published terms", { exact: true })).toBeVisible();
     await page.getByLabel("Correct description only").fill("Harmless wording correction");
     await page.getByRole("button", { name: "Save description correction" }).click();

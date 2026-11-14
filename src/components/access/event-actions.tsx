@@ -63,6 +63,7 @@ export function EventActions({
   const [readiness, setReadiness] = useState<V1PublicationState | null>(null);
   const [wallets, setWallets] = useState<OwnWallet[]>([]);
   const [sponsorWalletId, setSponsorWalletId] = useState("");
+  const [nftReady, setNftReady] = useState(false);
   const hasPrize = (usdcAtomic(prize) ?? 0n) > 0n;
   const publicationPending = useRef<{
     operationId: string;
@@ -82,6 +83,31 @@ export function EventActions({
       .catch(() => {});
     return () => controller.abort();
   }, [id]);
+  const checkingPublication =
+    readiness && ["requested", "prepared", "submitted"].includes(readiness.state);
+  useEffect(() => {
+    if (!checkingPublication || dirty || busy) return;
+    const controller = new AbortController();
+    const timer = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/events?publication=${id}&revision=${revision}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const current: V1PublicationState = await response.json();
+        if (controller.signal.aborted) return;
+        setReadiness(current);
+        setStatus(null);
+      } catch {
+        // Keep the last known status while the next check runs.
+      }
+    }, 15000);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [busy, checkingPublication, dirty, id, revision]);
   async function checkPublication() {
     setBusy(true);
     setReadiness(null);
@@ -191,8 +217,10 @@ export function EventActions({
       );
       setStatus({
         tone: "checking",
-        title: "Publishing on NEAR",
-        text: "Prize receipt confirmed. Publication is queued; check status for the final transaction.",
+        title: nft ? "NFT publication queued" : "Publishing on NEAR",
+        text: nft
+          ? "Showup will publish on NEAR once Ethereum finality and return gas are verified. You can leave this page."
+          : "Prize receipt confirmed. Publication is queued. Check status for the final transaction.",
       });
     } catch (error) {
       setStatus({
@@ -308,9 +336,11 @@ export function EventActions({
                 <JourneyStatus
                   {...publicationStatus[readiness.state]}
                   title={
-                    readiness.state === "draft" && !readiness.canPublish
-                      ? "Review publication requirements"
-                      : publicationStatus[readiness.state].title
+                    nft && readiness.state === "requested" && readiness.nftPublicationQueued
+                      ? "NFT publication queued"
+                      : readiness.state === "draft" && !readiness.canPublish
+                        ? "Review publication requirements"
+                        : publicationStatus[readiness.state].title
                   }
                 >
                   {readiness.message}
@@ -337,7 +367,7 @@ export function EventActions({
                   <button
                     type="button"
                     className="secondary-button"
-                    disabled={busy}
+                    disabled={busy || (nft && !nftReady)}
                     onClick={confirmPrize}
                   >
                     Confirm prize and publish
@@ -347,9 +377,16 @@ export function EventActions({
               {readiness.transactionUrl && (
                 <p>
                   <a href={readiness.transactionUrl} target="_blank" rel="noopener noreferrer">
-                    View publication transaction
+                    {readiness.state === "awaiting_prize"
+                      ? "View NEAR escrow creation"
+                      : "View publication transaction"}
                   </a>
                 </p>
+              )}
+              {readiness.state === "verified" && (
+                <Link className="primary-button" href={`/events/${id}`}>
+                  Open published event
+                </Link>
               )}
             </section>
           )}
@@ -365,7 +402,7 @@ export function EventActions({
               </JourneyStatus>
             )
           )}
-          {nft && <V1NftPrize eventId={id} />}
+          {nft && <V1NftPrize eventId={id} onPublicationReady={setNftReady} />}
         </div>
       )}
       {state === "published" && (

@@ -9,8 +9,8 @@ async function fillDraft(page: Page, name = "Friday community room") {
   const draft = validDraft();
   await page.getByLabel("Event name", { exact: true }).fill(name);
   await page.getByLabel("Session URL", { exact: true }).fill(draft.sessionReference);
-  await page.getByLabel("Planned start (UTC)", { exact: true }).fill(draft.startsAt.slice(0, 16));
-  await page.getByLabel("Planned end (UTC)", { exact: true }).fill(draft.endsAt.slice(0, 16));
+  await page.getByLabel("Planned start", { exact: true }).fill(draft.startsAt.slice(0, 16));
+  await page.getByLabel("Planned end", { exact: true }).fill(draft.endsAt.slice(0, 16));
   await page.getByLabel("Planned sponsor budget (USDC)", { exact: true }).fill("100");
   return draft;
 }
@@ -201,7 +201,7 @@ test("timezone search updates preview and durable save details without moving UT
   await expect(zone).toHaveAttribute("list", "event-timezones");
   await expect(page.locator('#event-timezones option[value="America/Denver"]')).toHaveCount(1);
   await zone.fill("America/Denver");
-  await expect(page.getByLabel("Planned start (UTC)", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Planned start", { exact: true })).toHaveValue(
     draft.startsAt.slice(0, 16),
   );
   await page.getByRole("button", { name: "Validate & save draft" }).click();
@@ -214,7 +214,7 @@ test("timezone search updates preview and durable save details without moving UT
   await page.reload();
   await page.getByRole("button", { name: /Timezone proof Revision 1/ }).click();
   await expect(zone).toHaveValue("America/Denver");
-  await expect(page.getByLabel("Planned start (UTC)", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Planned start", { exact: true })).toHaveValue(
     draft.startsAt.slice(0, 16),
   );
 });
@@ -255,6 +255,27 @@ test("choice editor saves two through six choices, repairs selection and names i
   await errors.getByRole("link", { name: /Choice 2:/ }).click();
   await expect(page.getByLabel("Choice 2", { exact: true })).toBeFocused();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("Denver host enters local time and sees the same time in the event preview", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({ timezoneId: "America/Denver" });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${harnessOrigin}/workbench`);
+    const start = new Date(Date.now() + 86_400_000);
+    const [month, day, year] = start
+      .toLocaleDateString("en-US", { timeZone: "America/Denver" })
+      .split("/");
+    const input = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    await page.getByLabel("Planned start", { exact: true }).fill(`${input}T18:30`);
+    await page.getByLabel("Planned end", { exact: true }).fill(`${input}T19:30`);
+    await page.getByLabel("Event display timezone", { exact: true }).fill("America/Denver");
+    await expect(page.getByLabel("Event rules preview")).toContainText(/6:30\s*PM\s*(MDT|MST)/);
+  } finally {
+    await context.close();
+  }
 });
 
 test("conflict reload requires explicit discard and preserves the newer save", async ({

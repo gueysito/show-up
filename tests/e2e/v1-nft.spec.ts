@@ -77,6 +77,7 @@ test("synthetic NFT wallet approval fixes the asset and custody; a reload cannot
         delivery: null,
         transactionUrl: null,
         payments: [],
+        progress: { confirmations: 0, gasConfirmations: 0, gasShortfall: "1000000000000" },
       },
       data = `0x42842e0e${n.contributor.slice(2).padStart(64, "0")}${n.custody.slice(2).padStart(64, "0")}${BigInt(n.nft.token_id).toString(16).padStart(64, "0")}`;
     let approvals = 0;
@@ -137,13 +138,12 @@ test("synthetic NFT wallet approval fixes the asset and custody; a reload cannot
     const panel = page.getByRole("region", { name: "Ethereum NFT prize" });
     await panel.getByRole("button", { name: "Check NFT custody and delivery" }).click();
     await expect(panel).toContainText("Token #2829");
-    await expect(panel).toContainText("capped at 0.002 ETH plus its funding fee");
     await expect(
       panel.getByRole("button", { name: "Transfer this NFT into custody" }),
     ).toBeDisabled();
     await panel.getByRole("checkbox").check();
     await panel.getByRole("button", { name: "Transfer this NFT into custody" }).click();
-    await expect(panel.getByRole("status")).toContainText("Original transaction saved");
+    await expect(panel.getByText(/Original transaction saved/)).toBeVisible();
     expect(
       await page.evaluate(
         () => (window as Window & { showupSyntheticNftCalls?: unknown[] }).showupSyntheticNftCalls,
@@ -156,8 +156,21 @@ test("synthetic NFT wallet approval fixes the asset and custody; a reload cannot
     await panel.getByRole("button", { name: "Check NFT custody and delivery" }).click();
     await panel.getByRole("checkbox").check();
     await panel.getByRole("button", { name: "Transfer this NFT into custody" }).click();
-    await expect(panel.getByRole("status")).toContainText("wallet request already exists");
+    await expect(panel.getByText(/wallet request already exists/)).toBeVisible();
     expect(approvals).toBe(1);
+    view.progress = { confirmations: 1, gasConfirmations: 0, gasShortfall: "1000000000000" };
+    await panel.getByRole("button", { name: "Check NFT custody and delivery" }).click();
+    await expect(panel.getByText("NFT arrived in custody")).toBeVisible();
+    await expect(
+      panel.getByRole("button", { name: "Fund the custody gas allowance" }),
+    ).toBeVisible();
+    view.progress = { confirmations: 2, gasConfirmations: 2, gasShortfall: "0" };
+    await panel.getByRole("button", { name: "Check NFT custody and delivery" }).click();
+    await expect(panel.getByText("Ready to confirm and publish")).toBeVisible();
+    await expect(panel.getByRole("button", { name: "Fund the custody gas allowance" })).toHaveCount(
+      0,
+    );
+    await expect(panel.getByRole("checkbox")).toHaveCount(0);
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,

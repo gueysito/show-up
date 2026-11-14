@@ -40,6 +40,12 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.host-event-controls button:disabled {
+  opacity: 1;
+  color: #4e6057;
+  background: #e9ebe3;
+  border: 1px solid #aeb8ad;
+}
 :focus-visible {
   outline: 3px solid #637a36;
   outline-offset: 4px;

@@ -19,6 +19,7 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
+    timezoneId: "UTC",
     channel: process.env.SHOWUP_BROWSER_CHROME === "1" ? "chrome" : undefined,
     baseURL: "http://127.0.0.1:3102",
     trace: "retain-on-failure",

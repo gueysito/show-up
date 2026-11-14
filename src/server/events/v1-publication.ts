@@ -56,6 +56,7 @@ export type V1PublicationState = {
   canFund?: boolean;
   prizeUsdc?: string;
   fundingAddress?: string;
+  nftPublicationQueued?: boolean;
   nft?: { collection: string; tokenId: string; contributor: string } | null;
 };
 export type V1PublicationRow = {
@@ -312,13 +313,21 @@ export async function readV1PublicationState(
               ? "Unpublished event cancelled. Recover its funded prizes from the event controls."
               : state === "failed"
                 ? "Publication failed. The frozen request is retained; duplicate this event to start again."
-                : "Publication is queued or awaiting its original transaction. Check status without creating another request.";
+                : state === "requested" &&
+                    row.execution_phase === "publish" &&
+                    (event.data as EventDraft).nft
+                  ? "Showup will publish on NEAR once Ethereum finality and return gas are verified. You can leave this page."
+                  : "Publication is queued or awaiting its original transaction. Check status without creating another request.";
     return {
       eventId,
       revision,
       state,
       canPublish,
       message,
+      nftPublicationQueued:
+        state === "requested" &&
+        row?.execution_phase === "publish" &&
+        Boolean((event.data as EventDraft).nft),
       transactionUrl: row?.transaction_hash ? v1TransactionUrl(row.transaction_hash) : null,
       fundingWallets,
       canFund:

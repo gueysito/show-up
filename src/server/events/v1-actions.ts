@@ -80,7 +80,7 @@ export async function readV1ActionSnapshot(
   if (!isUuid(eventId)) throw new AppFailure(404, "Event unavailable.");
   const row = (
     await pool.query(
-      `SELECT p.*,e.owner_id,e.data,e.revision FROM app_publication_images p JOIN app_events e ON e.id=p.event_id WHERE p.event_id=$1 AND p.environment='near-mainnet-v1' AND p.transaction_state IN ('verified','awaiting_prize','cancelled','failed')`,
+      `SELECT p.*,e.owner_id,e.data,e.revision FROM app_publication_images p JOIN app_events e ON e.id=p.event_id WHERE p.event_id=$1 AND p.environment='near-mainnet-v1' AND (p.transaction_state IN ('verified','awaiting_prize','cancelled','failed') OR (p.execution_phase='publish' AND p.transaction_state IN ('requested','prepared','submitted')))`,
       [eventId],
     )
   ).rows[0] as (V1PublicationRow & { source_height: string }) | undefined;
@@ -101,7 +101,11 @@ export async function readV1ActionSnapshot(
     (floor && BigInt(snapshot.block.height) < BigInt(floor))
   )
     throw new Error("V1 event observation regressed");
-  return { snapshot, image };
+  return {
+    snapshot,
+    image,
+    publicationPending: ["requested", "prepared", "submitted"].includes(row.transaction_state),
+  };
 }
 async function hostEvent(
   client: pg.PoolClient,
@@ -319,6 +323,19 @@ export async function requestV1Close(
     "event.v1-close-requested",
     async (client, owner) => {
       await hostEvent(client, eventId, owner);
+      if (kind === "cancel" && snapshot.event!.status === "draft") {
+        const publication = (
+          await client.query(
+            "SELECT transaction_state FROM app_publication_images WHERE event_id=$1 FOR UPDATE",
+            [eventId],
+          )
+        ).rows[0];
+        if (["requested", "prepared", "submitted"].includes(publication?.transaction_state))
+          throw new AppFailure(
+            409,
+            "Publication is queued. Wait for its result before cancelling.",
+          );
+      }
       const other = (
         await client.query(
           "SELECT 1 FROM app_v1_event_actions WHERE event_id=$1 AND kind IN ('settle','cancel') AND kind<>$2 AND state<>'failed'",
@@ -651,6 +668,7 @@ export async function readV1HostState(
     eventId,
     title: (owner.data as { title: string }).title,
     status: String(snapshot.event!.status),
+    hasNft: Boolean(image.terms.nft),
     startsAt: Number(snapshot.event!.start_ms),
     endsAt: Number(snapshot.event!.end_ms),
     code:

@@ -20,8 +20,8 @@ test("explicit deletion erases only a cleared fictional account and authenticate
     const data = validDraft();
     await page.getByLabel("Event name", { exact: true }).fill("Fictional deletion draft");
     await page.getByLabel("Session URL", { exact: true }).fill(data.sessionReference);
-    await page.getByLabel("Planned start (UTC)", { exact: true }).fill(data.startsAt.slice(0, 16));
-    await page.getByLabel("Planned end (UTC)", { exact: true }).fill(data.endsAt.slice(0, 16));
+    await page.getByLabel("Planned start", { exact: true }).fill(data.startsAt.slice(0, 16));
+    await page.getByLabel("Planned end", { exact: true }).fill(data.endsAt.slice(0, 16));
     await page.getByLabel("Planned sponsor budget (USDC)", { exact: true }).fill("100");
     await page.getByRole("button", { name: "Validate & save draft" }).click();
     await page.getByRole("button", { name: "Close saved details" }).click();

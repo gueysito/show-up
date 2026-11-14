@@ -11,7 +11,7 @@ import { hash } from "../../src/server/auth/crypto";
 import { canonicalHash } from "../../src/server/protocol/canonical";
 import { encodeBase58 } from "../../src/server/protocol/encoding";
 import { readV1Snapshot, v1Deployment, type V1Snapshot } from "../../src/server/protocol/v1-escrow";
-import { readV1NftHolding, v1NftReleaseTransaction } from "../../src/server/protocol/v1-nft";
+import { v1NftReleaseTransaction } from "../../src/server/protocol/v1-nft";
 import { saveAccountDraft } from "../../src/server/events/accounts";
 import { prepareV1Publication } from "../../src/server/events/v1-publication";
 import { confirmV1PrizeFunding } from "../../src/server/events/v1-prize-funding";
@@ -208,6 +208,7 @@ test("NFT publication waits for actual custody; source hints cannot publish, and
       prepareV1NftWalletPayment(f.pool, f.config, f.sessions[0], f.id, "nft", f.transport),
       /original/,
     );
+    let progress = { confirmations: 1, gasConfirmations: 2, gasShortfall: "0" };
     const confirm = () =>
       confirmV1PrizeFunding(
         f.pool,
@@ -217,9 +218,9 @@ test("NFT publication waits for actual custody; source hints cannot publish, and
         f.id,
         1,
         async () => f.snapshot(),
-        (nft) => readV1NftHolding(nft, f.transport),
+        async () => progress,
       );
-    await assert.rejects(confirm(), /not reached/);
+    await assert.rejects(confirm(), /two Ethereum confirmations/);
     f.setOwner(f.custody);
     f.setPrice("0x59682f00"); // Observed 1.5-gwei Ethereum price after mainnet deposit.
     const gasTransport: typeof fetch = async (url, init) => {
@@ -245,7 +246,25 @@ test("NFT publication waits for actual custody; source hints cannot publish, and
       gasPayment,
       "a second click retains the original allowance and nonce",
     );
+    progress = { confirmations: 2, gasConfirmations: 1, gasShortfall: "0" };
+    await assert.rejects(confirm(), /two Ethereum confirmations/);
+    progress = { ...progress, gasConfirmations: 2 };
     await confirm();
+    let prepared = 0;
+    const waiting = {
+      ...f.publication,
+      async prepare() {
+        prepared++;
+        return null;
+      },
+    };
+    assert.equal((await runV1Publication(f.pool, f.key, waiting)).state, "waiting");
+    assert.equal((await runV1Publication(f.pool, f.key, waiting)).state, "idle");
+    assert.equal(prepared, 1);
+    await f.pool.query(
+      "UPDATE app_publication_images SET nft_publication_check_after=clock_timestamp() WHERE event_id=$1",
+      [f.id],
+    );
     await runV1Publication(f.pool, f.key, f.publication);
     const payout = await verifyNearWallet(
         f.pool,

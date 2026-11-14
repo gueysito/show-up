@@ -247,10 +247,8 @@ test("host funds one USDC prize, publishes actual terms and recovers the prize o
       await page
         .getByLabel("Session URL", { exact: true })
         .fill("https://example.com/showup-prize-verification");
-      await page
-        .getByLabel("Planned start (UTC)", { exact: true })
-        .fill(draft.startsAt.slice(0, 16));
-      await page.getByLabel("Planned end (UTC)", { exact: true }).fill(draft.endsAt.slice(0, 16));
+      await page.getByLabel("Planned start", { exact: true }).fill(draft.startsAt.slice(0, 16));
+      await page.getByLabel("Planned end", { exact: true }).fill(draft.endsAt.slice(0, 16));
       await page.getByLabel("Capacity", { exact: true }).fill("2");
       await page.getByLabel("Registration access", { exact: true }).selectOption("open");
       await page.getByLabel("Planned sponsor budget (USDC)", { exact: true }).fill("1");

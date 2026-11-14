@@ -353,16 +353,27 @@ of `f2dac03` passed HTTP, signed-out access, sign-in redirects and 320 px smoke 
 The [host controls rollout](https://railway.com/project/c96713df-35c0-442a-bd38-cb49b32abd19/service/de0c7406-f6f3-4d9e-a19f-fd771ed50c11?id=14d910db-b881-4f0f-b7fd-793fc08f2ed2)
 of `fcf150f` passed live copy, health, sign-in redirects and signed-out access
 checks. Build, 134 unit and six focused browser cases passed locally.
-The remaining V1 mainnet test is V1-7 NFT cancellation: publish with the NFT
-in custody, cancel and record the finalized Ethereum return to the contributor.
-Then finish the visual polish and GitHub Actions validation.
+V1-7 hosted cancellation passed on November 13. The host
+[published](https://nearblocks.io/txns/8t2qAebZK8m5AbeFmua34MLLgmahCrsvRwBAjK1WhQmg)
+and [cancelled](https://nearblocks.io/txns/HabugFVhzAQV9fhNYFxDGwEcqKK9q4fvdjqAK7B8uex6)
+with zero funded seats. Both Ethereum sources confirmed the finalized
+[return of BasedHeads #2829](https://etherscan.io/tx/0x8f19763e82b2f540c062c409b9039caa4ff655267aa7f8288ebd6fd266022e58)
+to the contributor. Initial custody took about 19 minutes to finalize.
+
+V1-9 walkthrough changes let the host queue publication after two providers
+agree that the NFT and sufficient return gas are present across two consecutive
+Ethereum blocks. The worker waits for finalized custody and checks return gas
+before publishing on NEAR. The host sees the next action, funding status, and
+tracking links, including an early return receipt and a separate final status.
+Funded custody hides gas controls. The host form accepts device-local event
+times and the controls explain when disabled actions become available.
 
 Tooling watch: npm audit reports eight moderate findings through the ESLint
 `minimatch` dependency, with no published fix; no high advisories. This dependency
 is development tooling, not a runtime publication/payment dependency.
 GitHub [run 42656124167](https://github.com/gueysito/show-up/actions/runs/42656124167)
 could not start `verify` or `contracts` because of account billing or the
-Actions spending limit. Finish NFT cancellation and visual polish before opening
+Actions spending limit. Finish visual polish before opening
 the release pull request. Resolve billing and require both checks to pass before
 merge approval.
 
@@ -510,6 +521,7 @@ below; the review's money-path evidence still applies to the identical artifact.
 | 2026-11-12 | NEAR | Allocate the existing demo principal and gas; restore escrow operating reserve | 1 USDC and 0.102 NEAR to each demo wallet, 0.05 NEAR to escrow, 0.000635818266409 NEAR combined gas | [USDC allocation](https://nearblocks.io/txns/EsehziKL8JERpHzfktjad3Re2ycnGbkBetLaYci2FUQR), [demo A gas](https://nearblocks.io/txns/8noc8TYgZNEGZ2EjGJy8WELAsTY51FdV21toVmWFfy7J), [demo B gas](https://nearblocks.io/txns/3ggsdJXDdbmrSjaqsnwd3r8b47zaKjBJEPvDjZCoPLsg), [reserve](https://nearblocks.io/txns/8Hd3eNoZDTUvnSggDpvt1j9BaEyA3kJRAKFyayzSSHSn) |
 | 2026-11-12 | NEAR | Fund and publish the hosted Desktop settlement test | 0.25 USDC prize funded by the selected host wallet and confirmed in escrow | [Prize payment](https://nearblocks.io/txns/95zEKZyBPJVbMEv1NiidmgBSGh1DBD2DJ116FX3juP7r), [publication](https://nearblocks.io/txns/3d4AAEC8NNyiLb4HZZos5PjmXjJs6S2Ff8bfgk9oK8eR) |
 | 2026-11-12 | Base → NEAR | First attendee deposit for the hosted Desktop settlement test | 1 USDC confirmed in escrow before registration closed | [Escrow receipt](https://nearblocks.io/txns/BqZmoTu7B2Zd9GR8xRDXpaDVQ2RS92zXDzuG1zcWk8CZ) |
+| 2026-11-13 | Ethereum | Hosted NFT cancellation and contributor return | 0.002 ETH funded to custody from the contributor, 0.000002952218929625 ETH return fee, 0.001997047781070375 ETH remains in custody for reconciliation | [NFT into custody](https://etherscan.io/tx/0x4157b21356de789663a5f5f8df64afa65bc73bd04f050ef6891977efa2a7ae58), [finalized return](https://etherscan.io/tx/0x8f19763e82b2f540c062c409b9039caa4ff655267aa7f8288ebd6fd266022e58) |
 
 Recovery inventory (2026-11-12, read-only): the six test receiving accounts hold
 0.12 NEAR total, of which 0.10908 is above account storage before fees, and zero

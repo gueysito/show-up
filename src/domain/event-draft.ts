@@ -122,8 +122,7 @@ export function validateDraft(
   }
   const start = instant(input.startsAt);
   const end = instant(input.endsAt);
-  if (!Number.isFinite(start) || start <= now)
-    errors.startsAt = "Choose a future start, as a UTC instant.";
+  if (!Number.isFinite(start) || start <= now) errors.startsAt = "Choose a future start time.";
   if (!Number.isFinite(end) || end - start < 30 * 60000 || end - start > 120 * 60000) {
     errors.endsAt = "Plan a duration of 30–120 minutes.";
   }

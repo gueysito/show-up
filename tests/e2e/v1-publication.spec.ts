@@ -19,8 +19,8 @@ test("the owning host queues publication once and saved terms stay locked across
     await expect(preview).not.toContainText("Attendee release before");
     await page.getByLabel("Event name", { exact: true }).fill("Queued V1 publication");
     await page.getByLabel("Session URL", { exact: true }).fill(draft.sessionReference);
-    await page.getByLabel("Planned start (UTC)", { exact: true }).fill(draft.startsAt.slice(0, 16));
-    await page.getByLabel("Planned end (UTC)", { exact: true }).fill(draft.endsAt.slice(0, 16));
+    await page.getByLabel("Planned start", { exact: true }).fill(draft.startsAt.slice(0, 16));
+    await page.getByLabel("Planned end", { exact: true }).fill(draft.endsAt.slice(0, 16));
     await page.getByRole("button", { name: "Validate & save draft" }).click();
     await expect(page.getByRole("status")).toContainText("Saved private draft");
     await page.getByRole("button", { name: "Close saved details" }).click();

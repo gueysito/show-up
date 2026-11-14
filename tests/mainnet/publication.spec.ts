@@ -44,8 +44,8 @@ test("preauthenticated test host publishes real mainnet terms through the app", 
     await page
       .getByLabel("Session URL", { exact: true })
       .fill("https://example.com/showup-local-verification");
-    await page.getByLabel("Planned start (UTC)", { exact: true }).fill(draft.startsAt.slice(0, 16));
-    await page.getByLabel("Planned end (UTC)", { exact: true }).fill(draft.endsAt.slice(0, 16));
+    await page.getByLabel("Planned start", { exact: true }).fill(draft.startsAt.slice(0, 16));
+    await page.getByLabel("Planned end", { exact: true }).fill(draft.endsAt.slice(0, 16));
     await page.getByLabel("Capacity", { exact: true }).fill("2");
     await page.getByLabel("Registration access", { exact: true }).selectOption("open");
     await page.getByRole("button", { name: "Validate & save draft" }).click();

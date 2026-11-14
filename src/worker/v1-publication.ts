@@ -19,7 +19,10 @@ export type SignedV1Publication = {
   phase?: V1PublicationPhase;
 };
 export type V1PublicationGateway = {
-  prepare: (image: V1PublicationImage, phase?: V1PublicationPhase) => Promise<SignedV1Publication>;
+  prepare: (
+    image: V1PublicationImage,
+    phase?: V1PublicationPhase,
+  ) => Promise<SignedV1Publication | null>;
   submit: (image: SignedV1Publication) => Promise<void>;
   final: (
     image: SignedV1Publication,
@@ -39,7 +42,9 @@ export async function runV1Publication(pool: pg.Pool, key: string, gateway: V1Pu
     const row = (
       await pool.query(`SELECT p.*,e.owner_id,e.data,e.revision FROM app_publication_images p
       JOIN app_events e ON e.id=p.event_id WHERE p.environment='near-mainnet-v1'
-      AND p.transaction_state IN ('requested','prepared','submitted') ORDER BY (p.transaction_state IN ('prepared','submitted')) DESC,p.created_at,p.event_id LIMIT 1`)
+      AND p.transaction_state IN ('requested','prepared','submitted')
+      AND (p.nft_publication_check_after IS NULL OR p.nft_publication_check_after <= clock_timestamp())
+      ORDER BY (p.transaction_state IN ('prepared','submitted')) DESC,p.created_at,p.event_id LIMIT 1`)
     ).rows[0] as V1PublicationRow | undefined;
     if (!row) return { state: "idle" };
     const image = storedV1Publication(key, row),
@@ -55,12 +60,22 @@ export async function runV1Publication(pool: pg.Pool, key: string, gateway: V1Pu
         );
         return { state: "failed", eventId };
       }
-      signed = await gateway.prepare(image, phase);
+      const prepared = await gateway.prepare(image, phase);
+      if (!prepared) {
+        if (phase !== "publish" || !image.terms.nft)
+          throw new Error("Unexpected NFT publication wait");
+        await pool.query(
+          "UPDATE app_publication_images SET nft_publication_check_after=clock_timestamp()+interval '30 seconds' WHERE event_id=$1 AND transaction_state='requested'",
+          [eventId],
+        );
+        return { state: "waiting", eventId };
+      }
+      signed = prepared;
       if (signed.semantic !== canonicalHash(image.terms))
         throw new Error("V1 signed terms mismatch");
       await pool.query(
         `UPDATE app_publication_images SET transaction_state='prepared',transaction_hash=$2,
-        encrypted_transaction=$3 WHERE event_id=$1 AND transaction_state='requested'`,
+        encrypted_transaction=$3,nft_publication_check_after=NULL WHERE event_id=$1 AND transaction_state='requested'`,
         [eventId, signed.hash, seal(key, context, signed)],
       );
       row.transaction_state = "prepared";

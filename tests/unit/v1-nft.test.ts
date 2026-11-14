@@ -10,6 +10,7 @@ import {
   v1NftReleaseTransaction,
   signedV1NftRelease,
   readV1NftHolding,
+  readV1NftCustodyProgress,
   prepareV1NftTransfer,
   v1NftGasBudget,
 } from "../../src/server/protocol/v1-nft";
@@ -18,6 +19,40 @@ import { v1DraftTerms } from "../../src/server/events/v1-publication";
 import { v1NftMaximumGasWei } from "../../src/domain/v1-nft-budget";
 import { validDraft } from "../fixtures/draft";
 import { randomUUID } from "node:crypto";
+
+test("NFT publication counts two shared blocks and stops on a reorg or a gas shortfall", async () => {
+  const f = v1NftFixture();
+  const abi = new Interface(["function ownerOf(uint256) view returns(address)"]);
+  const previousHash = "0x" + "11".repeat(32);
+  let previousOwner = f.contributor;
+  let previousBalance = "0x0";
+  let parentHash = previousHash;
+  const transport: typeof fetch = async (url, init) => {
+    const request = JSON.parse(String(init?.body));
+    const [value, block] = request.params;
+    let result: unknown;
+    if (request.method === "eth_getBlockByNumber")
+      result =
+        value === "0x63"
+          ? { number: "0x63", hash: previousHash, parentHash: "0x" + "10".repeat(32) }
+          : { ...f.block, parentHash };
+    else if (request.method === "eth_call")
+      result = abi.encodeFunctionResult("ownerOf", [block === "0x63" ? previousOwner : f.custody]);
+    else if (request.method === "eth_getBalance" && block === "0x63") result = previousBalance;
+    else return f.transport(url, init);
+    return Response.json({ jsonrpc: "2.0", id: request.id, result });
+  };
+  const check = () => readV1NftCustodyProgress(f.nft, f.custody, transport);
+  assert.deepEqual(await check(), { confirmations: 1, gasConfirmations: 1, gasShortfall: "0" });
+  previousOwner = f.custody;
+  previousBalance = "0x38d7ea4c68000";
+  assert.deepEqual(await check(), { confirmations: 2, gasConfirmations: 2, gasShortfall: "0" });
+  f.setBalance("0x0");
+  assert.equal((await check()).gasConfirmations, 0);
+  assert(BigInt((await check()).gasShortfall) > 0n);
+  parentHash = "0x" + "12".repeat(32);
+  await assert.rejects(check(), /blocks changed/);
+});
 
 test("NFT terms freeze one Ethereum ERC-721 while mutable custody state cannot change its collection, asset or contributor", () => {
   const f = v1NftFixture(),

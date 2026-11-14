@@ -9,7 +9,7 @@ Showup V1 publishes mainnet events, accepts deposits from NEAR, Base, Solana and
 - V1-4: Base, Solana and Ethereum each routed 1 USDC through Intents to escrow, showed a funded receipt and received a full NEAR cancellation refund. [Transactions](docs/plan.md#v1-evidence)
 - V1-5: host live code and confirmed attendee roster. [Check-in](https://nearblocks.io/txns/HJcPUxbvvigcCnQpNWtZ7X3SdApbVaDTEJvuFhYtm1wM)
 - V1-6: two 1-USDC deposits and a 0.25-USDC prize settled into a [2.25-USDC payout](https://nearblocks.io/txns/3DnWt7mZ31a3j2Q3RdVZ9JmZzADSsBLLUFGMiUmAY2pY).
-- V1-7: BasedHeads #2829 went to the locked winner's wallet, the attendee received a [full 1-USDC refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL), and the [test NFT returned](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) to the original sender. Cancellation is covered in sandbox.
+- V1-7: BasedHeads #2829 reached the locked winner's wallet. In a separate hosted cancellation, its [return to the contributor](https://etherscan.io/tx/0x8f19763e82b2f540c062c409b9039caa4ff655267aa7f8288ebd6fd266022e58) finalized on Ethereum.
 - After the engineering runs, both NEAR RPCs showed zero USDC in escrow, cumulative receipts and payouts of 14.25 USDC each, and 1.404853 USDC across the controller and its Intents balance. Allocation remains below $50.
 
 ## Phone pilot
@@ -39,10 +39,9 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   Its [full refund](https://nearblocks.io/txns/6USn7CJ2Czx2owgort7QdNCwKDRzF1mkfkygmJkQKToj)
   finalized on NEAR. The hosted navigation, Rabby-only payment and receipt changes
   passed smoke checks. The reserve and wallet changes are live on web and worker.
-- Next: publish a test event with an Ethereum NFT in custody, cancel it and
-  verify the NFT returns to the contributor. The earlier mainnet check-in and
-  settlement satisfy V1-5 and V1-6. A repeat funded Railway settlement is optional.
-- After the NFT test, finish the visual polish and check the updated host controls
+- The earlier mainnet check-in and settlement satisfy V1-5 and V1-6. A repeat
+  funded Railway settlement is optional.
+- Next: finish the visual polish and check the updated host controls
   and payout receipt in the browser. GitHub Actions billing blocked `verify` and
   `contracts`. Resolve billing and pass both checks on the release pull request.
   Merging requires owner approval.

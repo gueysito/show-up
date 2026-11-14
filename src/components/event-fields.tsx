@@ -1,5 +1,5 @@
 import type { EventDraft, DraftErrors } from "../domain/event-draft";
-import { Field, fromDateInput, toDateInput } from "./field";
+import { Field } from "./field";
 import { QuestionEditor } from "./question-editor";
 
 type Props = {
@@ -8,6 +8,17 @@ type Props = {
   errors: DraftErrors;
   change: <K extends keyof EventDraft>(key: K, value: EventDraft[K]) => void;
 };
+
+function localEventInput(value: string) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+function eventInstant(value: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : "";
+}
 
 export function DetailsFields({ draft, errors, change, v1 = false }: Props) {
   return (
@@ -107,28 +118,30 @@ export function DetailsFields({ draft, errors, change, v1 = false }: Props) {
         </Field>
       )}
       <div className="field-grid">
-        <Field name="startsAt" label="Planned start (UTC)" errors={errors}>
-          {(attrs) => (
-            <input
-              {...attrs}
-              type="datetime-local"
-              value={toDateInput(draft.startsAt)}
-              onChange={(e) => change("startsAt", fromDateInput(e.target.value))}
-            />
-          )}
-        </Field>
         <Field
-          name="endsAt"
-          label="Planned end (UTC)"
-          hint="30–120 minutes after start."
+          name="startsAt"
+          label="Planned start"
+          hint="Enter the time in your device’s timezone."
           errors={errors}
         >
           {(attrs) => (
             <input
               {...attrs}
               type="datetime-local"
-              value={toDateInput(draft.endsAt)}
-              onChange={(e) => change("endsAt", fromDateInput(e.target.value))}
+              suppressHydrationWarning
+              value={localEventInput(draft.startsAt)}
+              onChange={(e) => change("startsAt", eventInstant(e.target.value))}
+            />
+          )}
+        </Field>
+        <Field name="endsAt" label="Planned end" hint="30–120 minutes after start." errors={errors}>
+          {(attrs) => (
+            <input
+              {...attrs}
+              type="datetime-local"
+              suppressHydrationWarning
+              value={localEventInput(draft.endsAt)}
+              onChange={(e) => change("endsAt", eventInstant(e.target.value))}
             />
           )}
         </Field>
@@ -136,7 +149,7 @@ export function DetailsFields({ draft, errors, change, v1 = false }: Props) {
       <Field
         name="timeZone"
         label="Event display timezone"
-        hint="IANA name, such as America/Denver. Preview converts UTC instants into this timezone."
+        hint="Choose how event times appear to attendees and in the preview."
         errors={errors}
       >
         {(attrs) => (
@@ -285,7 +298,7 @@ export function ParticipationFields({ draft, errors, change, v1 = false }: Props
           <h2>{v1 ? "Optional prize" : "A little more participation"}</h2>
           <p>
             {v1
-              ? "Fund a USDC prize from your verified NEAR wallet before publication. Ethereum NFT custody is not available yet."
+              ? "Add a USDC prize or an Ethereum NFT. After saving, Showup guides you through funding before publication."
               : "Optional questions. Extra upside, never a condition for principal."}
           </p>
         </div>

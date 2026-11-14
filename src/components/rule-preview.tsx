@@ -68,7 +68,7 @@ export function RulePreview({
       <div className="preview-section">
         <h3>Attendance windows</h3>
         <p className="preview-note">
-          {`Displayed in ${draft.timeZone || "UTC"}. Schedule entry uses UTC.`}
+          {`Displayed in ${draft.timeZone || "UTC"}. Enter event times in your device’s timezone.`}
         </p>
         <dl className="timeline">
           {(

@@ -21,8 +21,8 @@ test("preauthenticated staff: explicit event assignment, revision conflicts, rem
     await page
       .getByLabel("Venue and proof instructions", { exact: true })
       .fill("Fictional venue; staff inspect a personal QR.");
-    await page.getByLabel("Planned start (UTC)", { exact: true }).fill(draft.startsAt.slice(0, 16));
-    await page.getByLabel("Planned end (UTC)", { exact: true }).fill(draft.endsAt.slice(0, 16));
+    await page.getByLabel("Planned start", { exact: true }).fill(draft.startsAt.slice(0, 16));
+    await page.getByLabel("Planned end", { exact: true }).fill(draft.endsAt.slice(0, 16));
     await page.getByLabel("Planned sponsor budget (USDC)", { exact: true }).fill("100");
     await page.getByRole("button", { name: "Validate & save draft" }).click();
     await expect(

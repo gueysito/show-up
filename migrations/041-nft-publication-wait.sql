@@ -1,0 +1,1 @@
+ALTER TABLE app_publication_images ADD COLUMN nft_publication_check_after timestamptz;

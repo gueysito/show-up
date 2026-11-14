@@ -37,8 +37,8 @@ closing and fixed-wallet payout receipts now work in the real app on mainnet: tw
 the checked-in attendee. Test USDC was restored in full. The Ethereum NFT prize
 flow also runs on mainnet: BasedHeads #2829 entered contract-derived custody and
 was [released to the winner's verified wallet](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f).
-The mobile receipt links to the finalized Ethereum transfer. NFT cancellation is
-covered by sandbox tests.
+The mobile receipt links to the finalized Ethereum transfer. A hosted cancellation
+also [returned the NFT to the contributor](https://etherscan.io/tx/0x8f19763e82b2f540c062c409b9039caa4ff655267aa7f8288ebd6fd266022e58).
 [Build and test it](docs/setup.md#v1-escrow-build).
 
 ## How V1 works
