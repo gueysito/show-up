@@ -66,6 +66,16 @@ export function SavedDrafts({
           </button>
         )}
       </div>
+      {saved.length === 0 && (
+        <div className="empty-state">
+          <p className="empty-state-title">{account ? "No events yet." : "No saved drafts yet."}</p>
+          <p>
+            {account
+              ? "Fill in the event details above, then save your first draft. Nothing is published or funded until you choose to publish."
+              : "Check your draft rules above to save a revision in this browser."}
+          </p>
+        </div>
+      )}
       <ul>
         {saved.map((item) => (
           <li key={item.id}>

@@ -42,7 +42,7 @@ test("the front door leads to real host access and a local V1 preview without fu
   await page.getByRole("link", { name: "Host an event", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Host access required" })).toBeVisible();
   await page.goto("/");
-  await page.getByRole("link", { name: "Explore the event rules" }).click();
+  await page.getByRole("link", { name: "Try it without a wallet" }).click();
   await expect(page).toHaveURL(/\/preview$/);
   await expect(page.getByLabel("Refundable commitment (USDC)", { exact: true })).toHaveValue("1");
   await page.getByLabel("Where we meet", { exact: true }).selectOption("physical");

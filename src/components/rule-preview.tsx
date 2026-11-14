@@ -1,4 +1,5 @@
 import { rulePreview, type EventDraft } from "../domain/event-draft";
+import { DotText } from "./dot-text";
 
 function time(value: number, zone: string) {
   if (!Number.isFinite(value)) return "Set event times";
@@ -41,7 +42,7 @@ export function RulePreview({
       </div>
       <h2>{draft.title || "Your next gathering"}</h2>
       <p className="preview-commitment">
-        {draft.commitment || "0"}
+        <DotText value={draft.commitment || "0"} />
         <span> USDC commitment</span>
       </p>
       <p>Show up and get your deposit back, less disclosed transaction fees.</p>
@@ -154,7 +155,7 @@ function V1RulePreview({ draft, state }: { draft: EventDraft; state: string }) {
       </div>
       <h2>{draft.title || "Your next gathering"}</h2>
       <p className="preview-commitment">
-        {draft.commitment || "0"}
+        <DotText value={draft.commitment || "0"} />
         <span> USDC commitment</span>
       </p>
       <p>Show up and get your deposit back, less disclosed transaction fees.</p>

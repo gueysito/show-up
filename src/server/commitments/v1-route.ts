@@ -92,6 +92,7 @@ function storedRoute(
 }
 function summary(route: V1Route) {
   return {
+    serverNow: Date.now(),
     network: route.network,
     inputAtomic: route.input,
     principalAtomic: route.principal,

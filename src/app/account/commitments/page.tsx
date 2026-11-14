@@ -193,10 +193,16 @@ export default async function CommitmentsPage({
                 )}
               </ul>
             ) : (
-              <p>
-                No deposits yet. If you deposited with a different Showup sign-in, switch to that
-                account to see its receipts.
-              </p>
+              <div className="empty-state">
+                <p className="empty-state-title">No deposits yet.</p>
+                <p>
+                  Open the invitation link your host shared to save a seat. If you deposited with a
+                  different Showup sign-in, switch to that account to see its receipts.
+                </p>
+                <Link className="secondary-button" href="/preview">
+                  See how deposits work
+                </Link>
+              </div>
             )}
           </section>
         )}

@@ -183,7 +183,7 @@ export async function rotateV1Code(
           new Date(expires),
         ],
       );
-      return { eventId, code, expiresAt: new Date(expires).toISOString() };
+      return { eventId, code, expiresAt: new Date(expires).toISOString(), serverNow: Date.now() };
     },
   );
 }
@@ -311,7 +311,7 @@ export async function requestV1Close(
   if (
     (snapshot.event!.status !== "published" &&
       !(kind === "cancel" && snapshot.event!.status === "draft")) ||
-    (kind === "settle" && snapshot.block.timestampMs < Number(snapshot.event!.start_ms))
+    (kind === "settle" && snapshot.block.timestampMs < Number(snapshot.event!.end_ms))
   )
     throw new AppFailure(409, "This event cannot close in its current state.");
   return mutate(
@@ -376,6 +376,13 @@ export async function enqueueV1Deadline(pool: pg.Pool, key: string, transport?: 
   ).rows[0];
   if (!candidate) return;
   const { snapshot, image } = await readV1ActionSnapshot(pool, key, candidate.id, transport);
+  if (["settled", "cancelled"].includes(String(snapshot.event!.status))) {
+    await pool.query(
+      "UPDATE app_events SET state=$2,updated_at=clock_timestamp() WHERE id=$1 AND state='published'",
+      [candidate.id, snapshot.event!.status === "settled" ? "closed" : "cancelled"],
+    );
+    return;
+  }
   if (snapshot.event!.status !== "published" || snapshot.block.timestampMs < image.terms.end_ms)
     return;
   return transaction(pool, async (client) => {
@@ -569,6 +576,7 @@ export async function readV1OwnReceipt(
   return {
     eventId,
     status: String(event.status),
+    serverNow: Date.now(),
     funded: registration!.funded === true,
     attended: registration!.attended === true,
     winner,
@@ -668,6 +676,7 @@ export async function readV1HostState(
     eventId,
     title: (owner.data as { title: string }).title,
     status: String(snapshot.event!.status),
+    serverNow: Date.now(),
     hasNft: Boolean(image.terms.nft),
     startsAt: Number(snapshot.event!.start_ms),
     endsAt: Number(snapshot.event!.end_ms),

@@ -11,7 +11,8 @@ USER node
 
 FROM tools AS production
 USER root
-RUN npm run build && chown -R node:node .next
+ARG SHOWUP_PUBLIC_ORIGIN=https://web-production-f1245d.up.railway.app
+RUN SHOWUP_PUBLIC_ORIGIN="$SHOWUP_PUBLIC_ORIGIN" npm run build && chown -R node:node .next
 USER node
 ENV NODE_ENV=production HOSTNAME=0.0.0.0
 EXPOSE 3100

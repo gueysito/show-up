@@ -174,7 +174,9 @@ async function handle(request: Request) {
         result = await confirmV1Deposit(database.pool, config, session.tokenHash, body.eventId);
       else throw new AppFailure(400, "Unknown deposit operation.");
     }
-    return Response.json(result, {
+    const timed =
+      result && typeof result === "object" ? { ...result, serverNow: Date.now() } : result;
+    return Response.json(timed, {
       headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" },
     });
   } catch (error) {

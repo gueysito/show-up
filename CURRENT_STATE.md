@@ -22,9 +22,11 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 
 ## Remaining
 
+- PR #3 settlement and recovery code fixes pass local checks and CI on `d47adb0`. The live contract still allows early settlement.
+  Upgrade and a small mainnet round trip remain pending; see the plan's review correction row.
+
 - V1-9: Rabby verification saved Base and Ethereum on Android Chrome and iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing on Base.
-- [Railway web](https://web-production-f1245d.up.railway.app) runs `ad6f41a` with
-  private Postgres. Home, health and account return HTTP 200. Both sign-in
+- [Railway web](https://web-production-f1245d.up.railway.app) uses private Postgres. Home, health and account return HTTP 200. Both sign-in
   redirects use the hosted callbacks, and the owner completed Google and
   Telegram sign-in. The private worker is online and passed its signer and
   database checks. Hosted NEAR Mobile wallet verification persisted after refresh.
@@ -41,7 +43,5 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   passed smoke checks. The reserve and wallet changes are live on web and worker.
 - The earlier mainnet check-in and settlement satisfy V1-5 and V1-6. A repeat
   funded Railway settlement is optional.
-- Next: finish the visual polish and check the updated host controls
-  and payout receipt in the browser. GitHub Actions billing blocked `verify` and
-  `contracts`. Resolve billing and pass both checks on the release pull request.
-  Merging requires owner approval.
+- The design refresh includes server-based countdowns, an absolute preview-image URL at build time, and attendee-specific progress on the event page. See the [follow-ups](docs/plan.md#v1-9-design-refresh-follow-ups) for verification and deferred invitation/message decisions.
+- Next: verify the refreshed web deployment and its preview URL after the combined release passes CI and merges. The contract upgrade and mainnet round trip remain separate pending work.

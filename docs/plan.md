@@ -113,6 +113,10 @@ is fully polished if it is blocked on an external step.
 
 ### V1 evidence
 
+| Review correction | State | Verification and next action |
+| --- | --- | --- |
+| PR #2 settlement and recovery | Code checks passed; deployment pending | Settlement now requires the published end in contract, API, worker and UI. Early cancellation returns principal. NFT delivery selects the release matching the signed request. Deadline scans reconcile externally closed events. 136 unit, 197 database, 11 V1 contract and three focused browser cases pass, along with format/lint/types, contract Clippy and production build. Both required [CI jobs](https://github.com/gueysito/show-up/actions/runs/43565836496) passed on `d47adb0`. The README discloses the specific early-settlement limitation beside the contract link. Mainnet deployment and its required small round trip remain pending; the live deployment hash stays pinned to the existing contract. |
+
 One concise row per package; distinguish local preparation from mainnet completion.
 
 | ID | Date | Evidence |
@@ -125,6 +129,7 @@ One concise row per package; distinguish local preparation from mainnet completi
 | V1-6 complete | 2026-11-05 | Host [settled](https://nearblocks.io/txns/Hs7qvG1cBaS6bz3DRF3F5ahY9FeayFXipLRNB19YJwsZ); the checked-in attendee [received 2.25 USDC](https://nearblocks.io/txns/3DnWt7mZ31a3j2Q3RdVZ9JmZzADSsBLLUFGMiUmAY2pY): 1 principal + 1 no-show share + 0.25 prize. Mobile receipt and both RPCs confirm payment; all test USDC [returned to the controller](https://nearblocks.io/txns/6k9qP6kY2tfr6D6MciATBRMiTmTHqpLHACBac2hHdVpS), escrow holds zero. Final browser assertion expected `0` instead of displayed `0.00`; corrected against the retained actual receipt without repeating payment. 116 unit/193 database/46 ordinary browser checks, build/code checks and focused retry/order cases pass. |
 | V1-7 mainnet winner journey verified | 2026-11-05 | BasedHeads #2829's [custody deposit](https://etherscan.io/tx/0xeba87b3b1e9402a8ccf6bc297b67366096f333a1aab3e0f860593b6acb28b261), [publication](https://nearblocks.io/txns/3sG2pnLF9vtNxM1hRn4aqTpxanem9XpwCeTH5EyiAJYb), [settlement](https://nearblocks.io/txns/C2zk79nrWpfUWUYHCNeZQgyFhiraEFkAdbrVaTL2vSEP), [1-USDC refund](https://nearblocks.io/txns/3H2BErLf6XE8mBJoyRrFiVtU3LBfHqC1wv7onbb4g4vL) and [winner delivery](https://etherscan.io/tx/0xbb8e8c5527abf7a94e01385c128457fc33b138be6fe15f90b1f75b2ba271475f) pass through the real mobile browser; the Etherscan link persists through submitted and delivered states. Same-account fee upgrades retain the custody key and pass real $1 refunds; the final artifact passes 11 V1 money-path cases, with 131 unit, six isolated database and focused browser checks. NFT cancellation is covered in sandbox. The subsequent [test-asset return](https://etherscan.io/tx/0xbd125a3c4546551197e568b8daec1ca4da7eb0d997163904d574700cfc9843a3) finalized back to the original sending wallet. |
 | V1-9 phone checks passed | 2026-11-05 | Home/preview and README describe the working loop. 48 ordinary browser cases and desktop/390/320 layouts pass. A clean clone at `5f51888` installs/builds with pinned Node 24.22.2/npm 11.19.1 and serves home/preview/health with HTTP 200. The approved [phone pilot](https://liable-pleat-maritime.ngrok-free.dev/account) passed Android Phantom, Rabby Base and Ethereum verification on Chrome and Safari, and NEAR Mobile [deposit](https://nearblocks.io/txns/CB3pNnuxYbK7k7xjP9GBHRwT8iY7Xdb1ycNGkRntxtsT) and [full refund](https://nearblocks.io/txns/6YzDCcH3vb7cKBtRkaiyntpg6hetBfAmDjTiqkq72ZCz). Permanent hosting, a hosted smoke test and merge validation remain. |
+| V1-9 design refresh | 2026-11-14 | One visual system across every page ([design reference](design.md)): self-hosted type, sand/ink/blue tokens, four labelled status tones, attendee journey strip, dot-matrix countdowns and live check-in code with a big-screen and read-aloud view, ticket receipts, empty states, home ticker and a site-wide link preview image. `npm run check`, the production build and the 53 ordinary browser cases pass, including desktop/390/320 layouts. Not yet deployed. [Follow-ups](#v1-9-design-refresh-follow-ups). |
 
 Hosted V1 baseline (2026-11-09): Railway deployed `c46e662` and applied the
 migrations to private Postgres. [Home](https://web-production-f1245d.up.railway.app)
@@ -328,7 +333,7 @@ the verified source account, reviewed amount, and original payment tracking.
 Open a published event as a summary card with its saved details. Put a prominent
 **Event controls** section directly below the details. Label the link **Event
 page** and show what the host can do there: check attendees, manage check-in and
-results, close and settle early, or cancel and make deposits available for refund.
+results, settle after the scheduled end, or cancel early and make deposits available for refund.
 Give hosts a clear path from **Account** to their published events.
 Improve contrast and plain-language guidance on the closing consent, including
 what happens to check-in and deposits. In the phone walkthrough the locked form,
@@ -451,6 +456,25 @@ or wrong senders remain rejected and must be prevented when binding a route. Thr
 failed NFT attempts still require an original signature or explicit operator recovery;
 retained full-access authority remains deliberate. Mainnet deployment is recorded
 below; the review's money-path evidence still applies to the identical artifact.
+
+### V1-9 design refresh follow-ups
+
+The design refresh includes the server and data follow-ups below. Deployment and
+chat-client verification remain separate from local checks.
+
+| # | Item | Where | What to do | Done when |
+| --- | --- | --- | --- | --- |
+| D1 | **Implemented: server time for countdowns** | `src/server/events/v1-actions.ts` (code result near line 186, host view near line 678), `src/components/access/live-code.tsx`, `src/components/access/countdown.tsx` | The live-code and quote countdowns subtract the device clock from the server's `expiresAt`. Return the server's current time with the host view and the code result (for example `serverNow`), and with the route quote. Have the two components count from that offset. | A device whose clock is two minutes wrong shows the same time left as a correct one. |
+| D2 | **Implemented; deploy check pending: absolute link preview URL** | `src/app/layout.tsx` (`metadataBase`), `Dockerfile` build stage | The preview image is `src/app/opengraph-image.png`. Chat apps need an absolute `og:image` URL. `metadataBase` reads `SHOWUP_AUTH_ORIGIN`, but the home page is prerendered at build time, when that variable is unset. Pass the public origin into the build, or resolve it at request time. | `curl` of the deployed home page shows `og:image` with the public `https://` origin, and a link pasted into a chat app shows the image. |
+| D3 | **Implemented: journey strip on the event page** | `src/server/events/entry.ts`, `src/app/events/[id]/page.tsx`, `src/components/access/journey-strip.tsx` | The strip appears on the deposit, check-in and receipt page, where funded and attended state already load. The event page only knows `hasV1Registration`. Add funded, attended and paid flags to `EventEntry` for the signed-in attendee, then render `JourneyStrip` with `attendeeJourney(...)`. | A funded attendee sees the same strip on the event page as on the deposit page. |
+| D4 | **Confirm how invitation links behave for a group** | `src/server/invitations/service.ts` | Every invitation is single-use: a second account gets "already redeemed by another account". Host invitations expire after 15 days. Sharing one link with several people does not work today. Decide whether a multi-use, time-limited host invitation is wanted; it changes access rules, so it needs its own review. | Decision recorded here; if built, one link grants host access to a set number of accounts and then closes. |
+| D5 | **Telegram message wording** | `src/server/telegram/` | When bot messages are enabled, open each with the tone mark and label from the [design reference](design.md#status-tones). Only sign-in is live today, so nothing changes yet. | Each sent message starts with one of the four marks. |
+
+D1–D3 evidence: 136 unit, 198 integration and 54 browser tests pass locally. The wallet-limit integration fixture resets its shared global test budget so earlier fixtures cannot mask the account-limit assertion. The production build emits the absolute Railway `og:image`; browser coverage passes with device clocks two minutes fast and slow; event-entry integration coverage verifies funded, attended and paid progress, attendee isolation and expired-session privacy. D2 still needs the deployed HTML/image check and a chat-client preview check. D4 remains a separate access decision; D5 waits for messages to be enabled.
+
+Later, not V1: dark mode; per-event link preview cards as a host opt-in (an event card
+exposes its name and time to chat-app servers, so it must stay off by default); a
+wallet-free demo mode that walks the full loop with simulated deposits.
 
 ### Mainnet spend ledger
 

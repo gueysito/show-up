@@ -1,5 +1,6 @@
 import { AppHeader } from "../../../components/app-header";
 import { JourneyStatus } from "../../../components/access/journey-status";
+import { JourneyStrip, attendeeJourney } from "../../../components/access/journey-strip";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
@@ -28,7 +29,14 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
   let event: EventEntry | null = null;
   try {
     const value = (await cookies()).get(sessionCookie)?.value;
-    event = await readEventEntry(pool, config, id, value ? hash(value) : undefined);
+    event = await readEventEntry(
+      pool,
+      config,
+      id,
+      value ? hash(value) : undefined,
+      undefined,
+      true,
+    );
   } catch (error) {
     if (error instanceof AppFailure && error.status === 404) notFound();
   } finally {
@@ -54,6 +62,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
           <EventTime instant={event.data.startsAt} timeZone={event.data.timeZone} />
           <p>{`${event.data.commitment} USDC deposit. Check in to get your deposit back.`}</p>
         </section>
+        {event.progress && <JourneyStrip steps={attendeeJourney(event.progress)} />}
         {event.escrow && event.canManage && (
           <section className="saved-panel">
             <JourneyStatus

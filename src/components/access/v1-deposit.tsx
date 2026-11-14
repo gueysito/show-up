@@ -7,6 +7,7 @@ import { V1RouteReview, type V1RouteSummary } from "./v1-route-review";
 import { NearWalletPaymentButton } from "./near-wallet-payment";
 import type { NearWalletPayment } from "./near-mobile-wallet";
 import { JourneyStatus, type JourneyTone } from "./journey-status";
+import { JourneyStrip, attendeeJourney } from "./journey-strip";
 
 type Status = {
   sourceNetwork?: string;
@@ -353,6 +354,14 @@ export function V1Deposit({
       aria-label="NEAR USDC deposit"
       style={{ overflowWrap: "anywhere" }}
     >
+      <JourneyStrip
+        steps={attendeeJourney({
+          registered: status?.state === "registered" || Boolean(status?.funded),
+          funded: Boolean(status?.funded),
+          attended: false,
+          paid: false,
+        })}
+      />
       {status?.funded ? (
         <JourneyStatus
           tone="confirmed"

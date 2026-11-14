@@ -237,8 +237,11 @@ test("local prize UI returns to its owned frozen event, ignores callback hashes 
     ).toBeVisible();
     const queued = actions.getByText("Publishing on NEAR", { exact: true });
     const pendingMotion = () =>
-      queued.evaluate((title) => getComputedStyle(title, "::before").animationName);
-    await expect.poll(pendingMotion).toBe("journey-pulse");
+      queued.evaluate((title) => {
+        const dot = title.closest(".journey-status")!.querySelector(".journey-dots i")!;
+        return getComputedStyle(dot).animationName;
+      });
+    await expect.poll(pendingMotion).toBe("journey-dot");
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect.poll(pendingMotion).toBe("none");
     await expect(queued).toBeVisible();

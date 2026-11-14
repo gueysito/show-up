@@ -145,13 +145,16 @@ impl V1 {
             .unwrap()
     }
     async fn advance(&self) {
+        self.advance_to(self.start).await;
+    }
+    async fn advance_to(&self, target: u64) {
         for _ in 0..8 {
             let current = self.worker.view_block().await.unwrap().timestamp() / 1_000_000;
-            if current >= self.start {
+            if current >= target {
                 return;
             }
             self.worker
-                .fast_forward((self.start - current).div_ceil(310) + 2)
+                .fast_forward((target - current).div_ceil(310) + 2)
                 .await
                 .unwrap();
         }
@@ -284,6 +287,28 @@ async fn v1_forfeitures_equal_split_draw_and_actual_usdc_payouts() {
         );
     }
     f.advance().await;
+    f.call("check_in", json!({"registration":"alice"})).await;
+    for caller in [&f.host, &f.carol] {
+        assert!(
+            caller
+                .call(f.escrow.id(), "settle")
+                .args_json(json!({"event":"settle"}))
+                .max_gas()
+                .transact()
+                .await
+                .unwrap()
+                .is_failure()
+        );
+    }
+    assert_eq!(
+        f.view("get_event", json!({"event":"settle"})).await["status"],
+        "published"
+    );
+    assert!(
+        f.view("get_claim", json!({"claim":"carol"}))
+            .await
+            .is_null()
+    );
     for id in ["alice", "bob"] {
         f.call("check_in", json!({"registration":id})).await;
     }
@@ -296,7 +321,16 @@ async fn v1_forfeitures_equal_split_draw_and_actual_usdc_payouts() {
             .unwrap()
             .is_failure()
     );
-    f.call("settle", json!({"event":"settle"})).await;
+    f.advance_to(f.start + 600_000).await;
+    f.carol
+        .call(f.escrow.id(), "settle")
+        .args_json(json!({"event":"settle"}))
+        .max_gas()
+        .transact()
+        .await
+        .unwrap()
+        .into_result()
+        .unwrap();
     let event = f.view("get_event", json!({"event":"settle"})).await;
     let winner = event["winner"].as_str().unwrap();
     assert!(winner == "alice" || winner == "bob");
@@ -352,6 +386,7 @@ async fn v1_no_attendees_refunds_every_principal_and_prize() {
     f.register("alice", "empty", &f.alice, &f.alice).await;
     f.fund(&f.alice, 1_000_000, "deposit:alice").await;
     f.advance().await;
+    f.advance_to(f.start + 600_000).await;
     f.call("settle", json!({"event":"empty"})).await;
     for id in ["alice", "prize:empty"] {
         f.call("withdraw", json!({"claim":id})).await;
@@ -423,6 +458,7 @@ async fn v1_nft_requests_match_independent_ethereum_images_for_winner_and_cancel
             f.advance().await;
             f.call("check_in", json!({"registration":"nft-alice"}))
                 .await;
+            f.advance_to(f.start + 600_000).await;
             f.call("settle", json!({"event":event})).await;
         } else {
             f.call("cancel", json!({"event":event})).await;
