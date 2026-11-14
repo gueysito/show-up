@@ -201,7 +201,7 @@ test("preauthenticated disposable wallets: control verification, refresh and mob
       await expect(page.getByText("Wallet saved", { exact: true })).toBeVisible();
       await expect(page.getByRole("status").locator("..")).toHaveCSS(
         "background-color",
-        "rgb(235, 244, 232)",
+        "rgb(220, 235, 213)",
       );
     }
     expect(wallet.signatures()).toBe(3);

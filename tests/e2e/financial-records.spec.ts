@@ -76,7 +76,7 @@ test("an attendee can open a paid refund from their account without live chain d
     await page.emulateMedia({ reducedMotion: "reduce" });
     const confirmation = receipt.getByRole("status").locator("..");
     await expect(confirmation).toHaveCSS("animation-name", "none");
-    await expect(confirmation).toHaveCSS("background-color", "rgb(235, 244, 232)");
+    await expect(confirmation).toHaveCSS("background-color", "rgb(220, 235, 213)");
     await expect(receipt).toContainText("sent to attendee-1.near on NEAR.");
     await expect(receipt.getByRole("link", { name: "View refund transaction" })).toHaveAttribute(
       "href",
