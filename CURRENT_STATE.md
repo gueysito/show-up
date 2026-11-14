@@ -41,6 +41,10 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
   passed smoke checks. The reserve and wallet changes are live on web and worker.
 - The earlier mainnet check-in and settlement satisfy V1-5 and V1-6. A repeat
   funded Railway settlement is optional.
+- The design refresh is on `design/visual-refresh` and not deployed: one visual
+  system across all pages, described in the [design reference](docs/design.md).
+  Its server and deploy [follow-ups](docs/plan.md#v1-9-design-refresh-follow-ups)
+  are open.
 - Next: finish the visual polish and check the updated host controls
   and payout receipt in the browser. GitHub Actions billing blocked `verify` and
   `contracts`. Resolve billing and pass both checks on the release pull request.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-14
+
+- Give every page one visual system: self-hosted type, a sand, ink and blue palette, and status boxes that pair color with a word and a symbol. Add an attendee progress strip, dot-matrix countdowns, a big-screen and read-aloud check-in code, ticket-style receipts, guided empty states and a link preview image.
+
 ## 2026-11-13
 
 - Bring Showup V1 to the default branch with mainnet event publication, deposits from four networks, live check-in, settlement, and USDC and Ethereum NFT prizes.
