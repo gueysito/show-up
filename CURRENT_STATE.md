@@ -22,6 +22,9 @@ The [phone deposit test](https://liable-pleat-maritime.ngrok-free.dev/events/af0
 
 ## Remaining
 
+- PR #2 settlement and recovery code fixes pass local checks and CI on `d47adb0`. The live contract still allows early settlement.
+  Upgrade and a small mainnet round trip remain pending; see the plan's review correction row.
+
 - V1-9: Rabby verification saved Base and Ethereum on Android Chrome and iPhone Safari. On iPhone, the attendee used the system Back to Safari link after signing on Base.
 - [Railway web](https://web-production-f1245d.up.railway.app) runs `ad6f41a` with
   private Postgres. Home, health and account return HTTP 200. Both sign-in

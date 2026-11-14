@@ -279,12 +279,8 @@ impl EscrowV1 {
     pub fn settle(&mut self, event: String) {
         let item = self.events.get(&event).expect("Unknown event").clone();
         require!(
-            item.status == "published" && now() >= item.start_ms,
+            item.status == "published" && now() >= item.end_ms,
             "Cannot settle"
-        );
-        require!(
-            env::predecessor_account_id() == self.owner || now() >= item.end_ms,
-            "Host only before deadline"
         );
         let attended: Vec<_> = item
             .funded

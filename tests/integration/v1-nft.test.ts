@@ -410,8 +410,27 @@ test("an unpublished NFT event cancels privately, signs only its fixed contribut
       )
     ).rows[0];
     assert.equal(storedV1Action(f.key, row).nft!.recipient, f.contributor);
+    const failed = await runV1Action(f.pool, f.key, {
+      ...gateway,
+      submit: async () => {},
+      final: async () => ({ success: false, minimumHeight: "100", gasYoctoNear: "0" }),
+    });
+    assert.equal(failed.state, "failed");
+    f.setPrice("0x1312d00");
+    await requestV1NftAction(
+      f.pool,
+      f.config,
+      f.sessions[0],
+      randomUUID(),
+      f.id,
+      "nft_release",
+      f.transport,
+    );
     assert.equal((await runV1Action(f.pool, f.key, gateway)).state, "verified");
     const real = v1NftDeliveryGateway(f.pool, f.key, f.transport);
+    const recovered = await real.prepare(f.id);
+    assert.notEqual(recovered!.envelope.max_fee, storedV1Action(f.key, row).nft!.envelope.max_fee);
+    assert.equal(recovered!.recipient, f.contributor);
     let prepares = 0,
       sends = 0;
     const delivery = {

@@ -248,15 +248,15 @@ export function V1EventConsole({
                     Show a fresh check-in code
                   </button>
                   {now < (view.startsAt ?? 0) && !closing && (
-                    <p>Check-in codes and settlement become available when the event starts.</p>
+                    <p>Check-in codes become available when the event starts.</p>
                   )}
                   {view.code && view.codeExpiresAt && Date.parse(view.codeExpiresAt) > now && (
                     <LiveCode code={view.code} expiresAt={view.codeExpiresAt} now={now} />
                   )}
                   <JourneyStatus tone="action" title="Close or cancel the event">
-                    Closing ends check-in. Checked-in attendees get their deposit back and share
-                    no-show deposits. Cancelling makes attendee deposits refundable. Network fees
-                    still apply.
+                    Settlement is available after the scheduled end. Checked-in attendees get their
+                    deposit back and share no-show deposits. Cancelling makes attendee deposits
+                    refundable. Network fees still apply. To end early, cancel and return deposits.
                   </JourneyStatus>
                   <label className="consent-field">
                     <input
@@ -269,7 +269,7 @@ export function V1EventConsole({
                   {!closeConsent && !closing && <p>Tick the checkbox to enable cancellation.</p>}
                   <button
                     type="button"
-                    disabled={busy || closing || !closeConsent || now < (view.startsAt ?? 0)}
+                    disabled={busy || closing || !closeConsent || now < (view.endsAt ?? 0)}
                     onClick={() => void act("settle")}
                   >
                     Close and settle event
