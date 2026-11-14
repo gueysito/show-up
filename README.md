@@ -21,6 +21,14 @@ of the four chains, check in, settle, prize. See [current state](CURRENT_STATE.m
 exactly what works today and [the plan](docs/plan.md) for V1 progress and the V2 roadmap.
 The separate V1 contract is deployed at
 [`showup-dev-14989f.near`](https://nearblocks.io/address/showup-dev-14989f.near).
+
+**Early settlement protection pending deployment.** The live contract currently
+allows the authorized host to settle before the scheduled end, which can cause
+attendees who haven't checked in to forfeit their deposits. PR #3 adds a restriction
+that prevents settlement before the scheduled end and passes automated tests.
+Mainnet deployment and verification of this change are pending.
+[PR #3](https://github.com/gueysito/show-up/pull/3)
+
 Its reviewed money paths pass sandbox tests, and a manual mainnet 1-USDC deposit,
 cancellation and full refund succeeded; [transactions](docs/plan.md#v1-evidence).
 Host publication runs from the app into mainnet with or without a host-funded USDC

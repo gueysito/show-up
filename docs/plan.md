@@ -115,7 +115,7 @@ is fully polished if it is blocked on an external step.
 
 | Review correction | State | Verification and next action |
 | --- | --- | --- |
-| PR #2 settlement and recovery | Local checks passed; CI pending | Settlement now requires the published end in contract, API, worker and UI. Early cancellation returns principal. NFT delivery selects the release matching the signed request. Deadline scans reconcile externally closed events. 136 unit, 197 database, 11 V1 contract and three focused browser cases pass, along with format/lint/types, contract Clippy and production build. Mainnet deployment and its required small round trip remain pending; the live deployment hash stays pinned to the existing contract. |
+| PR #2 settlement and recovery | Code checks passed; deployment pending | Settlement now requires the published end in contract, API, worker and UI. Early cancellation returns principal. NFT delivery selects the release matching the signed request. Deadline scans reconcile externally closed events. 136 unit, 197 database, 11 V1 contract and three focused browser cases pass, along with format/lint/types, contract Clippy and production build. Both required [CI jobs](https://github.com/gueysito/show-up/actions/runs/43565836496) passed on `d47adb0`. The README discloses the specific early-settlement limitation beside the contract link. Mainnet deployment and its required small round trip remain pending; the live deployment hash stays pinned to the existing contract. |
 
 One concise row per package; distinguish local preparation from mainnet completion.
 
